@@ -1,0 +1,140 @@
+{
+  "name": "artroom",
+  "version": "1.0.3",
+  "private": false,
+  "icon": "./icon.ico",
+  "dependencies": {
+    "@chakra-ui/popover": "2.0.4",
+    "@chakra-ui/react": "^2.2.4",
+    "@electron/remote": "^1.0.2",
+    "@emotion/react": "^11.10.4",
+    "@emotion/styled": "^11.10.4",
+    "@reduxjs/toolkit": "^1.9.1",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@toast-ui/react-image-editor": "^3.15.2",
+    "@uiw/react-color": "^1.1.0",
+    "axios": "^0.27.2",
+    "del-cli": "^5.0.0",
+    "electron-is-dev": "^1.2.0",
+    "electron-log": "^4.4.8",
+    "electron-updater": "^5.2.1",
+    "file-saver": "^2.0.5",
+    "formik": "^2.2.9",
+    "framer-motion": "^4.1.17",
+    "python-shell": "^3.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.4.0",
+    "react-joyride": "^2.5.3",
+    "react-konva": "^18.2.3",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "4.0.1",
+    "react-select": "^5.4.0",
+    "react-sketch-canvas": "^6.2.0",
+    "react-textarea-autosize": "^8.3.4",
+    "recoil": "^0.7.5",
+    "secure-electron-store": "^4.0.2",
+    "styled-components": "^5.3.6",
+    "tree-kill": "^1.2.2",
+    "typescript": "^4.9.3",
+    "web-vitals": "^0.2.4"
+  },
+  "main": "public/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "delete": "del-cli --force dist && del-cli --force build",
+    "electron:serve": "concurrently -k \"cross-env BROWSER=none yarn start\" \"yarn electron:start\"",
+    "electron:build": "yarn delete && yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
+    "electron:deploy": "yarn delete && yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
+    "electron:start": "wait-on tcp:3000 && electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/artmamedov/artroom-stable-difusion.git"
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.example.Artroom",
+    "productName": "Artroom",
+    "win": {
+      "publish": [
+        {
+          "provider": "github",
+          "owner": "artmamedov",
+          "repo": "artroom-stable-diffusion"
+        }
+      ],
+      "target": "nsis",
+      "icon": "./icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "runAfterFinish": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerHeaderIcon": "./icon.ico",
+      "allowToChangeInstallationDirectory": true,
+      "include": "./custom_nsis.nsh"
+    },
+    "files": [
+      "dist/**/*",
+      "build/**/*",
+      "public/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "extraFiles": [
+      "icon.ico",
+      "miniconda.exe",
+      "artroom_helpers/**/*",
+      "stable-diffusion/**/*",
+      "!stable-diffusion/models/ldm/stable-diffusion-v1/**/*",
+      "!stable-diffusion/src/**/*",
+      "py_cuda_install.exe",
+      "py_cuda_install_debug.exe",
+      "sd_settings.json",
+      "model_downloader.json",
+      "server.py",
+      "safe.py",
+      "stable_diffusion.py",
+      "upscale.py",
+      "queue_manager.py"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "concurrently": "^5.3.0",
+    "cross-env": "^7.0.3",
+    "electron": "^11.2.1",
+    "electron-builder": "^23.1.0",
+    "prettier": "^2.2.1",
+    "wait-on": "^5.2.1"
+  }
+}

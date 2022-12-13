@@ -1,0 +1,73 @@
+html{
+    user-select: none;
+}
+
+#menu-bar {
+    z-index: 999;
+    top: 0;
+    position: sticky;
+    align-self: flex-start; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 30px;
+    background: #080B16;
+    -webkit-app-region: drag;
+}
+
+#menu-bar > div {
+    height: 100%;
+    display: flex;
+    position: sticky;
+    align-self: flex-start; 
+    justify-content: space-between;
+    align-items: center;
+}
+
+.left{
+ padding: 10px;
+}
+
+.menubar-btn {
+    -webkit-app-region: no-drag;
+    height: 100%;
+    padding: 0 15px;
+    border: none;
+    background: transparent;
+    outline: none;
+}
+
+button:hover {
+    background: rgba(221, 221, 221, 0.2);
+}
+
+#close-btn:hover {
+    background: rgb(255, 0, 0);
+}
+
+button i {
+    color: white;
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #182138;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #080B16;
+    border-radius: 2px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #080B16;
+    border-radius: 2px;
+} 
+
