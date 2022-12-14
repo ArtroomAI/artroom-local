@@ -12,22 +12,77 @@ import {
     Link,
     FormControl,
     InputRightElement,
+    FormHelperText,
+    Text,
     Image,
-    HStack,
 } from '@chakra-ui/react';
 import Select from 'react-select'
 import { FaUserAlt, FaLock, FaEye, FaEyeSlash} from 'react-icons/fa';
 import {IoIosMail} from 'react-icons/io'
 import Logo from '../../images/ArtroomLogo.png';
+import validator from 'validator'
 
 const SignUp = ({setSignUp}) => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    
+    const [month, setMonth] = useState({});
+    const [day, setDay] = useState({});
+    const [year, setYear] = useState({});
+
     const [showPassword, setShowPassword] = useState(false);
     const handleShowClick = () => setShowPassword(!showPassword);
     
+    const [usernameUnique, setUsernameUnique] = useState(true);
+    const [emailValid, setEmailValid] = useState(true);
+    const [emailUnique, setEmailUnique] = useState(true);
+    const [passwordValid, setPasswordValid] = useState(true);
+    const [above13, setAbove13] = useState(true);
+
+    const checkValidEmail = () => {
+        let isEmailValid = validator.isEmail(email) && email.length <= 100;
+        setEmailValid(isEmailValid);
+        return isEmailValid;    
+    }
+
+    const checkValidPassword = () => {
+        let isPasswordValid = validator.isStrongPassword(password, {
+                                    minLength: 8, minNumbers: 1, minSymbols: 1}) && password.length <= 100;
+        setPasswordValid(isPasswordValid);
+        return isPasswordValid;
+    }
+
+    const checkUniqueUsername = () => {
+        return true;
+        let isUsernameUnique = validator.isStrongPassword(username, {
+                                    minLength: 8, minNumbers: 1, minSymbols: 1}) && username.length <= 100;
+        setUsernameUnique(isUsernameUnique);
+        return isUsernameUnique;
+    }
+
+    const checkUniqueEmail = () => {
+        return true;
+        let isEmailUnique = validator.isStrongPassword(email, {
+                                    minLength: 8, minNumbers: 1, minSymbols: 1}) && email.length <= 100;
+        setEmailUnique(isEmailUnique);
+        return isEmailUnique;
+    }
+
+    const checkAbove13 = () => {
+        const birthday = new Date(parseInt(year.value), parseInt(month.value) - 1, parseInt(day.value));
+
+        // Get the current date
+        const now = new Date();
+        console.log(birthday, now)
+        let age = now.getFullYear() - birthday.getFullYear();
+        if (now.getMonth() < birthday.getMonth() || (now.getMonth() === birthday.getMonth() && now.getDate() < birthday.getDate())) {
+            age -= 1;
+        }
+
+        setAbove13(age >= 13);
+        return age >= 13;
+    }
+
     const months = [
         {label: 'January',  value: '01'},
         {label: 'February',  value: '02'},
@@ -58,7 +113,33 @@ const SignUp = ({setSignUp}) => {
       }
 
     function handleSignUp(){
-        setSignUp(false);
+        var today = new Date();
+        //Separate so they can all activate individually
+        let isValidEmail = checkValidEmail();
+        let isValidPassword = checkValidPassword();
+        let isUniqueEmail = checkUniqueEmail();
+        let isUniqueUsername = checkUniqueUsername();
+        let isAbove13 = checkAbove13();
+
+        if (isValidEmail && isValidPassword && isUniqueEmail && isUniqueUsername && isAbove13){
+            console.log(username)
+            console.log(email)
+            console.log(password)
+            console.log(month)
+            console.log(day)
+            console.log(year)
+            setSignUp(false);
+        }
+        else{
+            if (!checkValidEmail){
+                console.log('Invalid Email');
+                console.log(email);
+            }
+            if (!checkValidPassword){
+                console.log('Invalid Password');
+                console.log(password);
+            }
+        }
     }
 
     return(
@@ -85,6 +166,10 @@ const SignUp = ({setSignUp}) => {
                     boxShadow='md'
                 >
                     <FormControl>
+                        {!usernameUnique &&
+                            <FormHelperText textAlign='left'>
+                                <Text color='red.300'>Sorry, this username is taken.</Text>
+                            </FormHelperText>}
                         <InputGroup>
                         <InputLeftElement
                             pointerEvents='none'
@@ -92,15 +177,25 @@ const SignUp = ({setSignUp}) => {
                             children={<FaUserAlt color='gray.800' />}
                         />
                         <Input 
-                            borderColor= '#00000020' 
+                            borderColor = {usernameUnique ? '#00000020' : '#FF0000'} 
                             color='gray.800' 
                             type='text' 
                             placeholder='Username'
                             _placeholder={{ color: 'gray.400'}}
+                            value = {username}
+                            onChange = {(event)=>setUsername(event.target.value)}
                         />
                         </InputGroup>
                     </FormControl>
                     <FormControl>
+                        {!emailValid &&
+                        <FormHelperText textAlign='left'>
+                            <Text color='red.300'>Please enter a valid email</Text>
+                        </FormHelperText>}
+                        {!emailUnique &&
+                        <FormHelperText textAlign='left'>
+                            <Text color='red.300'>Sorry, this email has been taken.</Text>
+                        </FormHelperText>}
                         <InputGroup>
                         <InputLeftElement
                             pointerEvents='none'
@@ -108,16 +203,28 @@ const SignUp = ({setSignUp}) => {
                             children={<IoIosMail color='gray.800' />}
                         />
                         <Input 
-                            borderColor= '#00000020' 
+                            borderColor = {emailValid && emailUnique ? '#00000020' : '#FF0000'} 
                             color='gray.800' 
                             type='email' 
                             placeholder='Email Address'
                             _placeholder={{ color: 'gray.400'}}
+                            value = {email}
+                            onChange = {(event)=>{
+                                setEmailValid(true);
+                                setEmail(event.target.value)}
+                            }
                         />
                         </InputGroup>
                     </FormControl>
                     <FormControl>
-                <InputGroup>
+                        {!passwordValid &&
+                            <FormHelperText textAlign='left'>
+                                <Text color='red.300'>Please enter a valid password. </Text>
+                                <Text color='red.300'>
+                                    Must at least 8 characters and include a number, and a symbol
+                                </Text>
+                            </FormHelperText>}
+                        <InputGroup>
                     <InputLeftElement
                         pointerEvents='none'
                         color='gray.800'
@@ -127,9 +234,14 @@ const SignUp = ({setSignUp}) => {
                         color='gray.800'
                         type={showPassword ? 'text' : 'password'}
                         placeholder='Password'
-                        borderColor= '#00000020'
+                        borderColor = {passwordValid ? '#00000020' : '#FF0000'} 
                         _placeholder={{ color: 'gray.400'}}
-                    />
+                        value = {password}
+                        onChange = {(event)=>{
+                            setPasswordValid(true);
+                            setPassword(event.target.value);
+                        }}
+                            />
                             <InputRightElement width='4.5rem'>
                                 <IconButton color='gray.800' variant='ghost' icon={showPassword ? <FaEye /> : <FaEyeSlash />} h='1.75rem' size='sm' onClick={handleShowClick}>
                                 </IconButton>
@@ -137,12 +249,18 @@ const SignUp = ({setSignUp}) => {
                         </InputGroup>
                     </FormControl>
                     <FormControl>
+                        {!above13 &&
+                            <FormHelperText textAlign='left'>
+                                <Text color='red.300'>You must be at least 13 years old to use Artroom </Text>
+                            </FormHelperText>}
                         <Flex justifyContent={'space-between'}>
                             <div style={{flex: 3, padding: 5}}> 
                                 <Select
                                     options = {months}
                                     placeholder='Month'
                                     _placeholder={{ color: 'gray.400'}}
+                                    value = {month}
+                                    onChange = {(event)=>{setMonth(event)}}
                                     styles={{
                                         option: (styles, state) => {
                                         const { isFocused, isSelected } = state;
@@ -161,6 +279,8 @@ const SignUp = ({setSignUp}) => {
                                     options = {days}
                                     placeholder='Day'
                                     _placeholder={{ color: 'gray.400'}}
+                                    value = {day}
+                                    onChange = {(event)=>setDay(event)}
                                     styles={{
                                         option: (styles, state) => {
                                         const { isFocused, isSelected } = state;
@@ -178,6 +298,8 @@ const SignUp = ({setSignUp}) => {
                                     options = {years}
                                     placeholder='Year'
                                     _placeholder={{ color: 'gray.400'}}
+                                    value = {year}
+                                    onChange = {(event)=>setYear(event)}
                                     styles={{
                                         option: (styles, state) => {
                                         const { isFocused, isSelected } = state;

@@ -28,7 +28,9 @@ const Login = ({setLoggedIn, setSignUp}) => {
 
     const handleShowClick = () => setShowPassword(!showPassword);
     function handleLogin(){
-        
+        console.log(email);
+        console.log(password);
+        setLoggedIn(true)
     }
     
     return(
@@ -67,6 +69,8 @@ const Login = ({setLoggedIn, setSignUp}) => {
                         type='email' 
                         placeholder='Email Address'
                         _placeholder={{ color: 'gray.400'}}
+                        value = {email}
+                        onChange = {(event)=>setEmail(event.target.value)}
                     />
                     </InputGroup>
                 </FormControl>
@@ -83,6 +87,8 @@ const Login = ({setLoggedIn, setSignUp}) => {
                             placeholder='Password'
                             borderColor= '#00000020'
                             _placeholder={{ color: 'gray.400'}}
+                            value = {password}
+                            onChange = {(event)=>setPassword(event.target.value)}
                         />
                                 <InputRightElement width='4.5rem'>
                                     <IconButton color='gray.800' variant='ghost' icon={showPassword ? <FaEye /> : <FaEyeSlash />} h='1.75rem' size='sm' onClick={handleShowClick}>
@@ -99,7 +105,7 @@ const Login = ({setLoggedIn, setSignUp}) => {
                                 variant='solid'
                                 colorScheme='blue'
                                 width='full'
-                                onClick={()=>{setLoggedIn(true)}}
+                                onClick={handleLogin}
                             >
                                 Login
                             </Button>

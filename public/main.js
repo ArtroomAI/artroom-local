@@ -11,22 +11,22 @@ const axios = require('axios');
 const kill = require('tree-kill');
 require('@electron/remote/main').initialize()
 
-const getUserDataPath = () => {
-  const platform = os.platform();
-  if (platform === 'win32') {
-    return path.join(process.env.APPDATA, appName);
-  } else if (platform === 'darwin') {
-    return path.join(process.env.HOME, 'Library', 'Application Support', appName);
-  } else {
-    return path.join('var', 'local', appName);
-  }
-}
+// const getUserDataPath = () => {
+//   const platform = os.platform();
+//   if (platform === 'win32') {
+//     return path.join(process.env.APPDATA, appName);
+//   } else if (platform === 'darwin') {
+//     return path.join(process.env.HOME, 'Library', 'Application Support', appName);
+//   } else {
+//     return path.join('var', 'local', appName);
+//   }
+// }
 
 const imageGenerationSettings = "sd_settings.json"
 const imageSettings = "image_settings.json"
 const applicationSettings = "app_settings.json"
 
-const userDataPath = getUserDataPath();
+// const userDataPath = getUserDataPath();
 
 let win;
 let hd = os.homedir();

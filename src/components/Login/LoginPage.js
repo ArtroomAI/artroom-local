@@ -20,7 +20,7 @@ const LoginPage = ({setLoggedIn}) => {
         <Button varient='outline' onClick={onOpen} aria-label='View'>Login </Button>
         <Modal isOpen={isOpen} onClose={onClose} motionPreset='slideInBottom' scrollBehavior='outside' size='4xl'>
         <ModalOverlay />
-            <ModalContent bg='gray.900'>
+            <ModalContent  bg='gray.900'>
                 <ModalCloseButton />
                 {signUp ? 
                 <SignUp setSignUp={setSignUp}/>
