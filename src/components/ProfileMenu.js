@@ -1,19 +1,31 @@
-import React from 'react';
-import { Button, Divider, Image, HStack, Text, Menu, MenuButton, MenuList, MenuItem, MenuDivider} from '@chakra-ui/react';
+import { 
+  Button, 
+  Divider, 
+  Image, 
+  HStack, 
+  Text, 
+  Menu, 
+  MenuButton, 
+  MenuList, 
+  MenuItem, 
+  MenuDivider,
+} from '@chakra-ui/react';
 import {
   FaUser,
 } from 'react-icons/fa';
 import Shards from '../images/shards.png'
+
 const ProfileMenu = ({setLoggedIn}) => {
 
   return (
+
     <Menu>
-      <MenuButton as={Button} rightIcon={<FaUser/>} olorScheme='teal' variant='outline'>
+      <MenuButton as={Button} leftIcon={<FaUser/>} olorScheme='teal' variant='outline'>
         <HStack>
+          <Text>My Profile</Text>
+          <Divider height='20px' color='white' orientation='vertical' />
           <Image width='10px' src={Shards}/>
           <Text>3000</Text>
-          <Divider height='20px' color='white' orientation='vertical' />
-          <Text>My Profile</Text>
         </HStack>
       </MenuButton>
       <MenuList>

@@ -12,7 +12,6 @@ import SignUp from "./Signup";
 
 const LoginPage = ({setLoggedIn}) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  
   const [signUp, setSignUp] = useState(false);
 
   return (

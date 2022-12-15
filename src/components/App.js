@@ -1,6 +1,5 @@
-import {React, useEffect, useState} from 'react';
-import { RecoilRoot } from 'recoil';
-import { useRecoilState } from 'recoil';
+import {useEffect, useState} from 'react';
+import { RecoilRoot, useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 
 import { 
@@ -10,6 +9,10 @@ import {
   Grid,
   GridItem,
   useColorMode,
+  VStack,
+  HStack,
+  Switch,
+  Icon
   } from '@chakra-ui/react'
 import { Routes,Route } from "react-router-dom";
 import PromptGuide from './PromptGuide';
@@ -26,6 +29,7 @@ import EquilibriumAI from './EquilibriumAI';
 import ProfileMenu from './ProfileMenu';
 import LoginPage from './Login/LoginPage';
 // import Info from './Info';
+import {IoMdCloud, IoMdCloudOutline} from 'react-icons/io'
 
 function Main(){
     const { colorMode, toggleColorMode } = useColorMode()
@@ -61,7 +65,8 @@ function Main(){
     const [delay, setDelay] = useRecoilState(atom.delayState);
 
     const { ToastContainer, toast } = createStandaloneToast()
-    
+    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+
     const getCkpts = event => {
       window['getCkpts'](ckpt_dir).then((result) => {
         setCkpts(result);
@@ -158,16 +163,26 @@ function Main(){
           templateAreas={`"nav null header"
                           "nav main main"
                           "nav main main"`}
-          gridTemplateRows={'30px 1fr 20px'}
+          gridTemplateRows={'43px 1fr 30px'}
           gridTemplateColumns={'0px 1fr 300px'}
           h='200px'
           gap='1'
           fontWeight='bold'
         >
-        <GridItem justifySelf="center" area={'header'}>
+        <GridItem pt='3' justifySelf="center" area={'header'}>
           {
             loggedIn ? 
-            <ProfileMenu setLoggedIn={setLoggedIn}></ProfileMenu>
+            <HStack align='center'>
+              <ProfileMenu setLoggedIn={setLoggedIn}></ProfileMenu>
+              <VStack spacing={0} alignItems='center'>
+                <Icon as={cloudMode ? IoMdCloud : IoMdCloudOutline}></Icon>
+                <Switch 
+                value={cloudMode} 
+                onChange={(e) => setCloudMode(e.target.checked)} 
+                colorScheme='teal'
+                 />
+              </VStack>
+            </HStack>
               :
             <LoginPage setLoggedIn={setLoggedIn}>Login</LoginPage>
           }

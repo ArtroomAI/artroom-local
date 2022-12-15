@@ -375,6 +375,7 @@ class StableDiffusion:
         self.stage = "Generating"
         outdir = self.image_save_path + batch_name
         os.makedirs(outdir, exist_ok=True)
+        
 
         if len(init_image_str) > 0:
             if init_image_str[:4] == 'data':

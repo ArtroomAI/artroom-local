@@ -21,9 +21,12 @@ import {
     Checkbox,
     Select,
     Spacer,
-    createStandaloneToast
+    createStandaloneToast,
+    Text,
+    Icon
   } from '@chakra-ui/react';
 import {FaQuestionCircle} from 'react-icons/fa'
+import {IoMdCloud} from 'react-icons/io'
 
 function SDSettings() {
     const { ToastContainer, toast } = createStandaloneToast()
@@ -44,6 +47,7 @@ function SDSettings() {
     const [strength, setStrength] = useRecoilState(atom.strengthState);
     const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
     const [ckpts, setCkpts] = useRecoilState(atom.ckptsState);
+    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
     const uploadSettings = event => {
         window['uploadSettings']().then((result) => {
@@ -103,7 +107,7 @@ function SDSettings() {
                     </FormControl> 
                     <HStack>
                         <FormControl className='num-images-input'>
-                            <FormLabel htmlFor='n_iter'># of Images</FormLabel>
+                            <FormLabel htmlFor='n_iter'>№ of Images</FormLabel>
                                 <NumberInput min={1}            
                                 id='n_iter'
                                 name='n_iter'
@@ -115,9 +119,8 @@ function SDSettings() {
                         </FormControl>
                         <FormControl className='steps-input'>
                                 <HStack>
-                                    <FormLabel htmlFor='steps'># of Steps</FormLabel>
-                                    <Spacer/>
-                                    <Tooltip shouldWrapChildren  placement='left' label="Steps determine how long you want the model to spend on generating your image. The more steps you have, the longer it will take but you'll get better results. The results are less impactful the more steps you have, so you may stop seeing improvement after 100 steps. 50 is typically a good number" fontSize='md'>
+                                    <FormLabel htmlFor='steps'>№ of Steps</FormLabel>
+                                    <Tooltip  shouldWrapChildren  placement='left' label="Steps determine how long you want the model to spend on generating your image. The more steps you have, the longer it will take but you'll get better results. The results are less impactful the more steps you have, so you may stop seeing improvement after 100 steps. 50 is typically a good number" fontSize='md'>
                                         <FaQuestionCircle color='#777'/>
                                     </Tooltip>
                                 </HStack>
@@ -309,7 +312,12 @@ function SDSettings() {
                             </Select> 
                     </FormControl>
                     <FormControl className='model-ckpt-input'>
-                        <FormLabel htmlFor='Ckpt'>Model</FormLabel>
+                        <FormLabel htmlFor='Ckpt'>
+                            <HStack>
+                            <Text>Model</Text>
+                            {cloudMode && <Icon as={IoMdCloud}></Icon>}
+                            </HStack>
+                        </FormLabel>
                         <Select                   
                             id='ckpt'
                             name='ckpt'

@@ -11,10 +11,12 @@ import {
     Progress,
     SimpleGrid,
     Image,
+    Text,
     createStandaloneToast
   } from '@chakra-ui/react';
 import ImageObj from './ImageObj';
 import Prompt from './Prompt';
+import Shards from '../images/shards.png'
 
   function Body() {
     const { ToastContainer, toast } = createStandaloneToast()
@@ -54,6 +56,8 @@ import Prompt from './Prompt';
     const [stage, setStage] = useState('');
     const [running, setRunning] = useState(false);
     const [focused, setFocused] = useState(false);
+
+    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state, action) => {
@@ -261,14 +265,14 @@ import Prompt from './Prompt';
       <Flex transition='all .25s ease' ml={navSize === 'large' ? '180px' : '100px'} width='100%'>
         <Box width='100%' align='center' >
             {/* Center Portion */}
-              <VStack spacing={4}>
-                <Box  className='image-box' width='75%' ratio={16 / 9}>
+              <VStack spacing={3}>
+                <Box  className='image-box' width='80%' ratio={16 / 9}>
                   <ImageObj B64={mainImage} active={true}></ImageObj>
                   {
                     progress >= 0 ? <Progress align='left' hasStripe value={progress} /> : <></>
                   }
                 </Box>
-                <Box width='50%' overflowY="auto" maxHeight="120px">
+                <Box width='60%' overflowY="auto" maxHeight="120px">
                   <SimpleGrid minChildWidth='100px' spacing='10px'>
                     {latestImages?.map((image,index)=>{
                         return(
@@ -281,7 +285,18 @@ import Prompt from './Prompt';
                       }
                   </SimpleGrid>
                 </Box>
-                  <Button className='run-button' onClick = {submitMain} ml={2} width='250px'>{running ? 'Add to Queue' : 'Run'}</Button>
+                  {cloudMode ?  
+                    <Button variant='outline' className='run-button' onClick = {submitMain} ml={2} width='200px'>
+                      <Text pr={2}>{running ? 'Add to Queue' : 'Run'}</Text>
+                      <Image width='12px' src={Shards}/>
+                      <Text pl={1}>6</Text>
+                  </Button>
+                  :
+                  <Button className='run-button' onClick = {submitMain} ml={2} 
+                      width='200px'>{running ? 'Add to Queue' : 'Run'}
+                  </Button>
+                  }
+                 
                   <Box width='80%'>
                     <Prompt setFocused={setFocused}/>
                   </Box>

@@ -221,4 +221,9 @@ export const paintHistoryState = atom({
     default: [],
 })
 
+export const cloudModeState = atom({
+    key: 'cloudMode',
+    default: false,
+})
+
 
