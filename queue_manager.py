@@ -111,7 +111,7 @@ class QueueManager():
         # check whether GPU is a 1600 series and if so, update to use full percision
         try:
             gpu_info = torch.cuda.get_device_name(0)
-            if '1630' in gpu_info or '1630' in gpu_info or '1660' in gpu_info or '1600' in gpu_info:
+            if '1630' in gpu_info or '1650' in gpu_info or '1660' in gpu_info or '1600' in gpu_info:
                 print(gpu_info + ' identified, forcing to full precision')
                 data['precision'] = 'full'
         except:
