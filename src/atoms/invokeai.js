@@ -1,6 +1,6 @@
-import {atom} from 'recoil';
+import { atom } from 'recoil';
 
 export const serverStatusState = atom({
     key: 'serverStatus',
-    default: '',
-})
+    default: ''
+});

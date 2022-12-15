@@ -1,50 +1,68 @@
-import { 
-  Button, 
-  Divider, 
-  Image, 
-  HStack, 
-  Text, 
-  Menu, 
-  MenuButton, 
-  MenuList, 
-  MenuItem, 
-  MenuDivider,
+import {
+    Button,
+    Divider,
+    Image,
+    HStack,
+    Text,
+    Menu,
+    MenuButton,
+    MenuList,
+    MenuItem,
+    MenuDivider
 } from '@chakra-ui/react';
 import {
-  FaUser,
+    FaUser
 } from 'react-icons/fa';
-import Shards from '../images/shards.png'
+import Shards from '../images/shards.png';
 
-const ProfileMenu = ({setLoggedIn}) => {
-
-  return (
+const ProfileMenu = ({ setLoggedIn }) => (
 
     <Menu>
-      <MenuButton as={Button} leftIcon={<FaUser/>} olorScheme='teal' variant='outline'>
-        <HStack>
-          <Text>My Profile</Text>
-          <Divider height='20px' color='white' orientation='vertical' />
-          <Image width='10px' src={Shards}/>
-          <Text>3000</Text>
-        </HStack>
-      </MenuButton>
-      <MenuList>
-        <MenuItem>
-          Profile
-        </MenuItem>
-        <MenuItem>
-          Settings
-        </MenuItem>
-        <MenuItem>
-          Get More Shards
-        </MenuItem>
-        <MenuDivider></MenuDivider>
-        <MenuItem onClick={()=>setLoggedIn(false)}>
-          Logout
-        </MenuItem>
-      </MenuList>
+        <MenuButton
+            as={Button}
+            leftIcon={<FaUser />}
+            olorScheme="teal"
+            variant="outline">
+            <HStack>
+                <Text>
+                    My Profile
+                </Text>
+
+                <Divider
+                    color="white"
+                    height="20px"
+                    orientation="vertical" />
+
+                <Image
+                    src={Shards}
+                    width="10px" />
+
+                <Text>
+                    3000
+                </Text>
+            </HStack>
+        </MenuButton>
+
+        <MenuList>
+            <MenuItem>
+                Profile
+            </MenuItem>
+
+            <MenuItem>
+                Settings
+            </MenuItem>
+
+            <MenuItem>
+                Get More Shards
+            </MenuItem>
+
+            <MenuDivider />
+
+            <MenuItem onClick={() => setLoggedIn(false)}>
+                Logout
+            </MenuItem>
+        </MenuList>
     </Menu>
-  );
-}
+);
 
 export default ProfileMenu;

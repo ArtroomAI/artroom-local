@@ -1,229 +1,230 @@
-import {atom} from 'recoil';
+import { atom } from 'recoil';
 
 export const serverStatusState = atom({
     key: 'serverStatus',
-    default: '',
-})
+    default: ''
+});
 
 export const CFGScaleState = atom({
     key: 'cfg_scale',
-    default: '',
-})
+    default: ''
+});
 
 export const aspectRatioState = atom({
     key: 'aspect_ratio',
-    default: '',
-})
+    default: ''
+});
 
 export const aspectRatioSelectionState = atom({
     key: 'aspectRatioSelection',
-    default: '',
-})
+    default: ''
+});
 
 export const batchNameState = atom({
     key: 'batch_name',
-    default: '',
-})
+    default: ''
+});
 
 export const heightState = atom({
     key: 'height',
-    default: '',
-})
+    default: ''
+});
 
 export const widthState = atom({
     key: 'width',
-    default: '',
-})
+    default: ''
+});
 
 
 export const imageSavePathState = atom({
     key: 'image_save_path',
-    default: '',
-})
+    default: ''
+});
 
 export const longSavePathState = atom({
     key: 'long_save_path',
-    default: false,
-})
+    default: false
+});
 
 export const highresFixState = atom({
     key: 'highres_fix',
-    default: false,
-})
+    default: false
+});
 
 export const initImageState = atom({
     key: 'init_image',
-    default: '',
-})
+    default: ''
+});
 
 export const initImagePathState = atom({
     key: 'initImagePath',
-    default: '',
-})
+    default: ''
+});
 
 export const keepWarmState = atom({
     key: 'keep_warm',
-    default: '',
-})
+    default: ''
+});
 
 export const ckptState = atom({
     key: 'ckpt',
-    default: '',
-})
+    default: ''
+});
 
 export const ckptsState = atom({
     key: 'ckpts',
-    default: [],
-})
+    default: []
+});
 
 export const ckptDirState = atom({
     key: 'ckpt_dir',
-    default: '',
-})
+    default: ''
+});
 
 export const nIterState = atom({
     key: 'n_iter',
-    default: '',
-})
+    default: ''
+});
 
 export const navSizeState = atom({
     key: 'navSize',
-    default: 'small',
-})
+    default: 'small'
+});
 
 export const negativePromptsState = atom({
     key: 'negative_prompts',
-    default: '',
-})
+    default: ''
+});
 
 export const textPromptsState = atom({
     key: 'text_prompts',
-    default: '',
-})
+    default: ''
+});
 
 export const neonVRAMState = atom({
     key: 'neon_vram',
-    default: false,
-})
+    default: false
+});
 
 export const openPicturesState = atom({
     key: 'open_pictures',
-    default: '',
-})
+    default: ''
+});
 
 export const paintTypeState = atom({
     key: 'paint_type',
-    default: 'Use Mask',
-})
+    default: 'Use Mask'
+});
 
 export const queueRunningState = atom({
     key: 'queueRunning',
-    default: false,
-})
+    default: false
+});
 
 
 export const queueState = atom({
     key: 'queue',
-    default: [],
-})
+    default: []
+});
 
 
 export const runningState = atom({
     key: 'running',
-    default: false,
-})
+    default: false
+});
 
 
 export const samplerState = atom({
     key: 'sampler',
-    default: '',
-})
+    default: ''
+});
 
 
 export const saveGridState = atom({
     key: 'save_grid',
-    default: false,
-})
+    default: false
+});
 
 export const debugMode = atom({
     key: 'debug_mode',
-    default: false,
-})
+    default: false
+});
 
 
 export const seedState = atom({
     key: 'seed',
-    default: '',
-})
+    default: ''
+});
 
 export const speedState = atom({
     key: 'speed',
-    default: '',
-})
+    default: ''
+});
 
 export const stepsState = atom({
     key: 'steps',
-    default: '',
-})
+    default: ''
+});
 
 export const strengthState = atom({
     key: 'strength',
-    default: '',
-})
+    default: ''
+});
 
 export const useCPUState = atom({
     key: 'use_cpu',
-    default: false,
-})
+    default: false
+});
 
 export const useFullPrecisionState = atom({
     key: 'use_full_precision',
-    default: false,
-})
+    default: false
+});
 
 export const useRandomSeedState = atom({
     key: 'use_random_seed',
-    default: false,
-})
+    default: false
+});
 
 export const initImageThumbnailState = atom({
     key: 'initImageThumbnail',
-    default: {"ImagePath":"","B64":""},
-})
+    default: { 'ImagePath': '',
+        'B64': '' }
+});
 
 export const mainImageState = atom({
     key: 'mainImage',
-    default: '',
-})
+    default: ''
+});
 
 export const latestImageState = atom({
     key: 'latestImage',
-    default: [],
-})
+    default: []
+});
 
 export const latestImagesIDState = atom({
     key: 'latestImagesID',
-    default: 0,
-})
+    default: 0
+});
 
 export const imageViewPathState = atom({
     key: 'imageViewPath',
-    default: "",
-})
+    default: ''
+});
 
 export const delayState = atom({
     key: 'delay',
-    default: 1,
-})
+    default: 1
+});
 
 export const paintHistoryState = atom({
     key: 'paintHistory',
-    default: [],
-})
+    default: []
+});
 
 export const cloudModeState = atom({
     key: 'cloudMode',
-    default: false,
-})
+    default: false
+});
 
 

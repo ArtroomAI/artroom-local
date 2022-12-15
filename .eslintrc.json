@@ -1,0 +1,92 @@
+{
+  "env": {
+    "browser": true
+  },
+  "extends": [
+    "eslint:all",
+    "plugin:react/all"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "modules": true
+    }
+  },
+  "plugins": [
+    "react"
+  ],
+  "rules": {
+    "react/jsx-filename-extension": "off",
+    "react/jsx-indent": ["error", 4],
+    "react/jsx-indent-props": "off",
+    "react/jsx-closing-bracket-location": "off",
+    "react/function-component-definition": "off",
+    "react/forbid-component-props": "off",
+    "react/jsx-handler-names": "off",
+    "react/jsx-max-depth": "off",
+    "react/jsx-no-literals": "off",
+    "react/hook-use-state": "off",
+    "react/jsx-no-bind": "off",
+    "react/jsx-closing-tag-location": "off",
+    "react/prop-types": "off",
+    "react/jsx-no-constructed-context-values": "off",
+    "react/jsx-props-no-spreading": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/no-children-prop": "off",
+    "react/destructuring-assignment": "off",
+    "react/jsx-no-useless-fragment": "off",
+    "react/no-multi-comp": "off",
+    "react/no-array-index-key": "off",
+    "react/no-unescaped-entities": "off",
+    "react/display-name": "off",
+    "react/jsx-child-element-spacing": "off",
+
+    "linebreak-style": ["error", "windows"],
+    "semi": ["error", "always"],
+    "quotes": ["error", "single"],
+    "object-curly-spacing": ["error", "always"],
+    "no-unused-vars": "warn",
+
+    "indent": ["error", 4],
+    "sort-imports": "off",
+    "max-lines-per-function": "off",
+    "padded-blocks": "off",
+    "no-ternary": "off",
+    "sort-keys": "off",
+    "one-var": "off",
+    "max-statements": "off",
+    "camelcase": "off",
+    "no-magic-numbers": "off",
+    "max-len": "off",
+    "max-lines": "off",
+    "id-length": "off",
+    "no-console": "off",
+    "line-comment-position": "off",
+    "no-inline-comments": "off",
+    "quote-props": "off",
+    "no-undefined": "off",
+    "no-empty-function": "off",
+    "no-warning-comments": "off",
+    "init-declarations": "off",
+    "func-style": "off",
+    "func-names": "off",
+    "no-use-before-define": "off",
+    "no-unreachable": "warn",
+    "radix": "off",
+    "no-mixed-operators": "off",
+    "no-plusplus": "off",
+    "no-nested-ternary": "off",
+    "no-negated-condition": "off",
+    "no-alert": "off",
+    "new-cap": "off",
+    "default-param-last": "off",
+    "no-shadow": "off",
+    "consistent-return": "off",
+    "no-empty": "off",
+    "array-callback-return": "off",
+    "no-extra-parens": "off",
+    "no-underscore-dangle": "off",
+    "no-throw-literal": "off"
+  }
+}

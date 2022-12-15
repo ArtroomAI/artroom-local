@@ -1,39 +1,66 @@
-import React from 'react'
-import {
-    Flex,
+import React from 'react';
+import { Flex,
     Text,
     Icon,
     Link,
     Menu,
     MenuButton,
     HStack,
-    Tooltip} from '@chakra-ui/react'
+    Tooltip } from '@chakra-ui/react';
 
-export default function NavItem({ icon, title, active, navSize, linkTo, className}) {
+export default function NavItem ({ icon, title, active, navSize, linkTo, className }) {
     return (
         <Flex
+            alignItems={navSize === 'small'
+                ? 'center'
+                : 'flex-start'}
+            flexDir="column"
+            fontSize="md"
             mt={15}
-            flexDir='column'
-            w='100%'
-            alignItems={navSize ==='small' ? 'center' : 'flex-start'}
-            fontSize='md'
+            w="100%"
         >
-            <Menu placement='right'>
-                <Link href={linkTo}
-                    p={2.5}
+            <Menu placement="right">
+                <Link
+                    _hover={{ textDecor: 'none',
+                        backgroundColor: '#AEC8CA' }}
                     borderRadius={8}
-                    _hover={{ textDecor: 'none', backgroundColor: '#AEC8CA' }}
-                    >
-                    <Tooltip shouldWrapChildren placement='bottom' label={navSize === 'small' ? title : ''} fontSize='md'>
-                        <MenuButton bg='transparent' width='100%'>
+                    href={linkTo}
+                    p={2.5}
+                >
+                    <Tooltip
+                        fontSize="md"
+                        label={navSize === 'small'
+                            ? title
+                            : ''}
+                        placement="bottom"
+                        shouldWrapChildren>
+                        <MenuButton
+                            bg="transparent"
+                            width="100%">
                             <HStack className={className}>
-                                <Icon justify='center' as={icon} fontSize='xl' color={active ? '#82AAAD' : 'gray.500'} />
-                                <Text align='center' pl={5} pr={10} fontSize='m' display={navSize === 'small' ? 'none' : 'flex'}>{title}</Text>
+                                <Icon
+                                    as={icon}
+                                    color={active
+                                        ? '#82AAAD'
+                                        : 'gray.500'}
+                                    fontSize="xl"
+                                    justify="center" />
+
+                                <Text
+                                    align="center"
+                                    display={navSize === 'small'
+                                        ? 'none'
+                                        : 'flex'}
+                                    fontSize="m"
+                                    pl={5}
+                                    pr={10}>
+                                    {title}
+                                </Text>
                             </HStack>
                         </MenuButton>
                     </Tooltip>
                 </Link>
             </Menu>
         </Flex>
-    )
+    );
 }
