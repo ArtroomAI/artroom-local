@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import { useState } from 'react';
 import {
     Flex,
     Heading,
@@ -13,13 +13,13 @@ import {
     FormControl,
     FormHelperText,
     InputRightElement,
-    Image,
+    Image
 } from '@chakra-ui/react';
-import {FaLock, FaEye, FaEyeSlash} from 'react-icons/fa';
-import {IoIosMail} from 'react-icons/io';
+import { FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
 
-const Login = ({setLoggedIn, setSignUp}) => {
+const Login = ({ setLoggedIn, setSignUp }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -27,100 +27,132 @@ const Login = ({setLoggedIn, setSignUp}) => {
     const [showPassword, setShowPassword] = useState(false);
 
     const handleShowClick = () => setShowPassword(!showPassword);
-    function handleLogin(){
+    function handleLogin () {
         console.log(email);
         console.log(password);
-        setLoggedIn(true)
+        setLoggedIn(true);
     }
-    
-    return(
+
+    return (
         <Flex
-            flexDirection='column'
-            width='100wh'
-            height='60vh'
-            justifyContent='center'
-            alignItems='center'
+            alignItems="center"
+            flexDirection="column"
+            height="60vh"
+            justifyContent="center"
+            width="100wh"
+        >
+            <Stack
+                alignItems="center"
+                flexDir="column"
+                justifyContent="center"
+                mb="2"
             >
-        <Stack
-            flexDir='column'
-            mb='2'
-            justifyContent='center'
-            alignItems='center'
-            >
-                <Image h='50px' src={Logo} />
-                <Heading color='blue.600'>Welcome</Heading>
-                <Box minW={{ base: '90%', md: '468px' }}>
-                <Stack
-                    spacing={4}
-                    p='1rem'
-                    backgroundColor='whiteAlpha.900'
-                    boxShadow='md'
-                >
-                <FormControl>
-                    <InputGroup>
-                    <InputLeftElement
-                        pointerEvents='none'
-                        color='gray.800'
-                        children={<IoIosMail color='gray.800' />}
-                    />
-                    <Input 
-                        borderColor= '#00000020' 
-                        color='gray.800' 
-                        type='email' 
-                        placeholder='Email Address'
-                        _placeholder={{ color: 'gray.400'}}
-                        value = {email}
-                        onChange = {(event)=>setEmail(event.target.value)}
-                    />
-                    </InputGroup>
-                </FormControl>
-                <FormControl>
-                    <InputGroup>
-                        <InputLeftElement
-                            pointerEvents='none'
-                            color='gray.800'
-                            children={<FaLock color='gray.800' />}
-                        />
-                        <Input
-                            color='gray.800'
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder='Password'
-                            borderColor= '#00000020'
-                            _placeholder={{ color: 'gray.400'}}
-                            value = {password}
-                            onChange = {(event)=>setPassword(event.target.value)}
-                        />
-                                <InputRightElement width='4.5rem'>
-                                    <IconButton color='gray.800' variant='ghost' icon={showPassword ? <FaEye /> : <FaEyeSlash />} h='1.75rem' size='sm' onClick={handleShowClick}>
-                                    </IconButton>
+                <Image
+                    h="50px"
+                    src={Logo} />
+
+                <Heading color="blue.600">
+                    Welcome
+                </Heading>
+
+                <Box minW={{ base: '90%',
+                    md: '468px' }}>
+                    <Stack
+                        backgroundColor="whiteAlpha.900"
+                        boxShadow="md"
+                        p="1rem"
+                        spacing={4}
+                    >
+                        <FormControl>
+                            <InputGroup>
+                                <InputLeftElement
+                                    children={<IoIosMail color="gray.800" />}
+                                    color="gray.800"
+                                    pointerEvents="none"
+                                />
+
+                                <Input
+                                    _placeholder={{ color: 'gray.400' }}
+                                    borderColor="#00000020"
+                                    color="gray.800"
+                                    onChange={(event) => setEmail(event.target.value)}
+                                    placeholder="Email Address"
+                                    type="email"
+                                    value={email}
+                                />
+                            </InputGroup>
+                        </FormControl>
+
+                        <FormControl>
+                            <InputGroup>
+                                <InputLeftElement
+                                    children={<FaLock color="gray.800" />}
+                                    color="gray.800"
+                                    pointerEvents="none"
+                                />
+
+                                <Input
+                                    _placeholder={{ color: 'gray.400' }}
+                                    borderColor="#00000020"
+                                    color="gray.800"
+                                    onChange={(event) => setPassword(event.target.value)}
+                                    placeholder="Password"
+                                    type={showPassword
+                                        ? 'text'
+                                        : 'password'}
+                                    value={password}
+                                />
+
+                                <InputRightElement width="4.5rem">
+                                    <IconButton
+                                        color="gray.800"
+                                        h="1.75rem"
+                                        icon={showPassword
+                                            ? <FaEye />
+                                            : <FaEyeSlash />}
+                                        onClick={handleShowClick}
+                                        size="sm"
+                                        variant="ghost" />
                                 </InputRightElement>
                             </InputGroup>
-                            <FormHelperText textAlign='right'>
-                                <Link color='gray.800'>Forgot Password?</Link>
+
+                            <FormHelperText textAlign="right">
+                                <Link color="gray.800">
+                                    Forgot Password?
+                                </Link>
                             </FormHelperText>
-                            </FormControl>
-                            <Button
-                                borderRadius={10}
-                                type='submit'
-                                variant='solid'
-                                colorScheme='blue'
-                                width='full'
-                                onClick={handleLogin}
-                            >
-                                Login
-                            </Button>
-                        </Stack>
+                        </FormControl>
+
+                        <Button
+                            borderRadius={10}
+                            colorScheme="blue"
+                            onClick={handleLogin}
+                            type="submit"
+                            variant="solid"
+                            width="full"
+                        >
+                            Login
+                        </Button>
+                    </Stack>
                 </Box>
             </Stack>
+
             <Box>
-                New to us?{' '}
-                <Link onClick={()=>{setSignUp(true)}} color='teal.500' href='#'>
+                New to us?
+                {' '}
+
+                <Link
+                    color="teal.500"
+                    href="#"
+                    onClick={() => {
+                        setSignUp(true);
+                    }}>
                     Sign Up
                 </Link>
             </Box>
         </Flex>
 
-    )
-}
+    );
+};
 
 export default Login;

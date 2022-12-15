@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
-import EquilibriumLogo from '../images/equilibriumai.png'
+import EquilibriumLogo from '../images/equilibriumai.png';
 import {
     MenuButton,
     HStack,
@@ -11,37 +11,64 @@ import {
     Menu,
     Link,
     Tooltip
-} from '@chakra-ui/react'
+} from '@chakra-ui/react';
 const EquilibriumAI = () => {
-  const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
-  return (
-    <>
-        <Flex
-            mt={15}
-            flexDir="column"
-            w="100%"
-            alignItems={navSize ==="small" ? "center" : "flex-start"}
-            onClick={window['openEquilibrium']}
-        >
-            <Menu placement="right">
-                <Link
-                    p={2.5}
-                    borderRadius={8}
-                    _hover={{ textDecor: 'none', backgroundColor: "#AEC8CA" }}
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    return (
+        <>
+            <Flex
+                alignItems={navSize === 'small'
+                    ? 'center'
+                    : 'flex-start'}
+                flexDir="column"
+                mt={15}
+                onClick={window.openEquilibrium}
+                w="100%"
+            >
+                <Menu placement="right">
+                    <Link
+                        _hover={{ textDecor: 'none',
+                            backgroundColor: '#AEC8CA' }}
+                        borderRadius={8}
+                        p={2.5}
                     >
-                    <Tooltip shouldWrapChildren  placement='bottom' label={navSize === "small" ? "Learn More" : ''} fontSize='md'>
-                    <MenuButton className="equilibrium-link" bg="transparent" width="100%" >
-                        <HStack>
-                            <Image width="25px" justify="center" src={EquilibriumLogo} fontSize="xl" color="#82AAAD" />
-                            <Text align="center" pl={5} pr={10} fontSize="m" display={navSize === "small" ? "none" : "flex"}>Learn More</Text>
-                        </HStack>
-                        </MenuButton>
-                    </Tooltip>
-                </Link>
-            </Menu>
-        </Flex>
-    </>
-  );
+                        <Tooltip
+                            fontSize="md"
+                            label={navSize === 'small'
+                                ? 'Learn More'
+                                : ''}
+                            placement="bottom"
+                            shouldWrapChildren>
+                            <MenuButton
+                                bg="transparent"
+                                className="equilibrium-link"
+                                width="100%" >
+                                <HStack>
+                                    <Image
+                                        color="#82AAAD"
+                                        fontSize="xl"
+                                        justify="center"
+                                        src={EquilibriumLogo}
+                                        width="25px" />
+
+                                    <Text
+                                        align="center"
+                                        display={navSize === 'small'
+                                            ? 'none'
+                                            : 'flex'}
+                                        fontSize="m"
+                                        pl={5}
+                                        pr={10}>
+                                        Learn More
+                                    </Text>
+                                </HStack>
+                            </MenuButton>
+                        </Tooltip>
+                    </Link>
+                </Menu>
+            </Flex>
+        </>
+    );
 };
 
 export default EquilibriumAI;

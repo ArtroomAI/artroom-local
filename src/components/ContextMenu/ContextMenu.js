@@ -1,21 +1,23 @@
-import { useDisclosure } from "@chakra-ui/react";
+import { useDisclosure } from '@chakra-ui/react';
 import React, {
     useRef,
-    useState,
-} from "react";
+    useState
+} from 'react';
 
 export const ContextMenuContext = React.createContext({
     isOpen: false,
     closeMenu: () => {},
     openMenu: () => {},
     menuRef: undefined,
-    position: { x: 0, y: 0 },
-    setPosition: () => {},
+    position: { x: 0,
+        y: 0 },
+    setPosition: () => {}
 });
 
-export default function ContextMenu ({ children }){
+export default function ContextMenu ({ children }) {
     const { isOpen, onClose: closeMenu, onOpen: openMenu } = useDisclosure();
-    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [position, setPosition] = useState({ x: 0,
+        y: 0 });
     const menuRef = useRef(null);
     return (
         <ContextMenuContext.Provider
@@ -25,10 +27,10 @@ export default function ContextMenu ({ children }){
                 openMenu,
                 menuRef,
                 position,
-                setPosition,
+                setPosition
             }}
         >
             {children}
         </ContextMenuContext.Provider>
     );
-};
+}

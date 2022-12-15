@@ -1,11 +1,13 @@
-// const selectTheme = {
-//   variants: {
-//     outline: {
-//       field: {
-//         bg: 'transparent'
-//       },
-//     } 
-//   },
-// }
+/*
+ * Const selectTheme = {
+ *   variants: {
+ *     outline: {
+ *       field: {
+ *         bg: 'transparent'
+ *       },
+ *     }
+ *   },
+ * }
+ */
 
-// export default selectTheme;
+// Export default selectTheme;

@@ -35,5 +35,5 @@ stable-diffusion/src/realesrgan
 stable-diffusion/src/taming-transformers
 InpaintingTest.ipynb
 .eslintcache
-.eslintcache
-.eslintcache
+__pycache__
+artroom_helpers/__pycache__

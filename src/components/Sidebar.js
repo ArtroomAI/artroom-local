@@ -1,86 +1,130 @@
-import React from 'react'
+import React from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
     Flex,
-    IconButton,
-} from '@chakra-ui/react'
+    IconButton
+} from '@chakra-ui/react';
 import {
     FaPaintBrush,
     FaMagic,
     FaChevronLeft,
     FaChevronRight
-} from 'react-icons/fa'
+} from 'react-icons/fa';
 import {
     FiMenu,
-    FiSettings,
-} from 'react-icons/fi'
-import{
+    FiSettings
+} from 'react-icons/fi';
+import {
     GiResize
-} from 'react-icons/gi'
-import EquilibriumAILogo from '../images/equilibriumai.png'
-import NavItem from '../components/NavItem'
+} from 'react-icons/gi';
+import EquilibriumAILogo from '../images/equilibriumai.png';
+import NavItem from '../components/NavItem';
 import Tour from './ProjectTour/Tour';
 import Discord from './Discord';
 import Viewer from './Viewer';
 import EquilibriumAI from './EquilibriumAI';
 
-export default function Sidebar() {
+export default function Sidebar () {
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
-    
+
     return (
         <Flex
-            pos='fixed'
-            h='95%'
-            boxShadow='0 4px 12px 0 rgba(0, 0, 0, 0.05)'
+            backgroundColor="#182138"
+            borderRadius="30px"
+            boxShadow="0 4px 12px 0 rgba(0, 0, 0, 0.05)"
+            flexDir="column"
+            h="95%"
+            justifyContent="space-between"
+            m="15px"
             opacity={0.6}
-            m='15px'
-            borderRadius='30px'  
-            w = {navSize === 'small' ? '75px' : '180px'}
-            flexDir='column'
-            justifyContent='space-between'
-            backgroundColor = '#182138'
-            transition='all .25s ease'
+            pos="fixed"
+            transition="all .25s ease"
+            w={navSize === 'small'
+                ? '75px'
+                : '180px'}
         >
             <Flex
-                p='7.5%'
-                mr = '20px'
-                flexDir='column'
-                w='100%'
-                alignItems={navSize === 'small' ? 'center' : 'flex-start'}
-                as='nav'
-                >
+                alignItems={navSize === 'small'
+                    ? 'center'
+                    : 'flex-start'}
+                as="nav"
+                flexDir="column"
+                mr="20px"
+                p="7.5%"
+                w="100%"
+            >
                 <IconButton
-                    background='none'
+                    _hover={{ textDecor: 'none',
+                        backgroundColor: '#AEC8CA' }}
+                    background="none"
+                    icon={navSize === 'small'
+                        ? <FaChevronRight />
+                        : <FaChevronLeft />}
                     mt={5}
-                    _hover={{ textDecor: 'none', backgroundColor: '#AEC8CA' }}
-                    icon={navSize === 'small' ? <FaChevronRight/> : <FaChevronLeft/>}
                     onClick={() => {
-                        if (navSize === 'small')
-                            changeNavSize('large')
-                        else
-                            changeNavSize('small')
-                    }}  
-                ></IconButton>
-                <NavItem navSize={navSize} icon={FaMagic} title='Create' linkTo='#/' className='home-nav'/>
-                <NavItem navSize={navSize} icon={FaPaintBrush} title='Paint' linkTo='#/paint' className='paint-nav'/>
-                <NavItem navSize={navSize} icon={FiMenu} title='Queue' linkTo='#/queue' className='queue-nav'/>
-                <NavItem navSize={navSize} icon={GiResize} title='Upscale' linkTo='#/upscale' className='upscale-nav'/>
-                <Viewer></Viewer>
+                        if (navSize === 'small') {
+                            changeNavSize('large');
+                        } else {
+                            changeNavSize('small');
+                        }
+                    }}
+                />
+
+                <NavItem
+                    className="home-nav"
+                    icon={FaMagic}
+                    linkTo="#/"
+                    navSize={navSize}
+                    title="Create" />
+
+                <NavItem
+                    className="paint-nav"
+                    icon={FaPaintBrush}
+                    linkTo="#/paint"
+                    navSize={navSize}
+                    title="Paint" />
+
+                <NavItem
+                    className="queue-nav"
+                    icon={FiMenu}
+                    linkTo="#/queue"
+                    navSize={navSize}
+                    title="Queue" />
+
+                <NavItem
+                    className="upscale-nav"
+                    icon={GiResize}
+                    linkTo="#/upscale"
+                    navSize={navSize}
+                    title="Upscale" />
+
+                <Viewer />
             </Flex>
-            <Flex  
-                p='7.5%'
-                mr = '20px'
-                flexDir='column'
-                w='100%'
-                alignItems={navSize === 'small' ? 'center' : 'flex-start'}
-                as='nav'
-                pb='20px'>
-                <EquilibriumAI></EquilibriumAI>
-                <Discord></Discord>
-                <Tour></Tour>
-                <NavItem navSize={navSize} icon={FiSettings} title='Settings' linkTo='#/settings' className='settings-nav'/>
+
+            <Flex
+                alignItems={navSize === 'small'
+                    ? 'center'
+                    : 'flex-start'}
+                as="nav"
+                flexDir="column"
+                mr="20px"
+                p="7.5%"
+                pb="20px"
+                w="100%">
+                <EquilibriumAI />
+
+                <Discord />
+
+                <Tour />
+
+                <NavItem
+                    className="settings-nav"
+                    icon={FiSettings}
+                    linkTo="#/settings"
+                    navSize={navSize}
+                    title="Settings" />
             </Flex>
         </Flex>
-    )
+    );
 }
