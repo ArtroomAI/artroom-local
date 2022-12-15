@@ -59,8 +59,10 @@ def load_model_from_config(ckpt, verbose=False):
     # pl_sd = torch.load(ckpt, map_location="cpu")
     # if "global_step" in pl_sd:
     #     print(f"Global Step: {pl_sd['global_step']}")
-    sd = pl_sd["state_dict"]
-    return sd
+    # fix for automatic1111 model schema
+    if "state_dict" in pl_sd:
+        return pl_sd["state_dict"]
+    return pl_sd
 
 
 def load_img(image, h0, w0):
