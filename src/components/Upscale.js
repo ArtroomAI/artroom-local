@@ -31,30 +31,12 @@ import {
 } from 'react-icons/fa';
 function Upscale () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
-    const [
-        upscale_images,
-        setUpscaleImages
-    ] = useState('');
-    const [
-        upscale_dest,
-        setUpscaleDest
-    ] = useState('');
-    const [
-        upscaler,
-        setUpscaler
-    ] = useState('ESRGAN');
-    const [
-        upscale_factor,
-        setUpscaleFactor
-    ] = useState(2);
-    const [
-        upscale_strength,
-        setUpscaleStrength
-    ] = useState(0.5);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const [upscale_images, setUpscaleImages] = useState('');
+    const [upscale_dest, setUpscaleDest] = useState('');
+    const [upscaler, setUpscaler] = useState('ESRGAN');
+    const [upscale_factor, setUpscaleFactor] = useState(2);
+    const [upscale_strength, setUpscaleStrength] = useState(0.5);
 
     const chooseUploadPath = (event) => {
         window.chooseImages().then((result) => {

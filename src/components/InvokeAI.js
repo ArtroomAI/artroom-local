@@ -13,14 +13,8 @@ import {
 
 function InvokeAI () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
-    const [
-        focused,
-        setFocused
-    ] = useState(false);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const [focused, setFocused] = useState(false);
 
     return (
         <Flex

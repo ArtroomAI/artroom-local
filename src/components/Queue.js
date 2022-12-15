@@ -28,18 +28,9 @@ import QueueRow from './QueueHelpers/QueueRow.js';
 import ClearQueue from './QueueHelpers/ClearQueue.js';
 function Queue () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
-    const [
-        queue,
-        setQueue
-    ] = useRecoilState(atom.queueState);
-    const [
-        serverRunning,
-        setServerRunning
-    ] = useState(false);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const [queue, setQueue] = useRecoilState(atom.queueState);
+    const [serverRunning, setServerRunning] = useState(false);
 
     useEffect(
         () => {

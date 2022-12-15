@@ -31,74 +31,23 @@ import { IoMdCloud } from 'react-icons/io';
 function SDSettings () {
     const { ToastContainer, toast } = createStandaloneToast();
 
-    const [
-        width,
-        setWidth
-    ] = useRecoilState(atom.widthState);
-    const [
-        height,
-        setHeight
-    ] = useRecoilState(atom.heightState);
-    const [
-        text_prompts,
-        setTextPrompts
-    ] = useRecoilState(atom.textPromptsState);
-    const [
-        batch_name,
-        setBatchName
-    ] = useRecoilState(atom.batchNameState);
-    const [
-        steps,
-        setSteps
-    ] = useRecoilState(atom.stepsState);
-    const [
-        aspect_ratio,
-        setAspectRatio
-    ] = useRecoilState(atom.aspectRatioState);
-    const [
-        aspectRatioSelection,
-        setAspectRatioSelection
-    ] = useRecoilState(atom.aspectRatioSelectionState);
-    const [
-        seed,
-        setSeed
-    ] = useRecoilState(atom.seedState);
-    const [
-        use_random_seed,
-        setUseRandomSeed
-    ] = useRecoilState(atom.useRandomSeedState);
-    const [
-        n_iter,
-        setNIter
-    ] = useRecoilState(atom.nIterState);
-    const [
-        sampler,
-        setSampler
-    ] = useRecoilState(atom.samplerState);
-    const [
-        cfg_scale,
-        setCFGScale
-    ] = useRecoilState(atom.CFGScaleState);
-    const [
-        init_image,
-        setInitImage
-    ] = useRecoilState(atom.initImageState);
-    const [
-        strength,
-        setStrength
-    ] = useRecoilState(atom.strengthState);
-    const [
-        ckpt,
-        setCkpt
-    ] = useRecoilState(atom.ckptState);
-    const [
-        ckpts,
-        setCkpts
-    ] = useRecoilState(atom.ckptsState);
-    const [
-        cloudMode,
-        setCloudMode
-    ] = useRecoilState(atom.cloudModeState);
+    const [width, setWidth] = useRecoilState(atom.widthState);
+    const [height, setHeight] = useRecoilState(atom.heightState);
+    const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
+    const [batch_name, setBatchName] = useRecoilState(atom.batchNameState);
+    const [steps, setSteps] = useRecoilState(atom.stepsState);
+    const [aspect_ratio, setAspectRatio] = useRecoilState(atom.aspectRatioState);
+    const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
+    const [seed, setSeed] = useRecoilState(atom.seedState);
+    const [use_random_seed, setUseRandomSeed] = useRecoilState(atom.useRandomSeedState);
+    const [n_iter, setNIter] = useRecoilState(atom.nIterState);
+    const [sampler, setSampler] = useRecoilState(atom.samplerState);
+    const [cfg_scale, setCFGScale] = useRecoilState(atom.CFGScaleState);
+    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
+    const [strength, setStrength] = useRecoilState(atom.strengthState);
+    const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
+    const [ckpts, setCkpts] = useRecoilState(atom.ckptsState);
+    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
     const uploadSettings = (event) => {
         window.uploadSettings().then((result) => {

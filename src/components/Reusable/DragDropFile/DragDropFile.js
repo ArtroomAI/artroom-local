@@ -15,19 +15,10 @@ import {
 } from 'react-icons/fa';
 
 const DragDropFile = () => {
-    const [
-        dragActive,
-        setDragActive
-    ] = useState(false);
+    const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef(null);
-    const [
-        init_image,
-        setInitImage
-    ] = useRecoilState(atom.initImageState);
-    const [
-        initImagePath,
-        setInitImagePath
-    ] = useRecoilState(atom.initImagePathState);
+    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
+    const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 
     function getImageFromPath () {
         console.log(initImagePath);

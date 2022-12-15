@@ -7,10 +7,11 @@
     "plugin:react/all"
   ],
   "parserOptions": {
-    "ecmaVersion": 6,
+    "ecmaVersion": 11,
     "sourceType": "module",
     "ecmaFeatures": {
-      "modules": true
+      "modules": true,
+      "jsx": true
     }
   },
   "plugins": [
@@ -87,6 +88,9 @@
     "array-callback-return": "off",
     "no-extra-parens": "off",
     "no-underscore-dangle": "off",
-    "no-throw-literal": "off"
+    "no-throw-literal": "off",
+    "array-bracket-spacing": ["error", "never"],
+    "array-bracket-newline": ["error", "never"],
+    "array-element-newline": ["error", "never"]
   }
 }

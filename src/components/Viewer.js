@@ -15,10 +15,7 @@ import {
 // Tour component
 const Viewer = () => {
     // Tour state is the state which control the JoyRide component
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     return (
         <>
             <Flex

@@ -23,57 +23,21 @@ import Logo from '../../images/ArtroomLogo.png';
 import validator from 'validator';
 
 const SignUp = ({ setSignUp }) => {
-    const [
-        username,
-        setUsername
-    ] = useState('');
-    const [
-        email,
-        setEmail
-    ] = useState('');
-    const [
-        password,
-        setPassword
-    ] = useState('');
-    const [
-        month,
-        setMonth
-    ] = useState({});
-    const [
-        day,
-        setDay
-    ] = useState({});
-    const [
-        year,
-        setYear
-    ] = useState({});
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [month, setMonth] = useState({});
+    const [day, setDay] = useState({});
+    const [year, setYear] = useState({});
 
-    const [
-        showPassword,
-        setShowPassword
-    ] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const handleShowClick = () => setShowPassword(!showPassword);
 
-    const [
-        usernameUnique,
-        setUsernameUnique
-    ] = useState(true);
-    const [
-        emailValid,
-        setEmailValid
-    ] = useState(true);
-    const [
-        emailUnique,
-        setEmailUnique
-    ] = useState(true);
-    const [
-        passwordValid,
-        setPasswordValid
-    ] = useState(true);
-    const [
-        above13,
-        setAbove13
-    ] = useState(true);
+    const [usernameUnique, setUsernameUnique] = useState(true);
+    const [emailValid, setEmailValid] = useState(true);
+    const [emailUnique, setEmailUnique] = useState(true);
+    const [passwordValid, setPasswordValid] = useState(true);
+    const [above13, setAbove13] = useState(true);
 
     const checkValidEmail = () => {
         const isEmailValid = validator.isEmail(email) && email.length <= 100;
@@ -138,32 +102,19 @@ const SignUp = ({ setSignUp }) => {
         return age >= 13;
     };
 
-    const months = [
-        { label: 'January',
-            value: '01' },
-        { label: 'February',
-            value: '02' },
-        { label: 'March',
-            value: '03' },
-        { label: 'April',
-            value: '04' },
-        { label: 'May',
-            value: '05' },
-        { label: 'June',
-            value: '06' },
-        { label: 'July',
-            value: '07' },
-        { label: 'August',
-            value: '08' },
-        { label: 'September',
-            value: '09' },
-        { label: 'October',
-            value: '10' },
-        { label: 'November',
-            value: '11' },
-        { label: 'December',
-            value: '12' }
-    ];
+    const months = [{ label: 'January',
+        value: '01' }, { label: 'February',
+        value: '02' }, { label: 'March',
+        value: '03' }, { label: 'April',
+        value: '04' }, { label: 'May',
+        value: '05' }, { label: 'June',
+        value: '06' }, { label: 'July',
+        value: '07' }, { label: 'August',
+        value: '08' }, { label: 'September',
+        value: '09' }, { label: 'October',
+        value: '10' }, { label: 'November',
+        value: '11' }, { label: 'December',
+        value: '12' }];
 
     let days = [];
     for (let i = 1; i < 32; i++) {

@@ -14,10 +14,7 @@ import {
 } from '@chakra-ui/react';
 
 function DebugInstallerModal () {
-    const [
-        secondConfirmationNeeded,
-        setSecondConfirmationNeeded
-    ] = useState(false);
+    const [secondConfirmationNeeded, setSecondConfirmationNeeded] = useState(false);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 

@@ -92,14 +92,8 @@ const reducer = (state = INITIAL_STATE, action) => {
 // Tour component
 const Tour = () => {
     // Tour state is the state which control the JoyRide component
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
-    const [
-        tourState,
-        dispatch
-    ] = useReducer(
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const [tourState, dispatch] = useReducer(
         reducer,
         INITIAL_STATE
     );

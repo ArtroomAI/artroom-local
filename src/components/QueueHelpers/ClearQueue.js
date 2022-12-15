@@ -17,10 +17,7 @@ function ClearQueue () {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
-    const [
-        queue,
-        setQueue
-    ] = useRecoilState(atom.queueState);
+    const [queue, setQueue] = useRecoilState(atom.queueState);
 
     const clearQueue = (event) => {
         axios.post(

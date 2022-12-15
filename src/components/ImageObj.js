@@ -11,18 +11,9 @@ import ContextMenuList from './ContextMenu/ContextMenuList';
 import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 
 export default function ImageObj ({ B64, active }) {
-    const [
-        queueRunning,
-        setQueueRunning
-    ] = useRecoilState(atom.queueRunningState);
-    const [
-        init_image,
-        setInitImage
-    ] = useRecoilState(atom.initImageState);
-    const [
-        initImagePath,
-        setInitImagePath
-    ] = useRecoilState(atom.initImagePathState);
+    const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
+    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
+    const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 
     const copyToClipboard = () => {
         window.copyToClipboard(B64);

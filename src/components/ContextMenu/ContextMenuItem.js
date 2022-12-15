@@ -8,10 +8,7 @@ export default function ContextMenuItem ({
     colorScheme,
     disabled = false
 }) {
-    const [
-        variant,
-        setVariant
-    ] = useState('ghost');
+    const [variant, setVariant] = useState('ghost');
     const { closeMenu } = useContext(ContextMenuContext);
     return (
         <Button

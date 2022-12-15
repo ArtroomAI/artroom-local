@@ -12,12 +12,7 @@ const motionVariants = {
         scale: 1,
         transition: {
             duration: 0.2,
-            ease: [
-                0.4,
-                0,
-                0.2,
-                1
-            ]
+            ease: [0.4, 0, 0.2, 1]
         }
     },
     exit: {
@@ -50,10 +45,7 @@ export default function ContextMenuList ({ children }) {
         position: { x, y }
     } = useContext(ContextMenuContext);
 
-    const [
-        position,
-        setPosition
-    ] = useState({});
+    const [position, setPosition] = useState({});
 
     // TODO: Any less manual way to do this
     useEffect(
@@ -86,11 +78,7 @@ export default function ContextMenuList ({ children }) {
                 right: `${right}px`
             });
         },
-        [
-            menuRef,
-            x,
-            y
-        ]
+        [menuRef, x, y]
     );
 
     useOutsideClick({

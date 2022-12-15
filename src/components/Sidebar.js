@@ -26,10 +26,7 @@ import Viewer from './Viewer';
 import EquilibriumAI from './EquilibriumAI';
 
 export default function Sidebar () {
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     return (
         <Flex

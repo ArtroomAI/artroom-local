@@ -16,10 +16,7 @@ export const ContextMenuContext = React.createContext({
 
 export default function ContextMenu ({ children }) {
     const { isOpen, onClose: closeMenu, onOpen: openMenu } = useDisclosure();
-    const [
-        position,
-        setPosition
-    ] = useState({ x: 0,
+    const [position, setPosition] = useState({ x: 0,
         y: 0 });
     const menuRef = useRef(null);
     return (

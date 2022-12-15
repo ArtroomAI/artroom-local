@@ -8,30 +8,12 @@ import {
 } from '@chakra-ui/react';
 function ImageViewer () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
-    const [
-        image_save_path,
-        setImageSavePath
-    ] = useRecoilState(atom.imageSavePathState);
-    const [
-        batch_name,
-        setBatchName
-    ] = useRecoilState(atom.batchNameState);
-    const [
-        imageViewPath,
-        setImageViewPath
-    ] = useRecoilState(atom.imageViewPathState);
-    const [
-        imagePaths,
-        setImagePaths
-    ] = useState([]);
-    const [
-        imagePreviews,
-        setImagePreviews
-    ] = useState([]);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
+    const [batch_name, setBatchName] = useRecoilState(atom.batchNameState);
+    const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
+    const [imagePaths, setImagePaths] = useState([]);
+    const [imagePreviews, setImagePreviews] = useState([]);
 
     useEffect(
         () => {

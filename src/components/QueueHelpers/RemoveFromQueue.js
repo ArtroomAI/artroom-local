@@ -22,10 +22,7 @@ function RemoveFromQueue (props) {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
-    const [
-        queue,
-        setQueue
-    ] = useRecoilState(atom.queueState);
+    const [queue, setQueue] = useRecoilState(atom.queueState);
 
     const RemoveFromQueue = (event) => {
         onClose();

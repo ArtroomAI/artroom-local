@@ -38,18 +38,9 @@ export const AutoResizeTextarea = forwardRef((props, ref) => (
 ));
 
 function Prompt ({ setFocused }) {
-    const [
-        text_prompts,
-        setTextPrompts
-    ] = useRecoilState(atom.textPromptsState);
-    const [
-        negative_prompts,
-        setNegativePrompts
-    ] = useRecoilState(atom.negativePromptsState);
-    const [
-        init_image,
-        setInitImage
-    ] = useRecoilState(atom.initImageState);
+    const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
+    const [negative_prompts, setNegativePrompts] = useRecoilState(atom.negativePromptsState);
+    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
 
     return (
         <>

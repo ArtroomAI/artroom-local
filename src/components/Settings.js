@@ -29,56 +29,20 @@ import DebugInstallerModal from './Modals/DebugInstallerModal';
 
 function Settings () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
-    const [
-        image_save_path,
-        setImageSavePath
-    ] = useRecoilState(atom.imageSavePathState);
-    const [
-        long_save_path,
-        setLongSavePath
-    ] = useRecoilState(atom.longSavePathState);
-    const [
-        highres_fix,
-        setHighresFix
-    ] = useRecoilState(atom.highresFixState);
-    const [
-        speed,
-        setSpeed
-    ] = useRecoilState(atom.speedState);
-    const [
-        use_full_precision,
-        setUseFullPrecision
-    ] = useRecoilState(atom.useFullPrecisionState);
-    const [
-        use_cpu,
-        setUseCPU
-    ] = useRecoilState(atom.useCPUState);
-    const [
-        save_grid,
-        setSaveGrid
-    ] = useRecoilState(atom.saveGridState);
-    const [
-        debug_mode,
-        setDebugMode
-    ] = useRecoilState(atom.debugMode);
-    const [
-        ckpt_dir,
-        setCkptDir
-    ] = useRecoilState(atom.ckptDirState);
-    const [
-        delay,
-        setDelay
-    ] = useRecoilState(atom.delayState);
+    const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
+    const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
+    const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
+    const [speed, setSpeed] = useRecoilState(atom.speedState);
+    const [use_full_precision, setUseFullPrecision] = useRecoilState(atom.useFullPrecisionState);
+    const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
+    const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
+    const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
+    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
+    const [delay, setDelay] = useRecoilState(atom.delayState);
 
-    const [
-        debug_mode_orig,
-        setDebugModeOrig
-    ] = useState([]);
+    const [debug_mode_orig, setDebugModeOrig] = useState([]);
 
     useEffect(
         () => {

@@ -13,10 +13,7 @@ import {
     Tooltip
 } from '@chakra-ui/react';
 const Discord = () => {
-    const [
-        navSize,
-        changeNavSize
-    ] = useRecoilState(atom.navSizeState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     return (
         <>
             <Flex
