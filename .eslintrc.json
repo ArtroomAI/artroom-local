@@ -1,13 +1,14 @@
 {
   "env": {
-    "browser": true
+    "browser": true,
+    "es6": true
   },
   "extends": [
     "eslint:all",
     "plugin:react/all"
   ],
   "parserOptions": {
-    "ecmaVersion": 11,
+    "ecmaVersion": 12,
     "sourceType": "module",
     "ecmaFeatures": {
       "modules": true,
@@ -91,6 +92,11 @@
     "no-throw-literal": "off",
     "array-bracket-spacing": ["error", "never"],
     "array-bracket-newline": ["error", "never"],
-    "array-element-newline": ["error", "never"]
+    "array-element-newline": ["error", "never"],
+    "multiline-ternary": "off",
+    "prefer-destructuring": "off",
+    "no-promise-executor-return": "off",
+    "capitalized-comments": "off",
+    "newline-per-chained-call": "off"
   }
 }

@@ -30,6 +30,7 @@ import ProfileMenu from './ProfileMenu';
 import LoginPage from './Login/LoginPage';
 // Import Info from './Info';
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
+import { ModelMerger } from './ModelMerger';
 
 function Main () {
     const { colorMode, toggleColorMode } = useColorMode();
@@ -56,29 +57,14 @@ function Main () {
     const [speed, setSpeed] = useRecoilState(atom.speedState);
     const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
     const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
-    const [ckpts, setCkpts] = useRecoilState(atom.ckptsState);
     const [strength, setStrength] = useRecoilState(atom.strengthState);
 
-    const [use_full_precision, setUseFullPrecision] = useRecoilState(atom.useFullPrecisionState);
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
 
     const { ToastContainer, toast } = createStandaloneToast();
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-
-    const getCkpts = (event) => {
-        window.getCkpts(ckpt_dir).then((result) => {
-            setCkpts(result);
-        });
-    };
-
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        [ckpt_dir]
-    );
 
     useEffect(
         () => {
@@ -107,7 +93,6 @@ function Main () {
                 setUseCPU(settings.use_cpu);
                 setSpeed(settings.speed);
                 setDebugMode(settings.debug_mode);
-                setUseFullPrecision(settings.use_full_precision);
                 setDelay(settings.delay);
                 setSaveGrid(settings.save_grid);
 
@@ -246,6 +231,10 @@ function Main () {
                         <Route
                             element={<Upscale />}
                             path="/upscale" />
+
+                        <Route
+                            element={<ModelMerger />}
+                            path="/merge" />
 
                         <Route
                             element={<ImageViewer />}
