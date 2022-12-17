@@ -37,3 +37,4 @@ stable-diffusion/src/taming-transformers
 .eslintcache
 __pycache__
 artroom_helpers/__pycache__
+stable-diffusion/
