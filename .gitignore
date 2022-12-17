@@ -33,7 +33,7 @@ stable-diffusion/src/gfpgan
 stable-diffusion/src/k-diffusion
 stable-diffusion/src/realesrgan
 stable-diffusion/src/taming-transformers
-InpaintingTest.ipynb
+
 .eslintcache
 __pycache__
 artroom_helpers/__pycache__
