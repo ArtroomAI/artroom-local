@@ -18,8 +18,10 @@ import {
 import { FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
+import axios from 'axios';
 
 const Login = ({ setLoggedIn, setSignUp }) => {
+    const qs = require('qs');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -28,9 +30,24 @@ const Login = ({ setLoggedIn, setSignUp }) => {
 
     const handleShowClick = () => setShowPassword(!showPassword);
     function handleLogin () {
-        console.log(email);
-        console.log(password);
-        setLoggedIn(true);
+        axios.post(
+            'http://localhost:8000/login',
+            qs.stringify({
+                username: email,
+                password,
+                grant_type: '',
+                scope: '',
+                client_id: '',
+                client_secret: ''
+            }),
+            {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                    'accept': 'application/json' }
+            }
+        ).then((result) => {
+            console.log(result);
+            // setLoggedIn(true);
+        });
     }
 
     return (
