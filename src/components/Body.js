@@ -225,9 +225,13 @@ function Body () {
         () => {
             axios.get(
                 'http://127.0.0.1:5300/get_images',
-                { params: { 'path': 'latest',
-                    'id': latestImagesID },
-                headers: { 'Content-Type': 'application/json' } }
+                {
+                    params: {
+                        'path': 'latest',
+                        'id': latestImagesID
+                    },
+                    headers: { 'Content-Type': 'application/json' }
+                }
             ).then((result) => {
                 const id = result.data.content.latest_images_id;
 
@@ -280,9 +284,7 @@ function Body () {
                 mask: '',
                 delay
             },
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
+            { headers: { 'Content-Type': 'application/json' } }
         ).then((result) => {
             if (result.data.status === 'Success') {
                 toast({
@@ -291,9 +293,7 @@ function Body () {
                     position: 'top',
                     duration: 2000,
                     isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
+                    containerStyle: { pointerEvents: 'none' }
                 });
             } else {
                 toast({
@@ -303,9 +303,7 @@ function Body () {
                     position: 'top',
                     duration: 5000,
                     isClosable: true,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
+                    containerStyle: { pointerEvents: 'none' }
                 });
             }
         }).catch((error) => console.log(error));
@@ -353,8 +351,10 @@ function Body () {
                                 fit="scale-left"
                                 h="5vh"
                                 key={index}
-                                onClick={() => dispatch({ type: 'select',
-                                    payload: index })}
+                                onClick={() => dispatch({
+                                    type: 'select',
+                                    payload: index
+                                })}
                                 src={image}
                             />))}
                         </SimpleGrid>

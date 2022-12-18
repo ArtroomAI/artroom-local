@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 autoUpdater.autoDownload = false;
@@ -54,13 +55,14 @@ if (fs.existsSync(artroom_install_log)) {
         artroom_install_log,
         'UTF-8'
     );
+    // I don't understand this error. Is it important?
+    // eslint-disable-next-line require-unicode-regexp
     const lines = temp.split(/\r?\n/);
     artroom_path = lines[0];
 }
 
 // Replace placeholders with actual paths
 let sd_data;
-let sd_data_json;
 try {
     sd_data = fs.readFileSync(
         `${artroom_path}\\artroom\\settings\\sd_settings.json`,
@@ -72,7 +74,7 @@ try {
         'UTF-8'
     );
 }
-sd_data_json = JSON.parse(sd_data);
+const sd_data_json = JSON.parse(sd_data);
 sd_data_json.image_save_path = sd_data_json.image_save_path.replace(
     '%UserProfile%',
     hd
@@ -127,9 +129,11 @@ const mergeModelsCommand = `${baseCommand} model_merger.py`;
 
 let server = spawn(
     command,
-    { detached: debugModeInit,
+    {
+        detached: debugModeInit,
         encoding: 'utf8',
-        shell: true }
+        shell: true
+    }
 );
 
 function createWindow () {
@@ -153,7 +157,7 @@ function createWindow () {
     ipcMain.handle(
         'getCkpts',
         (event, data) => glob.sync(
-            `${data}/*.ckpt`,
+            `${data}/**/*.ckpt`,
             {}
         ).map((match) => path.relative(
             data,
@@ -190,9 +194,7 @@ function createWindow () {
             const exeProcess = spawn(
                 'runas',
                 ['/user:Administrator', exePath],
-                {
-                    detached: true
-                }
+                { detached: true }
             );
 
             // Listen for the 'close' event, which is emitted when the child process finishes
@@ -235,8 +237,12 @@ function createWindow () {
             }
             dialog.showOpenDialog({
                 properties,
-                filters: [{ name: 'Settings',
-                    extensions: ['json'] }]
+                filters: [
+                    {
+                        name: 'Settings',
+                        extensions: ['json']
+                    }
+                ]
             }).then((result) => {
                 if (result.filePaths.length > 0) {
                     fs.readFile(
@@ -270,8 +276,12 @@ function createWindow () {
             }
             dialog.showOpenDialog({
                 properties,
-                filters: [{ name: 'Images',
-                    extensions: ['jpg', 'png', 'jpeg'] }]
+                filters: [
+                    {
+                        name: 'Images',
+                        extensions: ['jpg', 'png', 'jpeg']
+                    }
+                ]
             }).then((result) => {
                 if (result.filePaths.length > 0) {
                     resolve(result.filePaths);
@@ -336,14 +346,24 @@ function createWindow () {
         (event, data) => new Promise((resolve, reject) => {
             const json = JSON.parse(data);
 
-            const parameters = [path.join(
-                sd_data_json.ckpt_dir,
-                json.modelA
-            ), path.join(
-                sd_data_json.ckpt_dir,
-                json.modelB
-            )];
-
+            const parameters = [
+                path.join(
+                    sd_data_json.ckpt_dir,
+                    json.modelA
+                ), path.join(
+                    sd_data_json.ckpt_dir,
+                    json.modelB
+                )
+            ];
+            if (json.ModelC) {
+                parameters.push(
+                    '--model_2',
+                    path.join(
+                        sd_data_json.ckpt_dir,
+                        json.modelC
+                    )
+                );
+            }
             if (json.ModelC) {
                 parameters.push(
                     '--model_2',
@@ -377,13 +397,20 @@ function createWindow () {
                     json.steps
                 );
             }
-
+            if (json.filename.length > 0) {
+                parameters.push(
+                    '--output',
+                    json.filename
+                );
+            }
             const modelMergeServer = spawn(
                 mergeModelsCommand,
                 parameters,
-                { detached: true,
+                {
+                    detached: true,
                     encoding: 'utf8',
-                    shell: true }
+                    shell: true
+                }
             );
             modelMergeServer.on(
                 'message',
@@ -401,42 +428,10 @@ function createWindow () {
         })
     );
 
-
-    /*
-     * IpcMain.handle('uploadInitImage', (event, argx = 0) => {
-     *   return new Promise((resolve, reject) => {
-     *     let properties;
-     *     if(os.platform() === 'linux' || os.platform() === 'win32'){
-     *       properties = ['openFile'];
-     *     }
-     *     else{
-     *       properties = ['openFile', 'openDirectory']
-     *     }
-     *       dialog.showOpenDialog({
-     *           properties: properties,
-     *           filters: [
-     *             { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
-     *           ]
-     *       }).then(result => {
-     *         if (result.filePaths.length > 0){
-     *           resolve(getB64(result.filePaths[0]));
-     *         }
-     *         else{
-     *           resolve("");
-     *         }
-     *       }).catch(err => {
-     *         resolve("");
-     *       })
-     *     });
-     *   });
-     */
-
     ipcMain.handle(
         'chooseUploadPath',
         (event, argx = 0) => new Promise((resolve, reject) => {
-            dialog.showOpenDialog({
-                properties: ['openDirectory']
-            }).then((result) => {
+            dialog.showOpenDialog({ properties: ['openDirectory'] }).then((result) => {
                 if (result.filePaths.length > 0) {
                     resolve(result.filePaths[0]);
                 } else {
@@ -519,16 +514,20 @@ function createWindow () {
             if (isDebug) {
                 server = spawn(
                     command,
-                    { detached: true,
+                    {
+                        detached: true,
                         encoding: 'utf8',
-                        shell: true }
+                        shell: true
+                    }
                 );
             } else {
                 server = spawn(
                     command,
-                    { detached: false,
+                    {
+                        detached: false,
                         encoding: 'utf8',
-                        shell: true }
+                        shell: true
+                    }
                 );
             }
             return axios.get(
@@ -602,7 +601,7 @@ app.on(
          * to stay active until the user quits explicitly with Cmd + Q
          */
         // eslint-disable-next-line no-undef
-        if (process.platform !== 'darwin') {
+        if (os.platform() === 'win32') {
             kill(server.pid);
             spawn(
                 'taskkill',
@@ -641,8 +640,10 @@ autoUpdater.on(
         const buttons = ['Install', 'Cancel'];
 
         // Show the message to the user
-        dialog.showMessageBox({ message,
-            buttons }).then(({ response }) => {
+        dialog.showMessageBox({
+            message,
+            buttons
+        }).then(({ response }) => {
             // If the user clicks the "Install" button, install the update
             if (response === 0) {
                 autoUpdater.downloadUpdate();
@@ -667,13 +668,13 @@ autoUpdater.on(
             buttons: ['Restart', 'Later'],
             title: 'Application Update',
             // eslint-disable-next-line no-undef
-            message: process.platform === 'win32' ? releaseNotes : releaseName,
+            message: os.platform() === 'win32' ? releaseNotes : releaseName,
             detail: 'A new version has been downloaded. Restart the application to apply the updates.'
         };
         dialog.showMessageBox(dialogOpts).then((returnValue) => {
             if (returnValue.response === 0) {
                 // eslint-disable-next-line no-undef
-                if (process.platform !== 'darwin') {
+                if (os.platform() === 'win32') {
                     kill(server.pid);
                     spawn(
                         'taskkill',

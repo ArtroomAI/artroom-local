@@ -30,3 +30,6 @@ electron-builder.yml
 __pycache__
 artroom_helpers/__pycache__
 stable-diffusion/
+gfpgan/
+artroomlog.txt
+artroomlog.txt

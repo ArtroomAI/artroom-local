@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -6,9 +6,6 @@ import {
     Button,
     Flex,
     VStack,
-    Progress,
-    SimpleGrid,
-    Image,
     Text,
     createStandaloneToast,
     FormControl,
@@ -25,13 +22,14 @@ import {
     SliderTrack,
     SliderThumb,
     SliderFilledTrack,
+    RangeSlider,
+    RangeSliderMark,
+    RangeSliderTrack,
+    RangeSliderFilledTrack,
+    RangeSliderThumb,
     Tooltip
 } from '@chakra-ui/react';
-import {
-    FaQuestionCircle,
-    FaTrashAlt
-} from 'react-icons/fa';
-import Prompt from './Prompt';
+import { FaQuestionCircle } from 'react-icons/fa';
 
 export const ModelMerger = () => {
     const { ToastContainer, toast } = createStandaloneToast();
@@ -39,8 +37,6 @@ export const ModelMerger = () => {
 
     const [progress, setProgress] = useState(-1);
     const [stage, setStage] = useState('');
-    const [running, setRunning] = useState(false);
-    const [focused, setFocused] = useState(false);
     const [ckpts, setCkpts] = useState([]);
     const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
 
@@ -49,7 +45,9 @@ export const ModelMerger = () => {
     const [modelC, setModelC] = useState('');
     const [interpolation, setInterpolation] = useState('weighted_sum');
     const [alpha, setAlpha] = useState(0);
-    const [fullrange, setFullrange] = useState(0);
+    const [alphaRange, setAlphaRange] = useState([33, 66]);
+
+    const [fullrange, setFullrange] = useState(false);
     const [filename, setFilename] = useState('');
 
     const labelStyles = {
@@ -58,14 +56,17 @@ export const ModelMerger = () => {
         fontSize: 'sm'
     };
 
-    const submitMain = (event) => {
-        const data = JSON.stringify({ modelA,
+    const submitMain = () => {
+        const data = JSON.stringify({
+            modelA,
             modelB,
             'modelC': interpolation === 'add_difference' ? modelC : '',
             method: interpolation,
             fullrange,
             alpha,
-            steps: fullrange ? alpha : 0 });
+            filename,
+            steps: fullrange ? alpha : 0
+        });
         console.log(data);
         window.mergeModels(data).then((res) => {
             if (res === 0) {
@@ -75,9 +76,7 @@ export const ModelMerger = () => {
                     position: 'top',
                     duration: 1500,
                     isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
+                    containerStyle: { pointerEvents: 'none' }
                 });
             } else {
                 toast({
@@ -86,9 +85,7 @@ export const ModelMerger = () => {
                     position: 'top',
                     duration: 1500,
                     isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
+                    containerStyle: { pointerEvents: 'none' }
                 });
             }
         }).catch((err) => {
@@ -98,16 +95,14 @@ export const ModelMerger = () => {
                 position: 'top',
                 duration: 1500,
                 isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
+                containerStyle: { pointerEvents: 'none' }
             });
         });
     };
 
     const getCkpts = () => {
         window.getCkpts(ckpt_dir).then((result) => {
-            console.log(result);
+            // console.log(result);
             setCkpts(result);
         });
     };
@@ -153,7 +148,7 @@ export const ModelMerger = () => {
                             <HStack>
                                 <Tooltip
                                     fontSize="md"
-                                    label="You can select all images in folder with Ctrl+A, it will ignore folders in upscaling"
+                                    label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference."
                                     mt="3"
                                     placement="right"
                                     shouldWrapChildren>
@@ -171,19 +166,19 @@ export const ModelMerger = () => {
                                     value={interpolation}>
                                     <Stack direction="row">
                                         <Radio value="weighted_sum">
-                                            weighted sum
+                                            Weighted Sum
                                         </Radio>
 
                                         <Radio value="sigmoid">
-                                            sigmoid
+                                            Sigmoid
                                         </Radio>
 
                                         <Radio value="inverse_sigmoid">
-                                            inverse sigmoid
+                                            Inverse Sigmoid
                                         </Radio>
 
                                         <Radio value="add_difference">
-                                            add difference
+                                            Add Difference
                                         </Radio>
                                     </Stack>
                                 </RadioGroup>
@@ -262,8 +257,7 @@ export const ModelMerger = () => {
                             </Select>
                         </FormControl>
 
-                        <FormControl
-                            isDisabled={interpolation !== 'add_difference'}
+                        {interpolation === 'add_difference' && <FormControl
                             width="full">
                             <FormLabel htmlFor="Ckpt">
                                 <HStack>
@@ -298,59 +292,149 @@ export const ModelMerger = () => {
                                     {ckpt_option}
                                 </option>))}
                             </Select>
+                        </FormControl>}
+
+                        <FormControl>
+                            <HStack>
+                                <Checkbox
+                                    onChange={() => {
+                                        setFullrange(!fullrange);
+                                    }}
+                                    value={fullrange}>
+                                    Use full alpha range
+                                </Checkbox>
+
+                                <Tooltip
+                                    fontSize="md"
+                                    label="Merge the model for every % value from 5 to 95, every 5 steps"
+                                    mt="3"
+                                    placement="right"
+                                    shouldWrapChildren>
+                                    <FaQuestionCircle color="#777" />
+                                </Tooltip>
+                            </HStack>
                         </FormControl>
 
-                        <FormControl
-                            pt={5}
-                            width="full">
-                            <Slider
-                                aria-label="slider-ex-6"
-                                onChange={(val) => setAlpha(val)}
-                                value={alpha}>
-                                <SliderMark
-                                    value={25}
-                                    {...labelStyles}>
-                                    25%
-                                </SliderMark>
-
-                                <SliderMark
-                                    value={50}
-                                    {...labelStyles}>
-                                    50%
-                                </SliderMark>
-
-                                <SliderMark
-                                    value={75}
-                                    {...labelStyles}>
-                                    75%
-                                </SliderMark>
-
-                                <SliderMark
-                                    bg="blue.500"
-                                    color="white"
-                                    ml="-5"
-                                    mt="-10"
-                                    textAlign="center"
-                                    value={alpha}
-                                    w="12"
+                        {!fullrange && interpolation === 'add_difference'
+                            ? <FormControl
+                                pt={5}
+                                width="full">
+                                <RangeSlider
+                                    aria-label="slider-ex-6"
+                                    defaultValue={[33, 66]}
+                                    max={100}
+                                    maxLabel={modelB}
+                                    min={0}
+                                    minLabel={modelA}
+                                    onChange={(val) => setAlphaRange(val)}
+                                    step={1}
+                                    value={alphaRange}
                                 >
-                                    {alpha}
-                                    %
-                                </SliderMark>
+                                    <RangeSliderMark
+                                        value={25}
+                                        {...labelStyles}>
+                                        25%
+                                    </RangeSliderMark>
 
-                                <SliderTrack>
-                                    <SliderFilledTrack />
-                                </SliderTrack>
+                                    <RangeSliderMark
+                                        value={50}
+                                        {...labelStyles}>
+                                        50%
+                                    </RangeSliderMark>
 
-                                <SliderThumb />
-                            </Slider>
+                                    <RangeSliderMark
+                                        value={75}
+                                        {...labelStyles}>
+                                        75%
+                                    </RangeSliderMark>
 
-                            <Checkbox
-                                onChange={setFullrange}
-                                value={fullrange}>
-                                Use full alpha range
-                            </Checkbox>
-                        </FormControl>
+                                    <RangeSliderMark
+                                        bg="blue.500"
+                                        color="white"
+                                        ml="-5"
+                                        mt="-10"
+                                        textAlign="center"
+                                        value={alphaRange[0]}
+                                        w="12"
+                                    >
+                                        {alphaRange[0]}
+                                        %
+                                    </RangeSliderMark>
+
+                                    <RangeSliderMark
+                                        bg="blue.500"
+                                        color="white"
+                                        ml="-5"
+                                        mt="-10"
+                                        textAlign="center"
+                                        value={alphaRange[1]}
+                                        w="12"
+                                    >
+                                        {alphaRange[1]}
+                                        %
+                                    </RangeSliderMark>
+
+
+                                    <RangeSliderTrack>
+                                        <RangeSliderFilledTrack />
+                                    </RangeSliderTrack>
+
+                                    <RangeSliderThumb index={0} />
+
+                                    <RangeSliderThumb index={1} />
+                                </RangeSlider>
+                            </FormControl>
+                            : !fullrange
+                                ? <FormControl
+                                    pt={5}
+                                    width="full">
+                                    <Slider
+                                        aria-label="slider-ex-6"
+                                        maxLabel={modelB}
+                                        minLabel={modelA}
+                                        onChange={(val) => setAlpha(val)}
+                                        step={1}
+                                        value={alpha}
+                                    >
+                                        <SliderMark
+                                            value={25}
+                                            {...labelStyles}>
+                                            25%
+                                        </SliderMark>
+
+                                        <SliderMark
+                                            value={50}
+                                            {...labelStyles}>
+                                            50%
+                                        </SliderMark>
+
+                                        <SliderMark
+                                            value={75}
+                                            {...labelStyles}>
+                                            75%
+                                        </SliderMark>
+
+                                        <SliderMark
+                                            bg="blue.500"
+                                            color="white"
+                                            ml="-5"
+                                            mt="-10"
+                                            textAlign="center"
+                                            value={alpha}
+                                            w="12"
+                                        >
+                                            {alpha}
+                                            %
+                                        </SliderMark>
+
+                                        <SliderTrack>
+                                            <SliderFilledTrack />
+                                        </SliderTrack>
+
+                                        <SliderThumb />
+                                    </Slider>
+                                </FormControl>
+                                : <></>}
 
                         <FormControl width="full">
                             <Input
@@ -370,9 +454,7 @@ export const ModelMerger = () => {
                                     ml={2}
                                     onClick={submitMain}
                                     width="200px">
-                                    {running
-                                        ? 'Add to Queue'
-                                        : 'Run'}
+                                    Merge
                                 </Button>
                             </VStack>
                         </FormControl>

@@ -1,13 +1,18 @@
 import os
 import argparse
 import torch
-import tqdm
+from tqdm import tqdm
 import time
 import math
+from safe import load as safe_load
+import ctypes
+
+#Prevents console from freezing due to Windows being dumb
+kernel32 = ctypes.windll.kernel32
+kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
 
 try:
     # Made by Yuss#5555
-
 
     parser = argparse.ArgumentParser(description="Merge two models")
     parser.add_argument("model_0", type=str, help="Path to model 0")
@@ -42,6 +47,12 @@ try:
     def add_difference(theta0, theta1, theta2, alpha):
         return theta0 + (theta1 - theta2) * (1.0 - alpha)
 
+    def load_model_from_config(ckpt):
+        pl_sd = safe_load(ckpt)
+        if "state_dict" in pl_sd:
+            return pl_sd["state_dict"]
+        return pl_sd
+
     print(args)
 
     theta_funcs = {
@@ -50,23 +61,21 @@ try:
         "inverse_sigmoid": inv_sigmoid,
     }
 
-    models_path = args.model_0.rsplit('\\', 1)[0]
+    models_path = os.path.split(args.model_0)[0]
     print(models_path)
 
-    modelName_0 = args.model_0.rsplit('\\', 1)[-1][:-5]
-    modelName_1 = args.model_1.rsplit('\\', 1)[-1][:-5]
-
+    modelName_0, model_ext_0 = os.path.basename(args.model_0).split('.')
+    modelName_1, model_ext_1 = os.path.basename(args.model_1).split('.')
+    if args.model_2:
+        modelName_2, model_ext_2 = os.path.basename(args.model_2).split('.')
 
     names = ""
 
-
     def merge_models(model_0, model_1, alpha, output=None):
         '''consolidate merging models into a helpful function for the purpose of generating a range of merges'''
-        model_0 = torch.load(model_0)
-        model_1 = torch.load(model_1)
-        theta_0 = model_0["state_dict"]
-        theta_1 = model_1["state_dict"]
-        alpha = alpha
+
+        model_0 = load_model_from_config(model_0)
+        model_1 = load_model_from_config(model_1)
 
         if not os.path.exists(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}"):
             os.makedirs(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}")
@@ -74,20 +83,17 @@ try:
         theta_func = theta_funcs[args.method]
 
         if output is None:
-            #output_file = f'merge-{modelName_0}-{math.ceil(alpha*100)}%-_WITH_-{modelName_1}-{math.ceil(100-alpha*100)}%.ckpt' #too long
-            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha*100)}%--{modelName_1}-{round(100-(alpha*100))}%.ckpt'
+            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha*100)}%--{modelName_1}-{round(100-alpha*100)}%.ckpt'
         else:
-            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{str(alpha)[2:] + "0"}.ckpt'
+            output_file = f'{models_path}/{output}-{round(alpha*100)}%.{model_ext_0}'
 
-        for key in tqdm.tqdm(theta_0.keys()):
-            if 'model' in key and key in theta_1:
-                theta_0[key] = theta_func(theta_0[key], theta_1[key], (float(1.0) - alpha))
+        for key in tqdm.tqdm(model_0.keys()):
+            if 'model' in key and key in model_1:
+                model_0[key] = theta_func(model_0[key], model_1[key], (float(1.0) - alpha))
 
-        for key in theta_1.keys():
-            if 'model' in key and key not in theta_0:
-                theta_0[key] = theta_1[key]
-
-
+        for key in model_1.keys():
+            if 'model' in key and key not in model_0:
+                model_0[key] = model_1[key]
 
         print(f"Saving as {output_file}\n")
 
@@ -96,14 +102,9 @@ try:
 
     def merge_three(model_0, model_1, alpha, output=None):
         '''consolidate merging models into a helpful function for the purpose of generating a range of merges'''
-        model_0 = torch.load(model_0)
-        model_1 = torch.load(model_1)
-        model_2 = torch.load(args.model_2)
-        theta_0 = model_0["state_dict"]
-        theta_1 = model_1["state_dict"]
-        theta_2 = model_2["state_dict"]
-        alpha = alpha
-
+        model_0 = load_model_from_config(model_0)
+        model_1 = load_model_from_config(model_1)
+        model_2 = load_model_from_config(args.model_2)
 
         theta_func = add_difference
 
@@ -111,34 +112,26 @@ try:
             os.makedirs(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}")
 
         if output is None:
-            #output_file = f'merge-{modelName_0}-{math.ceil(alpha*100)}%-_WITH_-{modelName_1}-{math.ceil(100-alpha*100)}%.ckpt' #too long
-            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha*100)}-{modelName_1}-{round(100-alpha*100)}_3_{args.model_2.rsplit("/", 1)[-1][:-5]}.ckpt'
+            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha*100)}-{modelName_1}-{round(100-alpha*100)}_3_{modelName_2}.{model_ext_0}'
         else:
-            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{str(alpha)[2:] + "0"}.ckpt'
+            output_file = f'{models_path}/{output}-{round(alpha*100)}%.{model_ext_0}'
 
-        for key in tqdm.tqdm(theta_0.keys()):
-            if 'model' in key and key in theta_1:
-                t2 = (theta_2 or {}).get(key)
+        for key in tqdm.tqdm(model_0.keys()):
+            if 'model' in key and key in model_1:
+                t2 = (model_2 or {}).get(key)
                 if t2 is None:
-                    t2 = torch.zeros_like(theta_0[key])
-                theta_0[key] = theta_func(theta_0[key], theta_1[key], t2, (float(1.0) - alpha))  # Need to reverse the interp_amount to match the desired mix ration in the merged checkpoint
-
-    
+                    t2 = torch.zeros_like(model_0[key])
+                model_0[key] = theta_func(model_0[key], model_1[key], t2, (float(1.0) - alpha))  # Need to reverse the interp_amount to match the desired mix ration in the merged checkpoint
 
 
-        for key in theta_1.keys():
-            if 'model' in key and key not in theta_0:
-                theta_0[key] = theta_1[key]
-
-
+        for key in model_1.keys():
+            if 'model' in key and key not in model_0:
+                model_0[key] = model_1[key]
 
         print(f"Saving as {output_file}\n")
 
         torch.save(model_0, output_file)
         return output_file.rsplit("/", 1)[-1]
-
-
-
 
     if args.fullrange and args.steps != 0:
         for i in range(args.steps, 100, args.steps):
@@ -155,7 +148,7 @@ try:
         print(f"Merging {modelName_0} with {modelName_1} at {args.alpha}% interpolation with {args.method}")
         names += merge_models(args.model_0, args.model_1, args.alpha / 100., args.output) + ","
 
-except:
+except Exception as e:
+    print(e)
     print("Something went wrong. Share the console output. We might fix it")
-    while True:
-        None
+    time.sleep(300)

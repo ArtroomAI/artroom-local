@@ -72,6 +72,7 @@ function Paint () {
     const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [paintHistory, setPaintHistory] = useRecoilState(atom.paintHistoryState);
+    const [focused, setFocused] = useState(false);
 
     useEffect(
         () => {
@@ -156,9 +157,7 @@ function Paint () {
             axios.post(
                 'http://127.0.0.1:5300/add_to_queue',
                 output,
-                {
-                    headers: { 'Content-Type': 'application/json' }
-                }
+                { headers: { 'Content-Type': 'application/json' } }
             ).then((result) => {
                 if (result.data.status === 'Success') {
                     toast({
@@ -167,9 +166,7 @@ function Paint () {
                         position: 'top',
                         duration: 2000,
                         isClosable: false,
-                        containerStyle: {
-                            pointerEvents: 'none'
-                        }
+                        containerStyle: { pointerEvents: 'none' }
                     });
                 } else {
                     toast({
@@ -179,9 +176,7 @@ function Paint () {
                         position: 'top',
                         duration: 5000,
                         isClosable: true,
-                        containerStyle: {
-                            pointerEvents: 'none'
-                        }
+                        containerStyle: { pointerEvents: 'none' }
                     });
                 }
             }).catch((error) => console.log(error));
@@ -202,10 +197,12 @@ function Paint () {
                 ).
                     then((result) => {
                         imageEditor.current.getInstance().ui.resizeEditor({
-                            imageSize: { oldWidth: result.oldWidth,
+                            imageSize: {
+                                oldWidth: result.oldWidth,
                                 oldHeight: result.oldHeight,
                                 newWidth: result.newWidth,
-                                newHeight: result.newHeight }
+                                newHeight: result.newHeight
+                            }
                         });
                     }).catch((err) => {
                         console.error(
@@ -247,10 +244,7 @@ function Paint () {
                                 },
                                 menu: ['draw', 'shape', 'crop', 'flip', 'rotate', 'filter'],
                                 initMenu: 'draw',
-                                uiSize: {
-                                    // Width: '1000px',
-                                    height: '700px'
-                                },
+                                uiSize: { height: '700px' },
                                 theme,
                                 menuBarPosition: 'bottom'
                             }}
@@ -349,7 +343,7 @@ function Paint () {
                     </HStack>
 
                     <Box width="80%">
-                        <Prompt />
+                        <Prompt setFocused={setFocused} />
                     </Box>
                 </VStack>
             </Box>

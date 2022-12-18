@@ -141,7 +141,7 @@ class QueueManager():
         if '%InstallPath%' in data['ckpt']:
             data['ckpt'] = data['ckpt'].replace(
                 '%InstallPath%', self.artroom_path)
-        data['ckpt'] = os.path.basename(data['ckpt'].replace(os.sep, '/'))
+        data['ckpt'] = data['ckpt'].replace(os.sep, '/')
 
         if '%UserProfile%' in data['ckpt_dir']:
             data['ckpt_dir'] = data['ckpt_dir'].replace(
@@ -193,8 +193,7 @@ class QueueManager():
         init_image_str = next_gen['init_image']
         print("Saving settings to folder...")
         self.save_to_settings_folder(next_gen)
-        ckpt_path = os.path.join(next_gen['ckpt_dir'], os.path.basename(
-            next_gen['ckpt'])).replace(os.sep, '/')
+        ckpt_path = os.path.join(next_gen['ckpt_dir'],next_gen['ckpt']).replace(os.sep, '/')
         try:
             print("Starting gen...")
             self.SD.generate(
