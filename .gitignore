@@ -29,3 +29,4 @@ electron-builder.yml
 .eslintcache
 __pycache__
 artroom_helpers/__pycache__
+stable-diffusion/

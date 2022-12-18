@@ -35,7 +35,6 @@ function Settings () {
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [use_full_precision, setUseFullPrecision] = useRecoilState(atom.useFullPrecisionState);
     const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
@@ -54,7 +53,6 @@ function Settings () {
                 setCkptDir(settings.ckpt_dir);
                 setSpeed(settings.speed);
                 setDelay(settings.delay);
-                setUseFullPrecision(settings.use_full_precision);
                 setUseCPU(settings.use_cpu);
                 setSaveGrid(settings.save_grid);
                 setDebugMode(settings.debug_mode);
@@ -69,7 +67,6 @@ function Settings () {
         setDebugModeOrig(debug_mode);
         const output = {
             speed,
-            use_full_precision,
             use_cpu,
             image_save_path,
             long_save_path,
@@ -388,28 +385,6 @@ function Settings () {
                         <Tooltip
                             fontSize="md"
                             label="Opens cmd console of detailed outputs during image generation"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-                    </HStack>
-
-                    <HStack className="full-precision-input">
-                        <Checkbox
-                            id="use_full_precision"
-                            isChecked={use_full_precision}
-                            name="use_full_precision"
-                            onChange={() => {
-                                setUseFullPrecision(!use_full_precision);
-                            }}
-                        >
-                            Use Full Precision (Fix for 1600 cards)
-                        </Checkbox>
-
-                        <Tooltip
-                            fontSize="md"
-                            label="Use full precision (mostly a fix to the 1660 card having green box errors. Not recommended otherwise"
                             mt="3"
                             placement="right"
                             shouldWrapChildren>
