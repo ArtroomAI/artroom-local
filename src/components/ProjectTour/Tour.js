@@ -2,19 +2,11 @@ import React, { useReducer, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import JoyRide, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { FaQuestionCircle } from 'react-icons/fa';
-import {
-    MenuButton,
-    HStack,
-    Icon,
-    Text,
-    Flex,
-    Menu,
-    Link,
-    Tooltip
-} from '@chakra-ui/react';
+import NavItem from '../NavItem';
 import { TOUR_STEPS_MAIN, TOUR_STEPS_PAINT, TOUR_STEPS_QUEUE, TOUR_STEPS_UPSCALE, TOUR_STEPS_SETTINGS } from './ToursSteps';
+
 const INITIAL_STATE = {
     key: new Date(), // This field makes the tour to re-render when we restart the tour
     run: false,
@@ -97,7 +89,6 @@ const Tour = () => {
         reducer,
         INITIAL_STATE
     );
-    const navigate = useNavigate();
     const location = useLocation();
     useEffect(
         () => {
@@ -145,56 +136,11 @@ const Tour = () => {
 
     return (
         <>
-            <Flex
-                alignItems={navSize === 'small'
-                    ? 'center'
-                    : 'flex-start'}
-                flexDir="column"
-                mt={25}
+            <NavItem
+                icon={FaQuestionCircle}
+                navSize={navSize}
                 onClick={startTour}
-                w="100%"
-            >
-                <Menu placement="right">
-                    <Link
-                        _hover={{ textDecor: 'none',
-                            backgroundColor: '#AEC8CA' }}
-                        borderRadius={8}
-                        p={2.5}
-                    >
-                        <Tooltip
-                            fontSize="md"
-                            label={navSize === 'small'
-                                ? 'Tutorial'
-                                : ''}
-                            placement="bottom"
-                            shouldWrapChildren>
-                            <MenuButton
-                                bg="transparent"
-                                className="tour-link"
-                                width="100%" >
-                                <HStack>
-                                    <Icon
-                                        as={FaQuestionCircle}
-                                        color="#82AAAD"
-                                        fontSize="xl"
-                                        justify="center" />
-
-                                    <Text
-                                        align="center"
-                                        display={navSize === 'small'
-                                            ? 'none'
-                                            : 'flex'}
-                                        fontSize="m"
-                                        pl={5}
-                                        pr={10}>
-                                        Tutorial
-                                    </Text>
-                                </HStack>
-                            </MenuButton>
-                        </Tooltip>
-                    </Link>
-                </Menu>
-            </Flex>
+                title="Tutorial" />
 
             <JoyRide
                 {...tourState}

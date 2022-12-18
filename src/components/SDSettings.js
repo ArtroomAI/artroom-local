@@ -1,7 +1,6 @@
-import { React } from 'react';
+import { React, useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
-import axios from 'axios';
 import {
     Flex,
     Box,
@@ -46,8 +45,30 @@ function SDSettings () {
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);
     const [strength, setStrength] = useRecoilState(atom.strengthState);
     const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
-    const [ckpts, setCkpts] = useRecoilState(atom.ckptsState);
+    const [ckpts, setCkpts] = useState([]);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
+
+    const getCkpts = () => {
+        window.getCkpts(ckpt_dir).then((result) => {
+            // console.log(result);
+            setCkpts(result);
+        });
+    };
+
+    useEffect(
+        () => {
+            getCkpts();
+        },
+        []
+    );
+
+    useEffect(
+        () => {
+            getCkpts();
+        },
+        [ckpt_dir]
+    );
 
     const uploadSettings = (event) => {
         window.uploadSettings().then((result) => {
@@ -557,6 +578,7 @@ function SDSettings () {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setCkpt(event.target.value)}
+                            onMouseEnter={getCkpts}
                             value={ckpt}
                             variant="outline"
                         >

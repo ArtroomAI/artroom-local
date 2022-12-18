@@ -15,58 +15,59 @@ import {
 const Discord = () => {
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     return (
-        <>
-            <Flex
-                alignItems={navSize === 'small'
-                    ? 'center'
-                    : 'flex-start'}
-                flexDir="column"
-                mt={15}
-                onClick={window.openDiscord}
-                w="100%"
-            >
-                <Menu placement="right">
-                    <Link
-                        _hover={{ textDecor: 'none',
-                            backgroundColor: '#AEC8CA' }}
-                        borderRadius={8}
-                        p={2.5}
-                    >
-                        <Tooltip
-                            fontSize="md"
-                            label={navSize === 'small'
-                                ? 'Join Discord'
-                                : ''}
-                            placement="bottom"
-                            shouldWrapChildren>
-                            <MenuButton
-                                bg="transparent"
-                                className="discord-link"
-                                width="100%" >
-                                <HStack>
-                                    <Icon
-                                        as={FaDiscord}
-                                        color="#82AAAD"
-                                        fontSize="xl"
-                                        justify="center" />
+        <Flex
+            alignItems={navSize === 'small'
+                ? 'center'
+                : 'flex-start'}
+            flexDir="column"
+            mt={15}
+            onClick={window.openDiscord}
+            w="100%"
+        >
+            <Menu placement="right">
+                <Link
+                    _hover={{ textDecor: 'none',
+                        backgroundColor: '#AEC8CA' }}
+                    borderRadius={8}
+                    display="flex"
+                    justifyContent="center"
+                    p={2.5}
+                    w="100%"
+                >
+                    <Tooltip
+                        fontSize="md"
+                        label={navSize === 'small'
+                            ? 'Join Discord'
+                            : ''}
+                        placement="bottom"
+                        shouldWrapChildren>
+                        <MenuButton
+                            bg="transparent"
+                            className="discord-link"
+                            width="100%" >
+                            <HStack>
+                                <Icon
+                                    as={FaDiscord}
+                                    color="#82AAAD"
+                                    fontSize="xl"
+                                    justify="center" />
 
-                                    <Text
-                                        align="center"
-                                        display={navSize === 'small'
-                                            ? 'none'
-                                            : 'flex'}
-                                        fontSize="m"
-                                        pl={5}
-                                        pr={10}>
-                                        Join Discord
-                                    </Text>
-                                </HStack>
-                            </MenuButton>
-                        </Tooltip>
-                    </Link>
-                </Menu>
-            </Flex>
-        </>
+                                <Text
+                                    align="center"
+                                    display={navSize === 'small'
+                                        ? 'none'
+                                        : 'flex'}
+                                    fontSize="m"
+                                    pl={5}
+                                    pr={10}>
+                                    Join Discord
+                                </Text>
+                            </HStack>
+                        </MenuButton>
+                    </Tooltip>
+                </Link>
+            </Menu>
+        </Flex>
     );
 };
 

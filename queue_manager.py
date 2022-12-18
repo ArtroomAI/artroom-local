@@ -4,7 +4,7 @@ import random
 from glob import glob
 import os
 import re
-import torch
+from artroom_helpers.gpu_detect import is_16xx_series
 
 
 def return_error(status, status_message='', content=''):
@@ -106,21 +106,19 @@ class QueueManager():
         else:
             data['strength'] = 0.75
 
-        data['precision'] = 'full' if data['use_full_precision'] else 'autocast'
+        data['precision'] = 'autocast'
 
         # check whether GPU is a 1600 series and if so, update to use full percision
-        try:
-            gpu_info = torch.cuda.get_device_name(0)
-            if '1630' in gpu_info or '1650' in gpu_info or '1660' in gpu_info or '1600' in gpu_info:
-                print(gpu_info + ' identified, forcing to full precision')
-                data['precision'] = 'full'
-        except:
+        gpu = is_16xx_series()
+        if gpu == 1:
+            data['precision'] = 'full'
+        elif gpu == 2:
             data['precision'] = 'full'
             data['use_cpu'] = True
 
         if data['precision'] == 'full' and data['speed'] in ['Max']:
             print('Full precision does not work with Max speeds')
-            data['speed'] = 'Medium'
+            data['speed'] = 'High'
 
         if 'use_cpu' in data and data['use_cpu']:
             data['device'] = 'cpu'
@@ -143,7 +141,7 @@ class QueueManager():
         if '%InstallPath%' in data['ckpt']:
             data['ckpt'] = data['ckpt'].replace(
                 '%InstallPath%', self.artroom_path)
-        data['ckpt'] = os.path.basename(data['ckpt'].replace(os.sep, '/'))
+        data['ckpt'] = data['ckpt'].replace(os.sep, '/')
 
         if '%UserProfile%' in data['ckpt_dir']:
             data['ckpt_dir'] = data['ckpt_dir'].replace(
@@ -195,8 +193,7 @@ class QueueManager():
         init_image_str = next_gen['init_image']
         print("Saving settings to folder...")
         self.save_to_settings_folder(next_gen)
-        ckpt_path = os.path.join(next_gen['ckpt_dir'], os.path.basename(
-            next_gen['ckpt'])).replace(os.sep, '/')
+        ckpt_path = os.path.join(next_gen['ckpt_dir'],next_gen['ckpt']).replace(os.sep, '/')
         try:
             print("Starting gen...")
             self.SD.generate(

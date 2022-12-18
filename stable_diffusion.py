@@ -1,6 +1,7 @@
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
+from artroom_helpers.gpu_detect import is_16xx_series
 from skimage import exposure
 import cv2
 import random
@@ -59,8 +60,10 @@ def load_model_from_config(ckpt, verbose=False):
     # pl_sd = torch.load(ckpt, map_location="cpu")
     # if "global_step" in pl_sd:
     #     print(f"Global Step: {pl_sd['global_step']}")
-    sd = pl_sd["state_dict"]
-    return sd
+    # fix for automatic1111 model schema
+    if "state_dict" in pl_sd:
+        return pl_sd["state_dict"]
+    return pl_sd
 
 
 def load_img(image, h0, w0):
@@ -155,7 +158,7 @@ class StableDiffusion:
         self.highres_fix = False
 
         self.device = "cuda"
-        self.precision = "autocast"
+        self.precision = "autocast" if is_16xx_series() == 0 else "full"
         self.speed = "High"
 
     def set_artroom_path(self, path):
@@ -175,10 +178,9 @@ class StableDiffusion:
                 '/' + os.path.basename(sd_settings['ckpt'])
             model_ckpt = model_ckpt.replace(os.sep, '/')
             speed = sd_settings['speed']
-            precision = sd_settings['precision']
 
             if os.path.exists(model_ckpt):
-                loaded = self.load_ckpt(model_ckpt, speed, precision)
+                loaded = self.load_ckpt(model_ckpt, speed)
                 if loaded:
                     print("Model successfully loaded")
                 else:
@@ -188,7 +190,7 @@ class StableDiffusion:
             print("Loading default model form artroom path...")
             if os.path.exists(f"{self.artroom_path}/artroom/model_weights/model.ckpt"):
                 loaded = self.load_ckpt(
-                    f"{self.artroom_path}/artroom/model_weights/model.ckpt", self.speed, self.precision)
+                    f"{self.artroom_path}/artroom/model_weights/model.ckpt", self.speed)
                 if loaded:
                     print("Loaded default model from artroom path")
                 else:
@@ -228,14 +230,14 @@ class StableDiffusion:
     def loaded_models(self):
         return self.model is not None
 
-    def load_ckpt(self, ckpt, speed, precision):
+    def load_ckpt(self, ckpt, speed):
         print(
-            f"Attempting to load {ckpt}, speed: {speed}, precision: {precision}, device: {self.device}")
+            f"Attempting to load {ckpt}, speed: {speed}, precision: {self.precision}, device: {self.device}")
         assert ckpt != '', 'Checkpoint cannot be empty'
-        if self.ckpt != ckpt or self.speed != speed or self.precision != precision:
+        if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, precision)
+                self.set_up_models(ckpt, speed)
                 print("Successfully set up model")
                 return True
             except Exception as e:
@@ -246,7 +248,7 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
 
-    def set_up_models(self, ckpt, speed, precision):
+    def set_up_models(self, ckpt, speed):
         print("Loading in model...")
         self.stage = "Loading Model"
         print("Loading model from config")
@@ -318,7 +320,7 @@ class StableDiffusion:
         _, _ = self.modelFS.load_state_dict(sd, strict=False)
         self.modelFS.eval()
         del sd
-        if self.device != "cpu" and precision == "autocast":
+        if self.device != "cpu" and self.precision == "autocast":
             self.model.half()
             self.modelCS.half()
             self.modelFS.half()
@@ -326,7 +328,6 @@ class StableDiffusion:
 
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
-        self.precision = precision
         self.stage = "Finished Loading Model"
         print("Model loading finished")
 
@@ -364,9 +365,10 @@ class StableDiffusion:
         ddim_steps = steps
 
         self.device = device
+        self.precision = precision
 
         print("Setting up models...")
-        self.load_ckpt(ckpt, speed, precision)
+        self.load_ckpt(ckpt, speed)
         if not self.model:
             print("Setting up model failed")
             return 'Failure'

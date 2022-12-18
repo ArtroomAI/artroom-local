@@ -71,11 +71,6 @@ export const ckptState = atom({
     default: ''
 });
 
-export const ckptsState = atom({
-    key: 'ckpts',
-    default: []
-});
-
 export const ckptDirState = atom({
     key: 'ckpt_dir',
     default: ''
@@ -173,11 +168,6 @@ export const strengthState = atom({
 
 export const useCPUState = atom({
     key: 'use_cpu',
-    default: false
-});
-
-export const useFullPrecisionState = atom({
-    key: 'use_full_precision',
     default: false
 });
 

@@ -1,56 +1,75 @@
-async function getCkpts(data){
-    return await window.api.getCkpts('getCkpts',data);
+async function getCkpts (data) {
+    await window.api.getCkpts(
+        'getCkpts',
+        data
+    );
 }
 
-async function reinstallArtroom(){
-    return await window.api.reinstallArtroom('reinstallArtroom');
+async function reinstallArtroom () {
+    await window.api.reinstallArtroom('reinstallArtroom');
 }
 
-async function getSettings(){
-    return await window.api.getSettings('getSettings');
+async function getSettings () {
+    await window.api.getSettings('getSettings');
 }
 
-async function uploadSettings(){
-    return await window.api.uploadSettings('uploadSettings');
+async function uploadSettings () {
+    await window.api.uploadSettings('uploadSettings');
 }
 
-async function chooseImages(){
-    return await window.api.chooseImages('chooseImages');
+async function chooseImages () {
+    await window.api.chooseImages('chooseImages');
 }
 
-async function getImageDir(){
-    return await window.api.getImageDir('getImageDir');
+async function getImageDir () {
+    await window.api.getImageDir('getImageDir');
 }
 
-async function openDiscord(){
-    return await window.api.openDiscord('openDiscord');
+async function openDiscord () {
+    await window.api.openDiscord('openDiscord');
 }
 
-async function openEquilibrium(){
-    return await window.api.openEquilibrium('openEquilibrium');
+async function openEquilibrium () {
+    await window.api.openEquilibrium('openEquilibrium');
 }
 
-async function uploadInitImage(){
-    return await window.api.uploadInitImage('uploadInitImage');
+async function uploadInitImage () {
+    await window.api.uploadInitImage('uploadInitImage');
 }
 
-async function getImageFromPath(data){
-    return await window.api.getImageFromPath('getImageFromPath',data);
+async function getImageFromPath (data) {
+    await window.api.getImageFromPath(
+        'getImageFromPath',
+        data
+    );
 }
 
 
-async function copyToClipboard(B64){
-    return await window.api.copyToClipboard('copyToClipboard',B64);
+async function copyToClipboard (B64) {
+    await window.api.copyToClipboard(
+        'copyToClipboard',
+        B64
+    );
 }
 
-async function chooseUploadPath(){
-    return await window.api.chooseUploadPath('chooseUploadPath');
+async function chooseUploadPath () {
+    await window.api.chooseUploadPath('chooseUploadPath');
 }
 
-async function runPyTests(){
-    return await window.api.runPyTests('runPyTests');
+async function runPyTests () {
+    await window.api.runPyTests('runPyTests');
 }
 
-async function restartServer(isDebug){
-    return await window.api.restartServer('restartServer', isDebug);
+async function restartServer (isDebug) {
+    await window.api.restartServer(
+        'restartServer',
+        isDebug
+    );
+}
+
+async function mergeModels (data) {
+    await window.api.mergeModels(
+        'mergeModels',
+        data
+    );
 }

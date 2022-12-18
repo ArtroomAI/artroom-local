@@ -3,8 +3,7 @@ import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import ResizeTextarea from 'react-textarea-autosize';
 import DragDropFile from './DragDropFile/DragDropFile';
-import {
-    Button,
+import { Button,
     Box,
     Flex,
     FormControl,
@@ -13,11 +12,8 @@ import {
     HStack,
     Tooltip,
     VStack,
-    Spacer
-} from '@chakra-ui/react';
-import {
-    FaQuestionCircle
-} from 'react-icons/fa';
+    Spacer } from '@chakra-ui/react';
+import { FaQuestionCircle } from 'react-icons/fa';
 
 export const AutoResizeTextarea = forwardRef((props, ref) => (
     <Textarea
