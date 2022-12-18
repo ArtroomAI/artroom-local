@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 autoUpdater.autoDownload = false;
@@ -601,7 +600,7 @@ app.on(
          * to stay active until the user quits explicitly with Cmd + Q
          */
         // eslint-disable-next-line no-undef
-        if (os.platform() === 'win32') {
+        if (process.env.platform !== 'darwin') {
             kill(server.pid);
             spawn(
                 'taskkill',

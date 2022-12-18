@@ -50,7 +50,6 @@
     "object-curly-spacing": ["error", "always"],
     "object-curly-newline": ["error", { "multiline": true }],
     "no-unused-vars": "warn",
-
     "indent": ["error", 4],
     "sort-imports": "off",
     "max-lines-per-function": "off",

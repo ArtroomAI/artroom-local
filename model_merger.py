@@ -87,7 +87,7 @@ try:
         else:
             output_file = f'{models_path}/{output}-{round(alpha*100)}%.{model_ext_0}'
 
-        for key in tqdm.tqdm(model_0.keys()):
+        for key in tqdm(model_0.keys()):
             if 'model' in key and key in model_1:
                 model_0[key] = theta_func(model_0[key], model_1[key], (float(1.0) - alpha))
 
@@ -116,7 +116,7 @@ try:
         else:
             output_file = f'{models_path}/{output}-{round(alpha*100)}%.{model_ext_0}'
 
-        for key in tqdm.tqdm(model_0.keys()):
+        for key in tqdm(model_0.keys()):
             if 'model' in key and key in model_1:
                 t2 = (model_2 or {}).get(key)
                 if t2 is None:
