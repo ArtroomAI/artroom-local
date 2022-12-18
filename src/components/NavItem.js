@@ -8,7 +8,7 @@ import { Flex,
     HStack,
     Tooltip } from '@chakra-ui/react';
 
-export default function NavItem ({ icon, title, active, navSize, linkTo, className, onClick }) {
+export default function NavItem ({ icon, title, active, navSize, linkTo, className }) {
     return (
         <Flex
             alignItems={navSize === 'small'
@@ -17,7 +17,6 @@ export default function NavItem ({ icon, title, active, navSize, linkTo, classNa
             flexDir="column"
             fontSize="md"
             mt={15}
-            onClick={onClick}
             w="100%"
         >
             <Menu placement="right">
@@ -25,11 +24,8 @@ export default function NavItem ({ icon, title, active, navSize, linkTo, classNa
                     _hover={{ textDecor: 'none',
                         backgroundColor: '#AEC8CA' }}
                     borderRadius={8}
-                    display="flex"
                     href={linkTo}
-                    justifyContent="center"
                     p={2.5}
-                    w="100%"
                 >
                     <Tooltip
                         fontSize="md"

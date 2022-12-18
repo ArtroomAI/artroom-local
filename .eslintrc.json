@@ -1,14 +1,13 @@
 {
   "env": {
-    "browser": true,
-    "es6": true
+    "browser": true
   },
   "extends": [
     "eslint:all",
     "plugin:react/all"
   ],
   "parserOptions": {
-    "ecmaVersion": 12,
+    "ecmaVersion": 11,
     "sourceType": "module",
     "ecmaFeatures": {
       "modules": true,
@@ -48,8 +47,9 @@
     "semi": ["error", "always"],
     "quotes": ["error", "single"],
     "object-curly-spacing": ["error", "always"],
-    "object-curly-newline": ["error", { "multiline": true }],
+    "object-property-newline": ["error", "never"],
     "no-unused-vars": "warn",
+
     "indent": ["error", 4],
     "sort-imports": "off",
     "max-lines-per-function": "off",
@@ -94,9 +94,6 @@
     "no-throw-literal": "off",
     "array-bracket-spacing": ["error", "never"],
     "array-bracket-newline": ["error", { "multiline": true }],
-    "array-element-newline": ["error", "never"],
-    "multiline-ternary": "off",
-    "prefer-destructuring": "off",
-    "no-promise-executor-return": "off"
+    "array-element-newline": ["error", "never"]
   }
 }

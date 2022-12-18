@@ -109,7 +109,7 @@ function Upscale () {
             align="center"
             justify="center"
             ml={navSize === 'large'
-                ? '130px'
+                ? '100px'
                 : '0px'}
             transition="all .25s ease"
             width="100%">

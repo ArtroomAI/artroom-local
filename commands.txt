@@ -1,0 +1,17 @@
+ g++ py_cuda_install.cpp -o py_cuda_install.exe -static
+
+{userprofile}\\artroom\\miniconda3\\condabin\\activate.bat","&&",
+                    f"conda", "run", "-p",f"{userprofile}/artroom/miniconda3/envs/ldm",
+                    "python",
+
+C:\\Users\\artad\\\\artroom\\miniconda3\\condabin\\activate.bat && conda run --no-capture-output -p C:\\Users\\artad\\artroom\\miniconda3\\envs\\artroom-ldm python inpainting_mask.py
+
+C:\\Users\\artad\\artroom\\miniconda3\\envs\\ldm\\python optimizedSD/optimized_txt2img.py --prompt Cat
+
+C:\\Users\\artad\\artroom\\miniconda3\\envs\\artroom-ldm\\python optimizedSD/neongradio_ultimate.py 
+
+C:\\Users\\artad\\artroom\\miniconda3\\envs\\artroom-ldm\\python server.py
+
+C:\\Users\\artad\\\\artroom\\miniconda3\\condabin\\activate.bat && conda run -p C:\\Users\\artad\\\\artroom\\miniconda3\\envs\\artroom-ldm python artroom_helpers/test.py
+
+C:\\Users\\artad\\artroom\\miniconda3\\condabin\\activate.bat && conda run --no-capture-output -p C:\\Users\\artad/artroom/miniconda3/envs/artroom-ldm python optimizedSD/inpainting_optimized.py --scale 7.5 --outdir C:\\Users\\artad/Desktop/output_folder --n_samples 1 --ddim_steps 30 --seed 1980940968 --ckpt C:\\Users\\artad/artroom/model_weights/model.ckpt --n_iter 10 --from-file C:\\Users\\artad/artroom/settings/prompt.txt --skip_grid --turbo --superfast --init_image C:\Users\artad\Desktop\Artroom\artroom\girl.png --mask C:\Users\artad\artroom/settings/out.png --strength 0.75 --W 512 --H 512

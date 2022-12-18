@@ -10,7 +10,6 @@ const theme = extendTheme(indexTheme);
 
 ReactDOM.createRoot(document.getElementById('root')).render(<HashRouter hashType="noslash">
     <ColorModeScript />
-
     <ChakraProvider theme={theme}>
         <App />
     </ChakraProvider>

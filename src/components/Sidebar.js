@@ -12,13 +12,13 @@ import {
     FaChevronRight
 } from 'react-icons/fa';
 import {
-    FiGitMerge,
     FiMenu,
     FiSettings
 } from 'react-icons/fi';
 import {
     GiResize
 } from 'react-icons/gi';
+import EquilibriumAILogo from '../images/equilibriumai.png';
 import NavItem from '../components/NavItem';
 import Tour from './ProjectTour/Tour';
 import Discord from './Discord';
@@ -30,113 +30,101 @@ export default function Sidebar () {
 
     return (
         <Flex
-            alignItems="center"
+            backgroundColor="#182138"
+            borderRadius="30px"
+            boxShadow="0 4px 12px 0 rgba(0, 0, 0, 0.05)"
+            flexDir="column"
             h="95%"
+            justifyContent="space-between"
             m="15px"
+            opacity={0.6}
             pos="fixed"
+            transition="all .25s ease"
             w={navSize === 'small'
                 ? '75px'
-                : '250px'}
+                : '180px'}
         >
             <Flex
-                backgroundColor="#182138"
-                borderRadius="30px"
-                boxShadow="0 4px 12px 0 rgba(0, 0, 0, 0.05)"
+                alignItems={navSize === 'small'
+                    ? 'center'
+                    : 'flex-start'}
+                as="nav"
                 flexDir="column"
-                h="100%"
-                justifyContent="space-between"
-                opacity={0.6}
+                mr="20px"
+                p="7.5%"
                 w="100%"
-            >
-                <Flex
-                    as="nav"
-                    flexDir="column"
-                    mr="20px"
-                    p="5%"
-                    w="100%"
-                >
-                    <NavItem
-                        className="home-nav"
-                        icon={FaMagic}
-                        linkTo="#/"
-                        navSize={navSize}
-                        title="Create" />
-
-                    <NavItem
-                        className="paint-nav"
-                        icon={FaPaintBrush}
-                        linkTo="#/paint"
-                        navSize={navSize}
-                        title="Paint" />
-
-                    <NavItem
-                        className="queue-nav"
-                        icon={FiMenu}
-                        linkTo="#/queue"
-                        navSize={navSize}
-                        title="Queue" />
-
-                    <NavItem
-                        className="upscale-nav"
-                        icon={GiResize}
-                        linkTo="#/upscale"
-                        navSize={navSize}
-                        title="Upscale" />
-
-                    <NavItem
-                        className="merge-nav"
-                        icon={FiGitMerge}
-                        linkTo="#/merge"
-                        navSize={navSize}
-                        title="Merge models" />
-
-                    <Viewer />
-                </Flex>
-
-                <Flex
-                    as="nav"
-                    flexDir="column"
-                    mr="20px"
-                    p="5%"
-                    pb="20px"
-                    w="100%">
-                    <EquilibriumAI />
-
-                    <Discord />
-
-                    <Tour />
-
-                    <NavItem
-                        className="settings-nav"
-                        icon={FiSettings}
-                        linkTo="#/settings"
-                        navSize={navSize}
-                        title="Settings" />
-                </Flex>
-            </Flex>
-
-            <Flex
-                alignItems="center"
-                backgroundColor="#182138"
-                borderBottomRightRadius="15px"
-                borderTopRightRadius="15px"
-                cursor="pointer"
-                h="95%"
-                onClick={() => {
-                    changeNavSize(navSize === 'small' ? 'large' : 'small');
-                }}
-                width="15px"
             >
                 <IconButton
                     _hover={{ textDecor: 'none',
                         backgroundColor: '#AEC8CA' }}
-                    background="#182138"
+                    background="none"
                     icon={navSize === 'small'
                         ? <FaChevronRight />
                         : <FaChevronLeft />}
+                    mt={5}
+                    onClick={() => {
+                        if (navSize === 'small') {
+                            changeNavSize('large');
+                        } else {
+                            changeNavSize('small');
+                        }
+                    }}
                 />
+
+                <NavItem
+                    className="home-nav"
+                    icon={FaMagic}
+                    linkTo="#/"
+                    navSize={navSize}
+                    title="Create" />
+
+                <NavItem
+                    className="paint-nav"
+                    icon={FaPaintBrush}
+                    linkTo="#/paint"
+                    navSize={navSize}
+                    title="Paint" />
+
+                <NavItem
+                    className="queue-nav"
+                    icon={FiMenu}
+                    linkTo="#/queue"
+                    navSize={navSize}
+                    title="Queue" />
+
+                <NavItem
+                    className="upscale-nav"
+                    icon={GiResize}
+                    linkTo="#/upscale"
+                    navSize={navSize}
+                    title="Upscale" />
+
+                <Viewer />
+            </Flex>
+
+            <Flex
+                alignItems={navSize === 'small'
+                    ? 'center'
+                    : 'flex-start'}
+                as="nav"
+                flexDir="column"
+                mr="20px"
+                p="7.5%"
+                pb="20px"
+                w="100%">
+                <EquilibriumAI />
+
+                <Discord />
+
+                <Tour />
+
+                <NavItem
+                    className="settings-nav"
+                    icon={FiSettings}
+                    linkTo="#/settings"
+                    navSize={navSize}
+                    title="Settings" />
             </Flex>
         </Flex>
-
     );
 }

@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.0.4-beta",
+  "version": "1.0.3",
   "private": false,
   "icon": "./icon.ico",
   "dependencies": {
@@ -134,7 +134,7 @@
   "devDependencies": {
     "concurrently": "^5.3.0",
     "cross-env": "^7.0.3",
-    "electron": "^22.0.0",
+    "electron": "^11.2.1",
     "electron-builder": "^23.1.0",
     "eslint-config-react": "^1.1.7",
     "eslint-config-react-app": "^7.0.1",

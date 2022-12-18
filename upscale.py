@@ -6,8 +6,6 @@ from glob import glob
 import shutil
 import sys
 import warnings
-from artroom_helpers.gpu_detect import is_16xx_series
-
 warnings.filterwarnings("ignore")
 
 
@@ -207,8 +205,8 @@ class Upscaler():
                     save_restore_path = os.path.join(
                         outdir, 'restored_imgs', f'{basename}.{extension}')
                 imwrite(restored_img, save_restore_path)
-        tensor = torch.HalfTensor if is_16xx_series() == 0 else torch.FloatTensor
-        torch.set_default_tensor_type(tensor)
+
+        torch.set_default_tensor_type(torch.HalfTensor)
 
     def RealESRGAN(self, upscaler, upscale_factor, upscale_dest):
         import cv2
@@ -252,7 +250,6 @@ class Upscaler():
                 model_path = load_file_from_url(
                     url=url, model_dir=f'{self.artroom_path}/artroom/model_weights/upscalers', progress=True, file_name=None)
 
-        use_half = is_16xx_series() == 0
         # restorer
         upsampler = RealESRGANer(
             scale=netscale,
@@ -261,7 +258,7 @@ class Upscaler():
             tile=400,
             tile_pad=10,
             pre_pad=0,
-            half=use_half)
+            half=True)
 
         os.makedirs(outdir, exist_ok=True)
 
