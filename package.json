@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.0.3",
+  "version": "1.0.4a",
   "private": false,
   "icon": "./icon.ico",
   "dependencies": {

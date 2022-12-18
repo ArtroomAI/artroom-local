@@ -55,7 +55,6 @@ function Paint () {
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [use_full_precision, setUseFullPrecision] = useRecoilState(atom.useFullPrecisionState);
     const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
@@ -146,7 +145,6 @@ function Paint () {
                 long_save_path,
                 highres_fix,
                 speed,
-                use_full_precision,
                 use_cpu,
                 save_grid,
                 debug_mode,
@@ -186,8 +184,7 @@ function Paint () {
                         }
                     });
                 }
-            }).
-                catch((error) => console.log(error));
+            }).catch((error) => console.log(error));
         });
     };
 
@@ -210,8 +207,7 @@ function Paint () {
                                 newWidth: result.newWidth,
                                 newHeight: result.newHeight }
                         });
-                    }).
-                    catch((err) => {
+                    }).catch((err) => {
                         console.error(
                             'Something went wrong:',
                             err

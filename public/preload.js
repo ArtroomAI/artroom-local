@@ -1,7 +1,7 @@
 const {
     contextBridge,
     ipcRenderer
-} = require("electron");
+} = require('electron');
 
 const {
     getCurrentWindow,
@@ -11,31 +11,70 @@ const {
     isWindowMaximized,
     closeWindow,
     getVersion
-  } = require("./menu-functions");
+} = require('./menu-functions');
 
 contextBridge.exposeInMainWorld(
-    'api', {
-        getCkpts: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
-        reinstallArtroom: async (channel) => {return await ipcRenderer.invoke(channel);},
-        getSettings: async (channel) => {return await ipcRenderer.invoke(channel);},
-        uploadSettings: async (channel) => {return await ipcRenderer.invoke(channel);},
-        chooseImages: async (channel) => {return await ipcRenderer.invoke(channel);},
-        getImageDir: async (channel) => {return await ipcRenderer.invoke(channel);},
-        openDiscord: async (channel) => {return await ipcRenderer.invoke(channel);},
-        openEquilibrium: async (channel) => {return await ipcRenderer.invoke(channel);},
-        uploadInitImage: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
-        getImageFromPath: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
-        copyToClipboard: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
-        chooseUploadPath: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
-        runPyTests: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
-        restartServer: async (channel,isDebug) => {return await ipcRenderer.invoke(channel,isDebug);},
-        getCurrentWindow: () => {getCurrentWindow()},
-        getCurrentWindow : () => {getCurrentWindow()},
-        minimizeWindow : () => {minimizeWindow()},
-        unmaximizeWindow : () => {unmaximizeWindow()},
-        maxUnmaxWindow : () => {maxUnmaxWindow()},
-        isWindowMaximized : () => {isWindowMaximized()},
-        closeWindow : () => {closeWindow()},
-        getVersion : () => {getVersion()},
+    'api',
+    {
+        getCkpts: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        reinstallArtroom: (channel) => ipcRenderer.invoke(channel),
+        getSettings: (channel) => ipcRenderer.invoke(channel),
+        uploadSettings: (channel) => ipcRenderer.invoke(channel),
+        chooseImages: (channel) => ipcRenderer.invoke(channel),
+        getImageDir: (channel) => ipcRenderer.invoke(channel),
+        openDiscord: (channel) => ipcRenderer.invoke(channel),
+        openEquilibrium: (channel) => ipcRenderer.invoke(channel),
+        uploadInitImage: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        getImageFromPath: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        copyToClipboard: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        chooseUploadPath: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        runPyTests: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        restartServer: (channel, isDebug) => ipcRenderer.invoke(
+            channel,
+            isDebug
+        ),
+        mergeModels: (channel, data) => ipcRenderer.invoke(
+            channel,
+            data
+        ),
+        getCurrentWindow: () => {
+            getCurrentWindow();
+        },
+        minimizeWindow: () => {
+            minimizeWindow();
+        },
+        unmaximizeWindow: () => {
+            unmaximizeWindow();
+        },
+        maxUnmaxWindow: () => {
+            maxUnmaxWindow();
+        },
+        isWindowMaximized: () => {
+            isWindowMaximized();
+        },
+        closeWindow: () => {
+            closeWindow();
+        },
+        getVersion: () => {
+            getVersion();
+        }
     }
 );
