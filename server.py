@@ -1,9 +1,10 @@
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO,emit
 from upscale import Upscaler
 from queue_manager import QueueManager
 from stable_diffusion import StableDiffusion
 import logging
 import os
-from flask import Flask, request, jsonify
 from PIL import Image
 import json
 import base64
@@ -52,6 +53,8 @@ def reset_settings_to_default():
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 SD = StableDiffusion()
 UP = Upscaler()
 
@@ -97,7 +100,7 @@ def get_images():
     id = int(request.args.get('id'))
     if id == SD.latest_images_id:
         return return_output('Hold', 'No new updates on images',
-                             content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
+                            content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
     try:
         if path == 'latest':
             imageB64 = [image_to_b64(image)
@@ -125,7 +128,7 @@ def get_progress():
         percentage = (current_num*total_step+current_step) / \
             (total_num*total_step)
     return return_output('Success', content={'current_name': current_num, 'total_num': total_num, 'current_step': current_step, 'total_step': total_step,
-                                             'percentage': int(percentage*100), 'status': SD.stage})
+                                            'percentage': int(percentage*100), 'status': SD.stage})
 
 
 @app.route('/update_settings', methods=['POST'])
@@ -271,5 +274,25 @@ def shutdown():
     os._exit(0)
 
 
+@socketio.on("connect")
+def connected():
+    """event listener when client connects to the server"""
+    print(request.sid)
+    print("client has connected")
+    emit("connect",{"data":f"id: {request.sid} is connected"})
+
+@socketio.on('data')
+def handle_message(data):
+    """event listener when client types a message"""
+    print("data from the front end: ",str(data))
+    emit("data",{'data':data,'id':request.sid},broadcast=True)
+
+@socketio.on("disconnect")
+def disconnected():
+    """event listener when client disconnects to the server"""
+    print("user disconnected")
+    emit("disconnect",f"user {request.sid} disconnected",broadcast=True)
+    
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5300)
+    socketio.run(app, host='127.0.0.1', port=5300)
+

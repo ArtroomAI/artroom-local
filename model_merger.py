@@ -18,12 +18,12 @@ try:
     parser.add_argument("model_0", type=str, help="Path to model 0")
     parser.add_argument("model_1", type=str, help="Path to model 1")
     parser.add_argument("--model_2", type=str, help="Path to model 2. IF THIS IS SET, --method will be ignored and 'add difference' will be used.",required=False,default=None)
-    parser.add_argument("--alpha", type=float, help="Alpha value, optional, defaults to 0.5 (Overwritten by --fullrange)", default=0.5, required=False)
-    parser.add_argument("--output", type=str, help="Output file name, without extension", default="merged", required=False)
-    parser.add_argument("--fullrange", action='store_true', help="generate merges for every 5 percent interval between 5 and 95", default=False, required=False)
+    parser.add_argument("--alpha", type=float, help="Alpha value, optional, defaults to 0.5", default=0.5, required=False)
+    parser.add_argument("--output", type=str, help="Output file name, without extension", required=False)
     parser.add_argument("--method", type=str, help="Select interpolation method from 'sigmoid' 'inverse_sigmoid' 'weighted_sum'. defaults to 'weighted_sum'.", default="weighted_sum", required=False)
     parser.add_argument("--steps", type=int, help="Select interpolation steps at which the Models will be merged. 5 will result in 5% 10% 15% 20% .defaults to '10'.", default=10, required=False)
-
+    parser.add_argument("--start_steps", type=int, help="Where to start the steps, default 0", default=0, required=False)
+    parser.add_argument("--end_steps", type=int, help="Where to end the steps, default 100", default=100, required=False)
     args = parser.parse_args()
 
     # Copy paste from extras.py
@@ -64,11 +64,14 @@ try:
     models_path = os.path.split(args.model_0)[0]
     print(models_path)
 
-    modelName_0, model_ext_0 = os.path.basename(args.model_0).split('.')
-    modelName_1, model_ext_1 = os.path.basename(args.model_1).split('.')
+    #Weird but handles cases when there is a . in the name
+    modelName_0 = os.path.basename(args.model_0).split('.')[0]
+    model_ext_0 = os.path.basename(args.model_0).split('.')[-1]
+    modelName_1 = os.path.basename(args.model_1).split('.')[0]
+    model_ext_1 = os.path.basename(args.model_1).split('.')[-1]
     if args.model_2:
-        modelName_2, model_ext_2 = os.path.basename(args.model_2).split('.')
-
+        modelName_2 = os.path.basename(args.model_2).split('.')[0]
+        model_ext_2 = os.path.basename(args.model_2).split('.')[-1]
     names = ""
 
     def merge_models(model_0, model_1, alpha, output=None):
@@ -85,9 +88,9 @@ try:
         if output is None:
             output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha*100)}%--{modelName_1}-{round(100-alpha*100)}%.ckpt'
         else:
-            output_file = f'{models_path}/{output}-{round(alpha*100)}%.{model_ext_0}'
+            output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{round(alpha*100)}%.{model_ext_0}'
 
-        for key in tqdm.tqdm(model_0.keys()):
+        for key in tqdm(model_0.keys()):
             if 'model' in key and key in model_1:
                 model_0[key] = theta_func(model_0[key], model_1[key], (float(1.0) - alpha))
 
@@ -114,9 +117,9 @@ try:
         if output is None:
             output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha*100)}-{modelName_1}-{round(100-alpha*100)}_3_{modelName_2}.{model_ext_0}'
         else:
-            output_file = f'{models_path}/{output}-{round(alpha*100)}%.{model_ext_0}'
+            output_file = f'{models_path}//merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{round(alpha*100)}%.{model_ext_0}'
 
-        for key in tqdm.tqdm(model_0.keys()):
+        for key in tqdm(model_0.keys()):
             if 'model' in key and key in model_1:
                 t2 = (model_2 or {}).get(key)
                 if t2 is None:
@@ -133,8 +136,8 @@ try:
         torch.save(model_0, output_file)
         return output_file.rsplit("/", 1)[-1]
 
-    if args.fullrange and args.steps != 0:
-        for i in range(args.steps, 100, args.steps):
+    if args.steps != 0:
+        for i in range(args.start_steps, args.end_steps, args.steps):
             print(f"Merging {modelName_0} with {modelName_1} at {i}% interpolation with {args.method}")
             if(args.model_2 is not None): 
                 names += merge_three(args.model_0, args.model_1, i/100) + ","

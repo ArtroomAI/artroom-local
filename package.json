@@ -1,6 +1,6 @@
 {
-  "name": "artroom",
-  "version": "1.0.4-beta",
+  "name": "artroom-beta",
+  "version": "1.0.4-alpha.1",
   "private": false,
   "icon": "./icon.ico",
   "dependencies": {
@@ -37,11 +37,13 @@
     "react-textarea-autosize": "^8.3.4",
     "recoil": "^0.7.5",
     "secure-electron-store": "^4.0.2",
+    "socket.io-client": "^4.5.4",
     "styled-components": "^5.3.6",
     "tree-kill": "^1.2.2",
     "typescript": "^4.9.3",
     "validator": "^13.7.0",
-    "web-vitals": "^0.2.4"
+    "web-vitals": "^0.2.4",
+    "ws": "^8.11.0"
   },
   "main": "public/main.js",
   "homepage": "./",
@@ -62,8 +64,8 @@
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom",
-    "productName": "Artroom",
+    "appId": "com.example.Artroom-beta",
+    "productName": "Artroom-beta",
     "win": {
       "publish": [
         {
@@ -106,6 +108,7 @@
       "py_cuda_install_debug.exe",
       "sd_settings.json",
       "model_downloader.json",
+      "model_merger.py",
       "server.py",
       "safe.py",
       "stable_diffusion.py",
@@ -134,7 +137,7 @@
   "devDependencies": {
     "concurrently": "^5.3.0",
     "cross-env": "^7.0.3",
-    "electron": "^22.0.0",
+    "electron": "^11.2.1",
     "electron-builder": "^23.1.0",
     "eslint-config-react": "^1.1.7",
     "eslint-config-react-app": "^7.0.1",

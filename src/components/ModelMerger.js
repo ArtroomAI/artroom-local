@@ -60,7 +60,7 @@ export const ModelMerger = () => {
         const data = JSON.stringify({
             modelA,
             modelB,
-            'modelC': interpolation === 'add_difference' ? modelC : '',
+            modelC: interpolation === 'add_difference' ? modelC : '',
             method: interpolation,
             fullrange,
             alpha,
@@ -211,7 +211,7 @@ export const ModelMerger = () => {
                                     </option>
                                     : <></>}
 
-                                {ckpts.map((ckpt_option, i) => (<option
+                                {ckpts?.map((ckpt_option, i) => (<option
                                     key={i}
                                     style={{ 'backgroundColor': '#080B16' }}
                                     value={ckpt_option}
@@ -247,7 +247,7 @@ export const ModelMerger = () => {
                                     </option>
                                     : <></>}
 
-                                {ckpts.map((ckpt_option, i) => (<option
+                                {ckpts?.map((ckpt_option, i) => (<option
                                     key={i}
                                     style={{ 'backgroundColor': '#080B16' }}
                                     value={ckpt_option}
@@ -284,7 +284,7 @@ export const ModelMerger = () => {
                                     </option>
                                     : <></>}
 
-                                {ckpts.map((ckpt_option, i) => (<option
+                                {ckpts?.map((ckpt_option, i) => (<option
                                     key={i}
                                     style={{ 'backgroundColor': '#080B16' }}
                                     value={ckpt_option}
@@ -323,9 +323,7 @@ export const ModelMerger = () => {
                                     aria-label="slider-ex-6"
                                     defaultValue={[33, 66]}
                                     max={100}
-                                    maxLabel={modelB}
                                     min={0}
-                                    minLabel={modelA}
                                     onChange={(val) => setAlphaRange(val)}
                                     step={1}
                                     value={alphaRange}
@@ -390,8 +388,8 @@ export const ModelMerger = () => {
                                     width="full">
                                     <Slider
                                         aria-label="slider-ex-6"
-                                        maxLabel={modelB}
-                                        minLabel={modelA}
+                                        // maxLabel={modelB}
+                                        // minLabel={modelA}
                                         onChange={(val) => setAlpha(val)}
                                         step={1}
                                         value={alpha}

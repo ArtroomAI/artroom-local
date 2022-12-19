@@ -43,7 +43,7 @@ def chunk(it, size):
 def setup_color_correction(image):
     correction_target = cv2.cvtColor(
         np.asarray(image.copy()), cv2.COLOR_RGB2LAB)
-    return correction_target
+    return correction_target    
 
 
 def apply_color_correction(correction, image):
@@ -187,7 +187,7 @@ class StableDiffusion:
                     print("Failed to load model from sd_settings.json")
 
         if not loaded:
-            print("Loading default model form artroom path...")
+            print("Loading default model from artroom path...")
             if os.path.exists(f"{self.artroom_path}/artroom/model_weights/model.ckpt"):
                 loaded = self.load_ckpt(
                     f"{self.artroom_path}/artroom/model_weights/model.ckpt", self.speed)
@@ -195,7 +195,8 @@ class StableDiffusion:
                     print("Loaded default model from artroom path")
                 else:
                     print("Failed to load model from artroom path")
-
+            else:
+                print("Failed to find default model")
     def get_steps(self):
         if self.model:
             return self.current_num, self.total_num, self.model.current_step, self.model.total_steps

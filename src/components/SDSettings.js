@@ -51,7 +51,7 @@ function SDSettings () {
 
     const getCkpts = () => {
         window.getCkpts(ckpt_dir).then((result) => {
-            console.log(result);
+            // console.log(result);
             setCkpts(result);
         });
     };
@@ -582,7 +582,7 @@ function SDSettings () {
                             value={ckpt}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {ckpts?.length > 0
                                 ? <option
                                     style={{ 'backgroundColor': '#080B16' }}
                                     value=""
@@ -591,7 +591,7 @@ function SDSettings () {
                                 </option>
                                 : <></>}
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {ckpts?.map((ckpt_option, i) => (<option
                                 key={i}
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}
