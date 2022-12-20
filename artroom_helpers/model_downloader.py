@@ -106,40 +106,37 @@ upscale_models = {
     },
 }
 
-if skipWeights:
-    print("Upscale model weight downloads skipped")
-else:
-    for model in upscale_models:
-        url = upscale_models[model]["model_source"]
-        model_dest = upscale_models[model]["model_dest"]
-        model_name = os.path.basename(url)
-        os.makedirs(model_dest, exist_ok=True)
+for model in upscale_models:
+    url = upscale_models[model]["model_source"]
+    model_dest = upscale_models[model]["model_dest"]
+    model_name = os.path.basename(url)
+    os.makedirs(model_dest, exist_ok=True)
 
-        if os.path.exists(model_dest+model_name):
-            continue
-        if os.path.exists(f"{userprofile}/artroom/"+model_name):
-            os.remove(f"{userprofile}/artroom/"+model_name)
-        if os.path.exists(f"{userprofile}/artroom/model_weights/upscalers/{model_name}"):
-            shutil.move(
-                f"{userprofile}/artroom/model_weights/upscalers/{model_name}", model_dest)
-        if not os.path.exists(model_dest+model_name):
-            print(f"Downloading {model_name}...")
-            response = requests.get(url, stream=True)
-            total_size_in_bytes = int(
-                response.headers.get('content-length', 0))
-            block_size = 1024  # 1 Kibibyte
-            progress_bar = tqdm(total=total_size_in_bytes,
-                                unit='iB', unit_scale=True)
-            with open(f"{userprofile}/artroom/"+model_name, 'wb') as file:
-                for data in response.iter_content(block_size):
-                    progress_bar.update(len(data))
-                    file.write(data)
-            progress_bar.close()
-            if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-                print("ERROR, something went wrong")
-            print(model_dest)
-            print(model_name)
-            shutil.move(f"{userprofile}/artroom/{model_name}", model_dest)
+    if os.path.exists(model_dest+model_name):
+        continue
+    if os.path.exists(f"{userprofile}/artroom/"+model_name):
+        os.remove(f"{userprofile}/artroom/"+model_name)
+    if os.path.exists(f"{userprofile}/artroom/model_weights/upscalers/{model_name}"):
+        shutil.move(
+            f"{userprofile}/artroom/model_weights/upscalers/{model_name}", model_dest)
+    if not os.path.exists(model_dest+model_name):
+        print(f"Downloading {model_name}...")
+        response = requests.get(url, stream=True)
+        total_size_in_bytes = int(
+            response.headers.get('content-length', 0))
+        block_size = 1024  # 1 Kibibyte
+        progress_bar = tqdm(total=total_size_in_bytes,
+                            unit='iB', unit_scale=True)
+        with open(f"{userprofile}/artroom/"+model_name, 'wb') as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+        progress_bar.close()
+        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+            print("ERROR, something went wrong")
+        print(model_dest)
+        print(model_name)
+        shutil.move(f"{userprofile}/artroom/{model_name}", model_dest)
 
 model_dl_json = json.load(open("model_downloader.json"))
 
