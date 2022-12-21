@@ -29,7 +29,6 @@ import sys
 sys.path.append("stable-diffusion/optimizedSD/")
 from ldm.util import instantiate_from_config
 
-
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -43,7 +42,7 @@ def chunk(it, size):
 def setup_color_correction(image):
     correction_target = cv2.cvtColor(
         np.asarray(image.copy()), cv2.COLOR_RGB2LAB)
-    return correction_target    
+    return correction_target
 
 
 def apply_color_correction(correction, image):
@@ -175,7 +174,7 @@ class StableDiffusion:
             self.highres_fix = sd_settings['highres_fix']
 
             model_ckpt = sd_settings['ckpt_dir'] + \
-                '/' + os.path.basename(sd_settings['ckpt'])
+                         '/' + os.path.basename(sd_settings['ckpt'])
             model_ckpt = model_ckpt.replace(os.sep, '/')
             speed = sd_settings['speed']
 
@@ -197,6 +196,7 @@ class StableDiffusion:
                     print("Failed to load model from artroom path")
             else:
                 print("Failed to find default model")
+
     def get_steps(self):
         if self.model:
             return self.current_num, self.total_num, self.model.current_step, self.model.total_steps
@@ -230,6 +230,18 @@ class StableDiffusion:
 
     def loaded_models(self):
         return self.model is not None
+
+    def load_vae(self, vae_path, safe_load_=True):
+        loadfn = safe_load if safe_load_ else torch.load
+        vae = loadfn(vae_path)
+        vae = vae["state_dict"]
+        vae = {k: v for k, v in vae.items() if
+               ("loss" not in k) and
+               (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
+                          'post_quant_conv.bias'])}
+        vae = {k.replace("encoder", "first_stage_model.encoder")
+                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
+        self.modelFS.load_state_dict(vae, strict=False)
 
     def load_ckpt(self, ckpt, speed):
         print(
@@ -332,7 +344,7 @@ class StableDiffusion:
         self.stage = "Finished Loading Model"
         print("Model loading finished")
 
-    def generate(self, text_prompts="", negative_prompts="", batch_name="",          init_image_str="", mask_b64="",
+    def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", image_save_path="", speed="High", device='cuda', precision='autocast',
@@ -378,7 +390,6 @@ class StableDiffusion:
         self.stage = "Generating"
         outdir = self.image_save_path + batch_name
         os.makedirs(outdir, exist_ok=True)
-        
 
         if len(init_image_str) > 0:
             if init_image_str[:4] == 'data':
@@ -525,8 +536,8 @@ class StableDiffusion:
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                             x_sample = 255. * \
-                                rearrange(
-                                    x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                                       rearrange(
+                                           x_sample[0].cpu().numpy(), 'c h w -> h w c')
                             out_image = Image.fromarray(
                                 x_sample.astype(np.uint8))
                             if ij < highres_fix_steps - 1:
