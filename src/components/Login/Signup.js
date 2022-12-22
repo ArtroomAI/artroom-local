@@ -23,7 +23,7 @@ import Logo from '../../images/ArtroomLogo.png';
 import validator from 'validator';
 import axios from 'axios';
 
-const SignUp = ({ setSignUp }) => {
+const SignUp = ({ setState }) => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -155,7 +155,7 @@ const SignUp = ({ setSignUp }) => {
                 }
             }).then(response => {
                 console.log(response.data);
-                setSignUp(false);
+                setState('Login');
                 // setLoggedIn(true);   
             }).catch(err => {
                 console.log(err);
@@ -452,7 +452,7 @@ const SignUp = ({ setSignUp }) => {
                     color="teal.500"
                     href="#"
                     onClick={() => {
-                        setSignUp(false);
+                        setState('Login');
                     }}>
                     Login
                 </Link>

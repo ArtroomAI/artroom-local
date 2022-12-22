@@ -20,16 +20,11 @@ import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
 import axios from 'axios';
 
-const Login = ({ setLoggedIn, setState}) => {
-    const qs = require('qs');
+const ForgotPasswordCode = ({ setLoggedIn, setState }) => {
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
 
-    const [showPassword, setShowPassword] = useState(false);
-
-    const handleShowClick = () => setShowPassword(!showPassword);
-    function handleLogin () {
+    function handleForgotPassword () {
         axios.post(
             'http://localhost:8000/login',
             qs.stringify({
@@ -46,7 +41,7 @@ const Login = ({ setLoggedIn, setState}) => {
             }
         ).then((result) => {
             console.log(result);
-            // setLoggedIn(true);
+            // setState('ForgotPasswordCode');
         });
     }
 
@@ -100,58 +95,15 @@ const Login = ({ setLoggedIn, setState}) => {
                             </InputGroup>
                         </FormControl>
 
-                        <FormControl>
-                            <InputGroup>
-                                <InputLeftElement
-                                    children={<FaLock color="gray.800" />}
-                                    color="gray.800"
-                                    pointerEvents="none"
-                                />
-
-                                <Input
-                                    _placeholder={{ color: 'gray.400' }}
-                                    borderColor="#00000020"
-                                    color="gray.800"
-                                    onChange={(event) => setPassword(event.target.value)}
-                                    placeholder="Password"
-                                    type={showPassword
-                                        ? 'text'
-                                        : 'password'}
-                                    value={password}
-                                />
-
-                                <InputRightElement width="4.5rem">
-                                    <IconButton
-                                        color="gray.800"
-                                        h="1.75rem"
-                                        icon={showPassword
-                                            ? <FaEye />
-                                            : <FaEyeSlash />}
-                                        onClick={handleShowClick}
-                                        size="sm"
-                                        variant="ghost" />
-                                </InputRightElement>
-                            </InputGroup>
-
-                            <FormHelperText textAlign="right">
-                                <Link onClick={() => {
-                                        setState('ForgotPassword');
-                                     }}               
-                                     color="gray.800">
-                                    Forgot Password?
-                                </Link>
-                            </FormHelperText>
-                        </FormControl>
-
                         <Button
                             borderRadius={10}
                             colorScheme="blue"
-                            onClick={handleLogin}
+                            onClick={handleForgotPassword}
                             type="submit"
                             variant="solid"
                             width="full"
                         >
-                            Login
+                            Reset Password
                         </Button>
                     </Stack>
                 </Box>
@@ -175,4 +127,4 @@ const Login = ({ setLoggedIn, setState}) => {
     );
 };
 
-export default Login;
+export default ForgotPasswordCode;

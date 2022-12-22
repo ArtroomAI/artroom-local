@@ -20,13 +20,9 @@ import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
 import axios from 'axios';
 
-const Login = ({ setLoggedIn, setState}) => {
-    const qs = require('qs');
+const ForgotPassword = ({ setLoggedIn, setState }) => {
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
-
-    const [showPassword, setShowPassword] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
 
     const handleShowClick = () => setShowPassword(!showPassword);
     function handleLogin () {
@@ -134,10 +130,7 @@ const Login = ({ setLoggedIn, setState}) => {
                             </InputGroup>
 
                             <FormHelperText textAlign="right">
-                                <Link onClick={() => {
-                                        setState('ForgotPassword');
-                                     }}               
-                                     color="gray.800">
+                                <Link color="gray.800">
                                     Forgot Password?
                                 </Link>
                             </FormHelperText>
@@ -151,7 +144,7 @@ const Login = ({ setLoggedIn, setState}) => {
                             variant="solid"
                             width="full"
                         >
-                            Login
+                            Reset Password
                         </Button>
                     </Stack>
                 </Box>
@@ -175,4 +168,4 @@ const Login = ({ setLoggedIn, setState}) => {
     );
 };
 
-export default Login;
+export default ForgotPassword;

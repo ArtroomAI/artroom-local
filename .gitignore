@@ -38,3 +38,4 @@ InpaintingTest.ipynb
 __pycache__
 artroom_helpers/__pycache__
 *.pth
+artroomlog.txt

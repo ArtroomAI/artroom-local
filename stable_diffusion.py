@@ -25,6 +25,7 @@ import json
 import math
 import os
 import sys
+from safetensors import safe_open
 
 sys.path.append("stable-diffusion/optimizedSD/")
 from ldm.util import instantiate_from_config
@@ -53,13 +54,18 @@ def apply_color_correction(correction, image):
     return image
 
 
-def load_model_from_config(ckpt, verbose=False):
+def load_model_from_config(ckpt, use_safe_load=True):
     print(f"Loading model from {ckpt}")
-    pl_sd = safe_load(ckpt)
-    # pl_sd = torch.load(ckpt, map_location="cpu")
-    # if "global_step" in pl_sd:
-    #     print(f"Global Step: {pl_sd['global_step']}")
-    # fix for automatic1111 model schema
+    if ".safetensors" in ckpt:
+        pl_sd = {}
+        with safe_open(ckpt, framework="pt", device="cpu") as f:
+            for key in f.keys():
+                pl_sd[key] = f.get_tensor(key)
+    elif use_safe_load:
+        pl_sd = safe_load(ckpt)
+    else:
+        pl_sd = torch.load(ckpt, map_location="cpu")
+
     if "state_dict" in pl_sd:
         return pl_sd["state_dict"]
     return pl_sd

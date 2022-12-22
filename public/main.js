@@ -124,7 +124,7 @@ function createWindow() {
 
   ipcMain.handle('getCkpts', async (event, data) => {
     return new Promise((resolve, reject) => {
-      glob(data + '/**/*.ckpt', {}, (err, files) => {
+      glob(`${data}/**/*.{ckpt,safetensors}`, {}, (err, files) => {
         if (err) {
           console.log("ERROR");
           resolve([]);
@@ -392,42 +392,23 @@ function createWindow() {
   ipcMain.handle('mergeModels',(event, data) => new Promise((resolve, reject) => {
         const json = JSON.parse(data);
         const parameters = [
-            path.join(
-                sd_data_json.ckpt_dir,
-                json.modelA
-            ), path.join(
-                sd_data_json.ckpt_dir,
-                json.modelB
-            )
+                json.modelA,
+                json.modelB  
         ];
-        if (json.ModelC) {
+        if (json.modelC.length > 0) {
             parameters.push(
                 '--model_2',
-                path.join(
-                    sd_data_json.ckpt_dir,
-                    json.modelC
-                )
+                  json.modelC
             );
-        }
-        if (json.ModelC) {
             parameters.push(
-                '--model_2',
-                path.join(
-                    sd_data_json.ckpt_dir,
-                    json.modelC
-                )
-            );
+              '--alphaRange',
+                json.alphaRange
+          );
         }
         if (json.alpha) {
             parameters.push(
                 '--alpha',
                 json.alpha
-            );
-        }
-        if (json.fullrange) {
-            parameters.push(
-                '--fullrange',
-                json.fullrange
             );
         }
         if (json.method) {
@@ -436,19 +417,19 @@ function createWindow() {
                 json.method
             );
         }
-        if (json.steps) {
+        if (json.steps > 0) {
             parameters.push(
                 '--steps',
                 json.steps
             );
         }
-        if (json.start_steps) {
+        if (json.start_steps > 0) {
           parameters.push(
               '--start_steps',
               json.start_steps
           );
         }
-        if (json.end_steps) {
+        if (json.end_steps > 0) {
             parameters.push(
                 '--end_steps',
                 json.end_steps

@@ -19,6 +19,9 @@ import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 
 function Body () {
+    const baseURL = `http://127.0.0.1:5300`
+    // const baseURL = `http://062j101fgfrmu511-5300.node1.gpux.ai`
+
     const { ToastContainer, toast } = createStandaloneToast();
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
@@ -181,7 +184,7 @@ function Body () {
         () => {
             const interval = setInterval(
                 () => axios.get(
-                    'http://127.0.0.1:5300/get_progress',
+                    `${baseURL}/get_progress`,
                     { headers: { 'Content-Type': 'application/json' } }
                 ).then((result) => {
                     if (result.data.status === 'Success') {
@@ -225,7 +228,7 @@ function Body () {
     useInterval(
         () => {
             axios.get(
-                'http://127.0.0.1:5300/get_images',
+                `${baseURL}/get_images`,
                 { params: { 'path': 'latest',
                     'id': latestImagesID },
                 headers: { 'Content-Type': 'application/json' } }
@@ -252,7 +255,7 @@ function Body () {
 
     const submitMain = (event) => {
         axios.post(
-            'http://127.0.0.1:5300/add_to_queue',
+            `${baseURL}/add_to_queue`,
             {
                 text_prompts,
                 negative_prompts,

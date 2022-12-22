@@ -1,6 +1,7 @@
 setuptools
 --extra-index-url https://download.pytorch.org/whl/cu113
 torchvision==0.13.0
+safetensors
 numpy==1.23.4
 flask
 flask_socketio

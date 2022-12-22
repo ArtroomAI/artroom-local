@@ -22,16 +22,16 @@ import {
     SliderTrack,
     SliderThumb,
     SliderFilledTrack,
-    RangeSlider,
-    RangeSliderMark,
-    RangeSliderTrack,
-    RangeSliderFilledTrack,
-    RangeSliderThumb,
-    Tooltip
+    FormHelperText,
+    Tooltip,
+    Spacer,
+    NumberInput,
+    NumberInputField
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 
 export const ModelMerger = () => {
+    var path = require('path');
     const { ToastContainer, toast } = createStandaloneToast();
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
@@ -44,8 +44,10 @@ export const ModelMerger = () => {
     const [modelB, setModelB] = useState('');
     const [modelC, setModelC] = useState('');
     const [interpolation, setInterpolation] = useState('weighted_sum');
-    const [alpha, setAlpha] = useState(0);
-    const [alphaRange, setAlphaRange] = useState([33, 66]);
+    const [alpha, setAlpha] = useState(50);
+    const [start_steps, setStartSteps] = useState(20);
+    const [end_steps, setEndSteps] = useState(80);
+    const [steps, setSteps] = useState(10);
 
     const [fullrange, setFullrange] = useState(false);
     const [filename, setFilename] = useState('');
@@ -57,47 +59,71 @@ export const ModelMerger = () => {
     };
 
     const submitMain = () => {
-        const data = JSON.stringify({
-            modelA,
-            modelB,
-            modelC: interpolation === 'add_difference' ? modelC : '',
-            method: interpolation,
-            fullrange,
-            alpha,
-            filename,
-            steps: fullrange ? alpha : 0
-        });
-        console.log(data);
-        window.mergeModels(data).then((res) => {
-            if (res === 0) {
-                toast({
-                    title: 'Merged successfully',
-                    status: 'success',
-                    position: 'top',
-                    duration: 1500,
-                    isClosable: false,
-                    containerStyle: { pointerEvents: 'none' }
-                });
-            } else {
-                toast({
-                    title: 'Failed',
-                    status: 'error',
-                    position: 'top',
-                    duration: 1500,
-                    isClosable: false,
-                    containerStyle: { pointerEvents: 'none' }
-                });
-            }
-        }).catch((err) => {
+        if ((modelA.length === 0 || modelB.length === 0) || (interpolation === 'add_difference' && (modelA.length === 0 || modelB.length === 0 || modelC.length === 0)) ){
             toast({
-                title: `There was an error: ${err}`,
+                title: `Please select a model`,
                 status: 'error',
                 position: 'top',
                 duration: 1500,
                 isClosable: false,
                 containerStyle: { pointerEvents: 'none' }
             });
-        });
+        }
+        else if (fullrange && start_steps > end_steps){
+            toast({
+                title: `Start % cannot be after End %`,
+                status: 'error',
+                position: 'top',
+                duration: 1500,
+                isClosable: false,
+                containerStyle: { pointerEvents: 'none' }
+            });
+        }
+        else{
+            const data = JSON.stringify({
+                modelA: path.join(ckpt_dir,modelA),
+                modelB: path.join(ckpt_dir,modelB),
+                modelC: interpolation === 'add_difference' ? path.join(ckpt_dir,modelC) : '',
+                method: interpolation,
+                alpha,
+                filename,
+                steps: fullrange ? steps : 0,
+                start_steps: fullrange ? start_steps : 0,
+                end_steps: fullrange ? end_steps : 0
+            });
+            console.log(data);
+            window.mergeModels(data).then((res) => {
+                if (res === 0) {
+                    toast({
+                        title: 'Merged successfully',
+                        status: 'success',
+                        position: 'top',
+                        duration: 1500,
+                        isClosable: false,
+                        containerStyle: { pointerEvents: 'none' }
+                    });
+                } else {
+                    toast({
+                        title: 'Failed',
+                        status: 'error',
+                        position: 'top',
+                        duration: 1500,
+                        isClosable: false,
+                        containerStyle: { pointerEvents: 'none' }
+                    });
+                }
+            }).catch((err) => {
+                toast({
+                    title: `There was an error: ${err}`,
+                    status: 'error',
+                    position: 'top',
+                    duration: 1500,
+                    isClosable: false,
+                    containerStyle: { pointerEvents: 'none' }
+                });
+            });
+        }
+
     };
 
     const getCkpts = () => {
@@ -301,7 +327,7 @@ export const ModelMerger = () => {
                                         setFullrange(!fullrange);
                                     }}
                                     value={fullrange}>
-                                    Use full alpha range
+                                    Use Range for Alpha
                                 </Checkbox>
 
                                 <Tooltip
@@ -314,125 +340,134 @@ export const ModelMerger = () => {
                                 </Tooltip>
                             </HStack>
                         </FormControl>
-
-                        {!fullrange && interpolation === 'add_difference'
-                            ? <FormControl
+                        {!fullrange ? 
+                            <FormControl
                                 pt={5}
                                 width="full">
-                                <RangeSlider
+                                <Flex>
+                                <FormHelperText textAlign="left">
+                                    <Text>
+                                        {modelA.slice(0,30)}
+                                    </Text>
+                                </FormHelperText>
+                                <Spacer></Spacer>
+                                <FormHelperText textAlign="right">
+                                    <Text>
+                                        {modelB.slice(0,30)}
+                                        {' '}
+                                        {modelC.slice(0,30)}
+                                    </Text>
+                                </FormHelperText>
+                                </Flex>
+                                <Slider
                                     aria-label="slider-ex-6"
-                                    defaultValue={[33, 66]}
-                                    max={100}
-                                    min={0}
-                                    onChange={(val) => setAlphaRange(val)}
+                                    // maxLabel={modelB}
+                                    // minLabel={modelA}
+                                    onChange={(val) => setAlpha(val)}
                                     step={1}
-                                    value={alphaRange}
+                                    value={alpha}
                                 >
-                                    <RangeSliderMark
+                                    <SliderMark
                                         value={25}
                                         {...labelStyles}>
                                         25%
-                                    </RangeSliderMark>
+                                    </SliderMark>
 
-                                    <RangeSliderMark
+                                    <SliderMark
                                         value={50}
                                         {...labelStyles}>
                                         50%
-                                    </RangeSliderMark>
+                                    </SliderMark>
 
-                                    <RangeSliderMark
+                                    <SliderMark
                                         value={75}
                                         {...labelStyles}>
                                         75%
-                                    </RangeSliderMark>
+                                    </SliderMark>
 
-                                    <RangeSliderMark
+                                    <SliderMark
                                         bg="blue.500"
                                         color="white"
                                         ml="-5"
                                         mt="-10"
                                         textAlign="center"
-                                        value={alphaRange[0]}
-                                        w="12"
-                                    >
-                                        {alphaRange[0]}
-                                        %
-                                    </RangeSliderMark>
-
-                                    <RangeSliderMark
-                                        bg="blue.500"
-                                        color="white"
-                                        ml="-5"
-                                        mt="-10"
-                                        textAlign="center"
-                                        value={alphaRange[1]}
-                                        w="12"
-                                    >
-                                        {alphaRange[1]}
-                                        %
-                                    </RangeSliderMark>
-
-
-                                    <RangeSliderTrack>
-                                        <RangeSliderFilledTrack />
-                                    </RangeSliderTrack>
-
-                                    <RangeSliderThumb index={0} />
-
-                                    <RangeSliderThumb index={1} />
-                                </RangeSlider>
-                            </FormControl>
-                            : !fullrange
-                                ? <FormControl
-                                    pt={5}
-                                    width="full">
-                                    <Slider
-                                        aria-label="slider-ex-6"
-                                        // maxLabel={modelB}
-                                        // minLabel={modelA}
-                                        onChange={(val) => setAlpha(val)}
-                                        step={1}
                                         value={alpha}
+                                        w="12"
                                     >
-                                        <SliderMark
-                                            value={25}
-                                            {...labelStyles}>
-                                            25%
-                                        </SliderMark>
+                                        {alpha}
+                                        %
+                                    </SliderMark>
 
-                                        <SliderMark
-                                            value={50}
-                                            {...labelStyles}>
-                                            50%
-                                        </SliderMark>
+                                    <SliderTrack>
+                                        <SliderFilledTrack />
+                                    </SliderTrack>
 
-                                        <SliderMark
-                                            value={75}
-                                            {...labelStyles}>
-                                            75%
-                                        </SliderMark>
+                                    <SliderThumb />
+                                </Slider>
+                            </FormControl>
 
-                                        <SliderMark
-                                            bg="blue.500"
-                                            color="white"
-                                            ml="-5"
-                                            mt="-10"
-                                            textAlign="center"
-                                            value={alpha}
-                                            w="12"
-                                        >
-                                            {alpha}
-                                            %
-                                        </SliderMark>
-
-                                        <SliderTrack>
-                                            <SliderFilledTrack />
-                                        </SliderTrack>
-
-                                        <SliderThumb />
-                                    </Slider>
+                            :
+                            <HStack>
+                                <FormControl>
+                                    <FormLabel htmlFor="start_steps">
+                                       Starting %
+                                    </FormLabel>
+        
+                                    <NumberInput
+                                        id="start_steps"
+                                        min={0}
+                                        max={100}
+                                        name="start_steps"
+                                        onChange={(v) => {
+                                            setStartSteps(v);
+                                        }}
+                                        value={start_steps}
+                                        variant="outline"
+                                    >
+                                        <NumberInputField id="start_steps" />
+                                    </NumberInput>
                                 </FormControl>
-                                : <></>}
+
+                                <FormControl>
+                                    <FormLabel htmlFor="end_steps">
+                                       Ending %
+                                    </FormLabel>
+        
+                                    <NumberInput
+                                        id="end_steps"
+                                        min={0}
+                                        max={100}                                       
+                                        name="end_steps"
+                                        onChange={(v) => {
+                                            setEndSteps(v);
+                                        }}
+                                        value={end_steps}
+                                        variant="outline"
+                                    >
+                                        <NumberInputField id="end_steps" />
+                                    </NumberInput>
+                                </FormControl>
+
+                                <FormControl>
+                                    <FormLabel htmlFor="steps">
+                                        % Increment
+                                    </FormLabel>
+                                    <NumberInput
+                                        id="steps"
+                                        min={0}
+                                        max={100}
+                                        name="steps"
+                                        onChange={(v) => {
+                                            setSteps(v);
+                                        }}
+                                        value={steps}
+                                        variant="outline"
+                                    >
+                                        <NumberInputField id="steps" />
+                                    </NumberInput>
+                                </FormControl>
+                            </HStack>
+                        }
 
                         <FormControl width="full">
                             <Input
