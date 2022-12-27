@@ -22,10 +22,13 @@ import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
 import validator from 'validator';
 import axios from 'axios';
+import { useRecoilState } from 'recoil';
+import * as atom from '../../atoms/atoms'
 
 const SignUp = ({ setState }) => {
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const [email, setEmail] = useRecoilState(atom.emailState);
     const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [month, setMonth] = useState({ label: '',   value: ''});
     const [day, setDay] = useState({ label: '',   value: ''});
@@ -148,14 +151,14 @@ const SignUp = ({ setState }) => {
                 dob: `${month.value}/${day.value}/${year.value}`
             }
             // console.log(data)
-            axios.post('http://localhost:8000/signup',data,{
+            axios.post(`${ARTROOM_URL}/signup`,data,{
                 headers: {
                     'Content-Type': 'application/json',
                     'accept': 'application/json'
                 }
             }).then(response => {
                 console.log(response.data);
-                setState('Login');
+                setState('EmailVerificationCode');
                 // setLoggedIn(true);   
             }).catch(err => {
                 console.log(err);

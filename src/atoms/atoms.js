@@ -227,4 +227,9 @@ export const cloudModeState = atom({
     default: false
 });
 
+export const emailState = atom({
+    key: 'email',
+    default: ''
+});
+
 

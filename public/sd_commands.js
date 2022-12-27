@@ -2,6 +2,11 @@ async function getCkpts(data){
     return await window.api.getCkpts('getCkpts',data);
 }
 
+async function getVaes(data){
+    return await window.api.getVaes('getVaes',data);
+}
+
+
 async function reinstallArtroom(){
     return await window.api.reinstallArtroom('reinstallArtroom');
 }

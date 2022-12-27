@@ -13,25 +13,60 @@ import {
     FormControl,
     FormHelperText,
     InputRightElement,
-    Image
+    Image,
+    createStandaloneToast
 } from '@chakra-ui/react';
 import { FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
 import axios from 'axios';
+import { useRecoilState } from 'recoil';
+import * as atom from '../../atoms/atoms'
 
-const Login = ({ setLoggedIn, setState}) => {
+const Login = ({ setLoggedIn, setState}) => {    
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const { ToastContainer, toast } = createStandaloneToast();
     const qs = require('qs');
-    const [email, setEmail] = useState('');
+
+    const [email, setEmail] = useRecoilState(atom.emailState);
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
 
     const [showPassword, setShowPassword] = useState(false);
 
     const handleShowClick = () => setShowPassword(!showPassword);
+
+    function handleResendCode(){
+        axios.get(
+            `${ARTROOM_URL}/resend_code`,
+            {
+                params : {
+                    email,
+                },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'accept': 'application/json'
+                }
+            }
+        ).then((result) => {
+            console.log(result);
+            toast({
+                title: 'Sent Verification Code',
+                description: "Please check your email (it may have went to spam)",
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        });  
+    }
+
     function handleLogin () {
         axios.post(
-            'http://localhost:8000/login',
+            `${ARTROOM_URL}/login`,
             qs.stringify({
                 username: email,
                 password,
@@ -46,7 +81,13 @@ const Login = ({ setLoggedIn, setState}) => {
             }
         ).then((result) => {
             console.log(result);
-            // setLoggedIn(true);
+            setLoggedIn(true);
+        }).catch(err => {
+            console.log(err);
+            if (err.response.data.detail === "user unverified"){
+                handleResendCode();
+                setState("EmailVerificationCode");
+            }
         });
     }
 

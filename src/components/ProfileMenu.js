@@ -21,13 +21,12 @@ const ProfileMenu = ({ setLoggedIn }) => (
         <MenuButton
             as={Button}
             leftIcon={<FaUser />}
-            olorScheme="teal"
+            colorScheme="teal"
             variant="outline">
             <HStack>
                 <Text>
                     My Profile
                 </Text>
-
                 <Divider
                     color="white"
                     height="20px"

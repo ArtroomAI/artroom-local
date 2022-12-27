@@ -11,7 +11,8 @@ import Login from './Login';
 import SignUp from './Signup';
 import ForgotPassword from './ForgotPassword';
 import ForgotPasswordCode from './ForgotPasswordCode';
-import EmailVerification from './EmailVerification';
+import EmailVerificationCode from './EmailVerificationCode';
+import ResetPassword from './ResetPassword';
 
 const LoginPage = ({ setLoggedIn }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -37,20 +38,19 @@ const LoginPage = ({ setLoggedIn }) => {
 
                 <ModalContent bg="gray.900">
                     <ModalCloseButton />
-
                     {state === 'Login' ?
-                        <Login setLoggedIn={setLoggedIn}
-                        setState={setState}/>
+                        <Login setLoggedIn={setLoggedIn} setState={setState}/>
                     : state === 'SignUp' ? 
                         <SignUp setState={setState} />
                     : state === 'ForgotPassword' ? 
                         <ForgotPassword setState={setState}></ForgotPassword>
                     : state === 'ForgotPasswordCode' ? 
                         <ForgotPasswordCode setState={setState}></ForgotPasswordCode>
-                    : state === 'EmailVerification' ?
-                        <EmailVerification setState={setState}></EmailVerification>
-                    :
-                    <></>
+                    : state === 'EmailVerificationCode' ?
+                        <EmailVerificationCode setLoggedIn={setLoggedIn} setState={setState}></EmailVerificationCode>
+                    : state === 'ResetPassword' ?
+                        <ResetPassword setState={setState}></ResetPassword>
+                    : <></>
                     }
                 </ModalContent>
             </Modal>

@@ -24,6 +24,7 @@
     "save_grid": false,
     "debug_mode": false,
     "ckpt": "model.ckpt",
+    "vae": "",
     "ckpt_dir": "%InstallPath%/artroom/model_weights/",
     "run_type": "regular",
     "delay": 5

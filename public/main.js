@@ -10,7 +10,7 @@ const fs = require("fs");
 const glob = require('glob');
 const axios = require('axios');
 const kill = require('tree-kill');
-
+require("dotenv").config();
 require('@electron/remote/main').initialize()
 
 // const getUserDataPath = () => {
@@ -32,9 +32,9 @@ const applicationSettings = "app_settings.json"
 
 let win;
 let hd = os.homedir();
-
+let LOCAL_URL = process.env.LOCAL_URL;
 //Start with cleanup
-axios.get('http://127.0.0.1:5300/shutdown')
+axios.get(`${LOCAL_URL}/shutdown`)
 
 // axios.get('http://127.0.0.1:8000/').then(res => res.json()).then((result)=>{
 //   console.log("Test: "+ result);
@@ -97,7 +97,7 @@ let server = spawn(serverCommand, { detached: debugModeInit, encoding: 'utf8', s
 
 function createWindow() {
   //Connect to server
-  axios.get('http://127.0.0.1::5300/start');
+  axios.get(`${LOCAL_URL}/start`);
   console.log("Artroom Log: " + artroom_install_log);
 
   const socket = io('http://localhost:5300');
@@ -125,6 +125,21 @@ function createWindow() {
   ipcMain.handle('getCkpts', async (event, data) => {
     return new Promise((resolve, reject) => {
       glob(`${data}/**/*.{ckpt,safetensors}`, {}, (err, files) => {
+        if (err) {
+          console.log("ERROR");
+          resolve([]);
+        }
+        files = files?.map(function (match) {
+          return path.relative(data, match);
+        });
+        resolve(files);
+      })
+    });
+  });
+
+  ipcMain.handle('getVaes', async (event, data) => {
+    return new Promise((resolve, reject) => {
+      glob(`${data}/**/*.{.vae.pt}`, {}, (err, files) => {
         if (err) {
           console.log("ERROR");
           resolve([]);
@@ -382,7 +397,7 @@ function createWindow() {
       } else {
         server = spawn(serverCommand, { detached: false, encoding: 'utf8', shell: true });
       }
-      return axios.get('http://127.0.0.1:5300/get_progress',
+      return axios.get(`${LOCAL_URL}/get_progress`,
         { headers: { 'Content-Type': 'application/json' } }).then((result) => {
           resolve(result.status);
         });
@@ -510,7 +525,7 @@ app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {
     kill(server.pid);
     spawn("taskkill", ["/pid", server.pid, '/f', '/t']);
-    axios.get('http://127.0.0.1:5300/shutdown')
+    axios.get(`${LOCAL_URL}/shutdown`)
     app.quit()
   }
 })
@@ -556,7 +571,7 @@ autoUpdater.on("update-downloaded", (_event, releaseNotes, releaseName) => {
       if (process.platform !== 'darwin') {
         kill(server.pid);
         spawn("taskkill", ["/pid", server.pid, '/f', '/t']);
-        axios.get('http://127.0.0.1:5300/shutdown')
+        axios.get(`${LOCAL_URL}/shutdown`)
       }  
       autoUpdater.quitAndInstall()
     }

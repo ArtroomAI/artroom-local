@@ -49,7 +49,6 @@
     "object-curly-spacing": ["error", "always"],
     "object-property-newline": ["error", "never"],
     "no-unused-vars": "warn",
-
     "indent": ["error", 4],
     "sort-imports": "off",
     "max-lines-per-function": "off",

@@ -2,46 +2,74 @@ import { useState } from 'react';
 import {
     Flex,
     Heading,
-    Input,
-    IconButton,
     Button,
-    InputGroup,
     Stack,
-    InputLeftElement,
     Box,
     Link,
-    FormControl,
-    FormHelperText,
-    InputRightElement,
-    Image
+    Image,
+    Text,
+    createStandaloneToast 
 } from '@chakra-ui/react';
-import { FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { IoIosMail } from 'react-icons/io';
 import Logo from '../../images/ArtroomLogo.png';
 import axios from 'axios';
+import PinInputCode from '../Reusable/PinInput/PinInputCode';
+import { useRecoilState } from 'recoil';
+import * as atom from '../../atoms/atoms'
 
-const ForgotPasswordCode = ({ setLoggedIn, setState }) => {
-    const [email, setEmail] = useState('');
+const ForgotPasswordCode = ({ setState }) => {
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const [verificationCode, setVerificationCode] = useState('');
+    const [email, setEmail] = useRecoilState(atom.emailState);
+    const { ToastContainer, toast } = createStandaloneToast();
 
-    function handleForgotPassword () {
-        axios.post(
-            'http://localhost:8000/login',
-            qs.stringify({
-                username: email,
-                password,
-                grant_type: '',
-                scope: '',
-                client_id: '',
-                client_secret: ''
-            }),
+    function handleResendCode(){
+        axios.get(
+            `${ARTROOM_URL}/forgot_password_send_code`,
             {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded',
-                    'accept': 'application/json' }
+                params : {
+                    email,
+                },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'accept': 'application/json'
+                }
             }
         ).then((result) => {
             console.log(result);
-            // setState('ForgotPasswordCode');
+            toast({
+                title: 'Sent Verification Code',
+                description: "Please check your email (it may have went to spam)",
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        });  
+    }
+
+    function handlePasswordVerify() {
+        let body = {
+            email,
+            code: verificationCode
+        }
+        console.log(body);
+        axios.post(
+            `${ARTROOM_URL}/forgot_password_enter_code`,
+            body,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'accept': 'application/json'
+                }
+            }
+        ).then((result) => {
+            console.log(result);
+            setState('ResetPassword');
+        }).catch(err => {
+            console.log(err);
         });
     }
 
@@ -75,35 +103,19 @@ const ForgotPasswordCode = ({ setLoggedIn, setState }) => {
                         p="1rem"
                         spacing={4}
                     >
-                        <FormControl>
-                            <InputGroup>
-                                <InputLeftElement
-                                    children={<IoIosMail color="gray.800" />}
-                                    color="gray.800"
-                                    pointerEvents="none"
-                                />
-
-                                <Input
-                                    _placeholder={{ color: 'gray.400' }}
-                                    borderColor="#00000020"
-                                    color="gray.800"
-                                    onChange={(event) => setEmail(event.target.value)}
-                                    placeholder="Email Address"
-                                    type="email"
-                                    value={email}
-                                />
-                            </InputGroup>
-                        </FormControl>
-
+                        <Text width="500px" color="gray.800">
+                            A verification code has been sent to your email. Please enter the code below. It will expire in 10 minutes. Please also check your spam.
+                        </Text>
+                        <PinInputCode verificationCode={verificationCode} setVerificationCode={setVerificationCode} numInputs={6} handleResendCode={handleResendCode}></PinInputCode>
                         <Button
                             borderRadius={10}
                             colorScheme="blue"
-                            onClick={handleForgotPassword}
+                            onClick={handlePasswordVerify}
                             type="submit"
                             variant="solid"
                             width="full"
                         >
-                            Reset Password
+                            Verify
                         </Button>
                     </Stack>
                 </Box>

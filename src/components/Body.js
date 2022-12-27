@@ -19,8 +19,10 @@ import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 
 function Body () {
-    const baseURL = `http://127.0.0.1:5300`
-    // const baseURL = `http://062j101fgfrmu511-5300.node1.gpux.ai`
+    const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+
+    const baseURL = LOCAL_URL;
 
     const { ToastContainer, toast } = createStandaloneToast();
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
