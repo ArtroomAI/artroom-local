@@ -87,6 +87,18 @@ const Login = ({ setLoggedIn, setState}) => {
             if (err.response.data.detail === "user unverified"){
                 handleResendCode();
                 setState("EmailVerificationCode");
+            } else {
+                toast({
+                    title: "Error",
+                    description: err.response.data.detail,
+                    status: 'error',
+                    position: 'top',
+                    duration: 2000,
+                    isClosable: false,
+                    containerStyle: {
+                        pointerEvents: 'none'
+                    }
+                });
             }
         });
     }
