@@ -70,6 +70,17 @@ const EmailVerificationCode = ({setLoggedIn, setState }) => {
             setLoggedIn(true);
         }).catch(err => {
             console.log(err);
+            toast({
+                title: 'Verification Failed',
+                description: "Error, Verification Failed",
+                status: 'error',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
         });
     }
 

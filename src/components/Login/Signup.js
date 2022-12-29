@@ -57,7 +57,8 @@ const SignUp = ({ setState }) => {
             { 
                 minLength: 8,
                 minNumbers: 1,
-                minSymbols: 1 
+                minSymbols: 1, 
+                minUppercase: 0
             }
         ) && password.length <= 100;
         setPasswordValid(isPasswordValid);

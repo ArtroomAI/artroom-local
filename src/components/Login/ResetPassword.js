@@ -15,15 +15,16 @@ import {
     Text,
     FormControl,
     FormHelperText,
-    Image
+    Image,
+    createStandaloneToast
 } from '@chakra-ui/react';
 import { FaLock, FaEyeSlash, FaEye } from 'react-icons/fa';
 import Logo from '../../images/ArtroomLogo.png';
 import validator from 'validator';
 
-const ResetPassword = ({ setLoggedIn, setState }) => {
+const ResetPassword = ({ setLoggedIn, setState, pwdResetJwt }) => {
     const SERVER_URL = process.env.REACT_APP_SERVER_URL;
-
+    const { ToastContainer, toast } = createStandaloneToast();
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [passwordRepeat, setPasswordRepeat] = useState('');
@@ -38,7 +39,8 @@ const ResetPassword = ({ setLoggedIn, setState }) => {
             { 
                 minLength: 8,
                 minNumbers: 1,
-                minSymbols: 1 
+                minSymbols: 1,
+                minUppercase: 0 
             }
         ) && password.length <= 100;
         setPasswordValid(isPasswordValid);
@@ -52,11 +54,11 @@ const ResetPassword = ({ setLoggedIn, setState }) => {
         }
         if (isValidPassword && password === passwordRepeat){
             let body = {
-                token: "string",
+                token: pwdResetJwt,
                 new_password: password
               }
             axios.post(
-                `${SERVER_URL}/forgot_password_send_code`,
+                `${SERVER_URL}/forgot_password_reset`,
                 body,
                 {   
                     headers: {
@@ -66,9 +68,31 @@ const ResetPassword = ({ setLoggedIn, setState }) => {
                 }
             ).then((result) => {
                 console.log(result);
-                setState('ForgotPasswordCode');
+                toast({
+                    title: 'Success',
+                    description: "Password Successfully Reset",
+                    status: 'success',
+                    position: 'top',
+                    duration: 3000,
+                    isClosable: false,
+                    containerStyle: {
+                        pointerEvents: 'none'
+                    }
+                });
+                setState('Login');
             }).catch(err => {
                 console.log(err);
+                toast({
+                    title: "Error",
+                    description: err.response.data.detail,
+                    status: 'error',
+                    position: 'top',
+                    duration: 2000,
+                    isClosable: false,
+                    containerStyle: {
+                        pointerEvents: 'none'
+                    }
+                });
             });    
         }
     }
