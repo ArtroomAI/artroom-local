@@ -1,47 +1,7 @@
-window.addEventListener(
-    'DOMContentLoaded',
-    () => {
-        const minimizeButton = document.getElementById('minimize-btn');
-        const maxUnmaxButton = document.getElementById('max-unmax-btn');
-        const closeButton = document.getElementById('close-btn');
+import './style.css';
 
-        /*
-         * TODO Version not working
-         * console.log(window.api.getVersion());
-         *  document.getElementById("artroom-head") = "ArtroomAI v" + window.api.getVersion();
-         */
+if(!window.global) window.global = window;
 
-        minimizeButton.addEventListener(
-            'click',
-            (e) => {
-                window.api.minimizeWindow();
-            }
-        );
+import './sd_commands.js';
 
-        maxUnmaxButton.addEventListener(
-            'click',
-            (e) => {
-
-                const icon = maxUnmaxButton.querySelector('i.far');
-
-                window.api.maxUnmaxWindow();
-
-                // Change the middle maximize-unmaximize icons.
-                if (window.api.isWindowMaximized()) {
-                    icon.classList.remove('fa-square');
-                    icon.classList.add('fa-clone');
-                } else {
-                    icon.classList.add('fa-square');
-                    icon.classList.remove('fa-clone');
-                }
-            }
-        );
-
-        closeButton.addEventListener(
-            'click',
-            (e) => {
-                window.api.closeWindow();
-            }
-        );
-    }
-);
+import '../src/index.js';

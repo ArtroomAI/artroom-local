@@ -1,4 +1,5 @@
-import { React, useState, useEffect, useCallback, useReducer } from 'react';
+import React from 'react';
+import { useState, useEffect, useCallback, useReducer } from 'react';
 import { useInterval } from './Reusable/useInterval/useInterval';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -25,7 +26,6 @@ function Body () {
     const baseURL = LOCAL_URL;
 
     const { ToastContainer, toast } = createStandaloneToast();
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     const [width, setWidth] = useRecoilState(atom.widthState);
     const [height, setHeight] = useRecoilState(atom.heightState);
@@ -320,91 +320,84 @@ function Body () {
     };
 
     return (
-        <Flex
-            ml={navSize === 'large'
-                ? '180px'
-                : '100px'}
-            transition="all .25s ease"
-            width="100%">
-            <Box
-                align="center"
-                width="100%" >
-                {/* Center Portion */}
+        <Box
+            align="center"
+            width="100%" >
 
-                <VStack spacing={3}>
-                    <Box
-                        className="image-box"
-                        ratio={16 / 9}
-                        width="80%">
-                        <ImageObj
-                            B64={mainImage}
-                            active />
+            <VStack spacing={3}>
+                <Box
+                    className="image-box"
+                    ratio={16 / 9}
+                    width="100%">
+                    <ImageObj
+                        B64={mainImage}
+                        active />
 
-                        {
-                            progress >= 0
-                                ? <Progress
-                                    align="left"
-                                    hasStripe
-                                    value={progress} />
-                                : <></>
-                        }
-                    </Box>
+                    {
+                        progress >= 0
+                            ? <Progress
+                                align="left"
+                                hasStripe
+                                value={progress} />
+                            : <></>
+                    }
+                </Box>
 
-                    <Box
-                        maxHeight="120px"
-                        overflowY="auto"
-                        width="60%">
-                        <SimpleGrid
-                            minChildWidth="100px"
-                            spacing="10px">
-                            {latestImages?.map((image, index) => (<Image
-                                fit="scale-left"
-                                h="5vh"
-                                key={index}
-                                onClick={() => dispatch({ type: 'select',
-                                    payload: index })}
-                                src={image}
-                            />))}
-                        </SimpleGrid>
-                    </Box>
+                <Box
+                    maxHeight="120px"
+                    overflowY="auto"
+                    width="80%">
+                    <SimpleGrid
+                        minChildWidth="100px"
+                        spacing="10px">
+                        {latestImages?.map((image, index) => (<Image
+                            fit="scale-left"
+                            h="5vh"
+                            key={index}
+                            onClick={() => dispatch({ type: 'select',
+                                payload: index })}
+                            src={image}
+                        />))}
+                    </SimpleGrid>
+                </Box>
 
-                    {cloudMode
-                        ? <Button
-                            className="run-button"
-                            ml={2}
-                            onClick={submitMain}
-                            variant="outline"
-                            width="200px">
-                            <Text pr={2}>
-                                {running
-                                    ? 'Add to Queue'
-                                    : 'Run'}
-                            </Text>
-
-                            <Image
-                                src={Shards}
-                                width="12px" />
-
-                            <Text pl={1}>
-                                6
-                            </Text>
-                        </Button>
-                        : <Button
-                            className="run-button"
-                            ml={2}
-                            onClick={submitMain}
-                            width="200px">
+                {cloudMode
+                    ? <Button
+                        className="run-button"
+                        ml={2}
+                        onClick={submitMain}
+                        variant="outline"
+                        width="200px">
+                        <Text pr={2}>
                             {running
                                 ? 'Add to Queue'
                                 : 'Run'}
-                        </Button>}
+                        </Text>
 
-                    <Box width="80%">
-                        <Prompt setFocused={setFocused} />
-                    </Box>
-                </VStack>
-            </Box>
-        </Flex>
+                        <Image
+                            src={Shards}
+                            width="12px" />
+
+                        <Text pl={1}>
+                            6
+                        </Text>
+                    </Button>
+                    : <Button
+                        className="run-button"
+                        ml={2}
+                        onClick={submitMain}
+                        width="200px">
+                        {running
+                            ? 'Add to Queue'
+                            : 'Run'}
+                    </Button>}
+
+                <Box width="100%">
+                    <Prompt setFocused={setFocused} />
+                </Box>
+            </VStack>
+        </Box>
     );
 }
+
 export default Body;

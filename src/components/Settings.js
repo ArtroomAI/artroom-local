@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import axios from 'axios';
@@ -29,7 +29,6 @@ import DebugInstallerModal from './Modals/DebugInstallerModal';
 
 function Settings () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
@@ -158,16 +157,9 @@ function Settings () {
         <Flex
             align="center"
             justify="center"
-            ml={navSize === 'large'
-                ? '80px'
-                : '0px'}
-            transition="all .25s ease"
             width="100%">
             <Box
                 height="90%"
-                ml="30px"
-                p={5}
-                rounded="md"
                 width="75%">
                 <VStack
                     align="flex-start"

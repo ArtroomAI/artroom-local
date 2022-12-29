@@ -1,4 +1,5 @@
-import { React, useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -113,6 +114,7 @@ function SDSettings () {
 
     return (
         <Flex
+            alignItems="center"
             pr="10"
             width="300px"
         >
@@ -312,9 +314,7 @@ function SDSettings () {
                                 max={1920}
                                 min={256}
                                 name="width"
-                                onChange={(v) => {
-                                    setWidth(v);
-                                }}
+                                onChange={setWidth}
                                 step={64}
                                 value={width}
                                 variant="outline"
@@ -347,10 +347,10 @@ function SDSettings () {
 
                             <Slider
                                 defaultValue={512}
-                                isReadOnly={!(aspect_ratio === 'None') || aspect_ratio === 'Init Image'}
+                                isReadOnly={aspect_ratio === 'Init Image'}
                                 max={1920}
                                 min={256}
-                                onChange={(v) => setHeight(v)}
+                                onChange={setHeight}
                                 step={64}
                                 value={height}
                             >

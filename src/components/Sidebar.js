@@ -31,9 +31,7 @@ export default function Sidebar () {
     return (
         <Flex
             alignItems="center"
-            h="95%"
-            m="15px"
-            pos="fixed"
+            margin="15px"
             w={navSize === 'small'
                 ? '75px'
                 : '250px'}
@@ -46,7 +44,9 @@ export default function Sidebar () {
                 h="100%"
                 justifyContent="space-between"
                 opacity={0.6}
-                w="100%"
+                w={navSize === 'small'
+                    ? '75px'
+                    : '250px'}
             >
                 <Flex
                     as="nav"

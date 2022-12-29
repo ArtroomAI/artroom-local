@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import {
     useDisclosure,
@@ -28,7 +29,7 @@ const LoginPage = ({ setLoggedIn }) => {
                 {' '}
             </Button>
 
-            <Modal
+            {isOpen && <Modal
                 isOpen={isOpen}
                 motionPreset="slideInBottom"
                 onClose={onClose}
@@ -53,7 +54,7 @@ const LoginPage = ({ setLoggedIn }) => {
                     : <></>
                     }
                 </ModalContent>
-            </Modal>
+            </Modal>}
         </>
 
     );

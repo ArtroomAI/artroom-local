@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect, useState } from 'react';
 import { RecoilRoot, useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -20,19 +21,37 @@ import Sidebar from './Sidebar';
 import Settings from './Settings';
 import Upscale from './Upscale';
 import Paint from './Paint';
-// Import InvokeAI from './InvokeAI';
 import Queue from './Queue';
 import SDSettings from './SDSettings';
 import ImageViewer from './ImageViewer';
 import EquilibriumAI from './EquilibriumAI';
 import ProfileMenu from './ProfileMenu';
 import LoginPage from './Login/LoginPage';
-// Import Info from './Info';
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
 
+import ArtroomIcon from '../images/icon.ico';
+import MinimizeIcon from '../images/minimize.png';
+import MaximizeIcon from '../images/maximize.png';
+import CloseIcon from '../images/close.png';
+
+const AppTopBar = () => {
+    return (
+        <div id="menu-bar">
+            <div className="left" role="menu">
+                <img src={ArtroomIcon} width="30px"/>
+                <h3 id="artroom-head">ArtroomAI</h3>
+            </div>
+            <div className="right">
+                <button className="menubar-btn" id="minimize-btn" onClick={window.minimizeWindow}><img src={MinimizeIcon} width="20px"/></button>
+                <button className="menubar-btn" id="max-unmax-btn" onClick={window.maxUnmaxWindow}><img src={MaximizeIcon} width="20px"/></button>
+                <button className="menubar-btn" id="close-btn" onClick={window.closeWindow}><img src={CloseIcon} width="20px"/></button>
+            </div>
+        </div>
+    );
+}
+
 function Main () {
-    
     const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
 
@@ -100,7 +119,6 @@ function Main () {
 
                     if (result === 'success\r\n') {
                         toast({
-                            id: 'testing',
                             title: 'All Artroom paths & dependencies successfully found!',
                             status: 'success',
                             position: 'top',
@@ -109,7 +127,6 @@ function Main () {
                         });
                     } else if (result.length > 0) {
                         toast({
-                            id: 'testing',
                             title: result,
                             status: 'error',
                             position: 'top',
@@ -153,20 +170,13 @@ function Main () {
     );
 
     return (
-        <Grid
-            fontWeight="bold"
-            gap="1"
-            gridTemplateColumns="0px 1fr 300px"
-            gridTemplateRows="43px 1fr 30px"
-            h="200px"
-            templateAreas={`"nav null header"
-                          "nav main main"
-                          "nav main main"`}
-        >
-            <GridItem
-                area="header"
-                justifySelf="center"
-                pt="3">
+        <Flex
+            width="100%"
+            overflow="hidden auto !important">
+            <Flex
+                pos="fixed"
+                top="45px"
+                right="0">
                 {
                     loggedIn
                         ? <HStack align="center">
@@ -190,71 +200,58 @@ function Main () {
                             Login
                         </LoginPage>
                 }
-            </GridItem>
+            </Flex>
+            <Routes>
+                <Route
+                    element={<>
+                        <Body />
 
-            <GridItem
-                area="nav"
-                pl="2">
-                <Sidebar />
-            </GridItem>
+                        <Spacer />
 
-            <GridItem
-                area="main"
-                pl="2">
-                <Flex>
-                    <Routes>
-                        <Route
-                            element={<>
-                                <Body />
+                        <SDSettings />
+                    </>}
+                    exact
+                    path="/" />
 
-                                <Spacer />
+                <Route
+                    element={<>
+                        <Paint />
 
-                                <SDSettings />
-                            </>}
-                            exact
-                            path="/" />
+                        <Spacer />
 
-                        <Route
-                            element={<>
-                                <Paint />
+                        <SDSettings />
+                    </>}
+                    path="/paint" />
 
-                                <Spacer />
+                <Route
+                    element={<Queue />}
+                    path="/queue" />
 
-                                <SDSettings />
-                            </>}
-                            path="/paint" />
+                <Route
+                    element={<Upscale />}
+                    path="/upscale" />
 
-                        <Route
-                            element={<Queue />}
-                            path="/queue" />
+                <Route
+                    element={<ModelMerger />}
+                    path="/merge" />
 
-                        <Route
-                            element={<Upscale />}
-                            path="/upscale" />
+                <Route
+                    element={<ImageViewer />}
+                    path="/imageviewer" />
 
-                        <Route
-                            element={<ModelMerger />}
-                            path="/merge" />
+                <Route
+                    element={<EquilibriumAI />}
+                    path="/equilibriumai" />
 
-                        <Route
-                            element={<ImageViewer />}
-                            path="/imageviewer" />
+                <Route
+                    element={<PromptGuide />}
+                    path="/prompt-guide" />
 
-                        <Route
-                            element={<EquilibriumAI />}
-                            path="/equilibriumai" />
-
-                        <Route
-                            element={<PromptGuide />}
-                            path="/prompt-guide" />
-
-                        <Route
-                            element={<Settings />}
-                            path="/settings" />
-                    </Routes>
-                </Flex>
-            </GridItem>
-        </Grid>
+                <Route
+                    element={<Settings />}
+                    path="/settings" />
+            </Routes>
+        </Flex>
     );
 }
 
@@ -262,7 +259,11 @@ function Main () {
 function App () {
     return (
         <RecoilRoot>
-            <Main />
+            <AppTopBar />
+            <Flex height="calc(100% - 30px)">
+                <Sidebar />
+                <Main />
+            </Flex>
         </RecoilRoot>
     );
 }

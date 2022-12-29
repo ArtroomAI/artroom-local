@@ -17,7 +17,7 @@ export const aspectRatioState = atom({
 
 export const aspectRatioSelectionState = atom({
     key: 'aspectRatioSelection',
-    default: ''
+    default: 'None'
 });
 
 export const batchNameState = atom({
@@ -27,12 +27,12 @@ export const batchNameState = atom({
 
 export const heightState = atom({
     key: 'height',
-    default: ''
+    default: 0
 });
 
 export const widthState = atom({
     key: 'width',
-    default: ''
+    default: 0
 });
 
 
