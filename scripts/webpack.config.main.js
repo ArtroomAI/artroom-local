@@ -1,4 +1,5 @@
 const path = require('path');
+const Dotenv = require('dotenv-webpack');
 
 const config = {
     mode: 'development',
@@ -11,6 +12,9 @@ const config = {
         path: path.resolve(__dirname, '../build'),
         publicPath: ''
     },
+    plugins: [
+        new Dotenv(),
+    ],
     module: {
         rules: [
             {

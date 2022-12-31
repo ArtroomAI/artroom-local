@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 const config = {
     mode: 'development',
@@ -34,6 +35,7 @@ const config = {
         filename: 'renderer.js'
     },
     plugins: [
+        new Dotenv(),
         new HtmlWebpackPlugin({
             template: './public/index.html'
         })

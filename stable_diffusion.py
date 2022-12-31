@@ -163,7 +163,7 @@ class StableDiffusion:
         self.highres_fix = False
 
         self.device = "cuda"
-        self.precision = "autocast" if is_16xx_series() == 0 else "full"
+        self.precision = "autocast" if is_16xx_series() == 'NVIDIA' else "full"
         self.speed = "High"
 
     def set_artroom_path(self, path):

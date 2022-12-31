@@ -1,4 +1,5 @@
 const path = require('path');
+const Dotenv = require('dotenv-webpack');
 
 const config = {
     mode: 'development',
@@ -16,6 +17,9 @@ const config = {
             }
         ]
     },
+    plugins: [
+        new Dotenv(),
+    ],
     output: {
         path: path.resolve(__dirname, '../build'),
         filename: 'preload.js'
