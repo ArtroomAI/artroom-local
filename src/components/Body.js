@@ -14,7 +14,7 @@ import {
     Text,
     createStandaloneToast
 } from '@chakra-ui/react';
-import ImageObj from './ImageObj';
+import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 
@@ -217,7 +217,7 @@ function Body () {
                         }
                     }
                 }),
-                1500
+                500
             );
             return () => {
                 clearInterval(interval);
@@ -337,7 +337,7 @@ function Body () {
                         ratio={16 / 9}
                         width="80%">
                         <ImageObj
-                            B64={mainImage}
+                            b64={mainImage}
                             active />
 
                         {

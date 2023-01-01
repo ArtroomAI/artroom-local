@@ -8,13 +8,14 @@ import {
 import {
     FaPaintBrush,
     FaMagic,
+    FaFileImage,
     FaChevronLeft,
     FaChevronRight
 } from 'react-icons/fa';
 import {
     FiGitMerge,
     FiMenu,
-    FiSettings
+    FiSettings,
 } from 'react-icons/fi';
 import {
     GiResize
@@ -22,7 +23,6 @@ import {
 import NavItem from '../components/NavItem';
 import Tour from './ProjectTour/Tour';
 import Discord from './Discord';
-import Viewer from './Viewer';
 import EquilibriumAI from './EquilibriumAI';
 
 export default function Sidebar () {
@@ -89,8 +89,14 @@ export default function Sidebar () {
                         linkTo="#/merge"
                         navSize={navSize}
                         title="Merge models" />
+                    <NavItem
+                        className="image-viewer"
+                        icon={FaFileImage}
+                        linkTo="#/imageviewer"
+                        navSize={navSize}
+                        title="Image Viewer" />
 
-                    <Viewer />
+                    {/* <Viewer /> */}
                 </Flex>
 
                 <Flex
