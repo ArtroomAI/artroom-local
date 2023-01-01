@@ -61,18 +61,15 @@ class RestrictedUnpickler(pickle.Unpickler):
         raise Exception(f"global '{module}/{name}' is forbidden")
 
 
-allowed_zip_names = ["archive/data.pkl", "archive/version"]
-allowed_zip_names_re = re.compile(r"^archive/data/\d+$")
+disallowed_patterns = ['.exe', '.bat', '.com', '.cmd', '.inf', '.ipa', '.osx', '.pif', '.runwsh']
+disallowed_patterns = disallowed_patterns + [x.upper() for x in disallowed_patterns]
 
 
 def check_zip_filenames(filename, names):
     for name in names:
-        if name in allowed_zip_names:
-            continue
-        if allowed_zip_names_re.match(name):
-            continue
-
-        raise Exception(f"bad file inside {filename}: {name}")
+        for pattern in disallowed_patterns:
+            if pattern in name:
+                raise Exception(f"bad file inside {filename}: {name}")
 
 
 def check_pt(filename, extra_handler):
