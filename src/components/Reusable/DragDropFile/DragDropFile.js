@@ -24,7 +24,7 @@ const DragDropFile = () => {
         console.log(initImagePath);
         if (initImagePath.length > 0) {
             window.getImageFromPath(initImagePath).then((result) => {
-                setInitImage(result);
+                setInitImage(result.b64);
             });
         }
     }

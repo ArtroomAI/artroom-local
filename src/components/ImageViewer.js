@@ -1,46 +1,52 @@
 import { React, useState, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
-import ImageObj from './ImageObj';
+import ImageObject from './Reusable/ImageObject';
 import {
     Flex,
-    createStandaloneToast
+    Box,
+    createStandaloneToast,
 } from '@chakra-ui/react';
+import Masonry from 'react-masonry-css'
+import { breakpoints } from '../constants/breakpoints';
 function ImageViewer () {
+    var path = require('path');
+
     const { ToastContainer, toast } = createStandaloneToast();
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
-    const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
-    const [batch_name, setBatchName] = useRecoilState(atom.batchNameState);
+    const image_save_path = useRecoilValue(atom.imageSavePathState);
+    const batch_name = useRecoilValue(atom.batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
-    const [imagePaths, setImagePaths] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
+    const [imagePreviews, setImagePreviews] = useState(["",""]);
 
-    useEffect(
-        () => {
-        // If(imageViewPath.length === 0){
-            setImageViewPath(`${image_save_path}/${batch_name}`);
-        // }
-        },
-        []
-    );
+    useEffect(() => {
+        if(imageViewPath.length <= 1){
+            setImageViewPath(path.join(image_save_path,batch_name));
+        }
 
-    useEffect(
-        () => {
-            if (imageViewPath.length > 0) {
-                window.getImages(imageViewPath).then((result) => {
-                    setImagePaths(result);
-                    const images = [];
-                    result.forEach((path) => {
-                        window.getImageFromPath(path).then((output) => {
-                            images.push(output);
-                        });
+    },[]);
+
+    useEffect(() => {
+        if (imageViewPath.length > 1) {
+            window.getImages(imageViewPath).then((result) => {
+                let imagesData = [];
+
+                result.forEach((resultPath) => {
+                  const imagePath = path.join(imageViewPath, resultPath);
+                  imagesData.push(new Promise(async (resolve, reject) => {
+                    window.getImageFromPath(imagePath).then((output) => {
+                      resolve({imagePath, b64: output.b64, metadata: output.metadata});
                     });
-                    setImagePreviews(images);
+                  }));
                 });
-            }
-        },
-        [imageViewPath]
-    );
+
+                Promise.all(imagesData).then((results)=>{
+                    console.log(results);
+                    setImagePreviews(results);
+                })    
+            })
+        }
+    },[imageViewPath]);
 
     return (
         <Flex
@@ -51,15 +57,24 @@ function ImageViewer () {
                 : '0px'}
             transition="all .25s ease"
             width="100%">
-            {
-                imagePreviews?.map((image, index) => {
-                    <ImageObj
-                        B64={image.B64}
-                        active={false}
-                        imagePath={image.ImagePath}
-                        key={index} />;
-                })
-            }
+            <Box 
+                height="90%"
+                ml="50px"
+                p={5}
+                rounded="md"
+                width="75%" >
+                <Masonry
+                    breakpointCols={breakpoints}
+                    className="my-masonry-grid"
+                    columnClassName="my-masonry-grid_column"
+                >
+                {imagePreviews.map((image, index) => (
+                    <Box py={2} px={1} key={index}>
+                        <ImageObject b64={image.b64} metadata={image.metadata} />
+                    </Box>
+                ))}
+                </Masonry>
+            </Box>
         </Flex>
     );
 }

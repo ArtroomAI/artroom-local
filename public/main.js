@@ -10,6 +10,8 @@ const fs = require("fs");
 const glob = require('glob');
 const axios = require('axios');
 const kill = require('tree-kill');
+const ExifParser = require('exif-parser');
+
 require("dotenv").config();
 require('@electron/remote/main').initialize()
 
@@ -73,16 +75,40 @@ let debugModeInit = sd_data_json['debug_mode'];
 sd_data = JSON.stringify(sd_data_json, null, 2);
 fs.writeFileSync(artroom_path + "\\artroom\\settings\\sd_settings.json", sd_data);
 
-async function getB64(path) {
+async function getB64(data) {
   return new Promise((resolve, reject) => {
-    fs.promises.readFile(path, 'base64').then(result => {
-      resolve("data:image/png;base64," + result);
+    fs.promises.readFile(data, 'base64').then(result => {
+      const ext = path.extname(data).toLowerCase();
+      let mimeType;
+      if (ext === '.png') {
+        mimeType = 'image/png';
+      } else if (ext === '.jpg' || ext === '.jpeg') {
+        mimeType = 'image/jpeg';
+      } else {
+        mimeType = '';
+      }
+      resolve(`data:${mimeType};base64,${result}`);
     }).catch(err => {
-      console.log("Not found");
+      console.log(err);
       resolve("");
     });
   });
 }
+
+async function getMetadata(path) {
+  return new Promise((resolve, reject) => {
+    fs.promises.readFile(path).then(imageBuffer => {
+      const parser = ExifParser.create(imageBuffer);
+      const exifData = parser.parse();
+      const userComment = exifData.tags.UserComment;
+      resolve(userComment);
+    }).catch(err => {
+      console.log(err);
+      resolve('');
+    });
+  });
+}
+
 
 //pyTestCmd = "\"" + artroom_path +"\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python pytest.py";
 //pyTestCmd = "\"" + artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python" + "\"";
@@ -152,20 +178,39 @@ function createWindow() {
     });
   });
 
+  ipcMain.handle('getImages', async (event, data) => {
+    return new Promise((resolve, reject) => {
+      glob(`${data}/**/*.{jpg,png,jpeg}`, {}, (err, files) => {
+        if (err) {
+          console.log("ERROR");
+          resolve([]);
+        }
+        files = files?.map(function (match) {
+          return path.relative(data, match);
+        });
+        resolve(files);
+      })
+    });
+  });
+
   ipcMain.handle('getImageFromPath', async (event, data) => {
     return new Promise((resolve, reject) => {
       if (data && data.length > 0) {
-        resolve(getB64(data));
-      }
-      else {
+        Promise.all([getB64(data), getMetadata(data)]).then(([b64, metadata]) => {
+          resolve({b64, metadata});
+        }).catch(err => {
+          console.log(err);
+          reject(err);
+        });
+      } else {
         resolve("");
       }
     });
   });
 
-  ipcMain.handle('copyToClipboard', async (event, B64) => {
+  ipcMain.handle('copyToClipboard', async (event, b64) => {
     return new Promise((resolve, reject) => {
-      clipboard.writeImage(nativeImage.createFromDataURL(B64));
+      clipboard.writeImage(nativeImage.createFromDataURL(b64));
     });
   });
 
@@ -297,34 +342,6 @@ function createWindow() {
   });
 
 
-
-  // ipcMain.handle('uploadInitImage', (event, argx = 0) => {
-  //   return new Promise((resolve, reject) => {
-  //     let properties;
-  //     if(os.platform() === 'linux' || os.platform() === 'win32'){
-  //       properties = ['openFile'];
-  //     }
-  //     else{
-  //       properties = ['openFile', 'openDirectory']
-  //     }
-  //       dialog.showOpenDialog({
-  //           properties: properties,
-  //           filters: [
-  //             { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
-  //           ]
-  //       }).then(result => {
-  //         if (result.filePaths.length > 0){
-  //           resolve(getB64(result.filePaths[0]));
-  //         }
-  //         else{
-  //           resolve("");
-  //         }
-  //       }).catch(err => {
-  //         resolve("");
-  //       })
-  //     });
-  //   });
-
   ipcMain.handle('chooseUploadPath', (event, argx = 0) => {
     return new Promise((resolve, reject) => {
       dialog.showOpenDialog({
@@ -342,7 +359,6 @@ function createWindow() {
 
     });
   });
-
 
   //startup test logic
   function runPyTests() {

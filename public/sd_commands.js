@@ -6,6 +6,9 @@ async function getVaes(data){
     return await window.api.getVaes('getVaes',data);
 }
 
+async function getImages(data){
+    return await window.api.getImages('getImages',data);
+}
 
 async function reinstallArtroom(){
     return await window.api.reinstallArtroom('reinstallArtroom');
@@ -48,8 +51,8 @@ async function mergeModels(data){
 }
 
 
-async function copyToClipboard(B64){
-    return await window.api.copyToClipboard('copyToClipboard',B64);
+async function copyToClipboard(b64){
+    return await window.api.copyToClipboard('copyToClipboard',b64);
 }
 
 async function chooseUploadPath(){

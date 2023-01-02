@@ -8,14 +8,13 @@ import random
 from io import BytesIO
 import base64
 from transformers import logging
-from tqdm import tqdm, trange
 from torch import autocast
 from pytorch_lightning import seed_everything
 from omegaconf import OmegaConf
 from itertools import islice
 from einops import rearrange, repeat
 from contextlib import nullcontext
-from PIL import Image
+from PIL import Image, ExifTags
 import torch
 import gc
 import re
@@ -246,7 +245,7 @@ class StableDiffusion:
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
         vae = {k.replace("encoder", "first_stage_model.encoder")
-                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
+                   .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
     def load_ckpt(self, ckpt, speed):
@@ -446,11 +445,11 @@ class StableDiffusion:
                     return
 
                 if self.long_save_path:
-                    save_name = f"{base_count:05}_seed_{str(seed)}.png"
+                    save_name = f"{base_count:05}_seed_{str(seed)}.jpg"
                 else:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
-                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
+                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.jpg"
 
                 self.current_num = n
                 self.model.current_step = 0
@@ -559,8 +558,24 @@ class StableDiffusion:
                         if mask is not None:
                             out_image = apply_color_correction(
                                 color_correction, out_image)
+                        exif_data = out_image.getexif()
+                        #Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                        settings_data = {
+                            "text_prompts":text_prompts, 
+                            "negative_prompts":negative_prompts, 
+                            "steps":steps, 
+                            "H":H, 
+                            "W":W, 
+                            "strength":strength, 
+                            "cfg_scale":cfg_scale, 
+                            "seed":seed, 
+                            "sampler":sampler,
+                            "ckpt":ckpt
+                        }
+                        #0x9286 Exif Code for UserComment
+                        exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
-                            os.path.join(sample_path, save_name))
+                            os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
                         self.latest_images_part2.append(out_image)
                         self.latest_images_id = random.randint(1, 922337203685)
 
@@ -575,5 +590,5 @@ class StableDiffusion:
                 cols = int(np.ceil(len(all_samples) / rows))
                 os.makedirs(sample_path + "/grids", exist_ok=True)
                 image_grid(all_samples, rows, cols, path=os.path.join(
-                    sample_path + "/grids", f'grid-{len(os.listdir(sample_path + "/grids")):04}.png'))
+                    sample_path + "/grids", f'grid-{len(os.listdir(sample_path + "/grids")):04}.jpg'))
         self.clean_up()
