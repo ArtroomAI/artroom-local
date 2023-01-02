@@ -6,6 +6,11 @@ export default class ProtectedReqManager {
     
     static access_token = '';
     static refresh_token = '';
+    static cloudMode;
+    static setCloudMode;
+    static toast;
+    static loggedIn;
+    static setLoggedIn;
 
     static set_access_token(input_access_token) {
         this.access_token = input_access_token;
@@ -56,6 +61,14 @@ export default class ProtectedReqManager {
                     
                 }).catch(err => {
                     //throw new Error(err);
+                    this.setLoggedIn(false);
+                    this.toast({
+                        title: 'Session Logged out due to inactivity',
+                        status: 'info',
+                        position: 'top',
+                        duration: 5000,
+                        isClosable: false
+                    });
                     throw err;
                 });
             } else {

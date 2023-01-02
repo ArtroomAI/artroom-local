@@ -17,11 +17,11 @@ import {
 import ImageObj from './ImageObj';
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
+import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
-function Body () {
+const Body = () => {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
-
+    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
     const baseURL = LOCAL_URL;
 
     const { ToastContainer, toast } = createStandaloneToast();
@@ -319,6 +319,25 @@ function Body () {
             catch((error) => console.log(error));
     };
 
+    const getProfile = (event) => {
+        ProtectedReqManager.make_request(`${ARTROOM_URL}/users/me`).then(response => {
+            console.log(response);
+            toast({
+                title: 'Auth Test Success: ' + response.data.email,
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }).catch(err => {
+            console.log(err);
+        });
+    }
+
+
     return (
         <Flex
             ml={navSize === 'large'
@@ -372,7 +391,7 @@ function Body () {
                         ? <Button
                             className="run-button"
                             ml={2}
-                            onClick={submitMain}
+                            onClick={getProfile}
                             variant="outline"
                             width="200px">
                             <Text pr={2}>
@@ -406,5 +425,6 @@ function Body () {
             </Box>
         </Flex>
     );
-}
+};
+
 export default Body;
