@@ -24,9 +24,9 @@ const getProfile = (event) => {
         console.log(response);
     }).catch(err => {
         console.log(err);
-        return (
-            <LoginPage />
-        );
+        // return (
+        //     <LoginPage />
+        // );
     });
 }
 
