@@ -14,6 +14,21 @@ import {
     FaUser
 } from 'react-icons/fa';
 import Shards from '../images/shards.png';
+import ProtectedReqManager from '../helpers/ProtectedReqManager';
+import LoginPage from './Login/LoginPage';
+
+const getProfile = (event) => {
+    console.log("testign get profile");
+    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+    ProtectedReqManager.make_request(`${ARTROOM_URL}/users/me`).then(response => {
+        console.log(response);
+    }).catch(err => {
+        console.log(err);
+        return (
+            <LoginPage />
+        );
+    });
+}
 
 const ProfileMenu = ({ setLoggedIn }) => (
 
@@ -43,7 +58,7 @@ const ProfileMenu = ({ setLoggedIn }) => (
         </MenuButton>
 
         <MenuList>
-            <MenuItem>
+            <MenuItem onClick={getProfile}>
                 Profile
             </MenuItem>
 
