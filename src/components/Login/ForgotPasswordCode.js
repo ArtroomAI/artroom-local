@@ -17,7 +17,7 @@ import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms'
 
 const ForgotPasswordCode = ({ setState, setPwdResetJwt }) => {
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
     const [verificationCode, setVerificationCode] = useState('');
     const [email, setEmail] = useRecoilState(atom.emailState);
     const { ToastContainer, toast } = createStandaloneToast();

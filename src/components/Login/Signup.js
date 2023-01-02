@@ -14,7 +14,8 @@ import {
     InputRightElement,
     FormHelperText,
     Text,
-    Image
+    Image,
+    createStandaloneToast
 } from '@chakra-ui/react';
 import Select from 'react-select';
 import { FaUserAlt, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -26,7 +27,8 @@ import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms'
 
 const SignUp = ({ setState }) => {
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+    const { ToastContainer, toast } = createStandaloneToast();
     const [email, setEmail] = useRecoilState(atom.emailState);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -159,8 +161,25 @@ const SignUp = ({ setState }) => {
                 }
             }).then(response => {
                 console.log(response.data);
-                setState('EmailVerificationCode');
-                // setLoggedIn(true);   
+
+                if (response.data.is_verified) {
+                    //if account is already verified (i.e. verification check disabled, immediately prompt to login)
+                    toast({
+                        title: 'Success',
+                        description: "Account Creation Sucessful",
+                        status: 'success',
+                        position: 'top',
+                        duration: 5000,
+                        isClosable: false,
+                        containerStyle: {
+                            pointerEvents: 'none'
+                        }
+                    });
+
+                    setState('Login');
+                } else {
+                    setState('EmailVerificationCode');
+                }
             }).catch(err => {
                 console.log(err);
                 if (err.response.data.detail[0].msg.includes('user.username')){

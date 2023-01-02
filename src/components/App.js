@@ -30,6 +30,7 @@ import LoginPage from './Login/LoginPage';
 // Import Info from './Info';
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
+import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
 function Main () {
     
@@ -65,6 +66,15 @@ function Main () {
 
     const { ToastContainer, toast } = createStandaloneToast();
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+
+    //make sure cloudmode is off, while not signed in
+    if (!loggedIn) {
+        setCloudMode(false);
+    }
+
+    ProtectedReqManager.setCloudMode = setCloudMode;
+    ProtectedReqManager.setLoggedIn = setLoggedIn;
+    ProtectedReqManager.toast = toast;
 
     useEffect(
         () => {
