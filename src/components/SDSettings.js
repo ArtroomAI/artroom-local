@@ -114,7 +114,6 @@ function SDSettings () {
 
     return (
         <Flex
-            alignItems="center"
             pr="10"
             width="300px"
         >
@@ -347,7 +346,7 @@ function SDSettings () {
 
                             <Slider
                                 defaultValue={512}
-                                isReadOnly={aspect_ratio === 'Init Image'}
+                                isReadOnly={!(aspect_ratio === 'None') || aspect_ratio === 'Init Image'}
                                 max={1920}
                                 min={256}
                                 onChange={setHeight}

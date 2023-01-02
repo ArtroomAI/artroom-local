@@ -31,6 +31,7 @@ import {
 } from 'react-icons/fa';
 function Upscale () {
     const { ToastContainer, toast } = createStandaloneToast();
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     const [upscale_images, setUpscaleImages] = useState('');
     const [upscale_dest, setUpscaleDest] = useState('');
     const [upscaler, setUpscaler] = useState('ESRGAN');
@@ -107,9 +108,16 @@ function Upscale () {
         <Flex
             align="center"
             justify="center"
+            ml={navSize === 'large'
+                ? '100px'
+                : '0px'}
+            transition="all .25s ease"
             width="100%">
             <Box
                 height="90%"
+                ml="30px"
+                p={4}
+                rounded="md"
                 width="75%">
                 <form>
                     <VStack

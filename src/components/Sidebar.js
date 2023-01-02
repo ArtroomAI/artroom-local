@@ -8,6 +8,7 @@ import {
 import {
     FaPaintBrush,
     FaMagic,
+    FaFileImage,
     FaChevronLeft,
     FaChevronRight
 } from 'react-icons/fa';
@@ -22,7 +23,6 @@ import {
 import NavItem from '../components/NavItem';
 import Tour from './ProjectTour/Tour';
 import Discord from './Discord';
-import Viewer from './Viewer';
 import EquilibriumAI from './EquilibriumAI';
 
 export default function Sidebar () {
@@ -31,7 +31,9 @@ export default function Sidebar () {
     return (
         <Flex
             alignItems="center"
-            margin="15px"
+            h="95%"
+            m="15px"
+            pos="fixed"
             w={navSize === 'small'
                 ? '75px'
                 : '250px'}
@@ -44,9 +46,7 @@ export default function Sidebar () {
                 h="100%"
                 justifyContent="space-between"
                 opacity={0.6}
-                w={navSize === 'small'
-                    ? '75px'
-                    : '250px'}
+                w="100%"
             >
                 <Flex
                     as="nav"
@@ -89,8 +89,13 @@ export default function Sidebar () {
                         linkTo="#/merge"
                         navSize={navSize}
                         title="Merge models" />
+                    <NavItem
+                        className="image-viewer"
+                        icon={FaFileImage}
+                        linkTo="#/imageviewer"
+                        navSize={navSize}
+                        title="Image Viewer" />
 
-                    <Viewer />
                 </Flex>
 
                 <Flex

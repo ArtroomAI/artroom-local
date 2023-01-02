@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RecoilRoot, useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -27,6 +26,8 @@ import ImageViewer from './ImageViewer';
 import EquilibriumAI from './EquilibriumAI';
 import ProfileMenu from './ProfileMenu';
 import LoginPage from './Login/LoginPage';
+import ProtectedReqManager from '../helpers/ProtectedReqManager';
+
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
 
@@ -84,6 +85,15 @@ function Main () {
 
     const { ToastContainer, toast } = createStandaloneToast();
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+
+    //make sure cloudmode is off, while not signed in
+    if (!loggedIn) {
+        setCloudMode(false);
+    }
+
+    ProtectedReqManager.setCloudMode = setCloudMode;
+    ProtectedReqManager.setLoggedIn = setLoggedIn;
+    ProtectedReqManager.toast = toast;
 
     useEffect(
         () => {
@@ -170,13 +180,20 @@ function Main () {
     );
 
     return (
-        <Flex
-            width="100%"
-            overflow="hidden auto !important">
-            <Flex
-                pos="fixed"
-                top="45px"
-                right="0">
+        <Grid
+            fontWeight="bold"
+            gap="1"
+            gridTemplateColumns="0px 1fr 300px"
+            gridTemplateRows="43px 1fr 30px"
+            h="200px"
+            templateAreas={`"nav null header"
+                          "nav main main"
+                          "nav main main"`}
+        >
+            <GridItem
+                area="header"
+                justifySelf="center"
+                pt="3">
                 {
                     loggedIn
                         ? <HStack align="center">
@@ -200,58 +217,71 @@ function Main () {
                             Login
                         </LoginPage>
                 }
-            </Flex>
-            <Routes>
-                <Route
-                    element={<>
-                        <Body />
+            </GridItem>
 
-                        <Spacer />
+            <GridItem
+                area="nav"
+                pl="2">
+                <Sidebar />
+            </GridItem>
 
-                        <SDSettings />
-                    </>}
-                    exact
-                    path="/" />
+            <GridItem
+                area="main"
+                pl="2">
+                <Flex>
+                    <Routes>
+                        <Route
+                            element={<>
+                                <Body />
 
-                <Route
-                    element={<>
-                        <Paint />
+                                <Spacer />
 
-                        <Spacer />
+                                <SDSettings />
+                            </>}
+                            exact
+                            path="/" />
 
-                        <SDSettings />
-                    </>}
-                    path="/paint" />
+                        <Route
+                            element={<>
+                                <Paint />
 
-                <Route
-                    element={<Queue />}
-                    path="/queue" />
+                                <Spacer />
 
-                <Route
-                    element={<Upscale />}
-                    path="/upscale" />
+                                <SDSettings />
+                            </>}
+                            path="/paint" />
 
-                <Route
-                    element={<ModelMerger />}
-                    path="/merge" />
+                        <Route
+                            element={<Queue />}
+                            path="/queue" />
 
-                <Route
-                    element={<ImageViewer />}
-                    path="/imageviewer" />
+                        <Route
+                            element={<Upscale />}
+                            path="/upscale" />
 
-                <Route
-                    element={<EquilibriumAI />}
-                    path="/equilibriumai" />
+                        <Route
+                            element={<ModelMerger />}
+                            path="/merge" />
 
-                <Route
-                    element={<PromptGuide />}
-                    path="/prompt-guide" />
+                        <Route
+                            element={<ImageViewer />}
+                            path="/imageviewer" />
 
-                <Route
-                    element={<Settings />}
-                    path="/settings" />
-            </Routes>
-        </Flex>
+                        <Route
+                            element={<EquilibriumAI />}
+                            path="/equilibriumai" />
+
+                        <Route
+                            element={<PromptGuide />}
+                            path="/prompt-guide" />
+
+                        <Route
+                            element={<Settings />}
+                            path="/settings" />
+                    </Routes>
+                </Flex>
+            </GridItem>
+        </Grid>
     );
 }
 
@@ -259,11 +289,8 @@ function Main () {
 function App () {
     return (
         <RecoilRoot>
-            <AppTopBar />
-            <Flex height="calc(100% - 30px)">
-                <Sidebar />
-                <Main />
-            </Flex>
+            <AppTopBar/>
+            <Main />
         </RecoilRoot>
     );
 }
