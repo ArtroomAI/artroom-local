@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import { Image } from '@chakra-ui/react';
@@ -8,7 +9,6 @@ import ContextMenuList from './ContextMenu/ContextMenuList';
 import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 
 export default function ImageObject ({b64, metadata}) {
-    const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 

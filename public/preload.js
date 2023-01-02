@@ -7,6 +7,7 @@ const {
 const api = {
     getCkpts: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
     getVaes: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
+    getImages: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
     mergeModels: async (channel,data) => {return await ipcRenderer.invoke(channel,data);},
     reinstallArtroom: async (channel) => {return await ipcRenderer.invoke(channel);},
     getSettings: async (channel) => {return await ipcRenderer.invoke(channel);},
