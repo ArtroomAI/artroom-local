@@ -61,18 +61,15 @@ class RestrictedUnpickler(pickle.Unpickler):
         raise Exception(f"global '{module}/{name}' is forbidden")
 
 
-allowed_zip_names = ["archive/data.pkl", "archive/version"]
-allowed_zip_names_re = re.compile(r"^archive/data/\d+$")
+disallowed_patterns = ['.exe', '.bat', '.com', '.cmd', '.inf', '.ipa', '.osx', '.pif', '.runwsh']
+disallowed_patterns = disallowed_patterns + [x.upper() for x in disallowed_patterns]
 
 
 def check_zip_filenames(filename, names):
     for name in names:
-        if name in allowed_zip_names:
-            continue
-        if allowed_zip_names_re.match(name):
-            continue
-
-        raise Exception(f"bad file inside {filename}: {name}")
+        for pattern in disallowed_patterns:
+            if pattern in name:
+                raise Exception(f"bad file inside {filename}: {name}")
 
 
 def check_pt(filename, extra_handler):
@@ -81,14 +78,17 @@ def check_pt(filename, extra_handler):
         with zipfile.ZipFile(filename) as z:
             check_zip_filenames(filename, z.namelist())
 
-            with z.open('archive/data.pkl') as file:
-                unpickler = RestrictedUnpickler(file)
-                unpickler.extra_handler = extra_handler
-                unpickler.load()
+            if "pkl" in z.namelist()[0]:
+                with z.open(z.namelist()[0]) as file:
+                    unpickler = RestrictedUnpickler(file)
+                    unpickler.extra_handler = extra_handler
+                    unpickler.load()
+            else:
+                raise Exception(f"Expected {z.namelist()[0]} to be .pkl file")
 
     except zipfile.BadZipfile:
 
-        # if it's not a zip file, it's an olf pytorch format, with five objects written to pickle
+        # if it's not a zip file, it's an old pytorch format, with five objects written to pickle
         with open(filename, "rb") as file:
             unpickler = RestrictedUnpickler(file)
             unpickler.extra_handler = extra_handler

@@ -189,7 +189,7 @@ export const useRandomSeedState = atom({
 export const initImageThumbnailState = atom({
     key: 'initImageThumbnail',
     default: { 'ImagePath': '',
-        'B64': '' }
+        'b64': '' }
 });
 
 export const mainImageState = atom({

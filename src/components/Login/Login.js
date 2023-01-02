@@ -22,15 +22,16 @@ import Logo from '../../images/ArtroomLogo.png';
 import axios from 'axios';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms'
+import ProtectedReqManager from '../../helpers/ProtectedReqManager';
 
 const Login = ({ setLoggedIn, setState}) => {    
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
     const { ToastContainer, toast } = createStandaloneToast();
     const qs = require('qs');
 
     const [email, setEmail] = useRecoilState(atom.emailState);
+
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
 
     const [showPassword, setShowPassword] = useState(false);
 
@@ -80,13 +81,27 @@ const Login = ({ setLoggedIn, setState}) => {
                     'accept': 'application/json' }
             }
         ).then((result) => {
-            console.log(result);
+            
+            ProtectedReqManager.set_access_token(result.data.access_token)
+            ProtectedReqManager.set_refresh_token(result.data.refresh_token)
             setLoggedIn(true);
         }).catch(err => {
             console.log(err);
             if (err.response.data.detail === "user unverified"){
                 handleResendCode();
                 setState("EmailVerificationCode");
+            } else {
+                toast({
+                    title: "Error",
+                    description: err.response.data.detail,
+                    status: 'error',
+                    position: 'top',
+                    duration: 2000,
+                    isClosable: false,
+                    containerStyle: {
+                        pointerEvents: 'none'
+                    }
+                });
             }
         });
     }

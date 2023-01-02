@@ -16,8 +16,8 @@ import PinInputCode from '../Reusable/PinInput/PinInputCode';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms'
 
-const ForgotPasswordCode = ({ setState }) => {
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+const ForgotPasswordCode = ({ setState, setPwdResetJwt }) => {
+    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
     const [verificationCode, setVerificationCode] = useState('');
     const [email, setEmail] = useRecoilState(atom.emailState);
     const { ToastContainer, toast } = createStandaloneToast();
@@ -67,9 +67,21 @@ const ForgotPasswordCode = ({ setState }) => {
             }
         ).then((result) => {
             console.log(result);
+            setPwdResetJwt(result.data.token)
             setState('ResetPassword');
         }).catch(err => {
             console.log(err);
+            toast({
+                title: 'Verification Failed',
+                description: "Error, Verification Failed",
+                status: 'error',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
         });
     }
 

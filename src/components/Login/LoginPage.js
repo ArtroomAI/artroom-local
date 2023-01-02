@@ -18,6 +18,7 @@ import ResetPassword from './ResetPassword';
 const LoginPage = ({ setLoggedIn }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [state, setState] = useState('Login');
+    const [pwdResetJwt, setPwdResetJwt] = useState('');
 
     return (
         <>
@@ -29,7 +30,7 @@ const LoginPage = ({ setLoggedIn }) => {
                 {' '}
             </Button>
 
-            {isOpen && <Modal
+            <Modal
                 isOpen={isOpen}
                 motionPreset="slideInBottom"
                 onClose={onClose}
@@ -46,15 +47,15 @@ const LoginPage = ({ setLoggedIn }) => {
                     : state === 'ForgotPassword' ? 
                         <ForgotPassword setState={setState}></ForgotPassword>
                     : state === 'ForgotPasswordCode' ? 
-                        <ForgotPasswordCode setState={setState}></ForgotPasswordCode>
+                        <ForgotPasswordCode setState={setState} setPwdResetJwt={setPwdResetJwt} ></ForgotPasswordCode>
                     : state === 'EmailVerificationCode' ?
                         <EmailVerificationCode setLoggedIn={setLoggedIn} setState={setState}></EmailVerificationCode>
                     : state === 'ResetPassword' ?
-                        <ResetPassword setState={setState}></ResetPassword>
+                        <ResetPassword setState={setState} pwdResetJwt={pwdResetJwt} ></ResetPassword>
                     : <></>
                     }
                 </ModalContent>
-            </Modal>}
+            </Modal>
         </>
 
     );
