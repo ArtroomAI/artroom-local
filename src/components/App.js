@@ -233,9 +233,7 @@ function Main () {
                         <Route
                             element={<>
                                 <Body />
-
                                 <Spacer />
-
                                 <SDSettings />
                             </>}
                             exact
