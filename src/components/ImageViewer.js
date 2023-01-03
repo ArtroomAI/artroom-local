@@ -11,8 +11,6 @@ import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
 function ImageViewer () {
     var path = require('path');
-
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     const image_save_path = useRecoilValue(atom.imageSavePathState);
     const batch_name = useRecoilValue(atom.batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
@@ -48,33 +46,24 @@ function ImageViewer () {
     },[imageViewPath]);
 
     return (
-        <Flex
-            align="center"
-            justify="center"
-            ml={navSize === 'large'
-                ? '80px'
-                : '0px'}
-            transition="all .25s ease"
-            width="100%">
-            <Box 
-                height="90%"
-                ml="50px"
-                p={5}
-                rounded="md"
-                width="75%" >
-                <Masonry
-                    breakpointCols={breakpoints}
-                    className="my-masonry-grid"
-                    columnClassName="my-masonry-grid_column"
-                >
-                {imagePreviews.map((image, index) => (
-                    <Box py={2} px={1} key={index}>
-                        <ImageObject b64={image.b64} metadata={image.metadata} />
-                    </Box>
-                ))}
-                </Masonry>
-            </Box>
-        </Flex>
+        <Box 
+            height="90%"
+            ml="50px"
+            p={5}
+            rounded="md"
+            width="75%" >
+            <Masonry
+                breakpointCols={breakpoints}
+                className="my-masonry-grid"
+                columnClassName="my-masonry-grid_column"
+            >
+            {imagePreviews.map((image, index) => (
+                <Box py={2} px={1} key={index}>
+                    <ImageObject b64={image.b64} metadata={image.metadata} />
+                </Box>
+            ))}
+            </Masonry>
+        </Box>
     );
 }
 

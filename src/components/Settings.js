@@ -29,7 +29,6 @@ import DebugInstallerModal from './Modals/DebugInstallerModal';
 
 function Settings () {
     const { ToastContainer, toast } = createStandaloneToast();
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
@@ -155,279 +154,270 @@ function Settings () {
     };
 
     return (
-        <Flex
-            align="center"
-            justify="center"
-            ml={navSize === 'large'
-                ? '80px'
-                : '0px'}
-            transition="all .25s ease"
-            width="100%">
-            <Box
-                height="90%"
-                ml="30px"
-                p={5}
-                rounded="md"
-                width="75%">
-                <VStack
-                    align="flex-start"
-                    className="settings"
-                    spacing={5}>
-                    <FormControl
-                        className="image-save-path-input"
-                        width="full">
-                        <FormLabel htmlFor="image_save_path">
-                            Image Output Folder
-                        </FormLabel>
+        <Box
+            height="90%"
+            ml="30px"
+            p={5}
+            rounded="md"
+            width="75%">
+            <VStack
+                align="flex-start"
+                className="settings"
+                spacing={5}>
+                <FormControl
+                    className="image-save-path-input"
+                    width="full">
+                    <FormLabel htmlFor="image_save_path">
+                        Image Output Folder
+                    </FormLabel>
 
-                        <HStack>
-                            <Input
-                                id="image_save_path"
-                                name="image_save_path"
-                                onChange={(event) => setImageSavePath(event.target.value)}
-                                type="text"
-                                value={image_save_path}
-                                variant="outline"
-                            />
-
-                            <Button onClick={chooseUploadPath}>
-                                Choose
-                            </Button>
-                        </HStack>
-                    </FormControl>
-
-                    <FormControl
-                        className="model-ckpt-dir-input"
-                        width="full">
-                        <HStack>
-                            <Tooltip
-                                fontSize="md"
-                                label="When making folders, choose a non-root directory (so do E:/Models instead of E:/)"
-                                placement="top"
-                                shouldWrapChildren>
-                                <FaQuestionCircle color="#777" />
-                            </Tooltip>
-
-                            <FormLabel htmlFor="ckpt_dir">
-                                Model Weights Folder
-                            </FormLabel>
-                        </HStack>
-
-                        <HStack>
-                            <Input
-                                id="ckpt_dir"
-                                name="ckpt_dir"
-                                onChange={(event) => setCkptDir(event.target.value)}
-                                type="text"
-                                value={ckpt_dir}
-                                variant="outline"
-                            />
-
-                            <Button onClick={chooseCkptDir}>
-                                Choose
-                            </Button>
-                        </HStack>
-                    </FormControl>
-
-                    <FormControl className="speed-input">
-                        <HStack>
-                            <Tooltip
-                                fontSize="md"
-                                label="Generate faster but use more GPU memory. Be careful of OOM (Out of Memory) error"
-                                mt="3"
-                                placement="right"
-                                shouldWrapChildren>
-                                <FaQuestionCircle color="#777" />
-                            </Tooltip>
-
-                            <FormLabel htmlFor="Speed">
-                                Choose Generation Speed
-                            </FormLabel>
-                        </HStack>
-
-                        <RadioGroup
-                            id="speed"
-                            name="speed"
-                            onChange={setSpeed}
-                            value={speed}>
-                            <Stack
-                                direction="row"
-                                spacing="20">
-                                ``
-                                <Radio value="Low">
-                                    Low
-                                </Radio>
-
-                                <Radio value="Medium">
-                                    Medium
-                                </Radio>
-
-                                <Radio value="High">
-                                    High
-                                </Radio>
-
-                                <Radio value="Max">
-                                    Max (experimental)
-                                </Radio>
-                            </Stack>
-                        </RadioGroup>
-                    </FormControl>
-
-                    <FormControl className="queue-delay-input">
-                        <HStack>
-                            <Tooltip
-                                fontSize="md"
-                                label="Add a delay between runs. Mostly to prevent GPU from getting too hot if it's nonstop. Runs on next Queue start (need to Stop and Start queue again)."
-                                placement="top"
-                                shouldWrapChildren>
-                                <FaQuestionCircle color="#777" />
-                            </Tooltip>
-
-                            <FormLabel htmlFor="delay">
-                                Queue Delay
-                            </FormLabel>
-                        </HStack>
-
-                        <NumberInput
-                            id="delay"
-                            min={1}
-                            name="delay"
-                            onChange={(v) => {
-                                setDelay(v);
-                            }}
-                            step={1}
-                            value={delay}
+                    <HStack>
+                        <Input
+                            id="image_save_path"
+                            name="image_save_path"
+                            onChange={(event) => setImageSavePath(event.target.value)}
+                            type="text"
+                            value={image_save_path}
                             variant="outline"
-                            w="150px"
-                        >
-                            <NumberInputField id="delay" />
-                        </NumberInput>
-                    </FormControl>
+                        />
 
-                    <HStack className="highres-fix-input">
-                        <Checkbox
-                            id="highres_fix"
-                            isChecked={highres_fix}
-                            name="highres_fix"
-                            onChange={() => {
-                                setHighresFix(!highres_fix);
-                            }}
-                        >
-                            Use Highres Fix
-                        </Checkbox>
-
-                        <Tooltip
-                            fontSize="md"
-                            label="Once you get past 1024x1024, will generate a smaller image, upscale, and then img2img to improve quality"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-                    </HStack>
-
-                    <HStack className="long-save-path-input">
-                        <Checkbox
-                            id="long_save_path"
-                            isChecked={long_save_path}
-                            name="long_save_path"
-                            onChange={() => {
-                                setLongSavePath(!long_save_path);
-                            }}
-                        >
-                            Use Long Save Path
-                        </Checkbox>
-
-                        <Tooltip
-                            fontSize="md"
-                            label="Put the images in a folder named after the prompt (matches legacy Artroom naming conventions)"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-                    </HStack>
-
-                    <HStack className="save-grid-input">
-                        <Checkbox
-                            id="save_grid"
-                            isChecked={save_grid}
-                            name="save_grid"
-                            onChange={() => {
-                                setSaveGrid(!save_grid);
-                            }}
-                        >
-                            Save Grid
-                        </Checkbox>
-
-                        <Tooltip
-                            fontSize="md"
-                            label="Save batch in one big grid image"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-                    </HStack>
-
-                    <HStack className="debug-mode-input">
-                        <Checkbox
-                            id="debug_mode"
-                            isChecked={debug_mode}
-                            name="debug_mode"
-                            onChange={() => {
-                                setDebugMode(!debug_mode);
-                            }}
-                        >
-                            Debug Mode
-                        </Checkbox>
-
-                        <Tooltip
-                            fontSize="md"
-                            label="Opens cmd console of detailed outputs during image generation"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-                    </HStack>
-
-                    <HStack className="use-cpu-input">
-                        <Checkbox
-                            id="use_cpu"
-                            isChecked={use_cpu}
-                            name="use_cpu"
-                            onChange={() => {
-                                setUseCPU(!use_cpu);
-                            }}
-                        >
-                            Use CPU (Not Recommended)
-                        </Checkbox>
-
-                        <Tooltip
-                            fontSize="md"
-                            label="Use your CPU instead of GPU. Will run much slower but will work better on low VRAM GPUs"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-                    </HStack>
-
-                    <Flex width="100%">
-                        <Button
-                            align="center"
-                            className="save-settings-button"
-                            onClick={submitEvent}>
-                            Save Settings
+                        <Button onClick={chooseUploadPath}>
+                            Choose
                         </Button>
+                    </HStack>
+                </FormControl>
 
-                        {/* <Spacer></Spacer>
-                  <DebugInstallerModal/> */}
-                    </Flex>
-                </VStack>
-            </Box>
-        </Flex>
+                <FormControl
+                    className="model-ckpt-dir-input"
+                    width="full">
+                    <HStack>
+                        <Tooltip
+                            fontSize="md"
+                            label="When making folders, choose a non-root directory (so do E:/Models instead of E:/)"
+                            placement="top"
+                            shouldWrapChildren>
+                            <FaQuestionCircle color="#777" />
+                        </Tooltip>
+
+                        <FormLabel htmlFor="ckpt_dir">
+                            Model Weights Folder
+                        </FormLabel>
+                    </HStack>
+
+                    <HStack>
+                        <Input
+                            id="ckpt_dir"
+                            name="ckpt_dir"
+                            onChange={(event) => setCkptDir(event.target.value)}
+                            type="text"
+                            value={ckpt_dir}
+                            variant="outline"
+                        />
+
+                        <Button onClick={chooseCkptDir}>
+                            Choose
+                        </Button>
+                    </HStack>
+                </FormControl>
+
+                <FormControl className="speed-input">
+                    <HStack>
+                        <Tooltip
+                            fontSize="md"
+                            label="Generate faster but use more GPU memory. Be careful of OOM (Out of Memory) error"
+                            mt="3"
+                            placement="right"
+                            shouldWrapChildren>
+                            <FaQuestionCircle color="#777" />
+                        </Tooltip>
+
+                        <FormLabel htmlFor="Speed">
+                            Choose Generation Speed
+                        </FormLabel>
+                    </HStack>
+
+                    <RadioGroup
+                        id="speed"
+                        name="speed"
+                        onChange={setSpeed}
+                        value={speed}>
+                        <Stack
+                            direction="row"
+                            spacing="20">
+                            ``
+                            <Radio value="Low">
+                                Low
+                            </Radio>
+
+                            <Radio value="Medium">
+                                Medium
+                            </Radio>
+
+                            <Radio value="High">
+                                High
+                            </Radio>
+
+                            <Radio value="Max">
+                                Max (experimental)
+                            </Radio>
+                        </Stack>
+                    </RadioGroup>
+                </FormControl>
+
+                <FormControl className="queue-delay-input">
+                    <HStack>
+                        <Tooltip
+                            fontSize="md"
+                            label="Add a delay between runs. Mostly to prevent GPU from getting too hot if it's nonstop. Runs on next Queue start (need to Stop and Start queue again)."
+                            placement="top"
+                            shouldWrapChildren>
+                            <FaQuestionCircle color="#777" />
+                        </Tooltip>
+
+                        <FormLabel htmlFor="delay">
+                            Queue Delay
+                        </FormLabel>
+                    </HStack>
+
+                    <NumberInput
+                        id="delay"
+                        min={1}
+                        name="delay"
+                        onChange={(v) => {
+                            setDelay(v);
+                        }}
+                        step={1}
+                        value={delay}
+                        variant="outline"
+                        w="150px"
+                    >
+                        <NumberInputField id="delay" />
+                    </NumberInput>
+                </FormControl>
+
+                <HStack className="highres-fix-input">
+                    <Checkbox
+                        id="highres_fix"
+                        isChecked={highres_fix}
+                        name="highres_fix"
+                        onChange={() => {
+                            setHighresFix(!highres_fix);
+                        }}
+                    >
+                        Use Highres Fix
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Once you get past 1024x1024, will generate a smaller image, upscale, and then img2img to improve quality"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
+
+                <HStack className="long-save-path-input">
+                    <Checkbox
+                        id="long_save_path"
+                        isChecked={long_save_path}
+                        name="long_save_path"
+                        onChange={() => {
+                            setLongSavePath(!long_save_path);
+                        }}
+                    >
+                        Use Long Save Path
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Put the images in a folder named after the prompt (matches legacy Artroom naming conventions)"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
+
+                <HStack className="save-grid-input">
+                    <Checkbox
+                        id="save_grid"
+                        isChecked={save_grid}
+                        name="save_grid"
+                        onChange={() => {
+                            setSaveGrid(!save_grid);
+                        }}
+                    >
+                        Save Grid
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Save batch in one big grid image"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
+
+                <HStack className="debug-mode-input">
+                    <Checkbox
+                        id="debug_mode"
+                        isChecked={debug_mode}
+                        name="debug_mode"
+                        onChange={() => {
+                            setDebugMode(!debug_mode);
+                        }}
+                    >
+                        Debug Mode
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Opens cmd console of detailed outputs during image generation"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
+
+                <HStack className="use-cpu-input">
+                    <Checkbox
+                        id="use_cpu"
+                        isChecked={use_cpu}
+                        name="use_cpu"
+                        onChange={() => {
+                            setUseCPU(!use_cpu);
+                        }}
+                    >
+                        Use CPU (Not Recommended)
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Use your CPU instead of GPU. Will run much slower but will work better on low VRAM GPUs"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
+
+                <Flex width="100%">
+                    <Button
+                        align="center"
+                        className="save-settings-button"
+                        onClick={submitEvent}>
+                        Save Settings
+                    </Button>
+
+                    {/* <Spacer></Spacer>
+                <DebugInstallerModal/> */}
+                </Flex>
+            </VStack>
+        </Box>
     );
 }
 

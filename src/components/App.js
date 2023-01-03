@@ -85,6 +85,7 @@ function Main () {
 
     const { ToastContainer, toast } = createStandaloneToast();
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     //make sure cloudmode is off, while not signed in
     if (!loggedIn) {
@@ -183,7 +184,11 @@ function Main () {
         <Grid
             fontWeight="bold"
             gap="1"
-            gridTemplateColumns="0px 1fr 300px"
+            gridTemplateColumns = {
+                navSize === 'large'
+                ? "300px 1fr 300px"
+                : "125px 1fr 300px"
+            }
             gridTemplateRows="43px 1fr 30px"
             h="200px"
             templateAreas={`"nav null header"

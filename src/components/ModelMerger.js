@@ -34,7 +34,6 @@ import { FaQuestionCircle } from 'react-icons/fa';
 export const ModelMerger = () => {
     var path = require('path');
     const { ToastContainer, toast } = createStandaloneToast();
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     const [progress, setProgress] = useState(-1);
     const [stage, setStage] = useState('');
@@ -149,353 +148,343 @@ export const ModelMerger = () => {
     );
 
     return (
-        <Flex
-            align="center"
-            justify="center"
-            ml={navSize === 'large'
-                ? '130px'
-                : '0px'}
-            transition="all .25s ease"
-            width="100%">
+        <Box
+            height="90%"
+            ml="30px"
+            p={4}
+            rounded="md"
+            width="75%">
 
-            <Box
-                height="90%"
-                ml="30px"
-                p={4}
-                rounded="md"
-                width="75%">
+            <form>
+                <VStack
+                    align="flex-start"
+                    spacing={5}>
 
-                <form>
-                    <VStack
-                        align="flex-start"
-                        spacing={5}>
+                    <FormControl
+                        width="full">
+                        <HStack>
+                            <Tooltip
+                                fontSize="md"
+                                label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference."
+                                mt="3"
+                                placement="right"
+                                shouldWrapChildren>
+                                <FaQuestionCircle color="#777" />
+                            </Tooltip>
 
+                            <FormLabel htmlFor="upscale_images">
+                                Select interpolation method
+                            </FormLabel>
+                        </HStack>
+
+                        <HStack>
+                            <RadioGroup
+                                onChange={setInterpolation}
+                                value={interpolation}>
+                                <Stack direction="row">
+                                    <Radio value="weighted_sum">
+                                        Weighted Sum
+                                    </Radio>
+
+                                    <Radio value="sigmoid">
+                                        Sigmoid
+                                    </Radio>
+
+                                    <Radio value="inverse_sigmoid">
+                                        Inverse Sigmoid
+                                    </Radio>
+
+                                    <Radio value="add_difference">
+                                        Add Difference
+                                    </Radio>
+                                </Stack>
+                            </RadioGroup>
+                        </HStack>
+                    </FormControl>
+
+                    <FormControl width="full">
+                        <FormLabel htmlFor="Ckpt">
+                            <HStack>
+                                <Text>
+                                    Model 1
+                                </Text>
+                            </HStack>
+                        </FormLabel>
+
+                        <Select
+                            id="ckpt"
+                            name="ckpt"
+                            onChange={(event) => setModelA(event.target.value)}
+                            onMouseEnter={getCkpts}
+                            value={modelA}
+                            variant="outline"
+                        >
+                            {ckpts.length > 0
+                                ? <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value=""
+                                >
+                                    Select model weights
+                                </option>
+                                : <></>}
+
+                            {ckpts?.map((ckpt_option, i) => (<option
+                                key={i}
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value={ckpt_option}
+                            >
+                                {ckpt_option}
+                            </option>))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl width="full">
+                        <FormLabel htmlFor="Ckpt">
+                            <HStack>
+                                <Text>
+                                    Model 2
+                                </Text>
+                            </HStack>
+                        </FormLabel>
+
+                        <Select
+                            id="ckpt"
+                            name="ckpt"
+                            onChange={(event) => setModelB(event.target.value)}
+                            onMouseEnter={getCkpts}
+                            value={modelB}
+                            variant="outline"
+                        >
+                            {ckpts.length > 0
+                                ? <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value=""
+                                >
+                                    Select model weights
+                                </option>
+                                : <></>}
+
+                            {ckpts?.map((ckpt_option, i) => (<option
+                                key={i}
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value={ckpt_option}
+                            >
+                                {ckpt_option}
+                            </option>))}
+                        </Select>
+                    </FormControl>
+
+                    {interpolation === 'add_difference' && <FormControl
+                        width="full">
+                        <FormLabel htmlFor="Ckpt">
+                            <HStack>
+                                <Text>
+                                    Model 3
+                                </Text>
+                            </HStack>
+                        </FormLabel>
+
+                        <Select
+                            id="ckpt"
+                            name="ckpt"
+                            onChange={(event) => setModelC(event.target.value)}
+                            onMouseEnter={getCkpts}
+                            value={modelC}
+                            variant="outline"
+                        >
+                            {ckpts.length > 0
+                                ? <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value=""
+                                >
+                                    Select model weights
+                                </option>
+                                : <></>}
+
+                            {ckpts?.map((ckpt_option, i) => (<option
+                                key={i}
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value={ckpt_option}
+                            >
+                                {ckpt_option}
+                            </option>))}
+                        </Select>
+                    </FormControl>}
+
+                    <FormControl>
+                        <HStack>
+                            <Checkbox
+                                onChange={() => {
+                                    setFullrange(!fullrange);
+                                }}
+                                value={fullrange}>
+                                Use Range for Alpha
+                            </Checkbox>
+
+                            <Tooltip
+                                fontSize="md"
+                                label="Merge the model for every % value from 5 to 95, every 5 steps"
+                                mt="3"
+                                placement="right"
+                                shouldWrapChildren>
+                                <FaQuestionCircle color="#777" />
+                            </Tooltip>
+                        </HStack>
+                    </FormControl>
+                    {!fullrange ? 
                         <FormControl
+                            pt={5}
                             width="full">
-                            <HStack>
-                                <Tooltip
-                                    fontSize="md"
-                                    label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference."
-                                    mt="3"
-                                    placement="right"
-                                    shouldWrapChildren>
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-
-                                <FormLabel htmlFor="upscale_images">
-                                    Select interpolation method
-                                </FormLabel>
-                            </HStack>
-
-                            <HStack>
-                                <RadioGroup
-                                    onChange={setInterpolation}
-                                    value={interpolation}>
-                                    <Stack direction="row">
-                                        <Radio value="weighted_sum">
-                                            Weighted Sum
-                                        </Radio>
-
-                                        <Radio value="sigmoid">
-                                            Sigmoid
-                                        </Radio>
-
-                                        <Radio value="inverse_sigmoid">
-                                            Inverse Sigmoid
-                                        </Radio>
-
-                                        <Radio value="add_difference">
-                                            Add Difference
-                                        </Radio>
-                                    </Stack>
-                                </RadioGroup>
-                            </HStack>
-                        </FormControl>
-
-                        <FormControl width="full">
-                            <FormLabel htmlFor="Ckpt">
-                                <HStack>
-                                    <Text>
-                                        Model 1
-                                    </Text>
-                                </HStack>
-                            </FormLabel>
-
-                            <Select
-                                id="ckpt"
-                                name="ckpt"
-                                onChange={(event) => setModelA(event.target.value)}
-                                onMouseEnter={getCkpts}
-                                value={modelA}
-                                variant="outline"
+                            <Flex>
+                            <FormHelperText textAlign="left">
+                                <Text>
+                                    {modelA.slice(0,30)}
+                                </Text>
+                            </FormHelperText>
+                            <Spacer></Spacer>
+                            <FormHelperText textAlign="right">
+                                <Text>
+                                    {modelB.slice(0,30)}
+                                    {' '}
+                                    {modelC.slice(0,30)}
+                                </Text>
+                            </FormHelperText>
+                            </Flex>
+                            <Slider
+                                aria-label="slider-ex-6"
+                                // maxLabel={modelB}
+                                // minLabel={modelA}
+                                onChange={(val) => setAlpha(val)}
+                                step={1}
+                                value={alpha}
                             >
-                                {ckpts.length > 0
-                                    ? <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value=""
-                                    >
-                                        Select model weights
-                                    </option>
-                                    : <></>}
+                                <SliderMark
+                                    value={25}
+                                    {...labelStyles}>
+                                    25%
+                                </SliderMark>
 
-                                {ckpts?.map((ckpt_option, i) => (<option
-                                    key={i}
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value={ckpt_option}
-                                >
-                                    {ckpt_option}
-                                </option>))}
-                            </Select>
-                        </FormControl>
+                                <SliderMark
+                                    value={50}
+                                    {...labelStyles}>
+                                    50%
+                                </SliderMark>
 
-                        <FormControl width="full">
-                            <FormLabel htmlFor="Ckpt">
-                                <HStack>
-                                    <Text>
-                                        Model 2
-                                    </Text>
-                                </HStack>
-                            </FormLabel>
+                                <SliderMark
+                                    value={75}
+                                    {...labelStyles}>
+                                    75%
+                                </SliderMark>
 
-                            <Select
-                                id="ckpt"
-                                name="ckpt"
-                                onChange={(event) => setModelB(event.target.value)}
-                                onMouseEnter={getCkpts}
-                                value={modelB}
-                                variant="outline"
-                            >
-                                {ckpts.length > 0
-                                    ? <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value=""
-                                    >
-                                        Select model weights
-                                    </option>
-                                    : <></>}
-
-                                {ckpts?.map((ckpt_option, i) => (<option
-                                    key={i}
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value={ckpt_option}
-                                >
-                                    {ckpt_option}
-                                </option>))}
-                            </Select>
-                        </FormControl>
-
-                        {interpolation === 'add_difference' && <FormControl
-                            width="full">
-                            <FormLabel htmlFor="Ckpt">
-                                <HStack>
-                                    <Text>
-                                        Model 3
-                                    </Text>
-                                </HStack>
-                            </FormLabel>
-
-                            <Select
-                                id="ckpt"
-                                name="ckpt"
-                                onChange={(event) => setModelC(event.target.value)}
-                                onMouseEnter={getCkpts}
-                                value={modelC}
-                                variant="outline"
-                            >
-                                {ckpts.length > 0
-                                    ? <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value=""
-                                    >
-                                        Select model weights
-                                    </option>
-                                    : <></>}
-
-                                {ckpts?.map((ckpt_option, i) => (<option
-                                    key={i}
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value={ckpt_option}
-                                >
-                                    {ckpt_option}
-                                </option>))}
-                            </Select>
-                        </FormControl>}
-
-                        <FormControl>
-                            <HStack>
-                                <Checkbox
-                                    onChange={() => {
-                                        setFullrange(!fullrange);
-                                    }}
-                                    value={fullrange}>
-                                    Use Range for Alpha
-                                </Checkbox>
-
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Merge the model for every % value from 5 to 95, every 5 steps"
-                                    mt="3"
-                                    placement="right"
-                                    shouldWrapChildren>
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
-                        </FormControl>
-                        {!fullrange ? 
-                            <FormControl
-                                pt={5}
-                                width="full">
-                                <Flex>
-                                <FormHelperText textAlign="left">
-                                    <Text>
-                                        {modelA.slice(0,30)}
-                                    </Text>
-                                </FormHelperText>
-                                <Spacer></Spacer>
-                                <FormHelperText textAlign="right">
-                                    <Text>
-                                        {modelB.slice(0,30)}
-                                        {' '}
-                                        {modelC.slice(0,30)}
-                                    </Text>
-                                </FormHelperText>
-                                </Flex>
-                                <Slider
-                                    aria-label="slider-ex-6"
-                                    // maxLabel={modelB}
-                                    // minLabel={modelA}
-                                    onChange={(val) => setAlpha(val)}
-                                    step={1}
+                                <SliderMark
+                                    bg="blue.500"
+                                    color="white"
+                                    ml="-5"
+                                    mt="-10"
+                                    textAlign="center"
                                     value={alpha}
+                                    w="12"
                                 >
-                                    <SliderMark
-                                        value={25}
-                                        {...labelStyles}>
-                                        25%
-                                    </SliderMark>
+                                    {alpha}
+                                    %
+                                </SliderMark>
 
-                                    <SliderMark
-                                        value={50}
-                                        {...labelStyles}>
-                                        50%
-                                    </SliderMark>
+                                <SliderTrack>
+                                    <SliderFilledTrack />
+                                </SliderTrack>
 
-                                    <SliderMark
-                                        value={75}
-                                        {...labelStyles}>
-                                        75%
-                                    </SliderMark>
+                                <SliderThumb />
+                            </Slider>
+                        </FormControl>
 
-                                    <SliderMark
-                                        bg="blue.500"
-                                        color="white"
-                                        ml="-5"
-                                        mt="-10"
-                                        textAlign="center"
-                                        value={alpha}
-                                        w="12"
-                                    >
-                                        {alpha}
-                                        %
-                                    </SliderMark>
+                        :
+                        <HStack>
+                            <FormControl>
+                                <FormLabel htmlFor="start_steps">
+                                    Starting %
+                                </FormLabel>
 
-                                    <SliderTrack>
-                                        <SliderFilledTrack />
-                                    </SliderTrack>
-
-                                    <SliderThumb />
-                                </Slider>
+                                <NumberInput
+                                    id="start_steps"
+                                    min={0}
+                                    max={100}
+                                    name="start_steps"
+                                    onChange={(v) => {
+                                        setStartSteps(v);
+                                    }}
+                                    value={start_steps}
+                                    variant="outline"
+                                >
+                                    <NumberInputField id="start_steps" />
+                                </NumberInput>
                             </FormControl>
 
-                            :
-                            <HStack>
-                                <FormControl>
-                                    <FormLabel htmlFor="start_steps">
-                                       Starting %
-                                    </FormLabel>
-        
-                                    <NumberInput
-                                        id="start_steps"
-                                        min={0}
-                                        max={100}
-                                        name="start_steps"
-                                        onChange={(v) => {
-                                            setStartSteps(v);
-                                        }}
-                                        value={start_steps}
-                                        variant="outline"
-                                    >
-                                        <NumberInputField id="start_steps" />
-                                    </NumberInput>
-                                </FormControl>
+                            <FormControl>
+                                <FormLabel htmlFor="end_steps">
+                                    Ending %
+                                </FormLabel>
 
-                                <FormControl>
-                                    <FormLabel htmlFor="end_steps">
-                                       Ending %
-                                    </FormLabel>
-        
-                                    <NumberInput
-                                        id="end_steps"
-                                        min={0}
-                                        max={100}                                       
-                                        name="end_steps"
-                                        onChange={(v) => {
-                                            setEndSteps(v);
-                                        }}
-                                        value={end_steps}
-                                        variant="outline"
-                                    >
-                                        <NumberInputField id="end_steps" />
-                                    </NumberInput>
-                                </FormControl>
+                                <NumberInput
+                                    id="end_steps"
+                                    min={0}
+                                    max={100}                                       
+                                    name="end_steps"
+                                    onChange={(v) => {
+                                        setEndSteps(v);
+                                    }}
+                                    value={end_steps}
+                                    variant="outline"
+                                >
+                                    <NumberInputField id="end_steps" />
+                                </NumberInput>
+                            </FormControl>
 
-                                <FormControl>
-                                    <FormLabel htmlFor="steps">
-                                        % Increment
-                                    </FormLabel>
-                                    <NumberInput
-                                        id="steps"
-                                        min={0}
-                                        max={100}
-                                        name="steps"
-                                        onChange={(v) => {
-                                            setSteps(v);
-                                        }}
-                                        value={steps}
-                                        variant="outline"
-                                    >
-                                        <NumberInputField id="steps" />
-                                    </NumberInput>
-                                </FormControl>
-                            </HStack>
-                        }
+                            <FormControl>
+                                <FormLabel htmlFor="steps">
+                                    % Increment
+                                </FormLabel>
+                                <NumberInput
+                                    id="steps"
+                                    min={0}
+                                    max={100}
+                                    name="steps"
+                                    onChange={(v) => {
+                                        setSteps(v);
+                                    }}
+                                    value={steps}
+                                    variant="outline"
+                                >
+                                    <NumberInputField id="steps" />
+                                </NumberInput>
+                            </FormControl>
+                        </HStack>
+                    }
 
-                        <FormControl width="full">
-                            <Input
-                                onChange={(e) => setFilename(e.target.value)}
-                                placeholder="Output file name"
-                                size="md"
-                                value={filename} />
-                        </FormControl>
+                    <FormControl width="full">
+                        <Input
+                            onChange={(e) => setFilename(e.target.value)}
+                            placeholder="Output file name"
+                            size="md"
+                            value={filename} />
+                    </FormControl>
 
-                        <FormControl
-                            align="center"
-                            width="full" >
+                    <FormControl
+                        align="center"
+                        width="full" >
 
-                            <VStack spacing={3}>
-                                <Button
-                                    className="run-button"
-                                    ml={2}
-                                    onClick={submitMain}
-                                    width="200px">
-                                    Merge
-                                </Button>
-                            </VStack>
-                        </FormControl>
-                    </VStack>
-                </form>
+                        <VStack spacing={3}>
+                            <Button
+                                className="run-button"
+                                ml={2}
+                                onClick={submitMain}
+                                width="200px">
+                                Merge
+                            </Button>
+                        </VStack>
+                    </FormControl>
+                </VStack>
+            </form>
 
-            </Box>
-        </Flex>
+        </Box>
     );
 };

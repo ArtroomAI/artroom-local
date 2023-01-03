@@ -34,7 +34,6 @@ function Paint () {
     const { ToastContainer, toast } = createStandaloneToast();
 
     const [paintType, setPaintType] = useRecoilState(atom.paintTypeState);
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);
 
     const [width, setWidth] = useRecoilState(atom.widthState);
@@ -224,141 +223,132 @@ function Paint () {
     );
 
     return (
-        <Flex
+        <Box
             align="center"
-            justify="center"
-            ml={navSize === 'large'
-                ? '180px'
-                : '100px'}
-            transition="all .25s ease"
             width="100%">
-            <Box
+            <VStack
                 align="center"
-                width="100%">
-                <VStack
-                    align="center"
-                    spacing={4}>
+                spacing={4}>
+                <Box
+                    className="paint-output"
+                    ratio={16 / 9}
+                    width="75%">
+                    <ImageEditor
+                        cssMaxHeight={500}
+                        cssMaxWidth={700}
+                        includeUI={{
+                            loadImage: {
+                                path: init_image,
+                                name: 'ArtroomLogo'
+                            },
+                            menu: ['draw', 'shape', 'crop', 'flip', 'rotate', 'filter'],
+                            initMenu: 'draw',
+                            uiSize: {
+                                // Width: '1000px',
+                                height: '700px'
+                            },
+                            theme,
+                            menuBarPosition: 'bottom'
+                        }}
+                        ref={imageEditor}
+                        selectionStyle={{
+                            cornerSize: 20,
+                            rotatingPointOffset: 70
+                        }}
+                        usageStatistics={false}
+                    />
+
+                    {
+                        progress > 0
+                            ? <Progress
+                                align="left"
+                                hasStripe
+                                value={progress} />
+                            : <></>
+                    }
+
                     <Box
-                        className="paint-output"
-                        ratio={16 / 9}
-                        width="75%">
-                        <ImageEditor
-                            cssMaxHeight={500}
-                            cssMaxWidth={700}
-                            includeUI={{
-                                loadImage: {
-                                    path: init_image,
-                                    name: 'ArtroomLogo'
-                                },
-                                menu: ['draw', 'shape', 'crop', 'flip', 'rotate', 'filter'],
-                                initMenu: 'draw',
-                                uiSize: {
-                                    // Width: '1000px',
-                                    height: '700px'
-                                },
-                                theme,
-                                menuBarPosition: 'bottom'
-                            }}
-                            ref={imageEditor}
-                            selectionStyle={{
-                                cornerSize: 20,
-                                rotatingPointOffset: 70
-                            }}
-                            usageStatistics={false}
-                        />
-
-                        {
-                            progress > 0
-                                ? <Progress
-                                    align="left"
-                                    hasStripe
-                                    value={progress} />
-                                : <></>
-                        }
-
-                        <Box
-                            maxHeight="120px"
-                            overflowY="auto"
-                            width="50%">
-                            <SimpleGrid
-                                minChildWidth="100px"
-                                spacing="10px">
-                                {latestImages?.map((image, index) => (
-                                    <Image
-                                        fit="scale-down"
-                                        h="5vh"
-                                        key={index}
-                                        onClick={() => setMainImage(image)}
-                                        src={image}
-                                    />
-                                ))}
-                            </SimpleGrid>
-                        </Box>
+                        maxHeight="120px"
+                        overflowY="auto"
+                        width="50%">
+                        <SimpleGrid
+                            minChildWidth="100px"
+                            spacing="10px">
+                            {latestImages?.map((image, index) => (
+                                <Image
+                                    fit="scale-down"
+                                    h="5vh"
+                                    key={index}
+                                    onClick={() => setMainImage(image)}
+                                    src={image}
+                                />
+                            ))}
+                        </SimpleGrid>
                     </Box>
+                </Box>
 
-                    <HStack>
-                        <Tooltip
-                            fontSize="md"
-                            label={<Stack>
-                                {/* <Text>
-                                    Use Painted Image: Sends your colored image into Img2Img and runs it on the whole image
-                                </Text> */}
+                <HStack>
+                    <Tooltip
+                        fontSize="md"
+                        label={<Stack>
+                            {/* <Text>
+                                Use Painted Image: Sends your colored image into Img2Img and runs it on the whole image
+                            </Text> */}
 
-                                <Text>
-                                    Use Mask: Paint over a region and do generate art ONLY on that region
-                                </Text>
+                            <Text>
+                                Use Mask: Paint over a region and do generate art ONLY on that region
+                            </Text>
 
-                                <Text>
-                                    Use Reverse Mask: Paint over a region and do everything EXCEPT that region
-                                </Text>
+                            <Text>
+                                Use Reverse Mask: Paint over a region and do everything EXCEPT that region
+                            </Text>
 
-                                <Text>
-                                    Please do NOT use white as your mask color (you can use white in Painted Image mode, just not Mask Mode). All other colors will be treated the same.
-                                </Text>
-                            </Stack>}
-                            placement="top"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
+                            <Text>
+                                Please do NOT use white as your mask color (you can use white in Painted Image mode, just not Mask Mode). All other colors will be treated the same.
+                            </Text>
+                        </Stack>}
+                        placement="top"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
 
-                        <FormControl className="paint-type">
-                            <Select
-                                id="paintType"
-                                name="paintType"
-                                onChange={(event) => setPaintType(event.target.value)}
-                                value={paintType}
-                                variant="outline"
-                            >
-                                {/* <option style={{ backgroundColor: '#080B16' }} value='Use Painted Image'>Use Painted Image</option> */}
+                    <FormControl className="paint-type">
+                        <Select
+                            id="paintType"
+                            name="paintType"
+                            onChange={(event) => setPaintType(event.target.value)}
+                            value={paintType}
+                            variant="outline"
+                        >
+                            {/* <option style={{ backgroundColor: '#080B16' }} value='Use Painted Image'>Use Painted Image</option> */}
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="Use Mask">
-                                    Use Mask
-                                </option>
+                            <option
+                                style={{ backgroundColor: '#080B16' }}
+                                value="Use Mask">
+                                Use Mask
+                            </option>
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="Use Reverse Mask">
-                                    Use Reverse Mask
-                                </option>
-                            </Select>
-                        </FormControl>
+                            <option
+                                style={{ backgroundColor: '#080B16' }}
+                                value="Use Reverse Mask">
+                                Use Reverse Mask
+                            </option>
+                        </Select>
+                    </FormControl>
 
-                        <Button
-                            ml={2}
-                            onClick={submitEvent}
-                            width="250px">
-                            Run
-                        </Button>
-                    </HStack>
+                    <Button
+                        ml={2}
+                        onClick={submitEvent}
+                        width="250px">
+                        Run
+                    </Button>
+                </HStack>
 
-                    <Box width="80%">
-                        <Prompt />
-                    </Box>
-                </VStack>
-            </Box>
-        </Flex>
+                <Box width="80%">
+                    <Prompt />
+                </Box>
+            </VStack>
+        </Box>
     );
 }
 export default Paint;
