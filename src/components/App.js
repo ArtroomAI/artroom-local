@@ -186,8 +186,8 @@ function Main () {
             gap="1"
             gridTemplateColumns = {
                 navSize === 'large'
-                ? "300px 1fr 300px"
-                : "125px 1fr 300px"
+                ? "300px 1fr 250px"
+                : "125px 1fr 250px"
             }
             gridTemplateRows="43px 1fr 30px"
             h="200px"

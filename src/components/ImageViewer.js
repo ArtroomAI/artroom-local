@@ -3,9 +3,8 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import ImageObject from './Reusable/ImageObject';
 import {
-    Flex,
     Box,
-    createStandaloneToast,
+    useDisclosure,
 } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
@@ -15,6 +14,7 @@ function ImageViewer () {
     const batch_name = useRecoilValue(atom.batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
     const [imagePreviews, setImagePreviews] = useState(["",""]);
+    const { isOpen, onOpen, onClose } = useDisclosure();
 
     useEffect(() => {
         if(imageViewPath.length <= 1){
@@ -59,7 +59,7 @@ function ImageViewer () {
             >
             {imagePreviews.map((image, index) => (
                 <Box py={2} px={1} key={index}>
-                    <ImageObject b64={image.b64} metadata={image.metadata} />
+                    <ImageObject b64={image.b64} metadata={image.metadata} isOpen={isOpen} onOpen={onOpen} onClose={onClose} />
                 </Box>
             ))}
             </Masonry>

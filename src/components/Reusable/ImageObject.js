@@ -1,8 +1,7 @@
-import React from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
-import { Image } from '@chakra-ui/react';
-
+import {Image, Card, Text} from '@chakra-ui/react'
 import ContextMenu from './ContextMenu/ContextMenu';
 import ContextMenuItem from './ContextMenu/ContextMenuItem';
 import ContextMenuList from './ContextMenu/ContextMenuList';
@@ -11,39 +10,48 @@ import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 export default function ImageObject ({b64, metadata}) {
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
+    const [metadataJSON, setMetadataJSON] = useState({});
+
+    const textRef = useRef();
+    useEffect(()=>{
+        if(metadata){
+            setMetadataJSON(JSON.parse(metadata));
+        }
+    },[])
+
 
     const copyToClipboard = () => {
         window.copyToClipboard(b64);
     };
-
+  
     return (
-        <ContextMenu>
-            <ContextMenuTrigger>
-                <Image
-                    src={b64} 
-                    borderRadius="3%"
-                />
-            </ContextMenuTrigger>
-            <ContextMenuList>
-                <ContextMenuItem onClick={() => {
-                    setInitImagePath('');
-                    setInitImage(b64);
-                }}>
-                    Set As Starting Image
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => {
-                    copyToClipboard();
-                }}>
-                    Copy To Clipboard
-                </ContextMenuItem>
-                {metadata &&                 
-                    <ContextMenuItem onClick={() => {
-                        copyToClipboard();
-                    }}>
-                        {metadata}
-                    </ContextMenuItem>
-                }
-            </ContextMenuList>
-        </ContextMenu>
-    );
+        <Card           
+            style={{ cursor: 'pointer', backgroundColor: 'transparent' }}
+            onMouseEnter={() => {
+                textRef.current.style.visibility = "visible";
+                textRef.current.previousSibling.style.filter = "brightness(30%)";
+            }}
+            onMouseLeave={() => {
+                textRef.current.style.visibility = "hidden";
+                textRef.current.previousSibling.style.filter = "brightness(100%)";
+            }}>
+          <Image src={b64} borderRadius="5%" width="600px" height="100%" objectFit="cover" />
+          <Text
+                ref={textRef}
+                as="span"
+                visibility="hidden"
+                style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: '4',
+                    WebkitBoxOrient: 'vertical'
+                  }}
+                >
+                {metadataJSON?.text_prompts}
+            </Text>
+        </Card>
+      );
 }
