@@ -162,7 +162,7 @@ class StableDiffusion:
         self.highres_fix = False
 
         self.device = "cuda"
-        self.precision = "autocast" if is_16xx_series() == 0 else "full"
+        self.precision = "autocast" if is_16xx_series() == 'NVIDIA' else "full"
         self.speed = "High"
 
     def set_artroom_path(self, path):
@@ -245,7 +245,7 @@ class StableDiffusion:
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
         vae = {k.replace("encoder", "first_stage_model.encoder")
-                   .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
+                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
     def load_ckpt(self, ckpt, speed):

@@ -15,7 +15,7 @@ import {
 import {
     FiGitMerge,
     FiMenu,
-    FiSettings,
+    FiSettings
 } from 'react-icons/fi';
 import {
     GiResize
@@ -34,9 +34,9 @@ export default function Sidebar () {
             h="95%"
             m="15px"
             pos="fixed"
-            w={navSize === 'small'
-                ? '75px'
-                : '250px'}
+            w={navSize === 'large'
+                ? '250px'
+                : '75px'}
         >
             <Flex
                 backgroundColor="#182138"
@@ -96,7 +96,6 @@ export default function Sidebar () {
                         navSize={navSize}
                         title="Image Viewer" />
 
-                    {/* <Viewer /> */}
                 </Flex>
 
                 <Flex

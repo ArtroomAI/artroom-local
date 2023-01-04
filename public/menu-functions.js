@@ -1,53 +1,28 @@
-/* eslint-disable no-undef */
-const { remote, app } = require('electron');
-
-function getCurrentWindow () {
-    return remote.getCurrentWindow();
-}
-
-function getVersion () {
-    return app.getVersion();
-}
-
-function minimizeWindow (browserWindow = getCurrentWindow()) {
-    if (browserWindow.minimizable) {
-        browserWindow.minimize();
-    }
-}
-
-function maximizeWindow (browserWindow = getCurrentWindow()) {
-    if (browserWindow.maximizable) {
-        browserWindow.maximize();
-    }
-}
-
-function unmaximizeWindow (browserWindow = getCurrentWindow()) {
-    browserWindow.unmaximize();
-}
-
-function maxUnmaxWindow (browserWindow = getCurrentWindow()) {
-    if (browserWindow.isMaximized()) {
+export const exposeMenuFunctions = (ipcMain, browserWindow, app) => {
+    ipcMain.handle('minimizeWindow', async (event) => {
+        if (browserWindow.minimizable) {
+            browserWindow.minimize();
+        }
+    });
+    ipcMain.handle('maximizeWindow', async (event) => {
+        if (browserWindow.maximizable) {
+            browserWindow.maximize();
+        }
+    });
+    ipcMain.handle('unmaximizeWindow', async (event) => {
         browserWindow.unmaximize();
-    } else {
-        browserWindow.maximize();
-    }
+    });
+    ipcMain.handle('maxUnmaxWindow', async (event) => {
+        if (browserWindow.isMaximized()) {
+            browserWindow.unmaximize();
+        } else {
+            browserWindow.maximize();
+        }
+    });
+    ipcMain.handle('closeWindow', async (event) => {
+        browserWindow.close();
+    });
+    ipcMain.handle('getVersion', async (event) => {
+        return app.getVersion();
+    });
 }
-
-function closeWindow (browserWindow = getCurrentWindow()) {
-    browserWindow.close();
-}
-
-function isWindowMaximized (browserWindow = getCurrentWindow()) {
-    return browserWindow.isMaximized();
-}
-
-module.exports = {
-    getCurrentWindow,
-    minimizeWindow,
-    maximizeWindow,
-    unmaximizeWindow,
-    maxUnmaxWindow,
-    isWindowMaximized,
-    closeWindow,
-    getVersion
-};

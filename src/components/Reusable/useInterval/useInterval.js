@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 // Annoying React-setInterval interaction fixer
 export function useInterval (callback, delay) {

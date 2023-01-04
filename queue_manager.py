@@ -110,9 +110,9 @@ class QueueManager():
 
         # check whether GPU is a 1600 series and if so, update to use full percision
         gpu = is_16xx_series()
-        if gpu == 1:
+        if gpu == '16XX':
             data['precision'] = 'full'
-        elif gpu == 2:
+        elif gpu == 'None':
             data['precision'] = 'full'
             data['use_cpu'] = True
 

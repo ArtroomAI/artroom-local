@@ -207,7 +207,7 @@ class Upscaler():
                     save_restore_path = os.path.join(
                         outdir, 'restored_imgs', f'{basename}.{extension}')
                 imwrite(restored_img, save_restore_path)
-        tensor = torch.HalfTensor if is_16xx_series() == 0 else torch.FloatTensor
+        tensor = torch.HalfTensor if is_16xx_series() == 'NVIDIA' else torch.FloatTensor
         torch.set_default_tensor_type(tensor)
 
     def RealESRGAN(self, upscaler, upscale_factor, upscale_dest):
@@ -252,7 +252,7 @@ class Upscaler():
                 model_path = load_file_from_url(
                     url=url, model_dir=f'{self.artroom_path}/artroom/model_weights/upscalers', progress=True, file_name=None)
 
-        use_half = is_16xx_series() == 0
+        use_half = is_16xx_series() == 'NVIDIA'
         # restorer
         upsampler = RealESRGANer(
             scale=netscale,

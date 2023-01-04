@@ -8,9 +8,11 @@ import indexTheme from './themes/indexTheme';
 
 const theme = extendTheme(indexTheme);
 
-ReactDOM.createRoot(document.getElementById('root')).render(<HashRouter hashType="noslash">
-    <ColorModeScript />
-    <ChakraProvider theme={theme}>
-        <App />
-    </ChakraProvider>
-</HashRouter>);
+ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode>
+    <HashRouter hashType="noslash">
+        <ColorModeScript />
+        <ChakraProvider theme={theme}>
+            <App />
+        </ChakraProvider>
+    </HashRouter>
+</React.StrictMode>);

@@ -1,8 +1,7 @@
-const { app, remote, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const {io} = require('socket.io-client');
 autoUpdater.autoDownload = false;
-const log = require('electron-log');
 const os = require('os');
 const path = require('path');
 const isDev = require('electron-is-dev');
@@ -13,7 +12,7 @@ const kill = require('tree-kill');
 const ExifParser = require('exif-parser');
 
 require("dotenv").config();
-require('@electron/remote/main').initialize()
+import { exposeMenuFunctions } from './menu-functions';
 
 // const getUserDataPath = () => {
 //   const platform = os.platform();
@@ -37,10 +36,6 @@ let hd = os.homedir();
 let LOCAL_URL = process.env.LOCAL_URL;
 //Start with cleanup
 axios.get(`${LOCAL_URL}/shutdown`)
-
-// axios.get('http://127.0.0.1:8000/').then(res => res.json()).then((result)=>{
-//   console.log("Test: "+ result);
-// })
 
 var spawn = require('child_process').spawn;
 
@@ -314,8 +309,8 @@ function createWindow() {
           reject(err);
           return;
         }
-        let imgPath = JSON.parse(data)['image_save_path'] + "/" + JSON.parse(data)['batch_name'];
-        imgPath = imgPath.replace('%UserProfile%', artroom_path);
+        const json = JSON.parse(data);
+        const imgPath = path.resolve(json['image_save_path'], json['batch_name']);
         if (fs.existsSync(imgPath.split(path.sep).join(path.posix.sep))) {
           shell.openPath(imgPath.split(path.sep).join(path.posix.sep))
         }
@@ -359,6 +354,7 @@ function createWindow() {
 
     });
   });
+
 
   //startup test logic
   function runPyTests() {
@@ -495,7 +491,7 @@ function createWindow() {
             }
         );
     })
-);
+  );
 
   // Create the browser window.
   win = new BrowserWindow({
@@ -506,17 +502,22 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: true,
       enableRemoteModule: true,
-      contextIsolation: true,
+      contextIsolation: process.env.NODE_ENV === 'production',
       webSecurity: false,
       devTools: isDev,
       autoHideMenuBar: !isDev,
     }
   })
+  
+  exposeMenuFunctions(ipcMain, win, app);
+
   win.setTitle("ArtroomAI v" + app.getVersion());
-  if(!isDev){
+  
+  if(isDev) {
+    win.webContents.openDevTools();
+  } else {
     win.removeMenu()
   }
-  //win.webContents.openDevTools();
 
   win.loadURL(
     isDev

@@ -16,7 +16,7 @@
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
  *
  */
-
+import React from 'react';
 import { Box, useStyleConfig } from '@chakra-ui/react';
 function Card (props) {
     const { variant, children, ...rest } = props;

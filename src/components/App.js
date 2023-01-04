@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RecoilRoot, useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -20,20 +20,39 @@ import Sidebar from './Sidebar';
 import Settings from './Settings';
 import Upscale from './Upscale';
 import Paint from './Paint';
-// Import InvokeAI from './InvokeAI';
 import Queue from './Queue';
 import SDSettings from './SDSettings';
 import ImageViewer from './ImageViewer';
 import EquilibriumAI from './EquilibriumAI';
 import ProfileMenu from './ProfileMenu';
 import LoginPage from './Login/LoginPage';
-// Import Info from './Info';
-import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
-import { ModelMerger } from './ModelMerger';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
+import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
+import { ModelMerger } from './ModelMerger';
+
+import ArtroomIcon from '../images/icon.ico';
+import MinimizeIcon from '../images/minimize.png';
+import MaximizeIcon from '../images/maximize.png';
+import CloseIcon from '../images/close.png';
+
+const AppTopBar = () => {
+    return (
+        <div id="menu-bar">
+            <div className="left" role="menu">
+                <img src={ArtroomIcon} width="30px"/>
+                <h3 id="artroom-head">ArtroomAI</h3>
+            </div>
+            <div className="right">
+                <button className="menubar-btn" id="minimize-btn" onClick={window.minimizeWindow}><img src={MinimizeIcon} width="20px"/></button>
+                <button className="menubar-btn" id="max-unmax-btn" onClick={window.maxUnmaxWindow}><img src={MaximizeIcon} width="20px"/></button>
+                <button className="menubar-btn" id="close-btn" onClick={window.closeWindow}><img src={CloseIcon} width="20px"/></button>
+            </div>
+        </div>
+    );
+}
+
 function Main () {
-    
     const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
 
@@ -66,6 +85,7 @@ function Main () {
 
     const { ToastContainer, toast } = createStandaloneToast();
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     //make sure cloudmode is off, while not signed in
     if (!loggedIn) {
@@ -110,7 +130,6 @@ function Main () {
 
                     if (result === 'success\r\n') {
                         toast({
-                            id: 'testing',
                             title: 'All Artroom paths & dependencies successfully found!',
                             status: 'success',
                             position: 'top',
@@ -119,7 +138,6 @@ function Main () {
                         });
                     } else if (result.length > 0) {
                         toast({
-                            id: 'testing',
                             title: result,
                             status: 'error',
                             position: 'top',
@@ -166,7 +184,11 @@ function Main () {
         <Grid
             fontWeight="bold"
             gap="1"
-            gridTemplateColumns="0px 1fr 300px"
+            gridTemplateColumns = {
+                navSize === 'large'
+                ? "300px 1fr 250px"
+                : "125px 1fr 250px"
+            }
             gridTemplateRows="43px 1fr 30px"
             h="200px"
             templateAreas={`"nav null header"
@@ -216,9 +238,7 @@ function Main () {
                         <Route
                             element={<>
                                 <Body />
-
                                 <Spacer />
-
                                 <SDSettings />
                             </>}
                             exact
@@ -272,6 +292,7 @@ function Main () {
 function App () {
     return (
         <RecoilRoot>
+            <AppTopBar/>
             <Main />
         </RecoilRoot>
     );
