@@ -1823,10 +1823,7 @@ class LatentDiffusion(DDPMv2):
             sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index], device=device)
 
             # current prediction for x_0
-            if self.parameterization == "v":
-                pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
-            else:
-                pred_x0 = self.predict_start_from_z_and_v(x, t, e_t)
+            pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
 
             if quantize_denoised:
                 pred_x0, _, *_ = self.first_stage_model.quantize(pred_x0)
@@ -1929,10 +1926,7 @@ class LatentDiffusion(DDPMv2):
         sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index], device=device)
 
         # current prediction for x_0
-        if self.parameterization == "v":
-            pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
-        else:
-            pred_x0 = self.predict_start_from_z_and_v(x, t, e_t)
+        pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
 
         if quantize_denoised:
             pred_x0, _, *_ = self.first_stage_model.quantize(pred_x0)
