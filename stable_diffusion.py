@@ -570,7 +570,7 @@ class StableDiffusion:
                             "cfg_scale":cfg_scale, 
                             "seed":seed, 
                             "sampler":sampler,
-                            "ckpt":ckpt
+                            "ckpt": os.path.basename(ckpt)
                         }
                         #0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)

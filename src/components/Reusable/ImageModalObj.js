@@ -24,7 +24,7 @@ export default function ImageModalObj ({b64}) {
                  <Image
                     maxHeight="600px"
                     maxWidth="600px"
-                    borderRadius="5%"
+                    borderRadius="5"
                     src={b64} />
             </ContextMenuTrigger>
 
