@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
@@ -168,8 +170,7 @@ class StableDiffusion:
     def set_artroom_path(self, path):
         print("Setting up artroom path")
         self.artroom_path = path
-        # First load of ckpt
-        loaded = False
+        # loaded = False
         if os.path.exists(f"{self.artroom_path}/artroom/settings/sd_settings.json"):
             print("Loading model from sd_settings.json")
             sd_settings = json.load(
@@ -178,29 +179,34 @@ class StableDiffusion:
             self.long_save_path = sd_settings['long_save_path']
             self.highres_fix = sd_settings['highres_fix']
 
-            model_ckpt = sd_settings['ckpt_dir'] + \
-                         '/' + os.path.basename(sd_settings['ckpt'])
-            model_ckpt = model_ckpt.replace(os.sep, '/')
-            speed = sd_settings['speed']
+            # I commented this out because it fucking loaded the v2 model twice every fucking run
+            # Because of memory mode autoselect it loads like twice slower
 
-            if os.path.exists(model_ckpt):
-                loaded = self.load_ckpt(model_ckpt, speed)
-                if loaded:
-                    print("Model successfully loaded")
-                else:
-                    print("Failed to load model from sd_settings.json")
+            print("Go on boy, create art")
 
-        if not loaded:
-            print("Loading default model from artroom path...")
-            if os.path.exists(f"{self.artroom_path}/artroom/model_weights/model.ckpt"):
-                loaded = self.load_ckpt(
-                    f"{self.artroom_path}/artroom/model_weights/model.ckpt", self.speed)
-                if loaded:
-                    print("Loaded default model from artroom path")
-                else:
-                    print("Failed to load model from artroom path")
-            else:
-                print("Failed to find default model")
+            # model_ckpt = sd_settings['ckpt_dir'] + \
+            #              '/' + os.path.basename(sd_settings['ckpt'])
+            # model_ckpt = model_ckpt.replace(os.sep, '/')
+            # speed = sd_settings['speed']
+
+            # if os.path.exists(model_ckpt):
+            #     loaded = self.load_ckpt(model_ckpt, speed)
+            #     if loaded:
+            #         print("Model successfully loaded")
+            #     else:
+            #         print("Failed to load model from sd_settings.json")
+
+        # if not loaded:
+        #     print("Loading default model from artroom path...")
+        #     if os.path.exists(f"{self.artroom_path}/artroom/model_weights/model.ckpt"):
+        #         loaded = self.load_ckpt(
+        #             f"{self.artroom_path}/artroom/model_weights/model.ckpt", self.speed)
+        #         if loaded:
+        #             print("Loaded default model from artroom path")
+        #         else:
+        #             print("Failed to load model from artroom path")
+        #     else:
+        #         print("Failed to find default model")
 
     def get_steps(self):
         if self.model:
@@ -227,7 +233,7 @@ class StableDiffusion:
 
         self.stage = ""
         self.running = False
-        if self.device != "cpu":
+        if self.device != "cpu" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
             while torch.cuda.memory_allocated() / 1e6 >= mem:
@@ -245,7 +251,7 @@ class StableDiffusion:
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
         vae = {k.replace("encoder", "first_stage_model.encoder")
-                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
+                   .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
     def load_ckpt(self, ckpt, speed):
@@ -277,73 +283,103 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
         print("Setting up config...")
-        if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
-            print("Detected runwayml inpainting model")
-            if speed == 'Low':
-                self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
-            elif speed == 'Medium':
-                self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
-            elif speed == 'High':
-                self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
-            elif speed == 'Max':
-                self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_xformer.yaml'
-            else:
-                print(f"Dafuq is {speed}")
-                self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
-        else:
-            print("Loading ordinary model")
-            if speed == 'Low':
-                self.config = 'stable-diffusion/optimizedSD/configs/v1-inference_lowvram.yaml'
-            elif speed == 'Medium':
-                self.config = 'stable-diffusion/optimizedSD/configs/v1-inference_lowvram.yaml'
-            elif speed == 'High':
-                self.config = 'stable-diffusion/optimizedSD/configs/v1-inference.yaml'
-            elif speed == 'Max':
-                self.config = 'stable-diffusion/optimizedSD/configs/v1-inference_xformer.yaml'
-            else:
-                print(f"Not recognized speed: {speed}")
-                self.config = 'stable-diffusion/optimizedSD/configs/v1-inference.yaml'
-        li = []
-        lo = []
-        for key, value in sd.items():
-            sp = key.split('.')
-            if (sp[0]) == 'model':
-                if 'input_blocks' in sp:
-                    li.append(key)
-                elif 'middle_block' in sp:
-                    li.append(key)
-                elif 'time_embed' in sp:
-                    li.append(key)
+        parameterization = "eps"
+        if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
+            print("Detected v2 model")
+            self.config = ckpt.replace("ckpt", "yaml")
+            if os.path.exists(self.config):
+                # so, we can't select their config because our is modified to our implementation
+                # still, there are only two types of configs, the ones with parameterization in them and without
+                if "parameterization" in "".join(open(self.config, "r").readlines()):
+                    parameterization = "v"
+                    self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference-v.yaml'
                 else:
-                    lo.append(key)
-        for key in li:
-            sd['model1.' + key[6:]] = sd.pop(key)
-        for key in lo:
-            sd['model2.' + key[6:]] = sd.pop(key)
-        config = OmegaConf.load(f"{self.config}")
-        self.model = instantiate_from_config(config.modelUNet)
-        _, _ = self.model.load_state_dict(sd, strict=False)
-        self.model.eval()
-        self.model.cdevice = self.device
-        self.model.unet_bs = 1  # unet_bs=1
+                    self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
+            else:
+                self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
+            print(f"v2 conf: {self.config}")
+            config = OmegaConf.load(f"{self.config}")
+            self.model = instantiate_from_config(config.model)
+            _, _ = self.model.load_state_dict(sd, strict=False)
+            self.model.eval()
+            self.model.parameterization = parameterization
+            self.model.cdevice = self.device
+            self.model.to(self.device)
+            if self.device != "cpu" and self.precision == "autocast":
+                self.model.half()
+                torch.set_default_tensor_type(torch.HalfTensor)
 
-        self.model.turbo = (speed != 'Low')
+            self.modelCS = self.model  # just link without a copy
+            self.modelFS = self.model  # just link without a copy
+            self.v1 = False
+        else:
+            self.v1 = True
+            if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
+                print("Detected runwayml inpainting model")
+                if speed == 'Low':
+                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
+                elif speed == 'Medium':
+                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
+                elif speed == 'High':
+                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
+                elif speed == 'Max':
+                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_xformer.yaml'
+                else:
+                    print(f"Dafuq is {speed}")
+                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
+            else:
+                print("Loading ordinary model")
+                if speed == 'Low':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                elif speed == 'Medium':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                elif speed == 'High':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                elif speed == 'Max':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
+                else:
+                    print(f"Not recognized speed: {speed}")
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+            li = []
+            lo = []
+            for key, value in sd.items():
+                sp = key.split('.')
+                if (sp[0]) == 'model':
+                    if 'input_blocks' in sp:
+                        li.append(key)
+                    elif 'middle_block' in sp:
+                        li.append(key)
+                    elif 'time_embed' in sp:
+                        li.append(key)
+                    else:
+                        lo.append(key)
+            for key in li:
+                sd['model1.' + key[6:]] = sd.pop(key)
+            for key in lo:
+                sd['model2.' + key[6:]] = sd.pop(key)
+            config = OmegaConf.load(f"{self.config}")
+            self.model = instantiate_from_config(config.modelUNet)
+            _, _ = self.model.load_state_dict(sd, strict=False)
+            self.model.eval()
+            self.model.cdevice = self.device
+            self.model.unet_bs = 1  # unet_bs=1
 
-        self.modelCS = instantiate_from_config(config.modelCondStage)
-        _, _ = self.modelCS.load_state_dict(sd, strict=False)
-        self.modelCS.eval()
-        self.modelCS.cond_stage_model.device = self.device
+            self.model.turbo = (speed != 'Low')
 
-        self.modelFS = instantiate_from_config(config.modelFirstStage)
-        _, _ = self.modelFS.load_state_dict(sd, strict=False)
-        self.modelFS.eval()
+            self.modelCS = instantiate_from_config(config.modelCondStage)
+            _, _ = self.modelCS.load_state_dict(sd, strict=False)
+            self.modelCS.eval()
+            self.modelCS.cond_stage_model.device = self.device
+
+            self.modelFS = instantiate_from_config(config.modelFirstStage)
+            _, _ = self.modelFS.load_state_dict(sd, strict=False)
+            self.modelFS.eval()
+            if self.device != "cpu" and self.precision == "autocast":
+                self.model.half()
+                self.modelCS.half()
+                self.modelFS.half()
+                torch.set_default_tensor_type(torch.HalfTensor)
         del sd
-        if self.device != "cpu" and self.precision == "autocast":
-            self.model.half()
-            self.modelCS.half()
-            self.modelFS.half()
-            torch.set_default_tensor_type(torch.HalfTensor)
-
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
         self.stage = "Finished Loading Model"
@@ -425,7 +461,9 @@ class StableDiffusion:
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
-            self.modelFS.to(self.device)
+            if self.v1:
+                self.modelFS.to(self.device)
+
             steps = int(strength * steps)
             if steps <= 0:
                 steps = 1
@@ -456,7 +494,8 @@ class StableDiffusion:
                 self.model.total_steps = steps
                 for prompts in data:
                     with precision_scope(self.device):
-                        self.modelCS.to(self.device)
+                        if self.v1:
+                            self.modelCS.to(self.device)
                         uc = None
                         if cfg_scale != 1.0:
                             uc = self.modelCS.get_learned_conditioning(
@@ -509,9 +548,10 @@ class StableDiffusion:
                                     0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(
                                     mask, '1 ... -> b ...', b=batch_size)
-                                if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9:
-                                    init_latent = torch.cat(
-                                        (init_latent, x0, mask[:, :1, :, :]), dim=1)  # yeah basically
+                                if self.v1:
+                                    if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9:
+                                        init_latent = torch.cat(
+                                            (init_latent, x0, mask[:, :1, :, :]), dim=1)  # yeah basically
                                 x_T = init_latent
                                 color_correction = setup_color_correction(
                                     image)
@@ -535,7 +575,8 @@ class StableDiffusion:
                                 mask=mask,
                                 x_T=x_T
                             )
-                            self.modelFS.to(self.device)
+                            if self.v1:
+                                self.modelFS.to(self.device)
                             x_samples_ddim = self.modelFS.decode_first_stage(
                                 x0[0].unsqueeze(0))
                             x_sample = torch.clamp(
@@ -559,20 +600,20 @@ class StableDiffusion:
                             out_image = apply_color_correction(
                                 color_correction, out_image)
                         exif_data = out_image.getexif()
-                        #Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                        # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                         settings_data = {
-                            "text_prompts":text_prompts, 
-                            "negative_prompts":negative_prompts, 
-                            "steps":steps, 
-                            "H":H, 
-                            "W":W, 
-                            "strength":strength, 
-                            "cfg_scale":cfg_scale, 
-                            "seed":seed, 
-                            "sampler":sampler,
-                            "ckpt":ckpt
+                            "text_prompts": text_prompts,
+                            "negative_prompts": negative_prompts,
+                            "steps": steps,
+                            "H": H,
+                            "W": W,
+                            "strength": strength,
+                            "cfg_scale": cfg_scale,
+                            "seed": seed,
+                            "sampler": sampler,
+                            "ckpt": ckpt
                         }
-                        #0x9286 Exif Code for UserComment
+                        # 0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)

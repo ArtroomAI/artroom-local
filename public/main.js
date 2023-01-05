@@ -107,12 +107,12 @@ async function getMetadata(path) {
 
 //pyTestCmd = "\"" + artroom_path +"\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python pytest.py";
 //pyTestCmd = "\"" + artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python" + "\"";
-let pyTestCmd = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe";
+let pyTestCmd = "C:\\ProgramData\\Miniconda3\\envs\\torch310\\python.exe";
 
-const serverCommand = "\"" + artroom_path + "\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run --no-capture-output -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python server.py";
+const serverCommand = "C:\\ProgramData\\Miniconda3\\envs\\torch310\\python.exe server.py";
 
 
-const mergeModelsCommand = "\"" + artroom_path + "\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run --no-capture-output -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python model_merger.py";
+const mergeModelsCommand = "C:\\ProgramData\\Miniconda3\\envs\\torch310\\python.exe model_merger.py";
 
 let server = spawn(serverCommand, { detached: debugModeInit, encoding: 'utf8', shell: true })
 
