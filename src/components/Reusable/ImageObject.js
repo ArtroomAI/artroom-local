@@ -12,6 +12,10 @@ export default function ImageObject ({b64, metadata}) {
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
     const [metadataJSON, setMetadataJSON] = useState({});
 
+    const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
+    const [imageModalB64, setImageModalB64] = useRecoilState(atom.imageModalB64State);
+    const [imageModalMetadata, setImageModalMetadata] = useRecoilState(atom.imageModalMetadataState);
+
     const textRef = useRef();
     useEffect(()=>{
         if(metadata){
@@ -26,6 +30,11 @@ export default function ImageObject ({b64, metadata}) {
   
     return (
         <Card           
+            onClick={()=>{
+                setShowImageModal(true);
+                setImageModalB64(b64);
+                setImageModalMetadata(metadataJSON);
+            }}
             style={{ cursor: 'pointer', backgroundColor: 'transparent' }}
             onMouseEnter={() => {
                 textRef.current.style.visibility = "visible";
@@ -47,7 +56,10 @@ export default function ImageObject ({b64, metadata}) {
                     textOverflow: 'ellipsis',
                     display: '-webkit-box',
                     WebkitLineClamp: '4',
-                    WebkitBoxOrient: 'vertical'
+                    WebkitBoxOrient: 'vertical',
+                    padding: '15px 15px 0px 15px',
+                    fontSize: '14px',
+                    fontWeight: 'normal'
                   }}
                 >
                 {metadataJSON?.text_prompts}

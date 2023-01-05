@@ -602,16 +602,16 @@ class StableDiffusion:
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                         settings_data = {
-                            "text_prompts": text_prompts,
-                            "negative_prompts": negative_prompts,
-                            "steps": steps,
-                            "H": H,
-                            "W": W,
-                            "strength": strength,
-                            "cfg_scale": cfg_scale,
-                            "seed": seed,
-                            "sampler": sampler,
-                            "ckpt": ckpt
+                            "text_prompts":text_prompts, 
+                            "negative_prompts":negative_prompts, 
+                            "steps":steps, 
+                            "H":H, 
+                            "W":W, 
+                            "strength":strength, 
+                            "cfg_scale":cfg_scale, 
+                            "seed":seed, 
+                            "sampler":sampler,
+                            "ckpt": os.path.basename(ckpt)
                         }
                         # 0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)

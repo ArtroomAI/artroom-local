@@ -232,4 +232,19 @@ export const emailState = atom({
     default: ''
 });
 
+export const showImageModalState = atom({
+    key: 'showImageModal',
+    default: false
+});
+
+export const imageModalB64State = atom({
+    key: 'imageModalB64',
+    default: ''
+});
+
+export const imageModalMetadataState = atom({
+    key: 'imageModalMetadata',
+    default: {}
+});
+
 

@@ -3,18 +3,20 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import ImageObject from './Reusable/ImageObject';
 import {
-    Box,
-    useDisclosure,
+    Box
 } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
+import ImageModal from './Modals/ImageModal';
+
 function ImageViewer () {
     var path = require('path');
     const image_save_path = useRecoilValue(atom.imageSavePathState);
     const batch_name = useRecoilValue(atom.batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
     const [imagePreviews, setImagePreviews] = useState(["",""]);
-    const { isOpen, onOpen, onClose } = useDisclosure();
+
+    const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
 
     useEffect(() => {
         if(imageViewPath.length <= 1){
@@ -46,6 +48,8 @@ function ImageViewer () {
     },[imageViewPath]);
 
     return (
+        <>
+        {showImageModal && <ImageModal/>}
         <Box 
             height="90%"
             ml="50px"
@@ -59,11 +63,12 @@ function ImageViewer () {
             >
             {imagePreviews.map((image, index) => (
                 <Box py={2} px={1} key={index}>
-                    <ImageObject b64={image.b64} metadata={image.metadata} isOpen={isOpen} onOpen={onOpen} onClose={onClose} />
+                    <ImageObject b64={image.b64} metadata={image.metadata}/>
                 </Box>
             ))}
             </Masonry>
         </Box>
+        </>
     );
 }
 
