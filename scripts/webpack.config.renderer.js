@@ -4,7 +4,7 @@ const Dotenv = require('dotenv-webpack');
 
 const config = {
     mode: 'development',
-    entry: './public/renderer.js',
+    entry: './public/renderer.ts',
     target: 'electron-renderer',
     devtool: 'source-map',
     module: {
@@ -18,15 +18,10 @@ const config = {
                 use: [{ loader: 'file-loader' }]
             },
             {
-                test: /\.ts(x?)$/,
-                include: /src/,
-                use: [{ loader: 'ts-loader' }]
-            },
-            {
-                test: /\.js(x?)$/,
+                test: /\.(m|j|t)s(x?)$/,
                 exclude: /node_modules/,
-                use: ["babel-loader"] 
-            },
+                use: 'babel-loader'
+            }
         ]
     },
     output: {

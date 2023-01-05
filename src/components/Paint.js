@@ -9,7 +9,7 @@ import * as atom from '../atoms/atoms';
 import axios from 'axios';
 
 import ImageEditor from '@toast-ui/react-image-editor';
-import theme from '../themes/theme.js';
+import theme from '../themes/theme';
 import {
     Flex,
     Box,
