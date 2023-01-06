@@ -7,7 +7,7 @@ import {
 } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
-import ImageModal from './Modals/ImageModal';
+import ImageModal from './Modals/ImageModal/ImageModal';
 import path from 'path';
 
 interface ImageData {

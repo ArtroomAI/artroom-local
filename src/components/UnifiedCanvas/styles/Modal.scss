@@ -1,0 +1,10 @@
+@use './Mixins' as *;
+
+.modal {
+  background-color: var(--background-color-secondary);
+  color: var(--text-color);
+}
+
+.modal-close-btn {
+  @include BaseButton;
+}

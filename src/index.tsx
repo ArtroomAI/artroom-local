@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import { ChakraProvider, ColorModeScript, extendTheme } from '@chakra-ui/react';
 import './index.css';
+// import './components/UnifiedCanvas/styles/index.scss'
 import App from './components/App';
 import indexTheme from './themes/indexTheme';
 

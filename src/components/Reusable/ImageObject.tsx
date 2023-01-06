@@ -6,7 +6,7 @@ import ContextMenu from './ContextMenu/ContextMenu';
 import ContextMenuItem from './ContextMenu/ContextMenuItem';
 import ContextMenuList from './ContextMenu/ContextMenuList';
 import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
-import { ImageMetadata } from '../Modals/ImageModal';
+import { ImageMetadata } from '../Modals/ImageModal/ImageModal';
 
 export default function ImageObject ({b64, metadata} : { b64: string, metadata: string }) {
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);

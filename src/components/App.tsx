@@ -11,7 +11,8 @@ import {
     VStack,
     HStack,
     Switch,
-    Icon
+    Icon,
+    Button
 } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
 import PromptGuide from './PromptGuide';
@@ -25,7 +26,7 @@ import SDSettings from './SDSettings';
 import ImageViewer from './ImageViewer';
 import EquilibriumAI from './EquilibriumAI';
 import ProfileMenu from './ProfileMenu';
-import LoginPage from './Login/LoginPage';
+import LoginPage from './Modals/Login/LoginPage';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
@@ -86,6 +87,8 @@ function Main () {
     const { ToastContainer, toast } = createStandaloneToast();
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+
+    const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
 
     //make sure cloudmode is off, while not signed in
     if (!loggedIn) {
@@ -195,6 +198,7 @@ function Main () {
                           "nav main main"
                           "nav main main"`}
         >
+            {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
             <GridItem
                 area="header"
                 justifySelf="center"
@@ -218,7 +222,15 @@ function Main () {
                                 />
                             </VStack>
                         </HStack>
-                        : <LoginPage setLoggedIn={setLoggedIn} />
+                        :  
+                    <Button
+                        aria-label="View"
+                        variant="outline"
+                        onClick={()=>{setShowLoginModal(true)}}
+                        >
+                        Login
+                        {' '}
+                    </Button>
                 }
             </GridItem>
 

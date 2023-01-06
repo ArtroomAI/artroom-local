@@ -1,5 +1,5 @@
 import { atom } from 'recoil';
-import { ImageMetadata } from '../components/Modals/ImageModal';
+import { ImageMetadata } from '../components/Modals/ImageModal/ImageModal';
 
 export const serverStatusState = atom({
     key: 'serverStatus',
@@ -233,11 +233,6 @@ export const emailState = atom({
     default: ''
 });
 
-export const showImageModalState = atom({
-    key: 'showImageModal',
-    default: false
-});
-
 export const imageModalB64State = atom({
     key: 'imageModalB64',
     default: ''
@@ -259,4 +254,13 @@ export const imageModalMetadataState = atom<ImageMetadata>({
     }
 });
 
+export const showImageModalState = atom({
+    key: 'showImageModal',
+    default: false
+});
+
+export const showLoginModalState = atom({
+    key: 'showLoginModal',
+    default: false
+});
 

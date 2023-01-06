@@ -509,9 +509,7 @@ function createWindow() {
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   
-  if(isDev) {
-    win.webContents.openDevTools();
-  } else {
+  if(!isDev) {
     win.removeMenu()
   }
 
