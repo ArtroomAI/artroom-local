@@ -10,8 +10,19 @@ const config = {
     module: {
         rules: [
             {
-                test: /\.css$/,
-                use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
+                test: /\.css$/i,
+                use: [
+                    "style-loader",
+                    "css-loader"
+                ],
+            },
+            {
+                test: /\.s[ac]ss$/i,
+                use: [
+                    "style-loader",
+                    "css-loader",
+                    "sass-loader",
+                ],
             },
             {
                 test: /\.(png|jpe?g|gif|ico)$/i,
@@ -36,7 +47,7 @@ const config = {
         })
     ],
     resolve: {
-      extensions: ['.ts', '.tsx', '.js', '.jsx']
+      extensions: ['.ts', '.tsx', '.js', '.jsx', '.scss', '.css', '.sass']
     }
 }
 
