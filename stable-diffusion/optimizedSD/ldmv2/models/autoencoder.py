@@ -4,10 +4,10 @@ import torch.nn.functional as F
 from contextlib import contextmanager
 
 from ldmv2.modules.diffusionmodules.model import Encoder, Decoder
-from ldmv2.modules.distributions.distributions import DiagonalGaussianDistribution
-
 from ldmv2.util import instantiate_from_config
-from ldmv2.modules.ema import LitEma
+
+from ldm.modules.ema import LitEma
+from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 
 
 class AutoencoderKL(pl.LightningModule):
