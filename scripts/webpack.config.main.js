@@ -5,7 +5,7 @@ const config = {
     mode: 'development',
     target: 'electron-main',
     devtool: 'source-map',
-    entry: './public/main.js',
+    entry: './public/main.ts',
     output: {
         globalObject: 'this',
         filename: 'main.js',
@@ -18,11 +18,9 @@ const config = {
     module: {
         rules: [
             {
-                test: /\.(m|j|t)s$/,
-                exclude: /(node_modules|bower_components)/,
-                use: {
-                    loader: 'babel-loader'
-                }
+                test: /\.(m|j|t)s(x?)$/,
+                exclude: /node_modules/,
+                use: 'babel-loader'
             }
         ]
     },

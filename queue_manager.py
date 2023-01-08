@@ -82,9 +82,6 @@ class QueueManager():
         if data['sampler'] in sampler_format_mapping:
             data['sampler'] = sampler_format_mapping[data['sampler']]
 
-        if len(data['image_save_path']) > 0 and data['image_save_path'][-1] != '/':
-            data['image_save_path'] += '/'
-
         if data['mask'] == '':
             data['invert'] = False
         else:
@@ -105,30 +102,6 @@ class QueueManager():
                 data['strength'] = 0.75
         else:
             data['strength'] = 0.75
-
-        data['precision'] = 'autocast'
-
-        # check whether GPU is a 1600 series and if so, update to use full percision
-        gpu = is_16xx_series()
-        if gpu == '16XX':
-            data['precision'] = 'full'
-        elif gpu == 'None':
-            data['precision'] = 'full'
-            data['use_cpu'] = True
-
-        if data['precision'] == 'full' and data['speed'] in ['Max']:
-            print('Full precision does not work with Max speeds')
-            data['speed'] = 'High'
-
-        if 'use_cpu' in data and data['use_cpu']:
-            data['device'] = 'cpu'
-            data['precision'] = 'full'
-            if data['speed'] == 'Max':
-                print(
-                    'CPU mode does not work with MAX speed setting, switch to High (although there will be no difference in speeds')
-                data['speed'] = 'High'
-        else:
-            data['device'] = 'cuda'
 
         if '%UserProfile%' in data['image_save_path']:
             data['image_save_path'] = data['image_save_path'].replace(
@@ -164,7 +137,7 @@ class QueueManager():
     def save_to_settings_folder(self, data):
         print("Saving settings...")
         if self.SD.long_save_path:
-            image_folder = os.path.join(data['image_save_path']+data['batch_name'], re.sub(
+            image_folder = os.path.join(data['image_save_path'],data['batch_name'], re.sub(
                 r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
             os.makedirs(image_folder, exist_ok=True)
             os.makedirs(image_folder+'/settings', exist_ok=True)
@@ -173,7 +146,7 @@ class QueueManager():
                 json.dump(data, outfile, indent=4)
         else:
             image_folder = os.path.join(
-                data['image_save_path']+data['batch_name'])
+                data['image_save_path'],data['batch_name'])
             os.makedirs(image_folder, exist_ok=True)
             os.makedirs(image_folder+'/settings', exist_ok=True)
             sd_settings_count = len(glob(image_folder+'/settings/*.json'))
@@ -212,10 +185,9 @@ class QueueManager():
                 sampler=next_gen['sampler'],
                 cfg_scale=float(next_gen['cfg_scale']),
                 ckpt=ckpt_path,
+                vae=next_gen['vae'],
                 image_save_path=next_gen['image_save_path'],
                 speed=next_gen['speed'],
-                device=next_gen['device'],
-                precision=next_gen['precision'],
                 skip_grid=not next_gen['save_grid'],
             )
         except Exception as e:

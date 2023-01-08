@@ -57,8 +57,6 @@ function Paint () {
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [use_full_precision, setUseFullPrecision] = useRecoilState(atom.useFullPrecisionState);
-    const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
@@ -110,9 +108,7 @@ function Paint () {
                 align="center"
                 spacing={4}>
                 <Box
-                    className="paint-output"
-                    ratio={16 / 9}
-                    width="75%">
+                    className="paint-output">
                     <UnifiedCanvas></UnifiedCanvas>
                 </Box>
                 <Box width="80%">

@@ -1,62 +1,87 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_socketio import SocketIO,emit
+from werkzeug.utils import secure_filename
+
 from upscale import Upscaler
 from queue_manager import QueueManager
 from stable_diffusion import StableDiffusion
+from artroom_helpers import support
 import logging
 import os
 from PIL import Image
 import json
-import base64
 import shutil
-from io import BytesIO
 import threading
-import re
 import ctypes
-import time
+import traceback
+from uuid import uuid4
 
 kernel32 = ctypes.windll.kernel32
 kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
 
-
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 print('Running in Debug Mode. Please keep CMD window open')
-
 
 def return_output(status, status_message='', content=''):
     if not status_message and status == 'Failure':
         status_message = 'Unknown Error'
     return jsonify({'status': status, 'status_message': status_message, 'content': content})
 
+class ArtroomServer:
+    def __init__(self, SD):
+        self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
+        self.SD = SD 
+        self.update_paths()
 
-def image_to_b64(image):
-    image_file = BytesIO()
-    image.save(image_file, format='JPEG')
-    im_bytes = image_file.getvalue()  # im_bytes: image in binary format.
-    imgb64 = base64.b64encode(im_bytes)
-    return 'data:image/jpeg;base64,' + str(imgb64)[2:-1]
+    def update_paths(self):
+        self.result_url = self.SD.image_save_path
+        self.thumbnail_image_url = os.path.join(self.SD.image_save_path, "thumbnails/")
+        self.temp_image_url = os.path.join(self.SD.image_save_path, "temp-images/")
+        self.intermediate_url = os.path.join(self.SD.image_save_path, "intermediates/")
+        self.mask_image_url = os.path.join(self.SD.image_save_path, "mask-images/")
+        self.init_image_url = os.path.join(self.SD.image_save_path, "init-images/")
 
+        for path in [self.result_url, self.thumbnail_image_url, self.temp_image_url, self.intermediate_url, self.mask_image_url, self.init_image_url]:
+            os.makedirs(path, exist_ok=True)
 
-def b64_to_image(b64):
-    image_data = re.sub('^data:image/.+;base64,', '', b64)
-    return Image.open(BytesIO(base64.b64decode(image_data))).convert('RGB')
+    def reset_settings_to_default(self):
+        print('Failure, sd_settings not found. Resetting to default')
+        if os.path.exists('sd_settings.json'):
+            shutil.copy('sd_settings.json', f'{self.SD.artroom_path}/artroom/settings/')
+            print('Successfully resetted to default')
+        else:
+            print('Resetting failed')
 
+    def get_url_from_image_path(self, path):  
+        self.update_paths()      
+        """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
+        try:
+            if "init-images" in path:
+                return os.path.join(self.init_image_url, os.path.basename(path))
+            elif "mask-images" in path:
+                return os.path.join(self.mask_image_url, os.path.basename(path))
+            elif "intermediates" in path:
+                return os.path.join(self.intermediate_url, os.path.basename(path))
+            elif "temp-images" in path:
+                return os.path.join(self.temp_image_url, os.path.basename(path))
+            elif "thumbnails" in path:
+                return os.path.join(self.thumbnail_image_url, os.path.basename(path))
+            else:
+                return os.path.join(self.result_url, os.path.basename(path))
+        except Exception as e:
+            socketio.emit("error", {"message": (str(e))})
+            print("\n")
 
-def reset_settings_to_default():
-    print('Failure, sd_settings not found. Resetting to default')
-    if os.path.exists('sd_settings.json'):
-        shutil.copy('sd_settings.json', f'{SD.artroom_path}/artroom/settings/')
-        print('Successfully resetted to default')
-    else:
-        print('Resetting failed')
-
+            traceback.print_exc()
+            print("\n")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 SD = StableDiffusion()
 UP = Upscaler()
+AS = ArtroomServer(SD) 
 
 def set_artroom_paths(artroom_path):
     QM.set_artroom_path(artroom_path)
@@ -103,11 +128,11 @@ def get_images():
                             content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
     try:
         if path == 'latest':
-            imageB64 = [image_to_b64(image)
+            imageB64 = [support.image_to_b64(image)
                         for image in SD.get_latest_images()]
         else:
             image = Image.open(path).convert('RGB')
-            imageB64 = image_to_b64(image)
+            imageB64 = support.image_to_b64(image)
         return return_output('Success', content={'latest_images_id': SD.latest_images_id, 'latest_images': imageB64})
     except:
         return return_output('Failure', 'Failed to get image', {'latest_images_id': -1, 'imageB64': ''})
@@ -139,7 +164,7 @@ def update_settings():
         print('Failure, artroom path not found')
         return return_output('Failure', 'Artroom Path not found')
     if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
-        reset_settings_to_default()
+        AS.reset_settings_to_default()
         return return_output('Failure', 'sd_settings.json not found')
     if 'delay' in data:
         QM.update_delay = data['delay']
@@ -172,7 +197,7 @@ def get_settings():
         print('Failed to get settings, artroom path not found')
         return return_output('Failure', 'Artroom Path not found')
     if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
-        reset_settings_to_default()
+        AS.reset_settings_to_default()
         return return_output('Failure', 'sd_settings.json not found')
     sd_settings = json.load(
         open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
@@ -194,7 +219,6 @@ def start_queue():
         print('Queue already running')
         return return_output('Failure')
 
-
 @app.route('/pause_queue', methods=['GET'])
 def pause_queue():
     print('Pausing queue...')
@@ -206,7 +230,6 @@ def pause_queue():
         print('Failed to pause queue')
         return return_output('Failure')
 
-
 @app.route('/stop_queue', methods=['GET'])
 def stop_queue():
     print('Stopping queue...')
@@ -215,14 +238,12 @@ def stop_queue():
     print('Queue stopped')
     return return_output('Success')
 
-
 @app.route('/clear_queue', methods=['POST'])
 def clear_queue():
     print('Clearing queue...')
     QM.clear_queue()
     print('Queue cleared')
     return return_output('Success')
-
 
 @app.route('/remove_from_queue', methods=['POST'])
 def remove_from_queue():
@@ -267,12 +288,174 @@ def run_sd():
         print('Queue already running')
         return return_output('Failure', 'Already running')
 
+@app.route('/invoke_upload', methods=['POST'])
+def invoke_upload():
+    try:
+        #Comes from a fetch request, lets standardize
+        data = json.loads(request.form["data"])
+        filename = ""
+        # check if the post request has the file part
+        if "file" in request.files:
+            file = request.files["file"]
+            # If the user does not select a file, the browser submits an
+            # empty file without a filename.
+            if file.filename == "":
+                return make_response("No file selected", 400)
+            filename = file.filename
+        elif "dataURL" in data:
+            file = support.dataURL_to_bytes(data["dataURL"])
+            if "filename" not in data or data["filename"] == "":
+                return make_response("No filename provided", 400)
+            filename = data["filename"]
+        else:
+            return make_response("No file or dataURL", 400)
+
+        kind = data["kind"]
+
+        if kind == "init":
+            path = os.path.join(SD.image_save_path, "intermediates/")
+        elif kind == "temp":
+            path = os.path.join(SD.image_save_path, "temp-images/")
+        elif kind == "result":
+            path = SD.image_save_path
+        elif kind == "mask":
+            path = os.path.join(SD.image_save_path, "mask-images/")
+        else:
+            return make_response(f"Invalid upload kind: {kind}", 400)
+
+        
+        if not support.allowed_file(filename):
+            return make_response(
+                f'Invalid file type, must be one of: {", ".join(AS.ALLOWED_EXTENSIONS)}',
+                400,
+            )
+
+        secured_filename = secure_filename(filename)
+
+        uuid = uuid4().hex
+        truncated_uuid = uuid[:8]
+
+        split = os.path.splitext(secured_filename)
+        name = f"{split[0]}.{truncated_uuid}{split[1]}"
+
+        file_path = os.path.join(path, name)
+
+        if "dataURL" in data:
+            with open(file_path, "wb") as f:
+                f.write(file)
+        else:
+            file.save(file_path)
+
+        mtime = os.path.getmtime(file_path)
+
+        pil_image = Image.open(file_path)
+
+        if "cropVisible" in data and data["cropVisible"] == True:
+            visible_image_bbox = pil_image.getbbox()
+            pil_image = pil_image.crop(visible_image_bbox)
+            pil_image.save(file_path)
+
+        (width, height) = pil_image.size
+
+        thumbnail_path = support.save_thumbnail(
+            pil_image, os.path.basename(file_path), os.path.join(SD.image_save_path, "thumbnails/")
+        )
+
+        response = {
+            "url": AS.get_url_from_image_path(file_path),
+            "thumbnail": AS.get_url_from_image_path(thumbnail_path),
+            "mtime": mtime,
+            "width": width,
+            "height": height,
+        }
+
+        return make_response(response, 200)
+
+    except Exception as e:
+        socketio.emit("error", {"message": (str(e))})
+        print("\n")
+
+        traceback.print_exc()
+        print("\n")
+        return make_response("Error uploading file", 500)
+
+@app.route('/invoke_inpainting', methods=['POST'])
+def invoke_inpainting():
+    """
+    generation_parameters["init_img"] is a base64 image
+    generation_parameters["init_mask"] is a base64 image
+
+    So we need to convert each into a PIL Image.
+    """
+    data = json.loads(request.data)
+
+    original_bounding_box = data["bounding_box"].copy()
+
+    initial_image = support.dataURL_to_image(
+        data["init_img"]
+    ).convert("RGBA")
+
+    """
+    The outpaint image and mask are pre-cropped by the UI, so the bounding box we pass
+    to the generator should be:
+        {
+            "x": 0,
+            "y": 0,
+            "width": original_bounding_box["width"],
+            "height": original_bounding_box["height"]
+        }
+    """
+
+    data["bounding_box"]["x"] = 0
+    data["bounding_box"]["y"] = 0
+
+    # Convert mask dataURL to an image and convert to greyscale
+    mask_image = support.dataURL_to_image(
+        data["init_mask"]
+    ).convert("L")
+
+    actual_generation_mode = support.get_canvas_generation_mode(
+        initial_image, mask_image
+    )
+
+    """
+    Apply the mask to the init image, creating a "mask" image with
+    transparency where inpainting should occur. This is the kind of
+    mask that prompt2image() needs.
+    """
+    alpha_mask = initial_image.copy()
+    alpha_mask.putalpha(mask_image)
+
+    data["init_img"] = initial_image
+    data["init_mask"] = alpha_mask
+
+    # Remove the unneeded parameters for whichever mode we are doing
+    if actual_generation_mode == "inpainting":
+        data.pop("seam_size", None)
+        data.pop("seam_blur", None)
+        data.pop("seam_strength", None)
+        data.pop("seam_steps", None)
+        data.pop("tile_size", None)
+        data.pop("force_outpaint", None)
+    elif actual_generation_mode == "img2img":
+        data["height"] = original_bounding_box["height"]
+        data["width"] = original_bounding_box["width"]
+        data.pop("init_mask", None)
+        data.pop("seam_size", None)
+        data.pop("seam_blur", None)
+        data.pop("seam_strength", None)
+        data.pop("seam_steps", None)
+        data.pop("tile_size", None)
+        data.pop("force_outpaint", None)
+        data.pop("infill_method", None)
+    
+    print(data)
+
 
 @app.route('/shutdown', methods=['GET'])
 def shutdown():
     stop_queue()
     os._exit(0)
-
 
 @socketio.on("connect")
 def connected():
