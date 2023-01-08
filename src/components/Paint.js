@@ -110,9 +110,7 @@ function Paint () {
                 align="center"
                 spacing={4}>
                 <Box
-                    className="paint-output"
-                    ratio={16 / 9}
-                    width="75%">
+                    className="paint-output">
                     <UnifiedCanvas></UnifiedCanvas>
                 </Box>
                 <Box width="80%">

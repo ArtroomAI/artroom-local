@@ -134,7 +134,7 @@ try:
                         default="weighted_sum", required=False)
     parser.add_argument("--steps", type=int,
                         help="Select interpolation steps at which the Models will be merged. 5 will result in 5% 10% 15% 20% .defaults to '10'.",
-                        default=10, required=False)
+                        default=0, required=False)
     parser.add_argument("--start_steps", type=int, help="Where to start the steps, default 0", default=0,
                         required=False)
     parser.add_argument("--end_steps", type=int, help="Where to end the steps, default 100", default=100,
