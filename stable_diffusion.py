@@ -25,6 +25,7 @@ import math
 import os
 import sys
 from safetensors import safe_open
+from artroom_helpers import support
 
 sys.path.append("stable-diffusion/optimizedSD/")
 from ldm.util import instantiate_from_config
@@ -141,7 +142,7 @@ def image_grid(imgs, rows, cols, path):
 
 
 class StableDiffusion:
-    def __init__(self):
+    def __init__(self, socketio):
         self.current_num = 0
         self.total_num = 0
         self.stage = ''
@@ -164,6 +165,7 @@ class StableDiffusion:
         self.is_nvidia = is_16xx_series() == 'NVIDIA'
         self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
         self.speed = "High"
+        self.socketio = socketio
 
     def set_artroom_path(self, path):
         print("Setting up artroom path")
@@ -592,6 +594,8 @@ class StableDiffusion:
                             if newrand != self.latest_images_id:
                                 self.latest_images_id = newrand
                                 break
+
+                        self.socketio.emit("get_test", {'status': 'success', 'latest_images': support.image_to_b64(out_image)}, broadcast=True)
                         base_count += 1
                         seed += 1
                         if not skip_grid and n_iter > 1:

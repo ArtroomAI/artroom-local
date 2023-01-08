@@ -78,8 +78,8 @@ class ArtroomServer:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
-SD = StableDiffusion()
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+SD = StableDiffusion(socketio)
 UP = Upscaler()
 AS = ArtroomServer(SD) 
 
@@ -464,11 +464,11 @@ def connected():
     print("client has connected")
     emit("connect",{"data":f"id: {request.sid} is connected"})
 
-@socketio.on('data')
+@socketio.on('message')
 def handle_message(data):
     """event listener when client types a message"""
     print("data from the front end: ",str(data))
-    emit("data",{'data':data,'id':request.sid},broadcast=True)
+    emit("message",{'data':data,'id':request.sid},broadcast=True)
 
 @socketio.on("disconnect")
 def disconnected():
