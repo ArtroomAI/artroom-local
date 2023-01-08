@@ -31,6 +31,7 @@ export interface ImageMetadata {
     strength: string;
     cfg_scale: string;
     ckpt: string;
+    vae: string;
 }
 
 function ImageModal () {
@@ -152,7 +153,7 @@ function ImageModal () {
                             <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy}/></Button>
                             <Text fontWeight="bold" color="white.800">VAE:</Text>
                         </Box>
-                        <Text pl="8"> TBD</Text>
+                        <Text pl="8"> {imageModalMetadata.vae}</Text>
                     </Box>
                 </Flex>
                 

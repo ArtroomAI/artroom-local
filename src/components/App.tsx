@@ -71,7 +71,6 @@ function Main () {
     const [sampler, setSampler] = useRecoilState(atom.samplerState);
     const [cfg_scale, setCFGScale] = useRecoilState(atom.CFGScaleState);
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);
-    const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
     const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
@@ -79,6 +78,7 @@ function Main () {
     const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
     const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
     const [strength, setStrength] = useRecoilState(atom.strengthState);
+    const [vae, setVae] = useRecoilState(atom.vaeState);
 
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
@@ -123,7 +123,7 @@ function Main () {
                 setHighresFix(settings.highres_fix);
                 setCkpt(settings.ckpt);
                 setCkptDir(settings.ckpt_dir);
-                setUseCPU(settings.use_cpu);
+                setVae(settings.vae);
                 setSpeed(settings.speed);
                 setDebugMode(settings.debug_mode);
                 setDelay(settings.delay);

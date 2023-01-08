@@ -106,30 +106,6 @@ class QueueManager():
         else:
             data['strength'] = 0.75
 
-        data['precision'] = 'autocast'
-
-        # check whether GPU is a 1600 series and if so, update to use full percision
-        gpu = is_16xx_series()
-        if gpu == '16XX':
-            data['precision'] = 'full'
-        elif gpu == 'None':
-            data['precision'] = 'full'
-            data['use_cpu'] = True
-
-        if data['precision'] == 'full' and data['speed'] in ['Max']:
-            print('Full precision does not work with Max speeds')
-            data['speed'] = 'High'
-
-        if 'use_cpu' in data and data['use_cpu']:
-            data['device'] = 'cpu'
-            data['precision'] = 'full'
-            if data['speed'] == 'Max':
-                print(
-                    'CPU mode does not work with MAX speed setting, switch to High (although there will be no difference in speeds')
-                data['speed'] = 'High'
-        else:
-            data['device'] = 'cuda'
-
         if '%UserProfile%' in data['image_save_path']:
             data['image_save_path'] = data['image_save_path'].replace(
                 '%UserProfile%', os.environ['USERPROFILE'])
@@ -212,10 +188,9 @@ class QueueManager():
                 sampler=next_gen['sampler'],
                 cfg_scale=float(next_gen['cfg_scale']),
                 ckpt=ckpt_path,
+                vae=next_gen['vae'],
                 image_save_path=next_gen['image_save_path'],
                 speed=next_gen['speed'],
-                device=next_gen['device'],
-                precision=next_gen['precision'],
                 skip_grid=not next_gen['save_grid'],
             )
         except Exception as e:

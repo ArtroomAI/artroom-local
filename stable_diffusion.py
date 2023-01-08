@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
@@ -159,12 +157,12 @@ class StableDiffusion:
         self.modelFS = None
 
         self.ckpt = ''
+        self.vae = ''
         self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
         self.long_save_path = False
         self.highres_fix = False
-
-        self.device = "cuda"
-        self.precision = "autocast" if is_16xx_series() == 'NVIDIA' else "full"
+        self.is_nvidia = is_16xx_series() == 'NVIDIA'
+        self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
         self.speed = "High"
 
     def set_artroom_path(self, path):
@@ -179,34 +177,7 @@ class StableDiffusion:
             self.long_save_path = sd_settings['long_save_path']
             self.highres_fix = sd_settings['highres_fix']
 
-            # I commented this out because it fucking loaded the v2 model twice every fucking run
-            # Because of memory mode autoselect it loads like twice slower
-
             print("Go on boy, create art")
-
-            # model_ckpt = sd_settings['ckpt_dir'] + \
-            #              '/' + os.path.basename(sd_settings['ckpt'])
-            # model_ckpt = model_ckpt.replace(os.sep, '/')
-            # speed = sd_settings['speed']
-
-            # if os.path.exists(model_ckpt):
-            #     loaded = self.load_ckpt(model_ckpt, speed)
-            #     if loaded:
-            #         print("Model successfully loaded")
-            #     else:
-            #         print("Failed to load model from sd_settings.json")
-
-        # if not loaded:
-        #     print("Loading default model from artroom path...")
-        #     if os.path.exists(f"{self.artroom_path}/artroom/model_weights/model.ckpt"):
-        #         loaded = self.load_ckpt(
-        #             f"{self.artroom_path}/artroom/model_weights/model.ckpt", self.speed)
-        #         if loaded:
-        #             print("Loaded default model from artroom path")
-        #         else:
-        #             print("Failed to load model from artroom path")
-        #     else:
-        #         print("Failed to find default model")
 
     def get_steps(self):
         if self.model:
@@ -243,9 +214,7 @@ class StableDiffusion:
         return self.model is not None
 
     def load_vae(self, vae_path, safe_load_=True):
-        loadfn = safe_load if safe_load_ else torch.load
-        vae = loadfn(vae_path)
-        vae = vae["state_dict"]
+        vae = load_model_from_config(vae_path, safe_load_)
         vae = {k: v for k, v in vae.items() if
                ("loss" not in k) and
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
@@ -254,14 +223,13 @@ class StableDiffusion:
                    .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
-    def load_ckpt(self, ckpt, speed):
-        print(
-            f"Attempting to load {ckpt}, speed: {speed}, precision: {self.precision}, device: {self.device}")
+    def load_ckpt(self, ckpt, speed, vae):
+        print(f"Attempting to load {ckpt}, speed: {speed}")
         assert ckpt != '', 'Checkpoint cannot be empty'
-        if self.ckpt != ckpt or self.speed != speed:
+        if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed)
+                self.set_up_models(ckpt, speed, vae)
                 print("Successfully set up model")
                 return True
             except Exception as e:
@@ -272,7 +240,7 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
 
-    def set_up_models(self, ckpt, speed):
+    def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
         self.stage = "Loading Model"
         print("Loading model from config")
@@ -305,7 +273,7 @@ class StableDiffusion:
             self.model.parameterization = parameterization
             self.model.cdevice = self.device
             self.model.to(self.device)
-            if self.device != "cpu" and self.precision == "autocast":
+            if self.is_nvidia:
                 self.model.half()
                 torch.set_default_tensor_type(torch.HalfTensor)
 
@@ -374,7 +342,7 @@ class StableDiffusion:
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
-            if self.device != "cpu" and self.precision == "autocast":
+            if self.is_nvidia:
                 self.model.half()
                 self.modelCS.half()
                 self.modelFS.half()
@@ -382,15 +350,18 @@ class StableDiffusion:
         del sd
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
+        self.vae = vae
         self.stage = "Finished Loading Model"
         print("Model loading finished")
+        print("Loading vae")
+        if vae != "":
+            self.load_vae(vae)
+        print("Loading vae finished")
 
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
-                 n_iter=4, batch_size=1, ckpt="", image_save_path="", speed="High", device='cuda', precision='autocast',
-                 skip_grid=False):
-
+                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
         self.running = True
 
         oldW, oldH = W, H
@@ -418,11 +389,8 @@ class StableDiffusion:
         self.image_save_path = image_save_path
         ddim_steps = steps
 
-        self.device = device
-        self.precision = precision
-
         print("Setting up models...")
-        self.load_ckpt(ckpt, speed)
+        self.load_ckpt(ckpt, speed, vae)
         if not self.model:
             print("Setting up model failed")
             return 'Failure'
@@ -441,7 +409,7 @@ class StableDiffusion:
                 image = Image.open(init_image_str).convert('RGB')
             init_image = load_img(image, H, W).to(self.device)
             _, _, H, W = init_image.shape
-            if self.device != "cpu" and self.precision == "autocast":
+            if self.is_nvidia:
                 init_image = init_image.half()
         else:
             init_image = None
@@ -468,7 +436,7 @@ class StableDiffusion:
             if steps <= 0:
                 steps = 1
 
-        if self.precision == "autocast" and self.device != "cpu":
+        if self.is_nvidia:
             precision_scope = autocast
         else:
             precision_scope = nullcontext
@@ -521,7 +489,7 @@ class StableDiffusion:
                         for ij in range(1, highres_fix_steps + 1):
                             if init_image is not None:
                                 init_image = init_image.to(self.device)
-                                if self.device != "cpu" and self.precision == "autocast":
+                                if self.is_nvidia:
                                     init_image = init_image.half()
                                 init_image = repeat(
                                     init_image, '1 ... -> b ...', b=batch_size)
@@ -589,11 +557,11 @@ class StableDiffusion:
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
                                     out_image, H * (ij + 1), W * (ij + 1))
-                                if self.device != "cpu" and self.precision == "autocast":
+                                if self.is_nvidia:
                                     init_image = init_image.half()
                             elif ij == highres_fix_steps - 1:
                                 init_image = load_img(out_image, oldH, oldW)
-                                if self.device != "cpu" and self.precision == "autocast":
+                                if self.is_nvidia:
                                     init_image = init_image.half()
 
                         if mask is not None:
@@ -611,15 +579,19 @@ class StableDiffusion:
                             "cfg_scale":cfg_scale, 
                             "seed":seed, 
                             "sampler":sampler,
-                            "ckpt": os.path.basename(ckpt)
+                            "ckpt": os.path.basename(ckpt),
+                            "vae": os.path.basename(vae)
                         }
                         # 0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
                         self.latest_images_part2.append(out_image)
-                        self.latest_images_id = random.randint(1, 922337203685)
-
+                        while True:
+                            newrand = random.randint(1, 922337203685)
+                            if newrand != self.latest_images_id:
+                                self.latest_images_id = newrand
+                                break
                         base_count += 1
                         seed += 1
                         if not skip_grid and n_iter > 1:

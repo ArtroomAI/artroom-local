@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useReducer } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useInterval } from './Reusable/useInterval/useInterval';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -37,6 +37,7 @@ function Body () {
     const [use_random_seed, setUseRandomSeed] = useRecoilState(atom.useRandomSeedState);
     const [n_iter, setNIter] = useRecoilState(atom.nIterState);
     const [sampler, setSampler] = useRecoilState(atom.samplerState);
+    const [vae, setVae] = useRecoilState(atom.vaeState);
     const [cfg_scale, setCFGScale] = useRecoilState(atom.CFGScaleState);
     const [init_image, setInitImage] = useRecoilState(atom.initImageState);
     const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
@@ -44,8 +45,6 @@ function Body () {
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [use_full_precision, setUseFullPrecision] = useRecoilState(atom.useFullPrecisionState);
-    const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
@@ -280,12 +279,11 @@ function Body () {
                 strength,
                 reverse_mask: false,
                 ckpt,
+                vae,
                 image_save_path,
                 long_save_path,
                 highres_fix,
                 speed,
-                use_full_precision,
-                use_cpu,
                 save_grid,
                 debug_mode,
                 ckpt_dir,

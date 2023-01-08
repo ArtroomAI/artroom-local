@@ -12,7 +12,6 @@ interface QueueType {
     mask: string;
     n_iter: string;
     negative_prompts: string;
-    precision: string;
     text_prompts: string;
     sampler: string;
     seed: string;
