@@ -1,3 +1,4 @@
+import React, { FocusEvent, useEffect, useMemo, useState } from 'react';
 import {
   FormControl,
   FormControlProps,
@@ -23,7 +24,6 @@ import {
   Tooltip,
   TooltipProps,
 } from '@chakra-ui/react';
-import React, { FocusEvent, useEffect, useMemo, useState } from 'react';
 import { BiReset } from 'react-icons/bi';
 import _ from 'lodash';
 import { IconButton, IIconButtonProps } from '../IconButton/IconButton';

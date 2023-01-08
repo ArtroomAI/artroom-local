@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import React, { FC } from 'react';
 import { Heading } from '@chakra-ui/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 

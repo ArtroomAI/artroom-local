@@ -82,9 +82,6 @@ class QueueManager():
         if data['sampler'] in sampler_format_mapping:
             data['sampler'] = sampler_format_mapping[data['sampler']]
 
-        if len(data['image_save_path']) > 0 and data['image_save_path'][-1] != '/':
-            data['image_save_path'] += '/'
-
         if data['mask'] == '':
             data['invert'] = False
         else:
@@ -140,7 +137,7 @@ class QueueManager():
     def save_to_settings_folder(self, data):
         print("Saving settings...")
         if self.SD.long_save_path:
-            image_folder = os.path.join(data['image_save_path']+data['batch_name'], re.sub(
+            image_folder = os.path.join(data['image_save_path'],data['batch_name'], re.sub(
                 r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
             os.makedirs(image_folder, exist_ok=True)
             os.makedirs(image_folder+'/settings', exist_ok=True)
@@ -149,7 +146,7 @@ class QueueManager():
                 json.dump(data, outfile, indent=4)
         else:
             image_folder = os.path.join(
-                data['image_save_path']+data['batch_name'])
+                data['image_save_path'],data['batch_name'])
             os.makedirs(image_folder, exist_ok=True)
             os.makedirs(image_folder+'/settings', exist_ok=True)
             sd_settings_count = len(glob(image_folder+'/settings/*.json'))
