@@ -15,23 +15,6 @@ const ExifParser = require('exif-parser');
 require("dotenv").config();
 import { exposeMenuFunctions } from './menu-functions';
 
-// const getUserDataPath = () => {
-//   const platform = os.platform();
-//   if (platform === 'win32') {
-//     return path.join(process.env.APPDATA, appName);
-//   } else if (platform === 'darwin') {
-//     return path.join(process.env.HOME, 'Library', 'Application Support', appName);
-//   } else {
-//     return path.join('var', 'local', appName);
-//   }
-// }
-
-const imageGenerationSettings = "sd_settings.json"
-const imageSettings = "image_settings.json"
-const applicationSettings = "app_settings.json"
-
-// const userDataPath = getUserDataPath();
-
 let win;
 let hd = os.homedir();
 let LOCAL_URL = process.env.LOCAL_URL;
@@ -49,25 +32,28 @@ if (fs.existsSync(artroom_install_log)) {
   artroom_path = lines[0];
 }
 
+const loadSDData = () => {
+  const settingsPath = path.join(artroom_path, 'artroom\\settings');
+  const settingsFile = path.join(settingsPath, 'sd_settings.json');
+  fs.mkdirSync(settingsPath, { recursive: true });
+  
+  let sd_data;
+  try {
+    sd_data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+  } catch(err) {
+    sd_data = JSON.parse(fs.readFileSync("sd_settings.json", 'utf-8'));
+  }
+  sd_data['image_save_path'] = path.normalize(sd_data.image_save_path.replace('%UserProfile%', hd));
+  sd_data['ckpt'] = path.normalize(sd_data.ckpt.replace('%InstallPath%', artroom_path));
+  sd_data['ckpt_dir'] = path.normalize(sd_data.ckpt_dir.replace('%InstallPath%', artroom_path));
+
+  fs.writeFileSync(settingsFile, JSON.stringify(sd_data, null, 2));
+
+  return sd_data;
+}
+
 //replace placeholders with actual paths
-let sd_data;
-let sd_data_json;
-try {
-  sd_data = fs.readFileSync(artroom_path + "\\artroom\\settings\\sd_settings.json", 'utf-8');
-}
-catch (e) {
-  sd_data = fs.readFileSync("sd_settings.json", 'utf-8');
-}
-sd_data_json = JSON.parse(sd_data);
-sd_data_json['image_save_path'] = sd_data_json['image_save_path'].replace('%UserProfile%', hd);
-sd_data_json['image_save_path'] = path.normalize(sd_data_json['image_save_path']);
-sd_data_json['ckpt'] = sd_data_json['ckpt'].replace('%InstallPath%', artroom_path);
-sd_data_json['ckpt'] = path.normalize(sd_data_json['ckpt']);
-sd_data_json['ckpt_dir'] = sd_data_json['ckpt_dir'].replace('%InstallPath%', artroom_path);
-sd_data_json['ckpt_dir'] = path.normalize(sd_data_json['ckpt_dir']);
-let debugModeInit = sd_data_json['debug_mode'] as boolean;
-sd_data = JSON.stringify(sd_data_json, null, 2);
-fs.writeFileSync(artroom_path + "\\artroom\\settings\\sd_settings.json", sd_data);
+const sd_data = loadSDData();
 
 async function getB64(data: string) {
   return new Promise((resolve, reject) => {
@@ -113,7 +99,7 @@ const serverCommand = "\"" + artroom_path + "\\artroom\\miniconda3\\Scripts\\con
 
 const mergeModelsCommand = "\"" + artroom_path + "\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run --no-capture-output -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python model_merger.py";
 
-let server = spawn(serverCommand, { detached: debugModeInit, shell: true })
+let server = spawn(serverCommand, { detached: sd_data.debug_mode, shell: true })
 
 function createWindow() {
   //Connect to server
@@ -345,6 +331,26 @@ function createWindow() {
           resolve(result.filePaths[0]);
         }
         else {
+          resolve("");
+        }
+      }).catch(err => {
+        resolve("");
+      })
+
+    });
+  });
+  
+  ipcMain.handle('chooseVae', (event) => {
+    return new Promise((resolve, reject) => {
+      dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+          { name: 'Vaes', extensions: ['pt', 'ckpt', 'safetensor'] },
+        ]
+      }).then(result => {
+        if (result.filePaths.length > 0) {
+          resolve(result.filePaths[0]);
+        } else {
           resolve("");
         }
       }).catch(err => {

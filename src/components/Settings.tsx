@@ -34,11 +34,11 @@ function Settings () {
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [use_cpu, setUseCPU] = useRecoilState(atom.useCPUState);
     const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
     const [delay, setDelay] = useRecoilState(atom.delayState);
+    const [vae, setVae] = useRecoilState(atom.vaeState);
 
     const [debug_mode_orig, setDebugModeOrig] = useState(true);
 
@@ -52,7 +52,6 @@ function Settings () {
                 setCkptDir(settings.ckpt_dir);
                 setSpeed(settings.speed);
                 setDelay(settings.delay);
-                setUseCPU(settings.use_cpu);
                 setSaveGrid(settings.save_grid);
                 setDebugMode(settings.debug_mode);
                 setDebugModeOrig(settings.debug_mode);
@@ -66,7 +65,6 @@ function Settings () {
         setDebugModeOrig(debug_mode);
         const output = {
             speed,
-            use_cpu,
             image_save_path,
             long_save_path,
             highres_fix,
@@ -145,16 +143,17 @@ function Settings () {
             saveSettings();
         }
     };
+
     const chooseUploadPath = () => {
-        window.api.chooseUploadPath().then((result) => {
-            setImageSavePath(result);
-        });
+        window.api.chooseUploadPath().then(setImageSavePath);
     };
 
     const chooseCkptDir = () => {
-        window.api.chooseUploadPath().then((result) => {
-            setCkptDir(result);
-        });
+        window.api.chooseUploadPath().then(setCkptDir);
+    };
+    
+    const chooseVae = () => {
+        window.api.chooseVae().then(setVae);
     };
 
     return (
@@ -219,6 +218,39 @@ function Settings () {
                         />
 
                         <Button onClick={chooseCkptDir}>
+                            Choose
+                        </Button>
+                    </HStack>
+                </FormControl>
+
+                <FormControl
+                    className="model-vae-input"
+                    width="full">
+                    <HStack>
+                        <Tooltip
+                            fontSize="md"
+                            label="Choose vae file"
+                            placement="top"
+                            shouldWrapChildren>
+                            <FaQuestionCircle color="#777" />
+                        </Tooltip>
+
+                        <FormLabel htmlFor="vae">
+                            Vae file
+                        </FormLabel>
+                    </HStack>
+
+                    <HStack>
+                        <Input
+                            id="vae"
+                            name="vae"
+                            onChange={(event) => setVae(event.target.value)}
+                            type="text"
+                            value={vae}
+                            variant="outline"
+                        />
+
+                        <Button onClick={chooseVae}>
                             Choose
                         </Button>
                     </HStack>
@@ -380,28 +412,6 @@ function Settings () {
                     <Tooltip
                         fontSize="md"
                         label="Opens cmd console of detailed outputs during image generation"
-                        mt="3"
-                        placement="right"
-                        shouldWrapChildren>
-                        <FaQuestionCircle color="#777" />
-                    </Tooltip>
-                </HStack>
-
-                <HStack className="use-cpu-input">
-                    <Checkbox
-                        id="use_cpu"
-                        isChecked={use_cpu}
-                        name="use_cpu"
-                        onChange={() => {
-                            setUseCPU(!use_cpu);
-                        }}
-                    >
-                        Use CPU (Not Recommended)
-                    </Checkbox>
-
-                    <Tooltip
-                        fontSize="md"
-                        label="Use your CPU instead of GPU. Will run much slower but will work better on low VRAM GPUs"
                         mt="3"
                         placement="right"
                         shouldWrapChildren>

@@ -151,12 +151,6 @@ export const TOUR_STEPS_SETTINGS = [{
     target: '.debug-mode-input',
     content: 'When Debug Mode is set, a terminal window will appear with detailed python output during image generation. Toggling this box will restart Python process with terminal visible or hidden.'
 }, {
-    target: '.full-precision-input',
-    content: 'If you have a 1600 series NVIDIA GPU, turning on this setting will help you get rid of the weird green box error. Otherwise, this won\'t have any effect'
-}, {
-    target: '.use-cpu-input',
-    content: 'If you don\'t have an NVIDIA GPU you can use the CPU setting. Not recommended. We\'ll add in cloud support and AMD support in the future for you!'
-}, {
     target: '.save-settings-button',
     content: 'Don\'t forget to click save!'
 }, outro];

@@ -72,6 +72,11 @@ export const ckptState = atom({
     default: ''
 });
 
+export const vaeState = atom({
+    key: 'vae',
+    default: ''
+});
+
 export const ckptsState = atom({
     key: 'ckpts',
     default: []
@@ -172,16 +177,6 @@ export const strengthState = atom({
     default: 0
 });
 
-export const useCPUState = atom({
-    key: 'use_cpu',
-    default: false
-});
-
-export const useFullPrecisionState = atom({
-    key: 'use_full_precision',
-    default: false
-});
-
 export const useRandomSeedState = atom({
     key: 'use_random_seed',
     default: false
@@ -250,7 +245,8 @@ export const imageModalMetadataState = atom<ImageMetadata>({
         steps: '',
         strength: '',
         cfg_scale: '',
-        ckpt: ''
+        ckpt: '',
+        vae: ''
     }
 });
 
