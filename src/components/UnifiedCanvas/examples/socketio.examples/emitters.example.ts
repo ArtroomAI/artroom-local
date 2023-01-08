@@ -1,7 +1,6 @@
 export {};
 // import { AnyAction, Dispatch, MiddlewareAPI } from '@reduxjs/toolkit';
 // import { Socket } from 'socket.io-client';
-// import { InvokeTabName } from 'tabs/tabMap';
 // import { Image } from 'painter';
 // import type { RootState } from 'app/store';
 // import {
@@ -35,7 +34,7 @@ export {};
 // 	const { dispatch, getState } = store;
 
 // 	return {
-// 		emitGenerateImage: (generationMode: InvokeTabName) => {
+// 		emitGenerateImage: (generationMode: 'unifiedCanvas') => {
 // 			dispatch(setIsProcessing(true));
 
 // 			const state: RootState = getState();

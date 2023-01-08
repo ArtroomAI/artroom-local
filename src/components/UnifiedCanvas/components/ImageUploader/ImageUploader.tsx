@@ -1,5 +1,4 @@
-import React from 'react';
-import {
+import React, {
   useCallback,
   ReactNode,
   useState,
@@ -12,7 +11,9 @@ import { useToast } from '@chakra-ui/react';
 import { useImageUploader } from '../../hooks';
 import { ImageUploaderTriggerContext } from './ImageUploaderTriggerContext';
 import { ImageUploadOverlay } from './ImageUploadOverlay';
-// import { uploadImage } from 'gallery/store/thunks/uploadImage';
+import { uploadImage } from '../../helpers/uploadImage';
+import { useSetRecoilState } from 'recoil';
+import { setInitialCanvasImageAction } from '../../atoms/canvas.atoms';
 
 type ImageUploaderProps = {
   children: ReactNode;
@@ -22,6 +23,8 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
   const { children } = props;
   const toast = useToast({});
   const [isHandlingUpload, setIsHandlingUpload] = useState<boolean>(false);
+  const setInitialCanvasImage = useSetRecoilState(setInitialCanvasImageAction)
+  
   const { setOpenUploader } = useImageUploader();
 
   const fileRejectionCallback = useCallback(
@@ -42,9 +45,8 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
   );
 
   const fileAcceptedCallback = useCallback(async (file: File) => {
+    uploadImage({ imageFile: file, setInitialCanvasImage: setInitialCanvasImage});
     console.log(file, 'imageFile');
-
-    // dispatch(uploadImage({ imageFile: file }));
   }, []);
 
   const onDrop = useCallback(
@@ -120,9 +122,8 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
         });
         return;
       }
-
-      // dispatch(uploadImage({ imageFile: file }));
       console.log(file, 'imageFile');
+      uploadImage({ imageFile: file, setInitialCanvasImage: setInitialCanvasImage});
     };
     document.addEventListener('paste', pasteImageListener);
     return () => {

@@ -28,11 +28,20 @@ import { isProcessingAtom } from '../../atoms/system.atoms';
 import { Select, IconButton } from '../../components';
 import { CanvasLayer, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
 import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
-import { getCanvasBaseLayer } from '../../util';
+import {getCanvasBaseLayer } from '../../util';
 import { CanvasMaskOptions } from './CanvasMaskOptions';
 import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
 import { CanvasRedoButton } from './CanvasRedoButton';
 import { CanvasUndoButton } from './CanvasUndoButton';
+import axios from 'axios';
+
+//Inpainting Specific
+import { frontendToBackendParameters, FrontendToBackendParametersConfig} from '../../util'
+import { OptionsState } from '../../painter';
+
+const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
+const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+const baseURL = LOCAL_URL;
 
 // import {
 // 	resetCanvas,
@@ -99,6 +108,9 @@ export const CanvasOutpaintingControls: FC = () => {
   const isStaging = useRecoilValue(isStagingSelector);
 
   const { openUploader } = useImageUploader();
+
+
+  //For Generation
 
   useHotkeys(
     ['v'],
@@ -224,14 +236,33 @@ export const CanvasOutpaintingControls: FC = () => {
   };
 
   const handleDownloadAsImage = () => {
-    alert('mergeAndUploadCanvas action placeholder');
-    // dispatch(
-    // 	mergeAndUploadCanvas({
-    // 		cropVisible: shouldCropToBoundingBoxOnSave ? false : true,
-    // 		cropToBoundingBox: shouldCropToBoundingBoxOnSave,
-    // 		shouldDownload: true,
-    // 	})
-    // );
+    // const frontendToBackendParametersConfig: FrontendToBackendParametersConfig =
+    //   {
+    //     generationMode: "unifiedCanvas",
+    //     optionsState,
+    //     canvasState,
+    //     systemState,
+    //   };
+
+    // const { generationParameters, esrganParameters, facetoolParameters } = frontendToBackendParameters(frontendToBackendParametersConfig);
+
+    // console.log(generationParameters)
+    // console.log(esrganParameters)
+    // console.log(facetoolParameters)
+
+    const body = {
+      generationMode: 'inpainting',
+
+    };
+    axios.post(
+      `${baseURL}/invoke_inpainting`,
+      body,
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+      ).then(result =>{
+        console.log(result);
+      })
   };
 
   const handleChangeLayer = (e: ChangeEvent<HTMLSelectElement>) => {
