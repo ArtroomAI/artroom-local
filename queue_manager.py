@@ -152,8 +152,11 @@ class QueueManager():
         print("Settings saved")
 
     def save_settings_cache(self, data):
+        with open(f'{self.artroom_path}/artroom/settings/sd_settings.json', 'r') as infile:
+            existing_data = json.load(infile)
+        existing_data.update(data)
         with open(f'{self.artroom_path}/artroom/settings/sd_settings.json', 'w') as outfile:
-            json.dump(data, outfile, indent=4)
+            json.dump(existing_data, outfile, indent=4)
 
     def generate(self, next_gen):
         mask_b64 = next_gen['mask_image']

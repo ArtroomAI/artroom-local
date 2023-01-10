@@ -89,10 +89,6 @@ def load_img(image, h0, w0):
 
 def load_mask(mask, h0, w0, newH, newW, invert=False):
     image = np.array(mask)
-    if invert:
-        image = np.clip(image, 254, 255) + 1
-    else:
-        image = np.clip(image + 1, 0, 1) - 1
     image = Image.fromarray(image).convert("RGB")
     w, h = image.size
     print(f"loaded input mask of size ({w}, {h})")
@@ -364,6 +360,8 @@ class StableDiffusion:
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
         self.running = True
 
+
+
         oldW, oldH = W, H
         if W * H > 1024 * 1024 and self.highres_fix:
             highres_fix_steps = math.ceil((W * H) / (1024 * 1024))
@@ -383,7 +381,9 @@ class StableDiffusion:
         gc.collect()
         seed_everything(seed)
 
-        if len(init_image_str) > 0 and sampler == 'plms':
+        if len(init_image_str) > 0 and sampler == 'plms' or len(mask_b64) > 0:
+            if len(mask_b64) > 0:
+                print("Currently, only DDIM works with masks. Switching samplers to DDIM")
             sampler = 'ddim'
 
         self.image_save_path = image_save_path
@@ -510,8 +510,7 @@ class StableDiffusion:
                                     mask = b64_to_image(mask_b64).convert('L')
                                 else:
                                     mask = Image.open(mask).convert("L")
-                                mask = load_mask(mask, H, W, init_latent.shape[2], init_latent.shape[3], invert).to(
-                                    self.device)
+                                mask = load_mask(mask, H, W, init_latent.shape[2], init_latent.shape[3], invert).to(self.device)
                                 mask = mask[0][0].unsqueeze(
                                     0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(

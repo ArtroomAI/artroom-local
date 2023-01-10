@@ -19,7 +19,7 @@
     "highres_fix": true,
     "speed": "High",
     "save_grid": false,
-    "debug_mode": false,
+    "debug_mode": true,
     "ckpt": "model.ckpt",
     "vae": "",
     "ckpt_dir": "%InstallPath%/artroom/model_weights/",

@@ -274,12 +274,12 @@ export const CanvasOutpaintingControls: FC = () => {
     canvasBaseLayer.scale(tempScale);
     const body = {
       ...imageSettings,
-      imageDataURL,
-      maskDataURL
+      init_image: imageDataURL,
+      mask_image: maskDataURL
     };
     
     axios.post(
-      `${baseURL}/invoke_inpainting`,
+      `${baseURL}/add_to_queue`,
       body,
       {
         headers: { 'Content-Type': 'application/json' }
