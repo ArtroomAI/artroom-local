@@ -461,7 +461,7 @@ function SDSettings () {
                                 min={0.0}
                                 name="strength"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, strength: parseInt(v)});
+                                    setImageSettings({...imageSettings, strength: parseFloat(v)});
                                 }}        
                                 step={0.01}
                                 value={imageSettings.strength}
