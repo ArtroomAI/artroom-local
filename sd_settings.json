@@ -13,7 +13,7 @@
     "sampler": "ddim",
     "init_image": "",
     "strength": 0.75,
-    "reverse_mask": false,
+    "invert": false,
     "image_save_path": "%UserProfile%/Desktop/",
     "long_save_path": false,
     "highres_fix": true,

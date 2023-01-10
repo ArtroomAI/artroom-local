@@ -23,12 +23,17 @@ import {
   resizeAndScaleCanvasAction,
   shouldCropToBoundingBoxOnSaveAtom,
   isStagingSelector,
+  stageScaleAtom,
+  boundingBoxCoordinatesAtom,
+  boundingBoxDimensionsAtom,
+  layerStateAtom,
 } from '../../atoms/canvas.atoms';
+import { imageSettingsState } from '../../../../atoms/atoms';
 import { isProcessingAtom } from '../../atoms/system.atoms';
 import { Select, IconButton } from '../../components';
-import { CanvasLayer, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
+import { CanvasLayer, isCanvasMaskLine, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
 import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
-import {getCanvasBaseLayer } from '../../util';
+import {generateMask, getCanvasBaseLayer } from '../../util';
 import { CanvasMaskOptions } from './CanvasMaskOptions';
 import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
 import { CanvasRedoButton } from './CanvasRedoButton';
@@ -109,8 +114,12 @@ export const CanvasOutpaintingControls: FC = () => {
 
   const { openUploader } = useImageUploader();
 
-
   //For Generation
+  const stageScale = useRecoilValue(stageScaleAtom);  
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
+  const layerState = useRecoilValue(layerStateAtom);  
+  const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
 
   useHotkeys(
     ['v'],
@@ -236,24 +245,39 @@ export const CanvasOutpaintingControls: FC = () => {
   };
 
   const handleDownloadAsImage = () => {
-    // const frontendToBackendParametersConfig: FrontendToBackendParametersConfig =
-    //   {
-    //     generationMode: "unifiedCanvas",
-    //     optionsState,
-    //     canvasState,
-    //     systemState,
-    //   };
-
-    // const { generationParameters, esrganParameters, facetoolParameters } = frontendToBackendParameters(frontendToBackendParametersConfig);
-
-    // console.log(generationParameters)
-    // console.log(esrganParameters)
-    // console.log(facetoolParameters)
-
-    const body = {
-      generationMode: 'inpainting',
-
+    const canvasBaseLayer = getCanvasBaseLayer();
+    const boundingBox = {
+      ...boundingBoxCoordinates,
+      ...boundingBoxDimensions,
     };
+    const maskDataURL = generateMask(
+      isMaskEnabled ? layerState.objects.filter(isCanvasMaskLine) : [],
+      boundingBox
+    );
+  
+    const tempScale = canvasBaseLayer.scale();
+  
+    canvasBaseLayer.scale({
+      x: 1 / stageScale,
+      y: 1 / stageScale,
+    });
+  
+    const absPos = canvasBaseLayer.getAbsolutePosition();
+  
+    const imageDataURL = canvasBaseLayer.toDataURL({
+      x: boundingBox.x + absPos.x,
+      y: boundingBox.y + absPos.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
+    });
+
+    canvasBaseLayer.scale(tempScale);
+    const body = {
+      ...imageSettings,
+      imageDataURL,
+      maskDataURL
+    };
+    
     axios.post(
       `${baseURL}/invoke_inpainting`,
       body,

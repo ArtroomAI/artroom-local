@@ -96,14 +96,6 @@ function QueueModal (props: QueueTypeWithIndex) {
                                     value={props.mask} />
                                 : <></>}
 
-                            {props.mask.length > 0
-                                ? <QueueModalRow
-                                    name="Invert:"
-                                    value={props.mask.length > 0
-                                        ? props.invert
-                                        : ''} />
-                                : <></>}
-
                             <QueueModalRow
                                 name="Image:"
                                 value={props.init_image.length > 0 && props.init_image.length < 250

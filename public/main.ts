@@ -113,20 +113,12 @@ function createWindow() {
   });
   
   socket.on('message', function(message) {
-    console.log('Received message: ' + message.toString());
+    console.log(message);
   });
 
   socket.on('get_test', function(message) {
-    console.log('Received get test: ' + message);
+    console.log('Received get test: ' + message.toString());
   });
-  
-  socket.onAny(function(message) {
-    console.log(message);
-  });
-  
-  socket.onAnyOutgoing((message) => {
-      console.log(message);
-  })
   
   // Send a message to the server
   socket.emit('message', 'Hello, server!');

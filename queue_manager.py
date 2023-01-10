@@ -82,11 +82,6 @@ class QueueManager():
         if data['sampler'] in sampler_format_mapping:
             data['sampler'] = sampler_format_mapping[data['sampler']]
 
-        if data['mask'] == '':
-            data['invert'] = False
-        else:
-            data['invert'] = data['reverse_mask']
-
         if data['use_random_seed']:
             data['seed'] = random.randint(1, 4294967295)
         else:
@@ -161,8 +156,8 @@ class QueueManager():
             json.dump(data, outfile, indent=4)
 
     def generate(self, next_gen):
-        mask_b64 = next_gen['mask']
-        next_gen['mask'] = ''
+        mask_b64 = next_gen['mask_image']
+        next_gen['mask_image'] = ''
         init_image_str = next_gen['init_image']
         print("Saving settings to folder...")
         self.save_to_settings_folder(next_gen)

@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, make_response
-from flask_socketio import SocketIO,emit
+from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
 
 from upscale import Upscaler
@@ -78,7 +78,7 @@ class ArtroomServer:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=False, engineio_logger=False)
 SD = StableDiffusion(socketio)
 UP = Upscaler()
 AS = ArtroomServer(SD) 
@@ -268,8 +268,8 @@ def add_to_queue():
     data_copy = dict(data)
     if len(data_copy['init_image']):
         data_copy['init_image'] = data_copy['init_image'][:100]+"..."
-    if len(data_copy['mask']):
-        data_copy['mask'] = data_copy['mask'][:100]+"..."
+    if len(data_copy['mask_image']):
+        data_copy['mask_image'] = data_copy['mask_image'][:100]+"..."
     print(f'Added to queue: {data_copy}')
     if not QM.running:
         run_sd()
@@ -411,7 +411,7 @@ def invoke_inpainting():
 
     # Convert mask dataURL to an image and convert to greyscale
     mask_image = support.dataURL_to_image(
-        data["init_mask"]
+        data["mask_image"]
     ).convert("L")
 
     actual_generation_mode = support.get_canvas_generation_mode(
@@ -427,7 +427,7 @@ def invoke_inpainting():
     alpha_mask.putalpha(mask_image)
 
     data["init_img"] = initial_image
-    data["init_mask"] = alpha_mask
+    data["mask_image"] = alpha_mask
 
     # Remove the unneeded parameters for whichever mode we are doing
     if actual_generation_mode == "inpainting":
@@ -462,19 +462,19 @@ def connected():
     """event listener when client connects to the server"""
     print(request.sid)
     print("client has connected")
-    emit("connect",{"data":f"id: {request.sid} is connected"})
+    socketio.emit("connect",{"data":f"id: {request.sid} is connected"})
 
 @socketio.on('message')
 def handle_message(data):
     """event listener when client types a message"""
     print("data from the front end: ",str(data))
-    emit("message",{'data':data,'id':request.sid},broadcast=True)
+    socketio.emit("message",{'data':data,'id':request.sid},broadcast=True)
 
 @socketio.on("disconnect")
 def disconnected():
     """event listener when client disconnects to the server"""
     print("user disconnected")
-    emit("disconnect",f"user {request.sid} disconnected",broadcast=True)
+    socketio.emit("disconnect",f"user {request.sid} disconnected",broadcast=True)
     
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5300)

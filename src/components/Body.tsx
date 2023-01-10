@@ -26,37 +26,13 @@ function Body () {
 
     const { ToastContainer, toast } = createStandaloneToast();
 
-    const [width, setWidth] = useRecoilState(atom.widthState);
-    const [height, setHeight] = useRecoilState(atom.heightState);
-    const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
-    const [negative_prompts, setNegativePrompts] = useRecoilState(atom.negativePromptsState);
-    const [batch_name, setBatchName] = useRecoilState(atom.batchNameState);
-    const [steps, setSteps] = useRecoilState(atom.stepsState);
-    const [aspect_ratio, setAspectRatio] = useRecoilState(atom.aspectRatioState);
-    const [seed, setSeed] = useRecoilState(atom.seedState);
-    const [use_random_seed, setUseRandomSeed] = useRecoilState(atom.useRandomSeedState);
-    const [n_iter, setNIter] = useRecoilState(atom.nIterState);
-    const [sampler, setSampler] = useRecoilState(atom.samplerState);
-    const [vae, setVae] = useRecoilState(atom.vaeState);
-    const [cfg_scale, setCFGScale] = useRecoilState(atom.CFGScaleState);
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
-    const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
-    const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
-    const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
-    const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
-    const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
-    const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
-    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
-    const [strength, setStrength] = useRecoilState(atom.strengthState);
-    const [delay, setDelay] = useRecoilState(atom.delayState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
     const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [progress, setProgress] = useState(-1);
-    const [stage, setStage] = useState('');
     const [running, setRunning] = useState(false);
     const [focused, setFocused] = useState(false);
 
@@ -196,7 +172,6 @@ function Body () {
                     if (result.data.status === 'Success') {
                         setProgress(result.data.content.percentage);
                         setRunning(result.data.content.running);
-                        setStage(result.data.content.stage);
                         if (result.data.content.status === 'Loading Model' && !toast.isActive('loading-model')) {
                             toast({
                                 id: 'loading-model',
@@ -214,7 +189,6 @@ function Body () {
                         }
                     } else {
                         setProgress(-1);
-                        setStage('');
                         setRunning(false);
                         if (toast.isActive('loading-model')) {
                             toast.close('loading-model');
@@ -240,11 +214,6 @@ function Body () {
                 headers: { 'Content-Type': 'application/json' } }
             ).then((result) => {
                 const id = result.data.content.latest_images_id;
-
-                /*
-                 * Console.log(id);
-                 * console.log(latestImagesID);
-                 */
                 if (result.data.status === 'Success') {
                     if (id !== latestImagesID) {
                         setLatestImagesID(id);
@@ -261,35 +230,7 @@ function Body () {
 
     const submitMain = () => {
         axios.post(
-            `${baseURL}/add_to_queue`,
-            {
-                text_prompts,
-                negative_prompts,
-                batch_name,
-                steps,
-                aspect_ratio,
-                width,
-                height,
-                seed,
-                use_random_seed,
-                n_iter,
-                cfg_scale,
-                sampler,
-                init_image,
-                strength,
-                reverse_mask: false,
-                ckpt,
-                vae,
-                image_save_path,
-                long_save_path,
-                highres_fix,
-                speed,
-                save_grid,
-                debug_mode,
-                ckpt_dir,
-                mask: '',
-                delay
-            },
+            `${baseURL}/add_to_queue`, imageSettings,
             {
                 headers: { 'Content-Type': 'application/json' }
             }

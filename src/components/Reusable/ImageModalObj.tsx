@@ -9,7 +9,7 @@ import ContextMenuList from './ContextMenu/ContextMenuList';
 import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 
 export default function ImageModalObj ({b64} : { b64: string }) {
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 
     const copyToClipboard = () => {
@@ -27,14 +27,14 @@ export default function ImageModalObj ({b64} : { b64: string }) {
             </ContextMenuTrigger>
 
             <ContextMenuList>
-                <ContextMenuItem onClick={() => {
+                <ContextMenuItem disabled = {false} colorScheme={'white'} onClick={() => {
                     setInitImagePath('');
-                    setInitImage(b64);
+                    setImageSettings({...imageSettings, init_image: b64});
                 }}>
                     Set As Starting Image
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={() => {
+                <ContextMenuItem disabled = {false} colorScheme={'white'} onClick={() => {
                     copyToClipboard();
                 }}>
                     Copy To Clipboard

@@ -30,28 +30,14 @@ import { IoMdCloud } from 'react-icons/io';
 
 function SDSettings () {
     const { ToastContainer, toast } = createStandaloneToast();
-
-    const [width, setWidth] = useRecoilState(atom.widthState);
-    const [height, setHeight] = useRecoilState(atom.heightState);
-    const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
-    const [batch_name, setBatchName] = useRecoilState(atom.batchNameState);
-    const [steps, setSteps] = useRecoilState(atom.stepsState);
-    const [aspect_ratio, setAspectRatio] = useRecoilState(atom.aspectRatioState);
+    
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
-    const [seed, setSeed] = useRecoilState(atom.seedState);
-    const [use_random_seed, setUseRandomSeed] = useRecoilState(atom.useRandomSeedState);
-    const [n_iter, setNIter] = useRecoilState(atom.nIterState);
-    const [sampler, setSampler] = useRecoilState(atom.samplerState);
-    const [cfg_scale, setCFGScale] = useRecoilState(atom.CFGScaleState);
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
-    const [strength, setStrength] = useRecoilState(atom.strengthState);
-    const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
     const [ckpts, setCkpts] = useState([]);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
 
     const getCkpts = () => {
-        window.api.getCkpts(ckpt_dir).then((result) => {
+        window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
         });
@@ -68,7 +54,32 @@ function SDSettings () {
         () => {
             getCkpts();
         },
-        [ckpt_dir]
+        [imageSettings.ckpt_dir]
+    );
+
+    useEffect(
+        () => {
+            if (imageSettings.width > 0) {
+                let newHeight = imageSettings.height;
+                if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
+                    try {
+                        const values = imageSettings.aspect_ratio.split(':');
+                        const widthRatio = parseFloat(values[0]);
+                        const heightRatio = parseFloat(values[1]);
+                        if (!isNaN(widthRatio) && !isNaN(heightRatio)) {
+                            newHeight = Math.min(
+                                1920,
+                                Math.floor(imageSettings.width * heightRatio / widthRatio / 64) * 64
+                            );
+                        }
+                    } catch {
+
+                    }
+                    setImageSettings({...imageSettings, height: newHeight});
+                }
+            }
+        },
+        [imageSettings.width, imageSettings.aspect_ratio]
     );
 
     const uploadSettings = () => {
@@ -84,18 +95,30 @@ function SDSettings () {
                         throw 'Invalid JSON';
                     }
                     console.log(settings);
-                    setTextPrompts(settings.text_prompts);
-                    setBatchName(settings.batch_name);
-                    setSteps(settings.steps);
-                    setAspectRatio(settings.aspect_ratio);
-                    setWidth(settings.width);
-                    setHeight(settings.height);
-                    setSeed(settings.seed);
-                    setInitImage(settings.init_image);
-                    setCFGScale(settings.cfg_scale);
-                    setNIter(settings.n_iter);
-                    setSampler(settings.sampler);
-                    setStrength(settings.strength);
+                    setImageSettings({
+                        text_prompts: settings.text_prompts,
+                        negative_prompts: settings.negative_prompts,
+                        batch_name: settings.batch_name,
+                        n_iter: settings.n_iter,
+                        steps: settings.steps,
+                        strength: settings.strength,
+                        cfg_scale: settings.cfg_scale,
+                        sampler: settings.sampler,
+                        width: settings.width,
+                        height: settings.height,
+                        aspect_ratio: settings.aspect_ratio,
+                        ckpt: settings.ckpt,
+                        vae: settings.vae,
+                        seed: settings.seed,
+                        speed: settings.speed,
+                        save_grid: settings.save_grid,
+                        use_random_seed: settings.use_random_seed,
+                        init_image: settings.init_image,
+                        mask_image: '',
+                        invert: false,
+                        image_save_path: settings.image_save_path,
+                        ckpt_dir: settings.ckpt_dir,
+                    })
                 } catch (err) {
                     toast({
                         'title': 'Load Failed',
@@ -134,8 +157,8 @@ function SDSettings () {
                         <Input
                             id="batch_name"
                             name="batch_name"
-                            onChange={(event) => setBatchName(event.target.value)}
-                            value={batch_name}
+                            onChange={(event) => setImageSettings({...imageSettings, batch_name: event.target.value})}
+                            value={imageSettings.batch_name}
                             variant="outline"
                         />
                     </FormControl>
@@ -151,9 +174,9 @@ function SDSettings () {
                                 min={1}
                                 name="n_iter"
                                 onChange={(v) => {
-                                    setNIter(v);
+                                    setImageSettings({...imageSettings, n_iter: parseInt(v)});
                                 }}
-                                value={n_iter}
+                                value={imageSettings.n_iter}
                                 variant="outline"
                             >
                                 <NumberInputField id="n_iter" />
@@ -181,9 +204,9 @@ function SDSettings () {
                                 min={1}
                                 name="steps"
                                 onChange={(v) => {
-                                    setSteps(v);
+                                    setImageSettings({...imageSettings, steps: parseInt(v)});
                                 }}
-                                value={steps}
+                                value={imageSettings.steps}
                                 variant="outline"
                             >
                                 <NumberInputField id="steps" />
@@ -210,7 +233,7 @@ function SDSettings () {
                                     onChange={(event) => {
                                         setAspectRatioSelection(event.target.value);
                                         if (event.target.value !== 'Custom') {
-                                            setAspectRatio(event.target.value);
+                                            setImageSettings({...imageSettings, aspect_ratio: event.target.value});
                                         }
                                     }}
                                     value={aspectRatioSelection}
@@ -291,8 +314,8 @@ function SDSettings () {
                                     ? <Input
                                         id="aspect_ratio"
                                         name="aspect_ratio"
-                                        onChange={(event) => setAspectRatio(event.target.value)}
-                                        value={aspect_ratio}
+                                        onChange={(event) =>                                             setImageSettings({...imageSettings, aspect_ratio: event.target.value})}
+                                        value={imageSettings.aspect_ratio}
                                         variant="outline"
                                     />
                                     : <></>}
@@ -309,13 +332,15 @@ function SDSettings () {
                                 colorScheme="teal"
                                 defaultValue={512}
                                 id="width"
-                                isReadOnly={aspect_ratio === 'Init Image'}
+                                isReadOnly={imageSettings.aspect_ratio === 'Init Image'}
                                 max={1920}
                                 min={256}
                                 name="width"
-                                onChange={setWidth}
+                                onChange={(v) => {
+                                    setImageSettings({...imageSettings, width: parseInt(v)});
+                                }}                                
                                 step={64}
-                                value={width}
+                                value={imageSettings.width}
                                 variant="outline"
                             >
                                 <SliderTrack bg="#EEEEEE">
@@ -330,8 +355,8 @@ function SDSettings () {
                                 <Tooltip
                                     bg="#4f8ff8"
                                     color="white"
-                                    isOpen={!(aspect_ratio === 'Init Image')}
-                                    label={`${width}`}
+                                    isOpen={!(imageSettings.aspect_ratio === 'Init Image')}
+                                    label={`${imageSettings.width}`}
                                     placement="right"
                                 >
                                     <SliderThumb />
@@ -346,12 +371,14 @@ function SDSettings () {
 
                             <Slider
                                 defaultValue={512}
-                                isReadOnly={aspect_ratio === 'Init Image'}
+                                isReadOnly={imageSettings.aspect_ratio === 'Init Image'}
                                 max={1920}
                                 min={256}
-                                onChange={setHeight}
+                                onChange={(v) => {
+                                    setImageSettings({...imageSettings, height: parseInt(v)});
+                                }}                                        
                                 step={64}
-                                value={height}
+                                value={imageSettings.height}
                             >
                                 <SliderTrack bg="#EEEEEE">
                                     <Box
@@ -365,8 +392,8 @@ function SDSettings () {
                                 <Tooltip
                                     bg="#4f8ff8"
                                     color="white"
-                                    isOpen={!(aspect_ratio === 'Init Image')}
-                                    label={`${height}`}
+                                    isOpen={!(imageSettings.aspect_ratio === 'Init Image')}
+                                    label={`${imageSettings.height}`}
                                     placement="right"
                                 >
                                     <SliderThumb />
@@ -398,16 +425,16 @@ function SDSettings () {
                             min={0}
                             name="cfg_scale"
                             onChange={(v) => {
-                                setCFGScale(v);
-                            }}
-                            value={cfg_scale}
+                                setImageSettings({...imageSettings, cfg_scale: parseInt(v)});
+                            }}        
+                            value={imageSettings.cfg_scale}
                             variant="outline"
                         >
                             <NumberInputField id="cfg_scale" />
                         </NumberInput>
                     </FormControl>
 
-                    {init_image.length > 0
+                    {imageSettings.init_image.length > 0
                         ? <FormControl className="strength-input">
                             <HStack>
                                 <FormLabel htmlFor="Strength">
@@ -429,15 +456,15 @@ function SDSettings () {
                             <Slider
                                 defaultValue={0.75}
                                 id="strength"
-                                isDisabled={init_image.length === 0}
+                                isDisabled={imageSettings.init_image.length === 0}
                                 max={0.99}
                                 min={0.0}
                                 name="strength"
                                 onChange={(v) => {
-                                    setStrength(v);
-                                }}
+                                    setImageSettings({...imageSettings, strength: parseInt(v)});
+                                }}        
                                 step={0.01}
-                                value={strength}
+                                value={imageSettings.strength}
                                 variant="outline"
                             >
                                 <SliderTrack bg="#EEEEEE">
@@ -452,8 +479,8 @@ function SDSettings () {
                                 <Tooltip
                                     bg="#4f8ff8"
                                     color="white"
-                                    isOpen={!(init_image.length === 0)}
-                                    label={`${strength}`}
+                                    isOpen={!(imageSettings.init_image.length === 0)}
+                                    label={`${imageSettings.strength}`}
                                     placement="right"
                                 >
                                     <SliderThumb />
@@ -484,8 +511,8 @@ function SDSettings () {
                         <Select
                             id="sampler"
                             name="sampler"
-                            onChange={(event) => setSampler(event.target.value)}
-                            value={sampler}
+                            onChange={(event) => setImageSettings({...imageSettings, sampler: event.target.value})}
+                            value={imageSettings.sampler}
                             variant="outline"
                         >
                             <option
@@ -576,9 +603,9 @@ function SDSettings () {
                         <Select
                             id="ckpt"
                             name="ckpt"
-                            onChange={(event) => setCkpt(event.target.value)}
+                            onChange={(event) => setImageSettings({...imageSettings, ckpt: event.target.value})}
                             onMouseEnter={getCkpts}
-                            value={ckpt}
+                            value={imageSettings.ckpt}
                             variant="outline"
                         >
                             {ckpts?.length > 0
@@ -621,13 +648,13 @@ function SDSettings () {
 
                             <NumberInput
                                 id="seed"
-                                isDisabled={use_random_seed}
+                                isDisabled={imageSettings.use_random_seed}
                                 min={0}
                                 name="seed"
                                 onChange={(v) => {
-                                    setSeed(v);
-                                }}
-                                value={seed}
+                                    setImageSettings({...imageSettings, seed: parseInt(v)});
+                                }}        
+                                value={imageSettings.seed}
                                 variant="outline"
                             >
                                 <NumberInputField id="seed" />
@@ -647,10 +674,10 @@ function SDSettings () {
 
                             <Checkbox
                                 id="use_random_seed"
-                                isChecked={use_random_seed}
+                                isChecked={imageSettings.use_random_seed}
                                 name="use_random_seed"
                                 onChange={() => {
-                                    setUseRandomSeed(!use_random_seed);
+                                    setImageSettings({...imageSettings, use_random_seed: !imageSettings.use_random_seed});
                                 }}
                                 pb="12px"
                             />

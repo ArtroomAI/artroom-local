@@ -5,7 +5,6 @@ numpy==1.23.4
 flask
 flask_socketio
 flask_cors
-eventlet
 gdown
 requests==2.25.1
 torchsde==0.2.5

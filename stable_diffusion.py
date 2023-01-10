@@ -106,11 +106,6 @@ def load_mask(mask, h0, w0, newH, newW, invert=False):
     image = image.resize((newW, newH), resample=Image.LANCZOS)
     # image = image.resize((64, 64), resample=Image.LANCZOS)
     image = np.array(image)
-
-    # if invert:
-    #     print("inverted")
-    #     where_0, where_1 = np.where(image == 0), np.where(image == 255)
-    #     image[where_0], image[where_1] = 255, 0
     image = image.astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -357,8 +352,11 @@ class StableDiffusion:
         print("Model loading finished")
         print("Loading vae")
         if vae != "":
-            self.load_vae(vae)
-        print("Loading vae finished")
+            try:
+                self.load_vae(vae)
+                print("Loading vae finished")
+            except:
+                print("Failed to load vae")
 
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
@@ -589,13 +587,14 @@ class StableDiffusion:
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
                         self.latest_images_part2.append(out_image)
+                        
+                        self.socketio.emit('message', {'data': 'testInside'})
                         while True:
                             newrand = random.randint(1, 922337203685)
                             if newrand != self.latest_images_id:
                                 self.latest_images_id = newrand
                                 break
 
-                        self.socketio.emit("get_test", {'status': 'success', 'latest_images': support.image_to_b64(out_image)}, broadcast=True)
                         base_count += 1
                         seed += 1
                         if not skip_grid and n_iter > 1:

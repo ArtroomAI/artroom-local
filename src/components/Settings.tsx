@@ -29,16 +29,11 @@ import DebugInstallerModal from './Modals/DebugInstallerModal';
 
 function Settings () {
     const { ToastContainer, toast } = createStandaloneToast();
-
-    const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
-    const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
-    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
     const [delay, setDelay] = useRecoilState(atom.delayState);
-    const [vae, setVae] = useRecoilState(atom.vaeState);
 
     const [debug_mode_orig, setDebugModeOrig] = useState(true);
 
@@ -46,13 +41,18 @@ function Settings () {
         () => {
             window.api.getSettings().then((result) => {
                 const settings = JSON.parse(result);
-                setImageSavePath(settings.image_save_path);
+                setImageSettings({
+                    ...imageSettings,
+                    speed: settings.speed,
+                    ckpt_dir: settings.ckpt_dir,
+                    save_grid: settings.save_grid,
+                    vae: settings.vae,
+                    image_save_path: settings.image_save_path
+                })
+
                 setLongSavePath(settings.long_save_path);
                 setHighresFix(settings.highres_fix);
-                setCkptDir(settings.ckpt_dir);
-                setSpeed(settings.speed);
                 setDelay(settings.delay);
-                setSaveGrid(settings.save_grid);
                 setDebugMode(settings.debug_mode);
                 setDebugModeOrig(settings.debug_mode);
             });
@@ -64,14 +64,15 @@ function Settings () {
     const saveSettings = () => {
         setDebugModeOrig(debug_mode);
         const output = {
-            speed,
-            image_save_path,
             long_save_path,
             highres_fix,
-            ckpt_dir,
-            save_grid,
             debug_mode,
-            delay
+            delay,
+            speed: imageSettings.speed,
+            image_save_path: imageSettings.image_save_path,
+            save_grid: imageSettings.save_grid,
+            vae: imageSettings.vae,
+            ckpt_dir: imageSettings.ckpt_dir
         };
         axios.post(
             'http://127.0.0.1:5300/update_settings',
@@ -145,15 +146,15 @@ function Settings () {
     };
 
     const chooseUploadPath = () => {
-        window.api.chooseUploadPath().then(setImageSavePath);
+        window.api.chooseUploadPath().then((result)=>{setImageSettings({...imageSettings,image_save_path: result})});
     };
 
     const chooseCkptDir = () => {
-        window.api.chooseUploadPath().then(setCkptDir);
+        window.api.chooseUploadPath().then((result)=>{setImageSettings({...imageSettings,ckpt_dir: result})});
     };
     
     const chooseVae = () => {
-        window.api.chooseVae().then(setVae);
+        window.api.chooseVae().then((result)=>{setImageSettings({...imageSettings, vae: result})});
     };
 
     return (
@@ -178,9 +179,9 @@ function Settings () {
                         <Input
                             id="image_save_path"
                             name="image_save_path"
-                            onChange={(event) => setImageSavePath(event.target.value)}
+                            onChange={(event) => setImageSettings({...imageSettings, image_save_path: event.target.value})}
                             type="text"
-                            value={image_save_path}
+                            value={imageSettings.image_save_path}
                             variant="outline"
                         />
 
@@ -211,9 +212,9 @@ function Settings () {
                         <Input
                             id="ckpt_dir"
                             name="ckpt_dir"
-                            onChange={(event) => setCkptDir(event.target.value)}
+                            onChange={(event) => setImageSettings({...imageSettings, ckpt_dir: event.target.value})}
                             type="text"
-                            value={ckpt_dir}
+                            value={imageSettings.ckpt_dir}
                             variant="outline"
                         />
 
@@ -244,9 +245,9 @@ function Settings () {
                         <Input
                             id="vae"
                             name="vae"
-                            onChange={(event) => setVae(event.target.value)}
+                            onChange={(event) => setImageSettings({...imageSettings, vae: event.target.value})}
                             type="text"
-                            value={vae}
+                            value={imageSettings.vae}
                             variant="outline"
                         />
 
@@ -275,8 +276,8 @@ function Settings () {
                     <RadioGroup
                         id="speed"
                         name="speed"
-                        onChange={setSpeed}
-                        value={speed}>
+                        onChange={(value) => setImageSettings({...imageSettings, speed: value})}
+                        value={imageSettings.speed}>
                         <Stack
                             direction="row"
                             spacing="20">
@@ -378,10 +379,10 @@ function Settings () {
                 <HStack className="save-grid-input">
                     <Checkbox
                         id="save_grid"
-                        isChecked={save_grid}
+                        isChecked={imageSettings.save_grid}
                         name="save_grid"
                         onChange={() => {
-                            setSaveGrid(!save_grid);
+                            setImageSettings({...imageSettings, save_grid: !imageSettings.save_grid});
                         }}
                     >
                         Save Grid

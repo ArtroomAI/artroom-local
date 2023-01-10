@@ -3,7 +3,6 @@ import { Button, ThemeTypings } from '@chakra-ui/react';
 import { ContextMenuContext } from './ContextMenu';
 
 export default function ContextMenuItem ({
-    children,
     onClick,
     colorScheme,
     disabled = false
@@ -34,7 +33,6 @@ export default function ContextMenuItem ({
             variant={variant}
             w="100%"
         >
-            {children}
         </Button>
     );
 }
