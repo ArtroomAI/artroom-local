@@ -1,20 +1,22 @@
+import React from 'react';
+import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { ImageUploadResponse, Image } from '../painter';
-import { setInitialCanvasImageAction, addImageToStagingAreaAction } from '../atoms/canvas.actions';
-import { useSetRecoilState } from 'recoil';
 
 const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
 const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
 
-type UploadImageConfig = {
-  imageFile: File;
-  setInitialCanvasImage: (arg0: Image) => void
-};
-
-export const uploadImage = (config: UploadImageConfig) => {
-
-    console.log("START")
-    const { imageFile, setInitialCanvasImage } = config;
+export const uploadImage = ({
+              imageFile, 
+              boundingBoxCoordinates, 
+              boundingBoxDimensions,
+              setPastLayerStates,
+              pastLayerStates,
+              layerState,
+              maxHistory,
+              setLayerState,
+              setFutureLayerStates,
+              setInitialCanvasImage}) => {
 
     const formData = new FormData();
     formData.append('file', imageFile, imageFile.name);
@@ -35,9 +37,39 @@ export const uploadImage = (config: UploadImageConfig) => {
           category: 'user',
           ...image,
         };
-    
-        setInitialCanvasImage(newImage);
+        if (layerState.objects.length == 0){
+          setInitialCanvasImage(newImage)
+        }
+        else{
+          const boundingBox = {
+            ...boundingBoxCoordinates,
+            ...boundingBoxDimensions,
+          };        
+          setPastLayerStates([
+            ...pastLayerStates,
+            _.cloneDeep(layerState),
+          ]);
+      
+          if (pastLayerStates.length > maxHistory) {
+            setPastLayerStates(pastLayerStates.slice(1));
+          }
+          setLayerState({
+            ...layerState,
+            objects: [
+                ...layerState.objects,                   
+                {
+                  kind: 'image',
+                  layer: 'base',
+                  ...boundingBox,
+                  image: newImage,
+                },
+              ],
+          });
+          setFutureLayerStates([]);        
+        }
+       
     });
 
    
 }
+

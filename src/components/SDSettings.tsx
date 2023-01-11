@@ -519,70 +519,70 @@ function SDSettings () {
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="ddim"
                             >
-                                ddim
+                                DDIM
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="dpmpp_2m"
                             >
-                                dpmpp_2m
+                                DPM++ 2M Karras
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="dpmpp_2s_ancestral"
                             >
-                                dpmpp_2s_ancestral
+                                DPM++ 2S Ancestral Karras
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="euler"
                             >
-                                euler
+                                Euler
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="euler_a"
                             >
-                                euler_ancestral
+                                Euler Ancestral
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="dpm_2"
                             >
-                                dpm_2
+                                DPM 2
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="dpm_a"
                             >
-                                dpm_2_ancestral
+                                DPM 2 Ancestral
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="lms"
                             >
-                                lms
+                                LMS
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="heun"
                             >
-                                heun
+                                Heun
                             </option>
 
                             <option
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value="plms"
                             >
-                                plms
+                                PLMS
                             </option>
                         </Select>
                     </FormControl>

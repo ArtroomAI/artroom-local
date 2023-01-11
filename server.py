@@ -36,14 +36,8 @@ class ArtroomServer:
 
     def update_paths(self):
         self.result_url = self.SD.image_save_path
-        self.thumbnail_image_url = os.path.join(self.SD.image_save_path, "thumbnails/")
-        self.temp_image_url = os.path.join(self.SD.image_save_path, "temp-images/")
-        self.intermediate_url = os.path.join(self.SD.image_save_path, "intermediates/")
-        self.mask_image_url = os.path.join(self.SD.image_save_path, "mask-images/")
-        self.init_image_url = os.path.join(self.SD.image_save_path, "init-images/")
-
-        for path in [self.result_url, self.thumbnail_image_url, self.temp_image_url, self.intermediate_url, self.mask_image_url, self.init_image_url]:
-            os.makedirs(path, exist_ok=True)
+        self.intermediate_url = os.path.join(f"{SD.artroom_path}/artroom/images", "artroom_inits/")
+        os.makedirs(self.intermediate_url, exist_ok=True)
 
     def reset_settings_to_default(self):
         print('Failure, sd_settings not found. Resetting to default')
@@ -57,16 +51,8 @@ class ArtroomServer:
         self.update_paths()      
         """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
         try:
-            if "init-images" in path:
-                return os.path.join(self.init_image_url, os.path.basename(path))
-            elif "mask-images" in path:
-                return os.path.join(self.mask_image_url, os.path.basename(path))
-            elif "intermediates" in path:
+            if "artroom_inits" in path:
                 return os.path.join(self.intermediate_url, os.path.basename(path))
-            elif "temp-images" in path:
-                return os.path.join(self.temp_image_url, os.path.basename(path))
-            elif "thumbnails" in path:
-                return os.path.join(self.thumbnail_image_url, os.path.basename(path))
             else:
                 return os.path.join(self.result_url, os.path.basename(path))
         except Exception as e:
@@ -128,14 +114,14 @@ def get_images():
                             content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
     try:
         if path == 'latest':
-            imageB64 = [support.image_to_b64(image)
-                        for image in SD.get_latest_images()]
+            image_data = SD.get_latest_images()            
         else:
             image = Image.open(path).convert('RGB')
-            imageB64 = support.image_to_b64(image)
-        return return_output('Success', content={'latest_images_id': SD.latest_images_id, 'latest_images': imageB64})
-    except:
-        return return_output('Failure', 'Failed to get image', {'latest_images_id': -1, 'imageB64': ''})
+            image_data = [{"b64": support.image_to_b64(image), "path": path}]
+        return return_output('Success', content={'latest_images_id': SD.latest_images_id, 'latest_images': image_data})
+    except Exception as e:
+        print(e)
+        return return_output('Failure', 'Failed to get image', {'latest_images_id': -1, 'latest_images': []})
 
 
 @app.route('/get_server_status', methods=['GET'])
@@ -313,17 +299,12 @@ def invoke_upload():
         kind = data["kind"]
 
         if kind == "init":
-            path = os.path.join(SD.image_save_path, "intermediates/")
-        elif kind == "temp":
-            path = os.path.join(SD.image_save_path, "temp-images/")
+            path = os.path.join(f"{SD.artroom_path}/artroom/images", "artroom_inits/")
         elif kind == "result":
             path = SD.image_save_path
-        elif kind == "mask":
-            path = os.path.join(SD.image_save_path, "mask-images/")
         else:
             return make_response(f"Invalid upload kind: {kind}", 400)
 
-        
         if not support.allowed_file(filename):
             return make_response(
                 f'Invalid file type, must be one of: {", ".join(AS.ALLOWED_EXTENSIONS)}',
@@ -357,13 +338,8 @@ def invoke_upload():
 
         (width, height) = pil_image.size
 
-        thumbnail_path = support.save_thumbnail(
-            pil_image, os.path.basename(file_path), os.path.join(SD.image_save_path, "thumbnails/")
-        )
-
         response = {
             "url": AS.get_url_from_image_path(file_path),
-            "thumbnail": AS.get_url_from_image_path(thumbnail_path),
             "mtime": mtime,
             "width": width,
             "height": height,
@@ -378,79 +354,6 @@ def invoke_upload():
         traceback.print_exc()
         print("\n")
         return make_response("Error uploading file", 500)
-
-@app.route('/invoke_inpainting', methods=['POST'])
-def invoke_inpainting():
-    """
-    generation_parameters["init_img"] is a base64 image
-    generation_parameters["init_mask"] is a base64 image
-
-    So we need to convert each into a PIL Image.
-    """
-    data = json.loads(request.data)
-
-    original_bounding_box = data["bounding_box"].copy()
-
-    initial_image = support.dataURL_to_image(
-        data["init_img"]
-    ).convert("RGBA")
-
-    """
-    The outpaint image and mask are pre-cropped by the UI, so the bounding box we pass
-    to the generator should be:
-        {
-            "x": 0,
-            "y": 0,
-            "width": original_bounding_box["width"],
-            "height": original_bounding_box["height"]
-        }
-    """
-
-    data["bounding_box"]["x"] = 0
-    data["bounding_box"]["y"] = 0
-
-    # Convert mask dataURL to an image and convert to greyscale
-    mask_image = support.dataURL_to_image(
-        data["mask_image"]
-    ).convert("L")
-
-    actual_generation_mode = support.get_canvas_generation_mode(
-        initial_image, mask_image
-    )
-
-    """
-    Apply the mask to the init image, creating a "mask" image with
-    transparency where inpainting should occur. This is the kind of
-    mask that prompt2image() needs.
-    """
-    alpha_mask = initial_image.copy()
-    alpha_mask.putalpha(mask_image)
-
-    data["init_img"] = initial_image
-    data["mask_image"] = alpha_mask
-
-    # Remove the unneeded parameters for whichever mode we are doing
-    if actual_generation_mode == "inpainting":
-        data.pop("seam_size", None)
-        data.pop("seam_blur", None)
-        data.pop("seam_strength", None)
-        data.pop("seam_steps", None)
-        data.pop("tile_size", None)
-        data.pop("force_outpaint", None)
-    elif actual_generation_mode == "img2img":
-        data["height"] = original_bounding_box["height"]
-        data["width"] = original_bounding_box["width"]
-        data.pop("init_mask", None)
-        data.pop("seam_size", None)
-        data.pop("seam_blur", None)
-        data.pop("seam_strength", None)
-        data.pop("seam_steps", None)
-        data.pop("tile_size", None)
-        data.pop("force_outpaint", None)
-        data.pop("infill_method", None)
-    
-    print(data)
-
 
 @app.route('/shutdown', methods=['GET'])
 def shutdown():

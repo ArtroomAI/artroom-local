@@ -15,6 +15,7 @@ const api = {
     uploadInitImage: async (data: any) => {return await ipcRenderer.invoke('uploadInitImage',data);},
     getImageFromPath: async (data: any) => {return await ipcRenderer.invoke('getImageFromPath',data);},
     copyToClipboard: async (data: string) => {return await ipcRenderer.invoke('copyToClipboard',data);},
+    saveFromDataURL: async (data: string) => {return await ipcRenderer.invoke('saveFromDataURL',data);},
     chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
     chooseVae: async (): Promise<string> => {return await ipcRenderer.invoke('chooseVae');},
     runPyTests: async () => {return await ipcRenderer.invoke('runPyTests');},

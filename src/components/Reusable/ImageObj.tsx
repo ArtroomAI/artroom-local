@@ -25,6 +25,7 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
             <ContextMenuTrigger>
                 {active
                     ? <Image
+                        alignSelf="center"
                         fallbackSrc={queueRunning
                             ? LoadingGif
                             : Logo}
@@ -32,6 +33,7 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
                         h="55vh"
                         src={b64} />
                     : <Image
+                        alignSelf="center"
                         fit="scale-down"
                         h="55vh"
                         src={b64} />}

@@ -118,14 +118,13 @@ function Main () {
                 setDelay(settings.delay);
 
                 window.api.runPyTests().then((result) => {
-
                     if (result === 'success\r\n') {
                         toast({
                             title: 'All Artroom paths & dependencies successfully found!',
                             status: 'success',
                             position: 'top',
-                            duration: 5000,
-                            isClosable: false
+                            duration: 2000,
+                            isClosable: true
                         });
                     } else if (result.length > 0) {
                         toast({

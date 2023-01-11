@@ -79,7 +79,6 @@ export declare type Metadata = SystemGenerationMetadata & {
 export declare type Image = {
 	uuid: string;
 	url: string;
-	thumbnail: string;
 	mtime: number;
 	metadata?: Metadata;
 	width: number;
@@ -148,7 +147,6 @@ export declare type ImageUploadResponse = {
 	mtime: number;
 	width: number;
 	height: number;
-	thumbnail: string;
 	// bbox: [number, number, number, number];
 };
 

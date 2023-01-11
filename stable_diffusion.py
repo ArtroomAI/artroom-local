@@ -155,7 +155,7 @@ class StableDiffusion:
         self.highres_fix = False
         self.is_nvidia = is_16xx_series() == 'NVIDIA'
         self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
-        self.speed = "High"
+        self.speed = "Max"
         self.socketio = socketio
 
     def set_artroom_path(self, path):
@@ -397,7 +397,7 @@ class StableDiffusion:
 
         print("Generating...")
         self.stage = "Generating"
-        outdir = self.image_save_path + batch_name
+        outdir = os.path.join(self.image_save_path,batch_name)
         os.makedirs(outdir, exist_ok=True)
 
         if len(init_image_str) > 0:
@@ -585,7 +585,7 @@ class StableDiffusion:
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
-                        self.latest_images_part2.append(out_image)
+                        self.latest_images_part2.append({"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
                         
                         self.socketio.emit('message', {'data': 'testInside'})
                         while True:

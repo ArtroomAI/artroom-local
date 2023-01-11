@@ -131,6 +131,23 @@ function createWindow() {
     });
   })
 
+  ipcMain.handle('saveFromDataURL', async (event, data) => {
+    const json = JSON.parse(data);
+    const dataUrl = json.dataURL;
+    const imagePath = json.imagePath;
+  
+    // convert dataURL to a buffer
+    const buffer = new Buffer.from(dataUrl.split(',')[1], 'base64');
+  
+    try {
+      // write the buffer to the specified image path
+      fs.writeFileSync(imagePath, buffer);
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  });
+
 
   ipcMain.handle('getCkpts', async (event, data) => {
     return new Promise((resolve, reject) => {
