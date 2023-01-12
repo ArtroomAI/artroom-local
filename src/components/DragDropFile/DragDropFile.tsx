@@ -17,14 +17,17 @@ import {
 const DragDropFile = () => {
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef(null);
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 
     function getImageFromPath () {
         if (initImagePath.length > 0) {
             console.log(initImagePath);
             window.api.getImageFromPath(initImagePath).then((result) => {
-                setInitImage(result.b64);
+                setImageSettings({
+                    ...imageSettings,
+                    init_image: result.b64,
+                });
             });
         }
     }
@@ -81,7 +84,7 @@ const DragDropFile = () => {
             height="140px"
             width="140px"
         >
-            {init_image.length > 0
+            {imageSettings.init_image.length > 0
                 ? <Box
                     border="1px"
                     borderStyle="ridge"
@@ -103,7 +106,7 @@ const DragDropFile = () => {
                         boxSize="140px"
                         fit="contain"
                         rounded="md"
-                        src={init_image}
+                        src={imageSettings.init_image}
                     />
                 </Box>
                 : <Box
@@ -163,7 +166,10 @@ const DragDropFile = () => {
                             icon={<FaTrashAlt />}
                             onClick={(event) => {
                                 setInitImagePath('');
-                                setInitImage('');
+                                setImageSettings({
+                                    ...imageSettings,
+                                    init_image: '',
+                                  });
                             }}
                         />
                     </ButtonGroup>

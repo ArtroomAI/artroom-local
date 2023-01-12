@@ -1,11 +1,10 @@
 import React from 'react';
-import { ButtonGroup } from '@chakra-ui/react';
+import { ButtonGroup, createStandaloneToast } from '@chakra-ui/react';
 import {
   FaArrowsAlt,
   FaCopy,
   FaCrosshairs,
-  FaDownload,
-  FaLayerGroup,
+  FaPlay,
   FaSave,
   FaTrash,
   FaUpload,
@@ -23,74 +22,30 @@ import {
   resizeAndScaleCanvasAction,
   shouldCropToBoundingBoxOnSaveAtom,
   isStagingSelector,
+  stageScaleAtom,
+  boundingBoxCoordinatesAtom,
+  boundingBoxDimensionsAtom,
+  layerStateAtom,
+  stageCoordinatesAtom,
 } from '../../atoms/canvas.atoms';
+import { imageSettingsState } from '../../../../atoms/atoms';
 import { isProcessingAtom } from '../../atoms/system.atoms';
 import { Select, IconButton } from '../../components';
-import { CanvasLayer, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
+import { CanvasLayer, isCanvasMaskLine, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
 import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
-import {getCanvasBaseLayer } from '../../util';
+import {copyImage, generateMask, getCanvasBaseLayer, layerToDataURL } from '../../util';
 import { CanvasMaskOptions } from './CanvasMaskOptions';
 import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
 import { CanvasRedoButton } from './CanvasRedoButton';
 import { CanvasUndoButton } from './CanvasUndoButton';
 import axios from 'axios';
-
-//Inpainting Specific
-import { frontendToBackendParameters, FrontendToBackendParametersConfig} from '../../util'
-import { OptionsState } from '../../painter';
+import path from 'path';
 
 const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
 const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
 const baseURL = LOCAL_URL;
 
-// import {
-// 	resetCanvas,
-// 	resetCanvasView,
-// 	resizeAndScaleCanvas,
-// 	setIsMaskEnabled,
-// 	setLayer,
-// 	setTool,
-// } from 'canvas/store/canvasSlice';
-// import _ from 'lodash';
-// import { mergeAndUploadCanvas } from 'canvas/store/thunks/mergeAndUploadCanvas';
-// import { systemSelector } from 'system/store/systemSelectors';
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-
-// export const selector = createSelector(
-// 	[systemSelector, canvasSelector, isStagingSelector],
-// 	(system, canvas, isStaging) => {
-// 		const { isProcessing } = system;
-// 		const { tool, shouldCropToBoundingBoxOnSave, layer, isMaskEnabled } =
-// 			canvas;
-
-// 		return {
-// 			isProcessing,
-// 			isStaging,
-// 			isMaskEnabled,
-// 			tool,
-// 			layer,
-// 			shouldCropToBoundingBoxOnSave,
-// 		};
-// 	},
-// 	{
-// 		memoizeOptions: {
-// 			resultEqualityCheck: _.isEqual,
-// 		},
-// 	},
-// );
-
 export const CanvasOutpaintingControls: FC = () => {
-  // const {
-  // 	isProcessing,
-  // 	isStaging,
-  // 	isMaskEnabled,
-  // 	layer,
-  // 	tool,
-  // 	shouldCropToBoundingBoxOnSave,
-  // } = useAppSelector(selector);
   const canvasBaseLayer = getCanvasBaseLayer();
 
   const [tool, setTool] = useRecoilState(toolSelector);
@@ -109,8 +64,14 @@ export const CanvasOutpaintingControls: FC = () => {
 
   const { openUploader } = useImageUploader();
 
-
   //For Generation
+  const stageScale = useRecoilValue(stageScaleAtom);  
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
+  const layerState = useRecoilValue(layerStateAtom);  
+  const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
+  const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
+  const { ToastContainer, toast } = createStandaloneToast();
 
   useHotkeys(
     ['v'],
@@ -137,18 +98,6 @@ export const CanvasOutpaintingControls: FC = () => {
   );
 
   useHotkeys(
-    ['shift+m'],
-    () => {
-      handleMergeVisible();
-    },
-    {
-      enabled: () => !isStaging,
-      preventDefault: true,
-    },
-    [canvasBaseLayer, isProcessing]
-  );
-
-  useHotkeys(
     ['shift+s'],
     () => {
       handleSaveToGallery();
@@ -172,20 +121,8 @@ export const CanvasOutpaintingControls: FC = () => {
     [canvasBaseLayer, isProcessing]
   );
 
-  useHotkeys(
-    ['shift+d'],
-    () => {
-      handleDownloadAsImage();
-    },
-    {
-      enabled: () => !isStaging,
-      preventDefault: true,
-    },
-    [canvasBaseLayer, isProcessing]
-  );
-
   const handleSelectMoveTool = () => setTool('move');
-
+  
   const handleResetCanvasView = () => {
     const canvasBaseLayer = getCanvasBaseLayer();
     if (!canvasBaseLayer) return;
@@ -203,59 +140,79 @@ export const CanvasOutpaintingControls: FC = () => {
     resizeAndScaleCanvas();
   };
 
-  const handleMergeVisible = () => {
-    alert('mergeAndUploadCanvas action placeholder');
-    // dispatch(
-    // 	mergeAndUploadCanvas({
-    // 		cropVisible: false,
-    // 		shouldSetAsInitialImage: true,
-    // 	})
-    // );
-  };
-
   const handleSaveToGallery = () => {
-    alert('mergeAndUploadCanvas action placeholder');
-    // dispatch(
-    // 	mergeAndUploadCanvas({
-    // 		cropVisible: shouldCropToBoundingBoxOnSave ? false : true,
-    // 		cropToBoundingBox: shouldCropToBoundingBoxOnSave,
-    // 		shouldSaveToGallery: true,
-    // 	})
-    // );
+    const canvasBaseLayer = getCanvasBaseLayer();
+
+    const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
+      canvasBaseLayer,
+      stageScale,
+      stageCoordinates
+    );
+    const timestamp = new Date().getTime();
+    const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".jpg");
+    console.log(imagePath);
+    window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
+    toast({
+      title: 'Image Saved',
+      status: 'success',
+      duration: 1500,
+      isClosable: true,
+    })
   };
 
   const handleCopyImageToClipboard = () => {
-    alert('mergeAndUploadCanvas action placeholder');
-    // dispatch(
-    // 	mergeAndUploadCanvas({
-    // 		cropVisible: shouldCropToBoundingBoxOnSave ? false : true,
-    // 		cropToBoundingBox: shouldCropToBoundingBoxOnSave,
-    // 		shouldCopy: true,
-    // 	})
-    // );
+    const canvasBaseLayer = getCanvasBaseLayer();
+
+    const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
+      canvasBaseLayer,
+      stageScale,
+      stageCoordinates
+    );
+    window.api.copyToClipboard(dataURL);
+    toast({
+      title: 'Image Copied',
+      status: 'success',
+      duration: 1500,
+      isClosable: true,
+    })
   };
 
-  const handleDownloadAsImage = () => {
-    // const frontendToBackendParametersConfig: FrontendToBackendParametersConfig =
-    //   {
-    //     generationMode: "unifiedCanvas",
-    //     optionsState,
-    //     canvasState,
-    //     systemState,
-    //   };
-
-    // const { generationParameters, esrganParameters, facetoolParameters } = frontendToBackendParameters(frontendToBackendParametersConfig);
-
-    // console.log(generationParameters)
-    // console.log(esrganParameters)
-    // console.log(facetoolParameters)
-
-    const body = {
-      generationMode: 'inpainting',
-
+  const handleRunInpainting = () => {
+    const canvasBaseLayer = getCanvasBaseLayer();
+    const boundingBox = {
+      ...boundingBoxCoordinates,
+      ...boundingBoxDimensions,
     };
+    const maskDataURL = generateMask(
+      isMaskEnabled ? layerState.objects.filter(isCanvasMaskLine) : [],
+      boundingBox
+    );
+  
+    const tempScale = canvasBaseLayer.scale();
+  
+    canvasBaseLayer.scale({
+      x: 1 / stageScale,
+      y: 1 / stageScale,
+    });
+  
+    const absPos = canvasBaseLayer.getAbsolutePosition();
+  
+    const imageDataURL = canvasBaseLayer.toDataURL({
+      x: boundingBox.x + absPos.x,
+      y: boundingBox.y + absPos.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
+    });
+
+    canvasBaseLayer.scale(tempScale);
+    const body = {
+      ...imageSettings,
+      init_image: imageDataURL,
+      mask_image: maskDataURL
+    };
+    
     axios.post(
-      `${baseURL}/invoke_inpainting`,
+      `${baseURL}/add_to_queue`,
       body,
       {
         headers: { 'Content-Type': 'application/json' }
@@ -285,6 +242,8 @@ export const CanvasOutpaintingControls: FC = () => {
       />
 
       <CanvasMaskOptions />
+      <CanvasSettingsButtonPopover />
+
       <CanvasToolChooserOptions />
 
       <ButtonGroup isAttached>
@@ -302,16 +261,8 @@ export const CanvasOutpaintingControls: FC = () => {
           onClick={handleResetCanvasView}
         />
       </ButtonGroup>
-
       <ButtonGroup isAttached>
-        <IconButton
-          aria-label="Merge Visible (Shift+M)"
-          tooltip="Merge Visible (Shift+M)"
-          icon={<FaLayerGroup />}
-          onClick={handleMergeVisible}
-          isDisabled={isStaging}
-        />
-        <IconButton
+      <IconButton
           aria-label="Save to Gallery (Shift+S)"
           tooltip="Save to Gallery (Shift+S)"
           icon={<FaSave />}
@@ -325,20 +276,6 @@ export const CanvasOutpaintingControls: FC = () => {
           onClick={handleCopyImageToClipboard}
           isDisabled={isStaging}
         />
-        <IconButton
-          aria-label="Download as Image (Shift+D)"
-          tooltip="Download as Image (Shift+D)"
-          icon={<FaDownload />}
-          onClick={handleDownloadAsImage}
-          isDisabled={isStaging}
-        />
-      </ButtonGroup>
-      <ButtonGroup isAttached>
-        <CanvasUndoButton />
-        <CanvasRedoButton />
-      </ButtonGroup>
-
-      <ButtonGroup isAttached>
         <IconButton
           aria-label="Upload"
           tooltip="Upload"
@@ -355,9 +292,23 @@ export const CanvasOutpaintingControls: FC = () => {
           isDisabled={isStaging}
         />
       </ButtonGroup>
+
       <ButtonGroup isAttached>
-        <CanvasSettingsButtonPopover />
+        <CanvasUndoButton />
+        <CanvasRedoButton />
       </ButtonGroup>
+
+
+
+        <ButtonGroup isAttached>
+        <IconButton
+            aria-label="Run (Alt+R)"
+            tooltip="Run (Alt+R)"
+            icon={<FaPlay />}
+            onClick={handleRunInpainting}
+            isDisabled={isStaging}
+          />
+        </ButtonGroup>
     </div>
   );
 };

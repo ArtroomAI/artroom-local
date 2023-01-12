@@ -11,8 +11,9 @@ import ContextMenuList from '../ContextMenu/ContextMenuList';
 import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
 
 export default function ImageObj ({ b64, active } : { b64: string; active: boolean }) {
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+
     const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 
     const copyToClipboard = () => {
@@ -24,6 +25,7 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
             <ContextMenuTrigger>
                 {active
                     ? <Image
+                        alignSelf="center"
                         fallbackSrc={queueRunning
                             ? LoadingGif
                             : Logo}
@@ -31,6 +33,7 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
                         h="55vh"
                         src={b64} />
                     : <Image
+                        alignSelf="center"
                         fit="scale-down"
                         h="55vh"
                         src={b64} />}
@@ -39,7 +42,7 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
             <ContextMenuList>
                 <ContextMenuItem onClick={() => {
                     setInitImagePath('');
-                    setInitImage(b64);
+                    setImageSettings({...imageSettings, init_image: b64});
                 } } colorScheme={undefined} disabled={false}>
                     Set As Starting Image
                 </ContextMenuItem>

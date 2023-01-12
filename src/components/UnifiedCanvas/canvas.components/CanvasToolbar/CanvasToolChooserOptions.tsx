@@ -202,28 +202,6 @@ export const CanvasToolChooserOptions: FC = () => {
         isDisabled={isStaging}
         onClick={handleSelectEraserTool}
       />
-      <IconButton
-        aria-label="Fill Bounding Box (Shift+F)"
-        tooltip="Fill Bounding Box (Shift+F)"
-        icon={<FaFillDrip />}
-        isDisabled={isStaging}
-        onClick={handleFillRect}
-      />
-      <IconButton
-        aria-label="Erase Bounding Box Area (Delete/Backspace)"
-        tooltip="Erase Bounding Box Area (Delete/Backspace)"
-        icon={<FaPlus style={{ transform: 'rotate(45deg)' }} />}
-        isDisabled={isStaging}
-        onClick={handleEraseBoundingBox}
-      />
-      <IconButton
-        aria-label="Color Picker (C)"
-        tooltip="Color Picker (C)"
-        icon={<FaEyeDropper />}
-        data-selected={tool === 'colorPicker' && !isStaging}
-        isDisabled={isStaging}
-        onClick={handleSelectColorPickerTool}
-      />
       <Popover
         trigger="hover"
         triggerComponent={
@@ -256,6 +234,28 @@ export const CanvasToolChooserOptions: FC = () => {
           />
         </Flex>
       </Popover>
+      <IconButton
+        aria-label="Fill Bounding Box (Shift+F)"
+        tooltip="Fill Bounding Box (Shift+F)"
+        icon={<FaFillDrip />}
+        isDisabled={isStaging}
+        onClick={handleFillRect}
+      />
+      <IconButton
+        aria-label="Erase Bounding Box Area (Delete/Backspace)"
+        tooltip="Erase Bounding Box Area (Delete/Backspace)"
+        icon={<FaPlus style={{ transform: 'rotate(45deg)' }} />}
+        isDisabled={isStaging}
+        onClick={handleEraseBoundingBox}
+      />
+      <IconButton
+        aria-label="Color Picker (C)"
+        tooltip="Color Picker (C)"
+        icon={<FaEyeDropper />}
+        data-selected={tool === 'colorPicker' && !isStaging}
+        isDisabled={isStaging}
+        onClick={handleSelectColorPickerTool}
+      />
     </ButtonGroup>
   );
 };

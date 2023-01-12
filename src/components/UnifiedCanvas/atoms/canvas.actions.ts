@@ -86,6 +86,7 @@ export const setInitialCanvasImageAction = selector<Image | null>({
         },
       ],
     });
+
     set(atoms.futureLayerStatesAtom, []);
 
     set(atoms.isCanvasInitializedAtom, false);

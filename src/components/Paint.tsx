@@ -1,48 +1,93 @@
-import React, { useState, useEffect, useReducer } from 'react';
-import { useInterval } from './Reusable/useInterval/useInterval';
-import { useRecoilState } from 'recoil';
+import React, {useEffect, useState, useReducer} from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
+import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom } from './UnifiedCanvas/atoms/canvas.atoms';
 import axios from 'axios';
+import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
 import {
     Box,
-    Button,
-    Flex,
     VStack,
-    Progress,
     SimpleGrid,
     Image,
-    Text,
     createStandaloneToast
 } from '@chakra-ui/react';
-import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
-import Shards from '../images/shards.png';
-import ProtectedReqManager from '../helpers/ProtectedReqManager';
-
-function Body () {
+import { useInterval } from './Reusable/useInterval/useInterval';
+import { addImageToStagingAreaAction } from './UnifiedCanvas/atoms/canvas.atoms';
+import { CanvasLayerState } from './UnifiedCanvas/atoms/canvasTypes';
+import _ from 'lodash';
+import { v4 as uuidv4 } from 'uuid';
+function Paint () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
     const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
     const baseURL = LOCAL_URL;
 
     const { ToastContainer, toast } = createStandaloneToast();
 
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
-
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
     const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [progress, setProgress] = useState(-1);
-
     const [focused, setFocused] = useState(false);
 
-    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+    const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
+    const [layerState, setLayerState] = useRecoilState(layerStateAtom);  
+    const [maxHistory, setMaxHistory] = useRecoilState(maxHistoryAtom);  
+    const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
+    const [futureLayerStates, setFutureLayerStates] = useRecoilState(futureLayerStatesAtom);  
+
+    function addToCanvas(imageData: { b64: string, path: string; }){
+        const boundingBox = {
+            ...boundingBoxCoordinates,
+            ...boundingBoxDimensions,
+            };
+        const image = {
+        category: "user",
+        height: 512,
+        width: 512,
+        mtime: 1673399421.3987432,
+        url: imageData.path,
+        uuid: uuidv4(),
+        kind: "image",
+        layer: "base",
+        x: 0,
+        y: 0
+        }
+
+        if (!boundingBox || !image) return;
+
+        setPastLayerStates([
+        ...pastLayerStates,
+        _.cloneDeep(layerState),
+        ]);
+
+        if (pastLayerStates.length > maxHistory) {
+        setPastLayerStates(pastLayerStates.slice(1));
+        }
+        //Filters so that the same image isn't used in the same spot, saving memory
+        setLayerState({
+        ...layerState,
+        objects: [
+            ...layerState.objects.filter(
+                object => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)
+                ),                    
+            {
+                kind: 'image',
+                layer: 'base',
+                ...boundingBox,
+                image,
+            },
+            ],
+        });
+        setFutureLayerStates([]);
+    }
 
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
         switch (action.type) {
         case 'arrowLeft':
-            console.log('Arrow Left');
             return {
                 selectedIndex:
               state.selectedIndex !== 0
@@ -50,7 +95,6 @@ function Body () {
                   : latestImages.length - 1
             };
         case 'arrowRight':
-            console.log('Arrow Right');
             return {
                 selectedIndex:
               state.selectedIndex !== latestImages.length - 1
@@ -58,7 +102,6 @@ function Body () {
                   : 0
             };
         case 'select':
-            console.log('Select');
             return { selectedIndex: action.payload };
         default:
             throw new Error();
@@ -70,12 +113,6 @@ function Body () {
         mainImageIndex
     );
 
-    const computeShardCost = () => {
-        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
-        let estimated_price = Math.round((width * height) / (512 * 512) * (parseInt(steps) / 50) * parseInt(n_iter) * 10);
-        return estimated_price;
-    }
-
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
 
@@ -83,8 +120,6 @@ function Body () {
             () => {
                 const leftHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
                     if (key === targetKey && altKey === useAltKey) {
-                        console.log(key);
-                        console.log(altKey);
                         setKeyPressed(true);
                     }
                 };
@@ -123,10 +158,6 @@ function Body () {
 
     const arrowRightPressed = useKeyPress('ArrowRight');
     const arrowLeftPressed = useKeyPress('ArrowLeft');
-    const altRPressed = useKeyPress(
-        'r',
-        true
-    );
 
     useEffect(
         () => {
@@ -154,22 +185,6 @@ function Body () {
 
     useEffect(
         () => {
-            if (altRPressed) {
-                submitMain();
-            }
-        },
-        [altRPressed]
-    );
-
-    useEffect(
-        () => {
-            setMainImage(latestImages[state.selectedIndex]?.b64);
-        },
-        [state]
-    );
-
-    useEffect(
-        () => {
             const interval = setInterval(
                 () => axios.get(
                     `${baseURL}/get_progress`,
@@ -177,7 +192,6 @@ function Body () {
                 ).then((result) => {
                     if (result.data.status === 'Success') {
                         setProgress(result.data.content.percentage);
-
                         if (result.data.content.status === 'Loading Model' && !toast.isActive('loading-model')) {
                             toast({
                                 id: 'loading-model',
@@ -195,7 +209,6 @@ function Body () {
                         }
                     } else {
                         setProgress(-1);
-
                         if (toast.isActive('loading-model')) {
                             toast.close('loading-model');
                         }
@@ -210,7 +223,6 @@ function Body () {
         []
     );
 
-
     useInterval(
         () => {
             axios.get(
@@ -220,13 +232,11 @@ function Body () {
                 headers: { 'Content-Type': 'application/json' } }
             ).then((result) => {
                 const id = result.data.content.latest_images_id;
-
-
                 if (result.data.status === 'Success') {
                     if (id !== latestImagesID) {
                         setLatestImagesID(id);
                         setLatestImages(result.data.content.latest_images);
-                        setMainImage(result.data.content.latest_images[result.data.content.latest_images.length - 1]?.b64);
+                        setMainImage(result.data.content.latest_images[result.data.content.latest_images.length - 1]);
                     }
                 } else if (result.data.status === 'Failure') {
                     setMainImage('');
@@ -236,82 +246,24 @@ function Body () {
         3000
     );
 
-    const submitMain = () => {
-        axios.post(
-            `${baseURL}/add_to_queue`, imageSettings,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                toast({
-                    title: 'Added to Queue!',
-                    status: 'success',
-                    position: 'top',
-                    duration: 2000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            } else {
-                toast({
-                    title: 'Error',
-                    status: 'error',
-                    description: result.data.status_message,
-                    position: 'top',
-                    duration: 5000,
-                    isClosable: true,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            }
-        }).
-            catch((error) => console.log(error));
-    };
-
-    const getProfile = () => {
-        ProtectedReqManager.make_request(`${ARTROOM_URL}/users/me`).then((response: { data: { email: string; }; }) => {
-            console.log(response);
-            toast({
-                title: 'Auth Test Success: ' + response.data.email,
-                status: 'success',
-                position: 'top',
-                duration: 2000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }).catch((err: any) => {
-            console.log(err);
-        });
-    }
-
+    useEffect(() => {
+        if (latestImages.length > 0){
+            addToCanvas(latestImages[state?.selectedIndex]);
+        }
+        },[state?.selectedIndex]
+    );
 
     return (
         <Box
-            width="100%" 
-            alignContent="center">
-            <VStack spacing={3}>
+            width="100%">
+            <VStack
+                align="center"
+                spacing={4}>
                 <Box
-                    className="image-box"
-                    width="80%">
-                    <ImageObj
-                        b64={mainImage}
-                        active />
-
-                    {
-                        progress >= 0
-                            ? <Progress
-                                alignContent="left"
-                                hasStripe
-                                value={progress} />
-                            : <></>
-                    }
+                    className="paint-output">
+                    <UnifiedCanvas></UnifiedCanvas>
                 </Box>
-
+                
                 <Box
                     maxHeight="120px"
                     overflowY="auto"
@@ -322,46 +274,18 @@ function Body () {
                         {latestImages.map((imageData, index) => (<Image
                             h="5vh"
                             key={index}
-                            onClick={() => dispatch({ type: 'select',
-                                payload: index })}
-                            src={imageData?.b64}
+                            src={imageData.b64}
+                            onClick={() => {
+                                addToCanvas(imageData)
+                            }}
                         />))}
                     </SimpleGrid>
                 </Box>
-
-                {cloudMode
-                    ? <Button
-                        className="run-button"
-                        ml={2}
-                        onClick={getProfile}
-                        variant="outline"
-                        width="200px">
-                        <Text pr={2}>
-                            Run
-                        </Text>
-
-                        <Image
-                            src={Shards}
-                            width="12px" />
-
-                        <Text pl={1}>
-                            {computeShardCost()}
-                        </Text>
-                    </Button>
-                    : <Button
-                        className="run-button"
-                        ml={2}
-                        onClick={submitMain}
-                        width="200px"> 
-                        Run
-                    </Button>}
-
                 <Box width="80%">
                     <Prompt setFocused={setFocused} />
                 </Box>
             </VStack>
         </Box>
     );
-};
-
-export default Body;
+}
+export default Paint;

@@ -17,8 +17,7 @@ interface ImageData {
 }
 
 function ImageViewer () {
-    const image_save_path = useRecoilValue(atom.imageSavePathState);
-    const batch_name = useRecoilValue(atom.batchNameState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
     const [imagePreviews, setImagePreviews] = useState<ImageData[]>([]);
 
@@ -26,7 +25,7 @@ function ImageViewer () {
 
     useEffect(() => {
         if(imageViewPath.length <= 1){
-            setImageViewPath(path.join(image_save_path,batch_name));
+            setImageViewPath(path.join(imageSettings.image_save_path,imageSettings.batch_name));
         }
 
     },[]);

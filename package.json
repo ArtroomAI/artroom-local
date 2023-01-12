@@ -1,6 +1,6 @@
 {
   "name": "artroom-beta",
-  "version": "1.0.4-alpha.2",
+  "version": "1.1.0-beta.2",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=development node scripts/serve.js",
     "build": "yarn delete && cross-env NODE_ENV=production node scripts/build.js",
-    "delete": "del-cli --force dist && del-cli --force build",
+    "delete": "del-cli --force dist",
     "electron:serve": "yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
     "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
@@ -83,7 +83,7 @@
     "electron-is-dev": "^1.2.0",
     "electron-updater": "^5.2.1",
     "exif-parser": "^0.1.12",
-    "framer-motion": "^4.1.17",
+    "framer-motion": "^8.4.0",
     "konva": "^8.4.0",
     "qs": "^6.11.0",
     "react": "^18.2.0",

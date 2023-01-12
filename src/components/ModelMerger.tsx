@@ -34,11 +34,11 @@ import path from 'path';
 
 export const ModelMerger = () => {
     const { ToastContainer, toast } = createStandaloneToast();
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
     const [progress, setProgress] = useState(-1);
     const [stage, setStage] = useState('');
     const [ckpts, setCkpts] = useState([]);
-    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
 
     const [modelA, setModelA] = useState('');
     const [modelB, setModelB] = useState('');
@@ -81,9 +81,9 @@ export const ModelMerger = () => {
         }
         else{
             const data = JSON.stringify({
-                modelA: path.join(ckpt_dir,modelA),
-                modelB: path.join(ckpt_dir,modelB),
-                modelC: interpolation === 'add_difference' ? path.join(ckpt_dir,modelC) : '',
+                modelA: path.join(imageSettings.ckpt_dir,modelA),
+                modelB: path.join(imageSettings.ckpt_dir,modelB),
+                modelC: interpolation === 'add_difference' ? path.join(imageSettings.ckpt_dir,modelC) : '',
                 method: interpolation,
                 alpha,
                 filename,
@@ -127,7 +127,7 @@ export const ModelMerger = () => {
     };
 
     const getCkpts = () => {
-        window.api.getCkpts(ckpt_dir).then((result) => {
+        window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
         });
@@ -144,7 +144,7 @@ export const ModelMerger = () => {
         () => {
             getCkpts();
         },
-        [ckpt_dir]
+        [imageSettings.ckpt_dir]
     );
 
     return (

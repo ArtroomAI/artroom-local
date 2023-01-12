@@ -12,7 +12,7 @@ import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 
 export default function ImageObj ({ B64, active } : { B64: string, active: boolean}) {
     const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
 
     const copyToClipboard = () => {
@@ -39,7 +39,7 @@ export default function ImageObj ({ B64, active } : { B64: string, active: boole
             <ContextMenuList>
                 <ContextMenuItem onClick={() => {
                     setInitImagePath('');
-                    setInitImage(B64);
+                    setImageSettings({...imageSettings, init_image: B64});
                 } } colorScheme={undefined} disabled={false}>
                     Set As Starting Image
                 </ContextMenuItem>

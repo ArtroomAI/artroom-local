@@ -54,33 +54,15 @@ const AppTopBar = () => {
 }
 
 function Main () {
+    // Connect to the server
+
     const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
 
-    const [width, setWidth] = useRecoilState(atom.widthState);
-    const [height, setHeight] = useRecoilState(atom.heightState);
-    const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
-    const [negative_prompts, setNegativePrompts] = useRecoilState(atom.negativePromptsState);
-    const [batch_name, setBatchName] = useRecoilState(atom.batchNameState);
-    const [steps, setSteps] = useRecoilState(atom.stepsState);
-    const [aspect_ratio, setAspectRatio] = useRecoilState(atom.aspectRatioState);
-    const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
-    const [seed, setSeed] = useRecoilState(atom.seedState);
-    const [use_random_seed, setUseRandomSeed] = useRecoilState(atom.useRandomSeedState);
-    const [n_iter, setNIter] = useRecoilState(atom.nIterState);
-    const [sampler, setSampler] = useRecoilState(atom.samplerState);
-    const [cfg_scale, setCFGScale] = useRecoilState(atom.CFGScaleState);
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
-    const [image_save_path, setImageSavePath] = useRecoilState(atom.imageSavePathState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
-    const [speed, setSpeed] = useRecoilState(atom.speedState);
-    const [ckpt, setCkpt] = useRecoilState(atom.ckptState);
-    const [ckpt_dir, setCkptDir] = useRecoilState(atom.ckptDirState);
-    const [strength, setStrength] = useRecoilState(atom.strengthState);
-    const [vae, setVae] = useRecoilState(atom.vaeState);
-
-    const [save_grid, setSaveGrid] = useRecoilState(atom.saveGridState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
 
@@ -106,41 +88,46 @@ function Main () {
         () => {
             window.api.getSettings().then((result) => {
                 const settings = JSON.parse(result);
-                console.log(settings);
-                setTextPrompts(settings.text_prompts);
-                setNegativePrompts(settings.negative_prompts);
-                setBatchName(settings.batch_name);
-                setSteps(settings.steps);
-                setAspectRatio(settings.aspect_ratio);
-                setWidth(settings.width);
-                setHeight(settings.height);
-                setSeed(settings.seed);
-                setUseRandomSeed(settings.use_random_seed);
-                setInitImage(settings.init_image);
-                setStrength(settings.strength);
-                setCFGScale(settings.cfg_scale);
-                setNIter(settings.n_iter);
-                setSampler(settings.sampler);
-                setImageSavePath(settings.image_save_path);
+
+                const imageSettingsData = {
+                    text_prompts: settings.text_prompts,
+                    negative_prompts: settings.negative_prompts,
+                    batch_name: settings.batch_name,
+                    n_iter: settings.n_iter,
+                    steps: settings.steps,
+                    seed: settings.seed,
+                    strength: settings.strength,
+                    cfg_scale: settings.cfg_scale,
+                    sampler: settings.sampler,
+                    width: settings.width,
+                    height: settings.height,
+                    aspect_ratio: settings.aspect_ratio,
+                    ckpt: settings.ckpt,
+                    speed: settings.speed,
+                    save_grid: settings.save_grid,
+                    use_random_seed: settings.use_random_seed,
+                    init_image: settings.init_image,
+                    mask_image: '',
+                    invert: false,
+                    image_save_path: settings.image_save_path,
+                    ckpt_dir: settings.ckpt_dir,
+                    vae: settings.vae,
+                }
+                setImageSettings(imageSettingsData)
+
                 setLongSavePath(settings.long_save_path);
                 setHighresFix(settings.highres_fix);
-                setCkpt(settings.ckpt);
-                setCkptDir(settings.ckpt_dir);
-                setVae(settings.vae);
-                setSpeed(settings.speed);
                 setDebugMode(settings.debug_mode);
                 setDelay(settings.delay);
-                setSaveGrid(settings.save_grid);
 
                 window.api.runPyTests().then((result) => {
-
                     if (result === 'success\r\n') {
                         toast({
                             title: 'All Artroom paths & dependencies successfully found!',
                             status: 'success',
                             position: 'top',
-                            duration: 5000,
-                            isClosable: false
+                            duration: 2000,
+                            isClosable: true
                         });
                     } else if (result.length > 0) {
                         toast({
@@ -159,31 +146,6 @@ function Main () {
             }
         },
         []
-    );
-
-    useEffect(
-        () => {
-            if (width > 0) {
-                let newHeight = height;
-                if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
-                    try {
-                        const values = aspect_ratio.split(':');
-                        const widthRatio = parseFloat(values[0]);
-                        const heightRatio = parseFloat(values[1]);
-                        if (!isNaN(widthRatio) && !isNaN(heightRatio)) {
-                            newHeight = Math.min(
-                                1920,
-                                Math.floor(width * heightRatio / widthRatio / 64) * 64
-                            );
-                        }
-                    } catch {
-
-                    }
-                    setHeight(newHeight);
-                }
-            }
-        },
-        [width, aspect_ratio]
     );
 
     return (

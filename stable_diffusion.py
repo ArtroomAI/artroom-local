@@ -89,10 +89,6 @@ def load_img(image, h0, w0):
 
 def load_mask(mask, h0, w0, newH, newW, invert=False):
     image = np.array(mask)
-    if invert:
-        image = np.clip(image, 254, 255) + 1
-    else:
-        image = np.clip(image + 1, 0, 1) - 1
     image = Image.fromarray(image).convert("RGB")
     w, h = image.size
     print(f"loaded input mask of size ({w}, {h})")
@@ -106,11 +102,6 @@ def load_mask(mask, h0, w0, newH, newW, invert=False):
     image = image.resize((newW, newH), resample=Image.LANCZOS)
     # image = image.resize((64, 64), resample=Image.LANCZOS)
     image = np.array(image)
-
-    # if invert:
-    #     print("inverted")
-    #     where_0, where_1 = np.where(image == 0), np.where(image == 255)
-    #     image[where_0], image[where_1] = 255, 0
     image = image.astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -142,7 +133,7 @@ def image_grid(imgs, rows, cols, path):
 
 
 class StableDiffusion:
-    def __init__(self, socketio):
+    def __init__(self, socketio=None):
         self.current_num = 0
         self.total_num = 0
         self.stage = ''
@@ -164,7 +155,7 @@ class StableDiffusion:
         self.highres_fix = False
         self.is_nvidia = is_16xx_series() == 'NVIDIA'
         self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
-        self.speed = "High"
+        self.speed = "Max"
         self.socketio = socketio
 
     def set_artroom_path(self, path):
@@ -179,7 +170,7 @@ class StableDiffusion:
             self.long_save_path = sd_settings['long_save_path']
             self.highres_fix = sd_settings['highres_fix']
 
-            print("Go on boy, create art")
+            print("Welcome to Artroom!")
 
     def get_steps(self):
         if self.model:
@@ -357,14 +348,19 @@ class StableDiffusion:
         print("Model loading finished")
         print("Loading vae")
         if vae != "":
-            self.load_vae(vae)
-        print("Loading vae finished")
+            try:
+                self.load_vae(vae)
+                print("Loading vae finished")
+            except:
+                print("Failed to load vae")
 
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
         self.running = True
+
+
 
         oldW, oldH = W, H
         if W * H > 1024 * 1024 and self.highres_fix:
@@ -385,7 +381,9 @@ class StableDiffusion:
         gc.collect()
         seed_everything(seed)
 
-        if len(init_image_str) > 0 and sampler == 'plms':
+        if len(init_image_str) > 0 and sampler == 'plms' or len(mask_b64) > 0:
+            if len(mask_b64) > 0:
+                print("Currently, only DDIM works with masks. Switching samplers to DDIM")
             sampler = 'ddim'
 
         self.image_save_path = image_save_path
@@ -399,7 +397,7 @@ class StableDiffusion:
 
         print("Generating...")
         self.stage = "Generating"
-        outdir = self.image_save_path + batch_name
+        outdir = os.path.join(self.image_save_path,batch_name)
         os.makedirs(outdir, exist_ok=True)
 
         if len(init_image_str) > 0:
@@ -512,8 +510,7 @@ class StableDiffusion:
                                     mask = b64_to_image(mask_b64).convert('L')
                                 else:
                                     mask = Image.open(mask).convert("L")
-                                mask = load_mask(mask, H, W, init_latent.shape[2], init_latent.shape[3], invert).to(
-                                    self.device)
+                                mask = load_mask(mask, H, W, init_latent.shape[2], init_latent.shape[3], invert).to(self.device)
                                 mask = mask[0][0].unsqueeze(
                                     0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(
@@ -588,14 +585,15 @@ class StableDiffusion:
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
-                        self.latest_images_part2.append(out_image)
+                        self.latest_images_part2.append({"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
+                        
+                        self.socketio.emit('message', {'data': 'testInside'})
                         while True:
                             newrand = random.randint(1, 922337203685)
                             if newrand != self.latest_images_id:
                                 self.latest_images_id = newrand
                                 break
 
-                        self.socketio.emit("get_test", {'status': 'success', 'latest_images': support.image_to_b64(out_image)}, broadcast=True)
                         base_count += 1
                         seed += 1
                         if not skip_grid and n_iter > 1:

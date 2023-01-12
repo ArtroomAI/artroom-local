@@ -9,8 +9,6 @@ import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 import { ImageMetadata } from '../Modals/ImageModal/ImageModal';
 
 export default function ImageObject ({b64, metadata} : { b64: string, metadata: string }) {
-    const [init_image, setInitImage] = useRecoilState(atom.initImageState);
-    const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
     const [metadataJSON, setMetadataJSON] = useState<ImageMetadata>({
         text_prompts: '',
         negative_prompts: '',
@@ -21,7 +19,8 @@ export default function ImageObject ({b64, metadata} : { b64: string, metadata: 
         steps: '',
         strength: '',
         cfg_scale: '',
-        ckpt: ''
+        ckpt: '',
+        vae: ''
     });
 
     const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);

@@ -12,8 +12,9 @@ import { useImageUploader } from '../../hooks';
 import { ImageUploaderTriggerContext } from './ImageUploaderTriggerContext';
 import { ImageUploadOverlay } from './ImageUploadOverlay';
 import { uploadImage } from '../../helpers/uploadImage';
-import { useSetRecoilState } from 'recoil';
-import { setInitialCanvasImageAction } from '../../atoms/canvas.atoms';
+import { useSetRecoilState, useRecoilState, useRecoilValue } from 'recoil';
+import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, futureLayerStatesAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, setInitialCanvasImageAction } from '../../atoms/canvas.atoms';
+import _ from 'lodash';
 
 type ImageUploaderProps = {
   children: ReactNode;
@@ -23,8 +24,16 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
   const { children } = props;
   const toast = useToast({});
   const [isHandlingUpload, setIsHandlingUpload] = useState<boolean>(false);
+
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
+  const maxHistory = useRecoilValue(maxHistoryAtom);  
+  const [layerState, setLayerState] = useRecoilState(layerStateAtom);  
+  const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
+  const setFutureLayerStates = useSetRecoilState(futureLayerStatesAtom);  
   const setInitialCanvasImage = useSetRecoilState(setInitialCanvasImageAction)
-  
+
+
   const { setOpenUploader } = useImageUploader();
 
   const fileRejectionCallback = useCallback(
@@ -45,8 +54,18 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
   );
 
   const fileAcceptedCallback = useCallback(async (file: File) => {
-    uploadImage({ imageFile: file, setInitialCanvasImage: setInitialCanvasImage});
-    console.log(file, 'imageFile');
+    uploadImage({
+      imageFile: file,
+      setInitialCanvasImage,
+      boundingBoxCoordinates: boundingBoxCoordinates,
+      boundingBoxDimensions: boundingBoxDimensions,
+      setPastLayerStates,
+      pastLayerStates,
+      layerState,
+      maxHistory,
+      setLayerState,
+      setFutureLayerStates
+    });
   }, []);
 
   const onDrop = useCallback(
@@ -122,8 +141,18 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
         });
         return;
       }
-      console.log(file, 'imageFile');
-      uploadImage({ imageFile: file, setInitialCanvasImage: setInitialCanvasImage});
+      uploadImage({
+        imageFile: file,
+        setInitialCanvasImage,
+        boundingBoxCoordinates,
+        boundingBoxDimensions,
+        setPastLayerStates,
+        pastLayerStates,
+        layerState,
+        maxHistory,
+        setLayerState,
+        setFutureLayerStates
+      });
     };
     document.addEventListener('paste', pasteImageListener);
     return () => {

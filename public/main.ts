@@ -113,20 +113,12 @@ function createWindow() {
   });
   
   socket.on('message', function(message) {
-    console.log('Received message: ' + message.toString());
+    console.log(message);
   });
 
   socket.on('get_test', function(message) {
-    console.log('Received get test: ' + message);
+    console.log('Received get test: ' + message.toString());
   });
-  
-  socket.onAny(function(message) {
-    console.log(message);
-  });
-  
-  socket.onAnyOutgoing((message) => {
-      console.log(message);
-  })
   
   // Send a message to the server
   socket.emit('message', 'Hello, server!');
@@ -138,6 +130,23 @@ function createWindow() {
       //store url
     });
   })
+
+  ipcMain.handle('saveFromDataURL', async (event, data) => {
+    const json = JSON.parse(data);
+    const dataUrl = json.dataURL;
+    const imagePath = json.imagePath;
+  
+    // convert dataURL to a buffer
+    const buffer = new Buffer.from(dataUrl.split(',')[1], 'base64');
+  
+    try {
+      // write the buffer to the specified image path
+      fs.writeFileSync(imagePath, buffer);
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  });
 
 
   ipcMain.handle('getCkpts', async (event, data) => {

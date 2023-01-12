@@ -40,8 +40,7 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, TextareaProps>
 ));
 
 function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateAction<boolean>> }) {
-    const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
-    const [negative_prompts, setNegativePrompts] = useRecoilState(atom.negativePromptsState);
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
     return (
         <>
@@ -75,9 +74,9 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
                                 id="text_prompts"
                                 name="text_prompts"
                                 onBlur={() => setFocused(false)}
-                                onChange={(event) => setTextPrompts(event.target.value)}
+                                onChange={(event) => setImageSettings({...imageSettings, text_prompts: event.target.value})}
                                 onFocus={() => setFocused(true)}
-                                value={text_prompts}
+                                value={imageSettings.text_prompts}
                                 variant="outline"
                             />
                         </Flex>
@@ -102,7 +101,7 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
                             <Button
                                 className="defualt-negative-prompt"
                                 h="25px"
-                                onClick={(event) => setNegativePrompts('lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry')}
+                                onClick={(event) => setImageSettings({...imageSettings, negative_prompts: 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry'})}
                                 w="150px">
                                 Default Negative
                             </Button>
@@ -117,9 +116,9 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
                                 id="negative_prompts"
                                 name="negative_prompts"
                                 onBlur={() => setFocused(false)}
-                                onChange={(event) => setNegativePrompts(event.target.value)}
+                                onChange={(event) => setImageSettings({...imageSettings, negative_prompts: event.target.value})}
                                 onFocus={() => setFocused(true)}
-                                value={negative_prompts}
+                                value={imageSettings.negative_prompts}
                                 variant="outline"
                             />
                         </Flex>

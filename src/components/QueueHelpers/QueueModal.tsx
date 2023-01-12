@@ -90,18 +90,10 @@ function QueueModal (props: QueueTypeWithIndex) {
                                     value={props.strength} />
                                 : <></>}
 
-                            {props.mask.length > 0
+                            {props.mask?.length > 0
                                 ? <QueueModalRow
                                     name="Mask:"
                                     value={props.mask} />
-                                : <></>}
-
-                            {props.mask.length > 0
-                                ? <QueueModalRow
-                                    name="Invert:"
-                                    value={props.mask.length > 0
-                                        ? props.invert
-                                        : ''} />
                                 : <></>}
 
                             <QueueModalRow
