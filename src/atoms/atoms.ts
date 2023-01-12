@@ -228,6 +228,16 @@ export const emailState = atom({
     default: ''
 });
 
+export const usernameState = atom({
+    key: 'username',
+    default: 'My Profile'
+});
+
+export const shardState = atom({
+    key: 'shard',
+    default: 0.0
+});
+
 export const imageModalB64State = atom({
     key: 'imageModalB64',
     default: ''

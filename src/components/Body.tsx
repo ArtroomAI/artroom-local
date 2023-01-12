@@ -25,7 +25,7 @@ function Body () {
     const baseURL = LOCAL_URL;
 
     const { ToastContainer, toast } = createStandaloneToast();
-
+    
     const [width, setWidth] = useRecoilState(atom.widthState);
     const [height, setHeight] = useRecoilState(atom.heightState);
     const [text_prompts, setTextPrompts] = useRecoilState(atom.textPromptsState);
@@ -93,6 +93,12 @@ function Body () {
         reducer,
         mainImageIndex
     );
+
+    const computeShardCost = () => {
+        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
+        let estimated_price = Math.round((width * height) / (512 * 512) * (parseInt(steps) / 50) * parseInt(n_iter) * 10);
+        return estimated_price;
+    }
 
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
@@ -400,7 +406,7 @@ function Body () {
                             width="12px" />
 
                         <Text pl={1}>
-                            6
+                            {computeShardCost()}
                         </Text>
                     </Button>
                     : <Button
