@@ -652,23 +652,36 @@ class DiffusionWrapperOut(pl.LightningModule):
 
 
 class CFGDenoiser(torch.nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, sampling_args):
         super().__init__()
         self.inner_model = model
+        self.use_v_parameterization, \
+        self.sqrt_alphas_cumprod, \
+        self.sqrt_one_minus_alphas_cumprod = sampling_args
+
+    def predict_eps_from_z_and_v(self, x_t, t, v):
+        return (
+                extract_into_tensor(self.sqrt_alphas_cumprod, t, x_t.shape) * v +
+                extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape) * x_t
+        )
 
     def forward(self, x, sigma, uncond, cond, cond_scale):
         x_in = torch.cat([x] * 2)
         sigma_in = torch.cat([sigma] * 2)
         cond_in = torch.cat([uncond, cond])
         uncond, cond = self.inner_model(x_in, sigma_in, cond=cond_in).chunk(2)
-        return uncond + (cond - uncond) * cond_scale
+        e_t = uncond + (cond - uncond) * cond_scale
+        if self.use_v_parameterization:
+            e_t = self.predict_eps_from_z_and_v(x, sigma.type(torch.int64), e_t)
+        return e_t
 
 
 class KDiffusionSampler:
-    def __init__(self, m, sampler):
+    def __init__(self, m, sampler, sampling_args=(False, None, None)):
         self.model = m
         self.model_wrap = K.external.CompVisDenoiser(m)
         self.schedule = sampler
+        self.sampling_args = sampling_args
 
     def get_sampler_name(self):
         return self.schedule
@@ -676,7 +689,7 @@ class KDiffusionSampler:
     def sample_txt2img(self, S, conditioning, S_ddim_steps, batch_size, shape, verbose, unconditional_guidance_scale,
                        unconditional_conditioning, eta, x_T, callback_fn=None):
         sigmas = self.model_wrap.get_sigmas(S)
-        model_wrap_cfg = CFGDenoiser(self.model_wrap)
+        model_wrap_cfg = CFGDenoiser(self.model_wrap, sampling_args=self.sampling_args)
         x0 = torch.randn_like(x_T)
         x_dec = x0 * sigmas[0]
         samples_ddim = K.sampling.__dict__[f'sample_{self.schedule}'](model_wrap_cfg, x_dec, sigmas,
@@ -1124,8 +1137,6 @@ class UNet(DDPM):
         sqrt_alphas_cumprod = torch.sqrt(self.ddim_alphas)
         noise = torch.randn(x0.shape, device=x0.device)
 
-        # print(extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape),
-        #       extract_into_tensor(self.ddim_sqrt_one_minus_alphas, t, x0.shape))
         return (extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape) * x0 +
                 extract_into_tensor(self.ddim_sqrt_one_minus_alphas, t, x0.shape) * noise)
 
@@ -1643,7 +1654,6 @@ class LatentDiffusion(DDPMv2):
         return (extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape) * x0 +
                 extract_into_tensor(self.ddim_sqrt_one_minus_alphas, t, x0.shape) * noise)
 
-
     @torch.no_grad()
     def sample(self,
                S,
@@ -1719,7 +1729,9 @@ class LatentDiffusion(DDPMv2):
                 x0_noisy = x_T if x_T is not None else torch.randn_like(x_latent)
                 x_latent = x0_noisy * mask + (1. - mask) * x_latent
             x_latent = x_latent * sigmas[0]
-            model_wrap_cfg = CFGDenoiser(model_wrap)
+            model_wrap_cfg = CFGDenoiser(model_wrap, sampling_args=(self.parameterization == "v",
+                                                                    self.sqrt_alphas_cumprod,
+                                                                    self.sqrt_one_minus_alphas_cumprod))
             samples = self.sample_dpmpp_2m(model_wrap_cfg, x_latent, sigmas,
                                            extra_args={'cond': conditioning,
                                                        'uncond': unconditional_conditioning,
@@ -1734,7 +1746,9 @@ class LatentDiffusion(DDPMv2):
                 x0_noisy = x_T if x_T is not None else torch.randn_like(x_latent)
                 x_latent = x0_noisy * mask + (1. - mask) * x_latent
             x_latent = x_latent * sigmas[0]
-            model_wrap_cfg = CFGDenoiser(model_wrap)
+            model_wrap_cfg = CFGDenoiser(model_wrap, sampling_args=(self.parameterization == "v",
+                                                                    self.sqrt_alphas_cumprod,
+                                                                    self.sqrt_one_minus_alphas_cumprod))
             samples = self.sample_dpmpp_2s_ancestral(model_wrap_cfg, x_latent, sigmas,
                                                      extra_args={'cond': conditioning,
                                                                  'uncond': unconditional_conditioning,
@@ -1742,17 +1756,29 @@ class LatentDiffusion(DDPMv2):
                                                      disable=False)
         else:
             if sampler == 'dpm_a':
-                sampler = KDiffusionSampler(self, 'dpm_2_ancestral')
+                sampler = KDiffusionSampler(self, 'dpm_2_ancestral', sampling_args=(self.parameterization == "v",
+                                                                                    self.sqrt_alphas_cumprod,
+                                                                                    self.sqrt_one_minus_alphas_cumprod))
             elif sampler == 'dpm_2':
-                sampler = KDiffusionSampler(self, 'dpm_2')
+                sampler = KDiffusionSampler(self, 'dpm_2', sampling_args=(self.parameterization == "v",
+                                                                          self.sqrt_alphas_cumprod,
+                                                                          self.sqrt_one_minus_alphas_cumprod))
             elif sampler == 'euler_a':
-                sampler = KDiffusionSampler(self, 'euler_ancestral')
+                sampler = KDiffusionSampler(self, 'euler_ancestral', sampling_args=(self.parameterization == "v",
+                                                                                    self.sqrt_alphas_cumprod,
+                                                                                    self.sqrt_one_minus_alphas_cumprod))
             elif sampler == 'euler':
-                sampler = KDiffusionSampler(self, 'euler')
+                sampler = KDiffusionSampler(self, 'euler', sampling_args=(self.parameterization == "v",
+                                                                          self.sqrt_alphas_cumprod,
+                                                                          self.sqrt_one_minus_alphas_cumprod))
             elif sampler == 'heun':
-                sampler = KDiffusionSampler(self, 'heun')
+                sampler = KDiffusionSampler(self, 'heun', sampling_args=(self.parameterization == "v",
+                                                                         self.sqrt_alphas_cumprod,
+                                                                         self.sqrt_one_minus_alphas_cumprod))
             elif sampler == 'lms':
-                sampler = KDiffusionSampler(self, 'lms')
+                sampler = KDiffusionSampler(self, 'lms', sampling_args=(self.parameterization == "v",
+                                                                        self.sqrt_alphas_cumprod,
+                                                                        self.sqrt_one_minus_alphas_cumprod))
 
             samples = sampler.sample(S=S, conditioning=conditioning, batch_size=int(x_latent.shape[0]),
                                      shape=x_latent[0].shape, verbose=False, S_ddim_steps=S_ddim_steps,

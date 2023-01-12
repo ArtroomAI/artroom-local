@@ -25,7 +25,11 @@ class RestrictedUnpickler(pickle.Unpickler):
 
     def persistent_load(self, saved_id):
         assert saved_id[0] == 'storage'
-        return TypedStorage()
+        try:
+            t = TypedStorage()
+            return t
+        except:
+            return None
 
     def find_class(self, module, name):
         if self.extra_handler is not None:
