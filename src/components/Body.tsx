@@ -72,7 +72,7 @@ function Body () {
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
-        let estimated_price = Math.round((width * height) / (512 * 512) * (parseInt(steps) / 50) * parseInt(n_iter) * 10);
+        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
         return estimated_price;
     }
 
