@@ -247,7 +247,7 @@ class StableDiffusion:
         parameterization = "eps"
         if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
             print("Detected v2 model")
-            self.config = ckpt.replace("ckpt", "yaml")
+            self.config = os.path.splitext(ckpt)[0] + ".yaml"
             if os.path.exists(self.config):
                 # so, we can't select their config because our is modified to our implementation
                 # still, there are only two types of configs, the ones with parameterization in them and without
@@ -360,8 +360,6 @@ class StableDiffusion:
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
         self.running = True
 
-
-
         oldW, oldH = W, H
         if W * H > 1024 * 1024 and self.highres_fix:
             highres_fix_steps = math.ceil((W * H) / (1024 * 1024))
@@ -397,7 +395,7 @@ class StableDiffusion:
 
         print("Generating...")
         self.stage = "Generating"
-        outdir = os.path.join(self.image_save_path,batch_name)
+        outdir = os.path.join(self.image_save_path, batch_name)
         os.makedirs(outdir, exist_ok=True)
 
         if len(init_image_str) > 0:
@@ -510,7 +508,8 @@ class StableDiffusion:
                                     mask = b64_to_image(mask_b64).convert('L')
                                 else:
                                     mask = Image.open(mask).convert("L")
-                                mask = load_mask(mask, H, W, init_latent.shape[2], init_latent.shape[3], invert).to(self.device)
+                                mask = load_mask(mask, H, W, init_latent.shape[2], init_latent.shape[3], invert).to(
+                                    self.device)
                                 mask = mask[0][0].unsqueeze(
                                     0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(
@@ -569,15 +568,15 @@ class StableDiffusion:
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                         settings_data = {
-                            "text_prompts":text_prompts, 
-                            "negative_prompts":negative_prompts, 
-                            "steps":steps, 
-                            "H":H, 
-                            "W":W, 
-                            "strength":strength, 
-                            "cfg_scale":cfg_scale, 
-                            "seed":seed, 
-                            "sampler":sampler,
+                            "text_prompts": text_prompts,
+                            "negative_prompts": negative_prompts,
+                            "steps": steps,
+                            "H": H,
+                            "W": W,
+                            "strength": strength,
+                            "cfg_scale": cfg_scale,
+                            "seed": seed,
+                            "sampler": sampler,
                             "ckpt": os.path.basename(ckpt),
                             "vae": os.path.basename(vae)
                         }
@@ -585,8 +584,9 @@ class StableDiffusion:
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
-                        self.latest_images_part2.append({"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
-                        
+                        self.latest_images_part2.append(
+                            {"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
+
                         self.socketio.emit('message', {'data': 'testInside'})
                         while True:
                             newrand = random.randint(1, 922337203685)
