@@ -71,6 +71,9 @@ function Main () {
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
+    const [email, setEmail] = useRecoilState(atom.emailState);
+    const [username, setUsername] = useRecoilState(atom.usernameState);
+    const [shard, setShard] = useRecoilState(atom.shardState);
 
     //make sure cloudmode is off, while not signed in
     if (!loggedIn) {
@@ -168,7 +171,7 @@ function Main () {
                 {
                     loggedIn
                         ? <HStack align="center">
-                            <ProfileMenu setLoggedIn={setLoggedIn} />
+                            <ProfileMenu setLoggedIn={setLoggedIn}/>
 
                             <VStack
                                 alignItems="center"

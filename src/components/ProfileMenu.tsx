@@ -1,4 +1,5 @@
 import React from 'react';
+import * as atom from '../atoms/atoms';
 import {
     Button,
     Divider,
@@ -15,54 +16,60 @@ import {
     FaUser
 } from 'react-icons/fa';
 import Shards from '../images/shards.png';
+import { useRecoilState } from 'recoil';
 
-const ProfileMenu = ({ setLoggedIn }: { setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>}) => (
+const ProfileMenu = ({ setLoggedIn}: { setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>} ) => {
 
-    <Menu>
-        <MenuButton
-            as={Button}
-            leftIcon={<FaUser />}
-            colorScheme="teal"
-            variant="outline">
-            <HStack>
-                <Text>
-                    My Profile
-                </Text>
-                <Divider
-                    color="white"
-                    height="20px"
-                    orientation="vertical" />
+    const [username, setUsername] = useRecoilState(atom.usernameState);
+    const [shard, setShard] = useRecoilState(atom.shardState);
 
-                <Image
-                    src={Shards}
-                    width="10px" />
+    return (
+        <Menu>
+            <MenuButton
+                as={Button}
+                leftIcon={<FaUser />}
+                colorScheme="teal"
+                variant="outline">
+                <HStack>
+                    <Text>
+                    {username} 
+                    </Text>
+                    <Divider
+                        color="white"
+                        height="20px"
+                        orientation="vertical" />
 
-                <Text>
-                    3000
-                </Text>
-            </HStack>
-        </MenuButton>
+                    <Image
+                        src={Shards}
+                        width="10px" />
 
-        <MenuList>
-            <MenuItem>
-                Profile
-            </MenuItem>
+                    <div>
+                        {shard}
+                    </div>
+                </HStack>
+            </MenuButton>
 
-            <MenuItem>
-                Settings
-            </MenuItem>
+            <MenuList>
+                <MenuItem>
+                    Profile
+                </MenuItem>
 
-            <MenuItem>
-                Get More Shards
-            </MenuItem>
+                <MenuItem>
+                    Settings
+                </MenuItem>
 
-            <MenuDivider />
+                <MenuItem>
+                    Get More Shards
+                </MenuItem>
 
-            <MenuItem onClick={() => setLoggedIn(false)}>
-                Logout
-            </MenuItem>
-        </MenuList>
-    </Menu>
-);
+                <MenuDivider />
+
+                <MenuItem onClick={() => setLoggedIn(false)}>
+                    Logout
+                </MenuItem>
+            </MenuList>
+        </Menu>
+    );
+};
 
 export default ProfileMenu;

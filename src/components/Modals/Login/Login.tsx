@@ -30,6 +30,9 @@ const Login = ({ setLoggedIn, setState }: { setLoggedIn: React.Dispatch<React.Se
     const qs = require('qs');
 
     const [email, setEmail] = useRecoilState(atom.emailState);
+    const [username, setUsername] = useRecoilState(atom.usernameState);
+    const [shard, setShard] = useRecoilState(atom.shardState);
+    const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
 
     const [password, setPassword] = useState('');
 
@@ -82,9 +85,15 @@ const Login = ({ setLoggedIn, setState }: { setLoggedIn: React.Dispatch<React.Se
             }
         ).then((result) => {
             
-            ProtectedReqManager.set_access_token(result.data.access_token)
-            ProtectedReqManager.set_refresh_token(result.data.refresh_token)
+            ProtectedReqManager.set_access_token(result.data.access_token);
+            ProtectedReqManager.set_refresh_token(result.data.refresh_token);
             setLoggedIn(true);
+            setShowLoginModal(false);
+
+            //store user info
+            setEmail(result.data.email);
+            setUsername(result.data.username);
+            setShard(result.data.shards);
         }).catch(err => {
             console.log(err);
             if (err.response.data.detail === "user unverified"){

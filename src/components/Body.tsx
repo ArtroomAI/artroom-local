@@ -33,6 +33,7 @@ function Body () {
     const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [progress, setProgress] = useState(-1);
+
     const [focused, setFocused] = useState(false);
 
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
@@ -68,6 +69,12 @@ function Body () {
         reducer,
         mainImageIndex
     );
+
+    const computeShardCost = () => {
+        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
+        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
+        return estimated_price;
+    }
 
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
@@ -170,6 +177,7 @@ function Body () {
                 ).then((result) => {
                     if (result.data.status === 'Success') {
                         setProgress(result.data.content.percentage);
+
                         if (result.data.content.status === 'Loading Model' && !toast.isActive('loading-model')) {
                             toast({
                                 id: 'loading-model',
@@ -187,6 +195,7 @@ function Body () {
                         }
                     } else {
                         setProgress(-1);
+
                         if (toast.isActive('loading-model')) {
                             toast.close('loading-model');
                         }
@@ -211,6 +220,8 @@ function Body () {
                 headers: { 'Content-Type': 'application/json' } }
             ).then((result) => {
                 const id = result.data.content.latest_images_id;
+
+
                 if (result.data.status === 'Success') {
                     if (id !== latestImagesID) {
                         setLatestImagesID(id);
@@ -290,6 +301,7 @@ function Body () {
                     <ImageObj
                         b64={mainImage}
                         active />
+
                     {
                         progress >= 0
                             ? <Progress
@@ -333,7 +345,7 @@ function Body () {
                             width="12px" />
 
                         <Text pl={1}>
-                            6
+                            {computeShardCost()}
                         </Text>
                     </Button>
                     : <Button
