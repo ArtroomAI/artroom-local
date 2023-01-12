@@ -325,7 +325,7 @@ function Body () {
                         variant="outline"
                         width="200px">
                         <Text pr={2}>
-                            'Run'
+                            Run
                         </Text>
 
                         <Image
@@ -341,7 +341,7 @@ function Body () {
                         ml={2}
                         onClick={submitMain}
                         width="200px"> 
-                        'Run'
+                        Run
                     </Button>}
 
                 <Box width="80%">

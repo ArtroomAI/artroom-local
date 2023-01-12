@@ -133,7 +133,7 @@ def image_grid(imgs, rows, cols, path):
 
 
 class StableDiffusion:
-    def __init__(self, socketio):
+    def __init__(self, socketio=None):
         self.current_num = 0
         self.total_num = 0
         self.stage = ''
@@ -170,7 +170,7 @@ class StableDiffusion:
             self.long_save_path = sd_settings['long_save_path']
             self.highres_fix = sd_settings['highres_fix']
 
-            print("Go on boy, create art")
+            print("Welcome to Artroom!")
 
     def get_steps(self):
         if self.model:

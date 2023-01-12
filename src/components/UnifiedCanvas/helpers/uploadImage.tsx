@@ -17,21 +17,24 @@ export const uploadImage = ({
               setLayerState,
               setFutureLayerStates,
               setInitialCanvasImage}) => {
+    console.log(imageFile);
 
-    const formData = new FormData();
-    formData.append('file', imageFile, imageFile.name);
-    formData.append(
-      'data',
-      JSON.stringify({
-        kind: 'init',
-      })
-    );
-    
-    fetch(`${LOCAL_URL}/invoke_upload`, {
-      method: 'POST',
-      body: formData
-    }).then(async response => {
-        const image = await response.json() as unknown as ImageUploadResponse;
+    const boundingBox = {
+      ...boundingBoxCoordinates,
+      ...boundingBoxDimensions,
+      };
+        const image = {
+          category: "user",
+          height: 512,
+          width: 512,
+          mtime: 1673399421.3987432,
+          url: imageFile.path,
+          kind: "image",
+          layer: "base",
+          x: 0,
+          y: 0
+        }
+
         const newImage: Image = {
           uuid: uuidv4(),
           category: 'user',
@@ -67,9 +70,5 @@ export const uploadImage = ({
           });
           setFutureLayerStates([]);        
         }
-       
-    });
-
-   
 }
 
