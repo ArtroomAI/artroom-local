@@ -236,6 +236,14 @@ class StableDiffusion:
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
         self.stage = "Loading Model"
+        del self.model
+        try:
+            del self.modelFS
+            del self.modelCS
+        except:
+            pass
+        torch.cuda.empty_cache()
+
         print("Loading model from config")
         sd = load_model_from_config(f"{ckpt}")
         if sd:

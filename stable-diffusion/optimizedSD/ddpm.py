@@ -652,7 +652,7 @@ class DiffusionWrapperOut(pl.LightningModule):
 
 
 class CFGDenoiser(torch.nn.Module):
-    def __init__(self, model, sampling_args):
+    def __init__(self, model, sampling_args=(False, None, None)):
         super().__init__()
         self.inner_model = model
         self.use_v_parameterization, \
@@ -665,14 +665,16 @@ class CFGDenoiser(torch.nn.Module):
                 extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape) * x_t
         )
 
-    def forward(self, x, sigma, uncond, cond, cond_scale):
+    def forward(self, x, t_sigma, unconditional_conditioning, c, cond_scale):  # x, sigma, uncond, cond, cond_scale
         x_in = torch.cat([x] * 2)
-        sigma_in = torch.cat([sigma] * 2)
-        cond_in = torch.cat([uncond, cond])
-        uncond, cond = self.inner_model(x_in, sigma_in, cond=cond_in).chunk(2)
-        e_t = uncond + (cond - uncond) * cond_scale
+        t_in = torch.cat([t_sigma] * 2)
+        c_in = torch.cat([unconditional_conditioning, c])
+        unconditional_conditioning, c = self.inner_model(x_in, t_in, cond=c_in).chunk(2)
+        model_output = unconditional_conditioning + (c - unconditional_conditioning) * cond_scale
         if self.use_v_parameterization:
-            e_t = self.predict_eps_from_z_and_v(x, sigma.type(torch.int64), e_t)
+            e_t = self.predict_eps_from_z_and_v(x, t_sigma.type(torch.int64), model_output)
+        else:
+            e_t = model_output
         return e_t
 
 
@@ -694,8 +696,8 @@ class KDiffusionSampler:
         x_dec = x0 * sigmas[0]
         samples_ddim = K.sampling.__dict__[f'sample_{self.schedule}'](model_wrap_cfg, x_dec, sigmas,
                                                                       callback=callback_fn,
-                                                                      extra_args={'cond': conditioning,
-                                                                                  'uncond': unconditional_conditioning,
+                                                                      extra_args={'c': conditioning,
+                                                                                  'unconditional_conditioning': unconditional_conditioning,
                                                                                   'cond_scale': unconditional_guidance_scale
                                                                                   },
                                                                       disable=False)
@@ -716,10 +718,10 @@ class KDiffusionSampler:
             xi = ((1 - mask) * noise) + (mask * xi)
 
         sigma_sched = sigmas[S_ddim_steps - S - 1:]
-        model_wrap_cfg = CFGDenoiser(self.model_wrap)
+        model_wrap_cfg = CFGDenoiser(self.model_wrap, sampling_args=self.sampling_args)
         samples = K.sampling.__dict__[f'sample_{self.schedule}'](model_wrap_cfg, xi, sigma_sched,
-                                                                 extra_args={'cond': conditioning,
-                                                                             'uncond': unconditional_conditioning,
+                                                                 extra_args={'c': conditioning,
+                                                                             'unconditional_conditioning': unconditional_conditioning,
                                                                              'cond_scale': unconditional_guidance_scale},
                                                                  disable=False)
         return samples
@@ -946,8 +948,8 @@ class UNet(DDPM):
             x_latent = x_latent * sigmas[0]
             model_wrap_cfg = CFGDenoiser(model_wrap)
             samples = self.sample_dpmpp_2m(model_wrap_cfg, x_latent, sigmas,
-                                           extra_args={'cond': conditioning,
-                                                       'uncond': unconditional_conditioning,
+                                           extra_args={'c': conditioning,
+                                                       'unconditional_conditioning': unconditional_conditioning,
                                                        'cond_scale': unconditional_guidance_scale},
                                            disable=False)
         elif sampler == 'dpmpp_2s_ancestral':
@@ -961,8 +963,8 @@ class UNet(DDPM):
             x_latent = x_latent * sigmas[0]
             model_wrap_cfg = CFGDenoiser(model_wrap)
             samples = self.sample_dpmpp_2s_ancestral(model_wrap_cfg, x_latent, sigmas,
-                                                     extra_args={'cond': conditioning,
-                                                                 'uncond': unconditional_conditioning,
+                                                     extra_args={'c': conditioning,
+                                                                 'unconditional_conditioning': unconditional_conditioning,
                                                                  'cond_scale': unconditional_guidance_scale},
                                                      disable=False)
         else:
@@ -1733,8 +1735,8 @@ class LatentDiffusion(DDPMv2):
                                                                     self.sqrt_alphas_cumprod,
                                                                     self.sqrt_one_minus_alphas_cumprod))
             samples = self.sample_dpmpp_2m(model_wrap_cfg, x_latent, sigmas,
-                                           extra_args={'cond': conditioning,
-                                                       'uncond': unconditional_conditioning,
+                                           extra_args={'c': conditioning,
+                                                       'unconditional_conditioning': unconditional_conditioning,
                                                        'cond_scale': unconditional_guidance_scale},
                                            disable=False)
         elif sampler == 'dpmpp_2s_ancestral':
@@ -1750,8 +1752,8 @@ class LatentDiffusion(DDPMv2):
                                                                     self.sqrt_alphas_cumprod,
                                                                     self.sqrt_one_minus_alphas_cumprod))
             samples = self.sample_dpmpp_2s_ancestral(model_wrap_cfg, x_latent, sigmas,
-                                                     extra_args={'cond': conditioning,
-                                                                 'uncond': unconditional_conditioning,
+                                                     extra_args={'c': conditioning,
+                                                                 'unconditional_conditioning': unconditional_conditioning,
                                                                  'cond_scale': unconditional_guidance_scale},
                                                      disable=False)
         else:
