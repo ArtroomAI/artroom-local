@@ -2,11 +2,7 @@ from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
 from artroom_helpers.gpu_detect import is_16xx_series
-from skimage import exposure
-import cv2
 import random
-from io import BytesIO
-import base64
 from transformers import logging
 from torch import autocast
 from pytorch_lightning import seed_everything
@@ -14,7 +10,7 @@ from omegaconf import OmegaConf
 from itertools import islice
 from einops import rearrange, repeat
 from contextlib import nullcontext
-from PIL import Image, ExifTags
+from PIL import Image
 import torch
 import gc
 import re
@@ -87,19 +83,6 @@ def load_mask(mask, newH, newW, invert=False):
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
     return image
-
-
-def image_to_b64(image):
-    image_file = BytesIO()
-    image.save(image_file, format='JPEG')
-    im_bytes = image_file.getvalue()  # im_bytes: image in binary format.
-    imgb64 = base64.b64encode(im_bytes)
-    return 'data:image/jpeg;base64,' + str(imgb64)[2:-1]
-
-
-def b64_to_image(b64):
-    image_data = re.sub('^data:image/.+;base64,', '', b64)
-    return Image.open(BytesIO(base64.b64decode(image_data))).convert('RGB')
 
 
 def image_grid(imgs, rows, cols, path):
@@ -177,7 +160,7 @@ class StableDiffusion:
             self.model.total_steps = 0
 
         self.stage = ""
-        self.running = False
+        self.running = False    
         if self.device != "cpu" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
@@ -218,9 +201,12 @@ class StableDiffusion:
         print("Loading in model...")
         self.stage = "Loading Model"
         del self.model
+        self.model = None
         try:
             del self.modelFS
             del self.modelCS
+            self.modelFS = None 
+            self.modelCS = None
         except:
             pass
         torch.cuda.empty_cache()
@@ -390,11 +376,18 @@ class StableDiffusion:
         if len(init_image_str) > 0:
             if init_image_str[:4] == 'data':
                 print("Loading image from b64")
-                image = b64_to_image(init_image_str).convert('RGB')
+                image = support.b64_to_image(init_image_str)
             else:
                 print(f"Loading from path {init_image_str}")
-                image = Image.open(init_image_str).convert('RGB')
-            init_image = load_img(image, H, W, inpainting = (len(mask_b64) > 0)).to(self.device)
+                image = Image.open(init_image_str)
+            
+            try:
+                image = inpainting.infill_patchmatch(image)
+                pass
+            except Exception as e:
+                print(f"Failed to outpaint the alpha layer {e}")
+
+            init_image = load_img(image.convert('RGB'), H, W, inpainting = (len(mask_b64) > 0)).to(self.device)
             _, _, H, W = init_image.shape
             if self.is_nvidia:
                 init_image = init_image.half()
@@ -495,7 +488,7 @@ class StableDiffusion:
                             if len(mask_b64) > 0 and init_image is not None:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
-                                    mask = b64_to_image(mask_b64).convert('L')
+                                    mask = support.b64_to_image(mask_b64).convert('L')
                                 else:
                                     mask = Image.open(mask).convert("L")
                                 mask = load_mask(mask, init_latent.shape[2], init_latent.shape[3], invert).to(self.device)
@@ -549,11 +542,11 @@ class StableDiffusion:
 
                         if mask is not None:
                             if init_image_str[:4] == 'data':
-                                original_init_image = b64_to_image(init_image_str).convert('RGB')
+                                original_init_image = support.b64_to_image(init_image_str).convert('RGB')
                             else:
                                 original_init_image = Image.open(init_image_str).convert('RGB')
                             if mask_b64[:4] == 'data':
-                                original_init_mask = b64_to_image(mask_b64).convert('L')
+                                original_init_mask = support.b64_to_image(mask_b64).convert('L')
                             else:
                                 original_init_mask = Image.open(mask).convert("L")
                             out_image = support.repaste_and_color_correct(result=out_image, init_image=original_init_image, init_mask=original_init_mask, mask_blur_radius=8)

@@ -1,7 +1,7 @@
 import React, {useEffect, useState, useReducer} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
-import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, setIsMaskEnabledAction, stageScaleAtom } from './UnifiedCanvas/atoms/canvas.atoms';
+import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, setIsMaskEnabledAction, stageScaleAtom, stageDimensionsAtom } from './UnifiedCanvas/atoms/canvas.atoms';
 import axios from 'axios';
 import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
 import {
@@ -18,7 +18,7 @@ import { useInterval } from './Reusable/useInterval/useInterval';
 import Shards from '../images/shards.png';
 import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
-import { generateMask, getCanvasBaseLayer } from './UnifiedCanvas/util';
+import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 
 const loadImage = async (b64: string) => {
@@ -55,6 +55,7 @@ function Paint () {
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [isMaskEnabled, setIsMaskEnabled] = useRecoilState(setIsMaskEnabledAction);
     const stageScale = useRecoilValue(stageScaleAtom);   
+    const stageDimensions = useRecoilValue(stageDimensionsAtom);
 
     const handleRunInpainting = () => {
         const canvasBaseLayer = getCanvasBaseLayer();
@@ -88,7 +89,6 @@ function Paint () {
           init_image: imageDataURL,
           mask_image: maskDataURL
         };
-        console.log(body);
         axios.post(
           `${baseURL}/add_to_queue`,
           body,
@@ -111,15 +111,21 @@ function Paint () {
     }
 
     function addToCanvas(imageData: { b64: string, path: string; }){
-        const imageMetadata = loadImage(imageData.b64);
+
+    
+        const scaledDimensions = getScaledBoundingBoxDimensions(
+            boundingBoxDimensions
+        );         
+        
         const boundingBox = {
             ...boundingBoxCoordinates,
-            ...boundingBoxDimensions,
-            };
+            ...scaledDimensions,
+        };
+        console.log(boundingBox)
+
         const image = {
+        ...scaledDimensions,
         category: "user",
-        height: imageMetadata["height"],
-        width: imageMetadata["width"],
         mtime: 1673399421.3987432,
         url: imageData.path,
         uuid: uuidv4(),

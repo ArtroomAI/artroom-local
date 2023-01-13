@@ -3,7 +3,9 @@ import io
 import cv2
 from PIL import Image, ImageChops, ImageFilter
 from PIL.Image import Image as ImageType
-import numpy as np 
+import numpy as np
+from io import BytesIO
+import re 
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
@@ -14,6 +16,9 @@ def image_to_b64(image):
     imgb64 = base64.b64encode(im_bytes)
     return 'data:image/jpeg;base64,' + str(imgb64)[2:-1]
 
+def b64_to_image(b64):
+    image_data = re.sub('^data:image/.+;base64,', '', b64)
+    return Image.open(BytesIO(base64.b64decode(image_data)))
 
 def allowed_file(filename: str) -> bool:
     return (

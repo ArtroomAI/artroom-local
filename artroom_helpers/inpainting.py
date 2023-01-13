@@ -1,4 +1,4 @@
-from artroom_helpers.patchmatch import PatchMatch
+from artroom_helpers import patchmatch
 from PIL import Image, ImageFilter, ImageOps
 import numpy as np 
 import math
@@ -116,15 +116,21 @@ class Outpaint(object):
 
 def infill_patchmatch(im: Image.Image) -> Image:
     if im.mode != 'RGBA':
+        print("Patchmatch failed, not RGBA")
         return im
 
     # Skip patchmatch if patchmatch isn't available
-    if not PatchMatch.patchmatch_available():
+    if not patchmatch.patchmatch_available:
+        print("patchmatch not available")
         return im
+    
+    im.save("TEST.png")
 
     # Patchmatch (note, we may want to expose patch_size? Increasing it significantly impacts performance though)
-    im_patched_np = PatchMatch.inpaint(im.convert('RGB'), ImageOps.invert(im.split()[-1]), patch_size = 3)
+    im_patched_np = patchmatch.inpaint(im.convert('RGB'), ImageOps.invert(im.split()[-1]), patch_size = 3)
     im_patched = Image.fromarray(im_patched_np, mode = 'RGB')
+    im_patched.save("TEST_PATCHED.png")
+
     return im_patched
 
 def get_tile_images(image: np.ndarray, width=8, height=8):

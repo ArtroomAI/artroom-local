@@ -186,30 +186,17 @@ export const CanvasToolChooserOptions: FC = () => {
 
   return (
     <ButtonGroup isAttached>
-      <IconButton
-        aria-label="Brush Tool (B)"
-        tooltip="Brush Tool (B)"
-        icon={<FaPaintBrush />}
-        data-selected={tool === 'brush' && !isStaging}
-        onClick={handleSelectBrushTool}
-        isDisabled={isStaging}
-      />
-      <IconButton
-        aria-label="Eraser Tool (E)"
-        tooltip="Eraser Tool (E)"
-        icon={<FaEraser />}
-        data-selected={tool === 'eraser' && !isStaging}
-        isDisabled={isStaging}
-        onClick={handleSelectEraserTool}
-      />
       <Popover
         trigger="hover"
         triggerComponent={
           <IconButton
-            aria-label="Brush Options"
-            tooltip="Brush Options"
-            icon={<FaSlidersH />}
-          />
+          aria-label="Brush Tool (B)"
+          tooltip="Brush Tool (B)"
+          icon={<FaPaintBrush />}
+          data-selected={tool === 'brush' && !isStaging}
+          onClick={handleSelectBrushTool}
+          isDisabled={isStaging}
+        />
         }
       >
         <Flex minWidth="15rem" direction="column" gap="1rem" width="100%">
@@ -235,6 +222,14 @@ export const CanvasToolChooserOptions: FC = () => {
           />
         </Flex>
       </Popover>
+      <IconButton
+        aria-label="Eraser Tool (E)"
+        tooltip="Eraser Tool (E)"
+        icon={<FaEraser />}
+        data-selected={tool === 'eraser' && !isStaging}
+        isDisabled={isStaging}
+        onClick={handleSelectEraserTool}
+      />
       <IconButton
         aria-label="Fill Bounding Box (Shift+F)"
         tooltip="Fill Bounding Box (Shift+F)"
