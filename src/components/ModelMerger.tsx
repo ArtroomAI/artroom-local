@@ -8,7 +8,6 @@ import {
     Flex,
     VStack,
     Text,
-    createStandaloneToast,
     FormControl,
     FormLabel,
     HStack,
@@ -27,13 +26,14 @@ import {
     Tooltip,
     Spacer,
     NumberInput,
-    NumberInputField
+    NumberInputField,
+    useToast
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import path from 'path';
 
 export const ModelMerger = () => {
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
     const [progress, setProgress] = useState(-1);

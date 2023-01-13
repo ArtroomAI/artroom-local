@@ -8,7 +8,7 @@ import {
     Link,
     Image,
     Text,
-    createStandaloneToast 
+    useToast
 } from '@chakra-ui/react';
 import Logo from '../../../images/ArtroomLogo.png';
 import axios from 'axios';
@@ -17,10 +17,10 @@ import { useRecoilState } from 'recoil';
 import * as atom from '../../../atoms/atoms'
 
 const ForgotPasswordCode = ({ setState, setPwdResetJwt }: { setPwdResetJwt: React.Dispatch<React.SetStateAction<string>>, setState: React.Dispatch<React.SetStateAction<string>> }) => {
-    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const [verificationCode, setVerificationCode] = useState('');
     const [email, setEmail] = useRecoilState(atom.emailState);
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
 
     function handleResendCode(){
         axios.get(

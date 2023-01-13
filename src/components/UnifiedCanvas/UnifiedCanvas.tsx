@@ -47,16 +47,6 @@ export const UnifiedCanvas: FC = () => {
     return () => window.removeEventListener('resize', resizeCallback);
   }, []);
 
-  // const getImageByUuid = useGetImageByUuid();
-  // const setInitialCanvasImage = useSetRecoilState(setInitialCanvasImageAction)
-
-  // const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-  // 	const uuid = e.dataTransfer.getData('invokeai/imageUuid');
-  // 	const image = getImageByUuid(uuid);
-  // 	if (!image) return;
-  // 	setInitialCanvasImage(image);
-  // };
-
   return (
     <div>
       <ImageUploader>

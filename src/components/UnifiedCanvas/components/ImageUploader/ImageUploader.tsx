@@ -54,11 +54,12 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
   );
 
   const fileAcceptedCallback = useCallback(async (file: File) => {
+
     uploadImage({
       imageFile: file,
       setInitialCanvasImage,
-      boundingBoxCoordinates: boundingBoxCoordinates,
-      boundingBoxDimensions: boundingBoxDimensions,
+      boundingBoxCoordinates,
+      boundingBoxDimensions,
       setPastLayerStates,
       pastLayerStates,
       layerState,
@@ -73,9 +74,14 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
       fileRejections.forEach((rejection: FileRejection) => {
         fileRejectionCallback(rejection);
       });
-
       acceptedFiles.forEach((file: File) => {
-        fileAcceptedCallback(file);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          const b64 = reader.result;
+          file["b64"] = b64;
+          fileAcceptedCallback(file);
+        }        
       });
     },
     [fileAcceptedCallback, fileRejectionCallback]
@@ -130,7 +136,6 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
         });
         return;
       }
-
       const file = imageItems[0].getAsFile();
 
       if (!file) {

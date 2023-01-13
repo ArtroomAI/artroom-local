@@ -46,7 +46,7 @@ export default class ProtectedReqManager {
             console.log(err);
             if (err.response.data.detail === "invalid access token" && !wasRefreshed) {
                 //use refresh token to generate new access/refresh tokens and retry request
-                const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+                const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
 
                 let data = { refresh_token: this.refresh_token }
 

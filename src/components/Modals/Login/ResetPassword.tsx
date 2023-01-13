@@ -16,15 +16,15 @@ import {
     FormControl,
     FormHelperText,
     Image,
-    createStandaloneToast
+    useToast
 } from '@chakra-ui/react';
 import { FaLock, FaEyeSlash, FaEye } from 'react-icons/fa';
 import Logo from '../../../images/ArtroomLogo.png';
 import validator from 'validator';
 
 const ResetPassword = ({ setState, pwdResetJwt }: { setState: React.Dispatch<React.SetStateAction<string>>, pwdResetJwt: string }) => {
-    const SERVER_URL = process.env.REACT_APP_SERVER_URL;
-    const { ToastContainer, toast } = createStandaloneToast();
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const toast = useToast({});
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [passwordRepeat, setPasswordRepeat] = useState('');
@@ -58,7 +58,7 @@ const ResetPassword = ({ setState, pwdResetJwt }: { setState: React.Dispatch<Rea
                 new_password: password
               }
             axios.post(
-                `${SERVER_URL}/forgot_password_reset`,
+                `${ARTROOM_URL}/forgot_password_reset`,
                 body,
                 {   
                     headers: {

@@ -6,7 +6,6 @@ import axios from 'axios';
 import {
     Box,
     Flex,
-    createStandaloneToast,
     Button,
     Text,
     Grid,
@@ -16,7 +15,8 @@ import {
     Tr,
     Tbody,
     HStack,
-    IconButton
+    IconButton,
+    useToast
 } from '@chakra-ui/react';
 import {
     FaPlay,
@@ -29,7 +29,7 @@ import QueueRow from './QueueHelpers/QueueRow';
 import ClearQueue from './QueueHelpers/ClearQueue';
 
 function Queue () {
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     const [queue, setQueue] = useRecoilState(atom.queueState);
     const [serverRunning, setServerRunning] = useState(false);
 

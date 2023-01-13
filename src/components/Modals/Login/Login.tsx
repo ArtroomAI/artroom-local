@@ -14,7 +14,7 @@ import {
     FormHelperText,
     InputRightElement,
     Image,
-    createStandaloneToast
+    useToast
 } from '@chakra-ui/react';
 import { FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { IoIosMail } from 'react-icons/io';
@@ -25,8 +25,8 @@ import * as atom from '../../../atoms/atoms'
 import ProtectedReqManager from '../../../helpers/ProtectedReqManager';
 
 const Login = ({ setLoggedIn, setState }: { setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>, setState: React.Dispatch<React.SetStateAction<string>> }) => {    
-    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
-    const { ToastContainer, toast } = createStandaloneToast();
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const toast = useToast({});
     const qs = require('qs');
 
     const [email, setEmail] = useRecoilState(atom.emailState);

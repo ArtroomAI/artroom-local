@@ -12,7 +12,7 @@ import {
     SimpleGrid,
     Image,
     Text,
-    createStandaloneToast
+    useToast
 } from '@chakra-ui/react';
 import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
@@ -21,10 +21,10 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
 function Body () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const baseURL = LOCAL_URL;
 
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
 
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
@@ -37,7 +37,7 @@ function Body () {
     const [focused, setFocused] = useState(false);
 
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-
+    
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
         switch (action.type) {
@@ -333,7 +333,7 @@ function Body () {
                     ? <Button
                         className="run-button"
                         ml={2}
-                        onClick={getProfile}
+                        onClick={submitMain}
                         variant="outline"
                         width="200px">
                         <Text pr={2}>
