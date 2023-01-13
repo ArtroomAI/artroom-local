@@ -28,46 +28,19 @@ def return_output(status, status_message='', content=''):
         status_message = 'Unknown Error'
     return jsonify({'status': status, 'status_message': status_message, 'content': content})
 
-class ArtroomServer:
-    def __init__(self, SD):
-        self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
-        self.SD = SD 
-        self.update_paths()
-
-    def update_paths(self):
-        self.result_url = self.SD.image_save_path
-        self.intermediate_url = os.path.join(f"{SD.artroom_path}/artroom/images", "artroom_inits/")
-        os.makedirs(self.intermediate_url, exist_ok=True)
-
-    def reset_settings_to_default(self):
-        print('Failure, sd_settings not found. Resetting to default')
-        if os.path.exists('sd_settings.json'):
-            shutil.copy('sd_settings.json', f'{self.SD.artroom_path}/artroom/settings/')
-            print('Successfully resetted to default')
-        else:
-            print('Resetting failed')
-
-    def get_url_from_image_path(self, path):  
-        self.update_paths()      
-        """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
-        try:
-            if "artroom_inits" in path:
-                return os.path.join(self.intermediate_url, os.path.basename(path))
-            else:
-                return os.path.join(self.result_url, os.path.basename(path))
-        except Exception as e:
-            socketio.emit("error", {"message": (str(e))})
-            print("\n")
-
-            traceback.print_exc()
-            print("\n")
+def reset_settings_to_default(self):
+    print('Failure, sd_settings not found. Resetting to default')
+    if os.path.exists('sd_settings.json'):
+        shutil.copy('sd_settings.json', f'{self.SD.artroom_path}/artroom/settings/')
+        print('Successfully resetted to default')
+    else:
+        print('Resetting failed')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=False, engineio_logger=False)
 SD = StableDiffusion(socketio)
 UP = Upscaler()
-AS = ArtroomServer(SD) 
 
 def set_artroom_paths(artroom_path):
     QM.set_artroom_path(artroom_path)
@@ -150,7 +123,7 @@ def update_settings():
         print('Failure, artroom path not found')
         return return_output('Failure', 'Artroom Path not found')
     if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
-        AS.reset_settings_to_default()
+        reset_settings_to_default()
         return return_output('Failure', 'sd_settings.json not found')
     if 'delay' in data:
         QM.update_delay = data['delay']
@@ -183,7 +156,7 @@ def get_settings():
         print('Failed to get settings, artroom path not found')
         return return_output('Failure', 'Artroom Path not found')
     if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
-        AS.reset_settings_to_default()
+        reset_settings_to_default()
         return return_output('Failure', 'sd_settings.json not found')
     sd_settings = json.load(
         open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
