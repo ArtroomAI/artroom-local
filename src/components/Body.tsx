@@ -297,11 +297,14 @@ function Body () {
             <VStack spacing={3}>
                 <Box
                     className="image-box"
-                    width="80%">
+                    width="80%"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    >
                     <ImageObj
                         b64={mainImage}
                         active />
-
                     {
                         progress >= 0
                             ? <Progress
