@@ -1,5 +1,5 @@
 import React from 'react';
-import { ButtonGroup, createStandaloneToast } from '@chakra-ui/react';
+import { ButtonGroup, useToast } from '@chakra-ui/react';
 import {
   FaArrowsAlt,
   FaCopy,
@@ -38,12 +38,7 @@ import { CanvasMaskOptions } from './CanvasMaskOptions';
 import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
 import { CanvasRedoButton } from './CanvasRedoButton';
 import { CanvasUndoButton } from './CanvasUndoButton';
-import axios from 'axios';
 import path from 'path';
-
-const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
-const baseURL = LOCAL_URL;
 
 export const CanvasOutpaintingControls: FC = () => {
   const canvasBaseLayer = getCanvasBaseLayer();
@@ -65,13 +60,10 @@ export const CanvasOutpaintingControls: FC = () => {
   const { openUploader } = useImageUploader();
 
   //For Generation
-  const stageScale = useRecoilValue(stageScaleAtom);  
-  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
-  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
-  const layerState = useRecoilValue(layerStateAtom);  
+  const stageScale = useRecoilValue(stageScaleAtom);   
   const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
   const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
-  const { ToastContainer, toast } = createStandaloneToast();
+  const toast = useToast({});
 
   useHotkeys(
     ['v'],
@@ -177,51 +169,6 @@ export const CanvasOutpaintingControls: FC = () => {
     })
   };
 
-  const handleRunInpainting = () => {
-    const canvasBaseLayer = getCanvasBaseLayer();
-    const boundingBox = {
-      ...boundingBoxCoordinates,
-      ...boundingBoxDimensions,
-    };
-    const maskDataURL = generateMask(
-      isMaskEnabled ? layerState.objects.filter(isCanvasMaskLine) : [],
-      boundingBox
-    );
-  
-    const tempScale = canvasBaseLayer.scale();
-  
-    canvasBaseLayer.scale({
-      x: 1 / stageScale,
-      y: 1 / stageScale,
-    });
-  
-    const absPos = canvasBaseLayer.getAbsolutePosition();
-  
-    const imageDataURL = canvasBaseLayer.toDataURL({
-      x: boundingBox.x + absPos.x,
-      y: boundingBox.y + absPos.y,
-      width: boundingBox.width,
-      height: boundingBox.height,
-    });
-
-    canvasBaseLayer.scale(tempScale);
-    const body = {
-      ...imageSettings,
-      init_image: imageDataURL,
-      mask_image: maskDataURL
-    };
-    
-    axios.post(
-      `${baseURL}/add_to_queue`,
-      body,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-      ).then(result =>{
-        console.log(result);
-      })
-  };
-
   const handleChangeLayer = (e: ChangeEvent<HTMLSelectElement>) => {
     const newLayer = e.target.value as CanvasLayer;
     setLayer(newLayer);
@@ -297,18 +244,6 @@ export const CanvasOutpaintingControls: FC = () => {
         <CanvasUndoButton />
         <CanvasRedoButton />
       </ButtonGroup>
-
-
-
-        <ButtonGroup isAttached>
-        <IconButton
-            aria-label="Run (Alt+R)"
-            tooltip="Run (Alt+R)"
-            icon={<FaPlay />}
-            onClick={handleRunInpainting}
-            isDisabled={isStaging}
-          />
-        </ButtonGroup>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import * as atom from '../atoms/atoms';
 import {
     Flex,
     Spacer,
-    createStandaloneToast,
+    useToast,
     Grid,
     GridItem,
     useColorMode,
@@ -66,7 +66,7 @@ function Main () {
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
 
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
 

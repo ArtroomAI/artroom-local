@@ -21,12 +21,12 @@ import * as atom from '../../../atoms/atoms'
 
 const ForgotPassword = ({ setState }: { setState: React.Dispatch<React.SetStateAction<string>> }) => {
     const qs = require('qs');
-    const SERVER_URL = process.env.REACT_APP_SERVER_URL;
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
 
     const [email, setEmail] = useRecoilState(atom.emailState);
     function handleForgotPassword () {
         axios.get(
-            `${SERVER_URL}/forgot_password_send_code`,{   
+            `${ARTROOM_URL}/forgot_password_send_code`,{   
                 params: {email},
                 headers: {
                     'Content-Type': 'application/json',

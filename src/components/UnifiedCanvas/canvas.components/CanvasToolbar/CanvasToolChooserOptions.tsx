@@ -218,6 +218,7 @@ export const CanvasToolChooserOptions: FC = () => {
               label="Size"
               value={brushSize}
               withInput
+              max={200}
               onChange={(newSize) => setBrushSize(newSize)}
               sliderNumberInputProps={{ max: 500 }}
               inputReadOnly={false}

@@ -1,28 +1,42 @@
 import React, {useEffect, useState, useReducer} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
-import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom } from './UnifiedCanvas/atoms/canvas.atoms';
+import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, setIsMaskEnabledAction, stageScaleAtom } from './UnifiedCanvas/atoms/canvas.atoms';
 import axios from 'axios';
 import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
 import {
+    Text,
     Box,
     VStack,
     SimpleGrid,
-    Image,
-    createStandaloneToast
+    Image as ChakraImage,
+    Button,
+    useToast
 } from '@chakra-ui/react';
 import Prompt from './Prompt';
 import { useInterval } from './Reusable/useInterval/useInterval';
-import { addImageToStagingAreaAction } from './UnifiedCanvas/atoms/canvas.atoms';
-import { CanvasLayerState } from './UnifiedCanvas/atoms/canvasTypes';
+import Shards from '../images/shards.png';
 import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
+import { generateMask, getCanvasBaseLayer } from './UnifiedCanvas/util';
+import { isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+
+const loadImage = async (b64: string) => {
+    const image = new Image();
+    image.src = b64;
+    return new Promise((resolve) => {
+      image.onload = () => {
+        resolve({width: image.width, height: image.height});
+      }
+    });
+  }
+  
 function Paint () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const baseURL = LOCAL_URL;
 
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
@@ -30,6 +44,7 @@ function Paint () {
 
     const [progress, setProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
+    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
     const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
     const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
@@ -37,16 +52,74 @@ function Paint () {
     const [maxHistory, setMaxHistory] = useRecoilState(maxHistoryAtom);  
     const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
     const [futureLayerStates, setFutureLayerStates] = useRecoilState(futureLayerStatesAtom);  
+    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+    const [isMaskEnabled, setIsMaskEnabled] = useRecoilState(setIsMaskEnabledAction);
+    const stageScale = useRecoilValue(stageScaleAtom);   
+
+    const handleRunInpainting = () => {
+        const canvasBaseLayer = getCanvasBaseLayer();
+        const boundingBox = {
+          ...boundingBoxCoordinates,
+          ...boundingBoxDimensions,
+        };
+        const maskDataURL = generateMask(
+          isMaskEnabled ? layerState.objects.filter(isCanvasMaskLine) : [],
+          boundingBox
+        );
+        const tempScale = canvasBaseLayer.scale();
+      
+        canvasBaseLayer.scale({
+          x: 1 / stageScale,
+          y: 1 / stageScale,
+        });
+      
+        const absPos = canvasBaseLayer.getAbsolutePosition();
+      
+        const imageDataURL = canvasBaseLayer.toDataURL({
+          x: boundingBox.x + absPos.x,
+          y: boundingBox.y + absPos.y,
+          width: boundingBox.width,
+          height: boundingBox.height,
+        });
+    
+        canvasBaseLayer.scale(tempScale);
+        const body = {
+          ...imageSettings,
+          init_image: imageDataURL,
+          mask_image: maskDataURL
+        };
+        console.log(body);
+        axios.post(
+          `${baseURL}/add_to_queue`,
+          body,
+          {
+            headers: { 'Content-Type': 'application/json' }
+          }
+          ).then(result =>{
+            console.log(result);
+          })
+      };
+
+    // useEffect(() =>{
+    //     console.log({...boundingBoxCoordinates, ...boundingBoxDimensions});
+    // },[boundingBoxCoordinates, boundingBoxDimensions])
+
+    const computeShardCost = () => {
+        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
+        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
+        return estimated_price;
+    }
 
     function addToCanvas(imageData: { b64: string, path: string; }){
+        const imageMetadata = loadImage(imageData.b64);
         const boundingBox = {
             ...boundingBoxCoordinates,
             ...boundingBoxDimensions,
             };
         const image = {
         category: "user",
-        height: 512,
-        width: 512,
+        height: imageMetadata["height"],
+        width: imageMetadata["width"],
         mtime: 1673399421.3987432,
         url: imageData.path,
         uuid: uuidv4(),
@@ -54,7 +127,7 @@ function Paint () {
         layer: "base",
         x: 0,
         y: 0
-        }
+    }
 
         if (!boundingBox || !image) return;
 
@@ -271,7 +344,7 @@ function Paint () {
                     <SimpleGrid
                         minChildWidth="100px"
                         spacing="10px">
-                        {latestImages.map((imageData, index) => (<Image
+                        {latestImages.map((imageData, index) => (<ChakraImage
                             h="5vh"
                             key={index}
                             src={imageData.b64}
@@ -281,6 +354,32 @@ function Paint () {
                         />))}
                     </SimpleGrid>
                 </Box>
+                {cloudMode
+                    ? <Button
+                        className="run-button"
+                        ml={2}
+                        onClick={handleRunInpainting}
+                        variant="outline"
+                        width="200px">
+                        <Text pr={2}>
+                            Run
+                        </Text>
+
+                        <Image
+                            src={Shards}
+                            width="12px" />
+
+                        <Text pl={1}>
+                            {computeShardCost()}
+                        </Text>
+                    </Button>
+                    : <Button
+                        className="run-button"
+                        ml={2}
+                        onClick={handleRunInpainting}
+                        width="200px"> 
+                        Run
+                    </Button>}
                 <Box width="80%">
                     <Prompt setFocused={setFocused} />
                 </Box>

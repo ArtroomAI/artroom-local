@@ -21,15 +21,15 @@ import {
     Checkbox,
     Select,
     Spacer,
-    createStandaloneToast,
     Text,
-    Icon
+    Icon,
+    useToast
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 
 function SDSettings () {
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
@@ -174,7 +174,7 @@ function SDSettings () {
                                 min={1}
                                 name="n_iter"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, n_iter: parseInt(v)});
+                                    setImageSettings({...imageSettings, n_iter: v});
                                 }}
                                 value={imageSettings.n_iter}
                                 variant="outline"
@@ -204,7 +204,7 @@ function SDSettings () {
                                 min={1}
                                 name="steps"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, steps: parseInt(v)});
+                                    setImageSettings({...imageSettings, steps: v});
                                 }}
                                 value={imageSettings.steps}
                                 variant="outline"
@@ -337,7 +337,7 @@ function SDSettings () {
                                 min={256}
                                 name="width"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, width: parseInt(v)});
+                                    setImageSettings({...imageSettings, width: v});
                                 }}                                
                                 step={64}
                                 value={imageSettings.width}
@@ -375,7 +375,7 @@ function SDSettings () {
                                 max={1920}
                                 min={256}
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, height: parseInt(v)});
+                                    setImageSettings({...imageSettings, height: v});
                                 }}                                        
                                 step={64}
                                 value={imageSettings.height}
@@ -425,17 +425,16 @@ function SDSettings () {
                             min={0}
                             name="cfg_scale"
                             onChange={(v) => {
-                                setImageSettings({...imageSettings, cfg_scale: parseInt(v)});
-                            }}        
+                                setImageSettings({...imageSettings, cfg_scale: v});
+                            }}         
                             value={imageSettings.cfg_scale}
-                            variant="outline"
+                               variant="outline"
                         >
                             <NumberInputField id="cfg_scale" />
                         </NumberInput>
                     </FormControl>
 
-                    {imageSettings.init_image.length > 0
-                        ? <FormControl className="strength-input">
+                    <FormControl className="strength-input">
                             <HStack>
                                 <FormLabel htmlFor="Strength">
                                     Image Variation Strength:
@@ -461,7 +460,7 @@ function SDSettings () {
                                 min={0.0}
                                 name="strength"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, strength: parseFloat(v)});
+                                    setImageSettings({...imageSettings, strength: v});
                                 }}        
                                 step={0.01}
                                 value={imageSettings.strength}
@@ -486,8 +485,7 @@ function SDSettings () {
                                     <SliderThumb />
                                 </Tooltip>
                             </Slider>
-                        </FormControl>
-                        : <></>}
+                    </FormControl>
 
                     <FormControl className="samplers-input">
                         <HStack>

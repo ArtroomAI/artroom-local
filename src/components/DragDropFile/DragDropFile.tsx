@@ -19,6 +19,7 @@ const DragDropFile = () => {
     const inputRef = useRef(null);
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
+    
 
     function getImageFromPath () {
         if (initImagePath.length > 0) {
@@ -61,8 +62,13 @@ const DragDropFile = () => {
     };
 
     const handleFile = function (e: FileList) {
-        console.log(e[0].path);
-        setInitImagePath(e[0].path);
+        const file = e[0];
+        if (file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/heic") {
+            console.log(file.path);
+            setInitImagePath(file.path);
+        } else {
+            console.log("Invalid file type. Please select an image file (jpg, png or heic).");
+        }
     };
 
     // Triggers when file is selected with click

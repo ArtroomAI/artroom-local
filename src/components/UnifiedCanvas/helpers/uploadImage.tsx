@@ -1,12 +1,18 @@
 import React from 'react';
 import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
-import { ImageUploadResponse, Image } from '../painter';
 
-const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+const loadImage = async (b64: string) => {
+  const image = new Image();
+  image.src = b64;
+  return new Promise((resolve) => {
+    image.onload = () => {
+      resolve({width: image.width, height: image.height});
+    }
+  });
+}
 
-export const uploadImage = ({
+export const uploadImage = async ({
               imageFile, 
               boundingBoxCoordinates, 
               boundingBoxDimensions,
@@ -17,58 +23,55 @@ export const uploadImage = ({
               setLayerState,
               setFutureLayerStates,
               setInitialCanvasImage}) => {
-    console.log(imageFile);
 
-    const boundingBox = {
-      ...boundingBoxCoordinates,
-      ...boundingBoxDimensions,
+      const boundingBox = {
+        ...boundingBoxCoordinates,
+        ...boundingBoxDimensions,
       };
-        const image = {
-          category: "user",
-          height: 512,
-          width: 512,
-          mtime: 1673399421.3987432,
-          url: imageFile.path,
-          kind: "image",
-          layer: "base",
-          x: 0,
-          y: 0
-        }
+      const imageData = await loadImage(imageFile.b64);
+      const image = {
+        category: "user",
+        height: imageData['height'],
+        width: imageData['width'],
+        mtime: 1673399421.3987432,
+        url: imageFile.b64,
+        kind: "image",
+        layer: "base",
+        ...boundingBoxCoordinates,
+        x: 0,
+        y: 0
+      }
 
-        const newImage: Image = {
-          uuid: uuidv4(),
-          category: 'user',
-          ...image,
-        };
-        if (layerState.objects.length == 0){
-          setInitialCanvasImage(newImage)
+      const newImage = {
+        uuid: uuidv4(),
+        category: 'user',
+        ...image,
+      };
+      if (layerState.objects.length == 0){
+        setInitialCanvasImage(newImage)
+      }
+      else{
+        setPastLayerStates([
+          ...pastLayerStates,
+          _.cloneDeep(layerState),
+        ]);
+    
+        if (pastLayerStates.length > maxHistory) {
+          setPastLayerStates(pastLayerStates.slice(1));
         }
-        else{
-          const boundingBox = {
-            ...boundingBoxCoordinates,
-            ...boundingBoxDimensions,
-          };        
-          setPastLayerStates([
-            ...pastLayerStates,
-            _.cloneDeep(layerState),
-          ]);
-      
-          if (pastLayerStates.length > maxHistory) {
-            setPastLayerStates(pastLayerStates.slice(1));
-          }
-          setLayerState({
-            ...layerState,
-            objects: [
-                ...layerState.objects,                   
-                {
-                  kind: 'image',
-                  layer: 'base',
-                  ...boundingBox,
-                  image: newImage,
-                },
-              ],
-          });
-          setFutureLayerStates([]);        
-        }
+        setLayerState({
+          ...layerState,
+          objects: [
+              ...layerState.objects,                   
+              {
+                kind: 'image',
+                layer: 'base',
+                ...boundingBox,
+                image: newImage,
+              },
+            ],
+        });
+        setFutureLayerStates([]);    
+      }
 }
 
