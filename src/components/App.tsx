@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RecoilRoot, useRecoilState } from 'recoil';
+import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
     Flex,
@@ -31,29 +31,9 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
+import { Console } from './Console';
 
-import ArtroomIcon from '../images/icon.ico';
-import MinimizeIcon from '../images/minimize.png';
-import MaximizeIcon from '../images/maximize.png';
-import CloseIcon from '../images/close.png';
-
-const AppTopBar = () => {
-    return (
-        <div id="menu-bar">
-            <div className="left" role="menu">
-                <img src={ArtroomIcon} width="30px"/>
-                <h3 id="artroom-head">ArtroomAI</h3>
-            </div>
-            <div className="right">
-                <button className="menubar-btn" id="minimize-btn" onClick={window.api.minimizeWindow}><img src={MinimizeIcon} width="20px"/></button>
-                <button className="menubar-btn" id="max-unmax-btn" onClick={window.api.maxUnmaxWindow}><img src={MaximizeIcon} width="20px"/></button>
-                <button className="menubar-btn" id="close-btn" onClick={window.api.closeWindow}><img src={CloseIcon} width="20px"/></button>
-            </div>
-        </div>
-    );
-}
-
-function Main () {
+export default function App () {
     // Connect to the server
 
     const { colorMode, toggleColorMode } = useColorMode();
@@ -261,14 +241,3 @@ function Main () {
         </Grid>
     );
 }
-
-
-function App () {
-    return (
-        <RecoilRoot>
-            <AppTopBar/>
-            <Main />
-        </RecoilRoot>
-    );
-}
-export default App;

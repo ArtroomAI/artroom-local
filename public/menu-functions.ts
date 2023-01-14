@@ -1,28 +1,28 @@
-export const exposeMenuFunctions = (ipcMain, browserWindow, app) => {
-    ipcMain.handle('minimizeWindow', async (event) => {
+export const exposeMenuFunctions = (ipcMain: Electron.IpcMain, browserWindow: Electron.BrowserWindow, app: Electron.App) => {
+    ipcMain.handle('minimizeWindow', async () => {
         if (browserWindow.minimizable) {
             browserWindow.minimize();
         }
     });
-    ipcMain.handle('maximizeWindow', async (event) => {
+    ipcMain.handle('maximizeWindow', async () => {
         if (browserWindow.maximizable) {
             browserWindow.maximize();
         }
     });
-    ipcMain.handle('unmaximizeWindow', async (event) => {
+    ipcMain.handle('unmaximizeWindow', async () => {
         browserWindow.unmaximize();
     });
-    ipcMain.handle('maxUnmaxWindow', async (event) => {
+    ipcMain.handle('maxUnmaxWindow', async () => {
         if (browserWindow.isMaximized()) {
             browserWindow.unmaximize();
         } else {
             browserWindow.maximize();
         }
     });
-    ipcMain.handle('closeWindow', async (event) => {
+    ipcMain.handle('closeWindow', async () => {
         browserWindow.close();
     });
-    ipcMain.handle('getVersion', async (event) => {
+    ipcMain.handle('getVersion', async () => {
         return app.getVersion();
     });
 }

@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions } from 'electron';
 import { autoUpdater } from "electron-updater";
-import { io } from 'socket.io-client';
 autoUpdater.autoDownload = false;
 import os from 'os';
 import path from 'path';
@@ -36,12 +35,18 @@ const loadSDData = () => {
   const settingsPath = path.join(artroom_path, 'artroom\\settings');
   const settingsFile = path.join(settingsPath, 'sd_settings.json');
   fs.mkdirSync(settingsPath, { recursive: true });
-  
-  let sd_data;
+  const original = JSON.parse(fs.readFileSync("sd_settings.json", 'utf-8'));
+  let sd_data: Record<string, any>;
   try {
-    sd_data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+    sd_data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8')) as Record<string, any>;
   } catch(err) {
-    sd_data = JSON.parse(fs.readFileSync("sd_settings.json", 'utf-8'));
+    sd_data = original;
+  }
+
+  for(const key in original) {
+    if(!(key in sd_data)) {
+      sd_data[key] = original[key];
+    }
   }
   sd_data['image_save_path'] = path.normalize(sd_data.image_save_path.replace('%UserProfile%', hd));
   sd_data['ckpt'] = path.normalize(sd_data.ckpt.replace('%InstallPath%', artroom_path));
@@ -55,73 +60,53 @@ const loadSDData = () => {
 //replace placeholders with actual paths
 const sd_data = loadSDData();
 
-async function getB64(data: string) {
-  return new Promise((resolve, reject) => {
-    fs.promises.readFile(data, 'base64').then((result: string) => {
-      const ext = path.extname(data).toLowerCase();
-      let mimeType;
-      if (ext === '.png') {
-        mimeType = 'image/png';
-      } else if (ext === '.jpg' || ext === '.jpeg') {
-        mimeType = 'image/jpeg';
-      } else {
-        mimeType = '';
-      }
-      resolve(`data:${mimeType};base64,${result}`);
-    }).catch((err: any) => {
-      console.log(err);
-      resolve("");
-    });
+async function getImage(image_path: string) {
+  return fs.promises.readFile(image_path).then(buffer => {
+    const parser = ExifParser.create(buffer);
+    const exifData = parser.parse();
+    const userComment = exifData.tags.UserComment;
+
+    const ext = path.extname(image_path).toLowerCase();
+    let mimeType;
+    if (ext === '.png') {
+      mimeType = 'image/png';
+    } else if (ext === '.jpg' || ext === '.jpeg') {
+      mimeType = 'image/jpeg';
+    } else {
+      mimeType = '';
+    }
+    const b64 = `data:${mimeType};base64,${buffer.toString('base64')}`;
+
+    return [b64, userComment] as [string, any];
   });
 }
-
-async function getMetadata(path: string) {
-  return new Promise((resolve, reject) => {
-    fs.promises.readFile(path).then(imageBuffer => {
-      const parser = ExifParser.create(imageBuffer);
-      const exifData = parser.parse();
-      const userComment = exifData.tags.UserComment;
-      resolve(userComment);
-    }).catch(err => {
-      console.log(err);
-      resolve('');
-    });
-  });
-}
-
 
 //pyTestCmd = "\"" + artroom_path +"\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python pytest.py";
 //pyTestCmd = "\"" + artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python" + "\"";
-let pyTestCmd = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe";
+const pyTestCmd = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe";
 
-const serverCommand = "\"" + artroom_path + "\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run --no-capture-output -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python server.py";
+const serverCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
 
-
-const mergeModelsCommand = "\"" + artroom_path + "\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run --no-capture-output -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python model_merger.py";
+const mergeModelsCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python model_merger.py`;
 
 let server = spawn(serverCommand, { detached: sd_data.debug_mode, shell: true })
+
+const getFiles = (folder_path: string, ext: string) => {
+  return new Promise((resolve, reject) => {
+    glob(`${folder_path}/**/*.{${ext}}`, {}, (err, files) => {
+      if (err) {
+        console.log("ERROR");
+        resolve([]);
+      }
+      resolve(files?.map((match) => path.relative(folder_path, match)) ?? []);
+    })
+  });
+}
 
 function createWindow() {
   //Connect to server
   axios.get(`${LOCAL_URL}/start`);
   console.log("Artroom Log: " + artroom_install_log);
-
-  const socket = io('http://localhost:5300');
-  
-  socket.on('connect', function() {
-    console.log('Connected to Socket.IO server');
-  });
-  
-  socket.on('message', function(message) {
-    console.log(message);
-  });
-
-  socket.on('get_test', function(message) {
-    console.log('Received get test: ' + message.toString());
-  });
-  
-  // Send a message to the server
-  socket.emit('message', 'Hello, server!');
 
   ipcMain.handle('login', async(event,data) =>{
     return new Promise((resolve, reject) => {
@@ -137,7 +122,7 @@ function createWindow() {
     const imagePath = json.imagePath;
   
     // convert dataURL to a buffer
-    const buffer = new Buffer.from(dataUrl.split(',')[1], 'base64');
+    const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
   
     try {
       // write the buffer to the specified image path
@@ -148,56 +133,22 @@ function createWindow() {
     }
   });
 
-
   ipcMain.handle('getCkpts', async (event, data) => {
-    return new Promise((resolve, reject) => {
-      glob(`${data}/**/*.{ckpt,safetensors}`, {}, (err, files) => {
-        if (err) {
-          console.log("ERROR");
-          resolve([]);
-        }
-        files = files?.map(function (match) {
-          return path.relative(data, match);
-        });
-        resolve(files);
-      })
-    });
+    return getFiles(data, 'ckpt,safetensors');
   });
 
   ipcMain.handle('getVaes', async (event, data) => {
-    return new Promise((resolve, reject) => {
-      glob(`${data}/**/*.{.vae.pt}`, {}, (err, files) => {
-        if (err) {
-          console.log("ERROR");
-          resolve([]);
-        }
-        files = files?.map(function (match) {
-          return path.relative(data, match);
-        });
-        resolve(files);
-      })
-    });
+    return getFiles(data, 'vae.pt,vae.ckpt,vae.safetensor');
   });
 
   ipcMain.handle('getImages', async (event, data) => {
-    return new Promise((resolve, reject) => {
-      glob(`${data}/**/*.{jpg,png,jpeg}`, {}, (err, files) => {
-        if (err) {
-          console.log("ERROR");
-          resolve([]);
-        }
-        files = files?.map(function (match) {
-          return path.relative(data, match);
-        });
-        resolve(files);
-      })
-    });
+    return getFiles(data, 'jpg,png,jpeg');
   });
 
   ipcMain.handle('getImageFromPath', async (event, data) => {
     return new Promise((resolve, reject) => {
       if (data && data.length > 0) {
-        Promise.all([getB64(data), getMetadata(data)]).then(([b64, metadata]) => {
+        getImage(data).then(([b64, metadata]) => {
           resolve({b64, metadata});
         }).catch(err => {
           console.log(err);
@@ -210,12 +161,10 @@ function createWindow() {
   });
 
   ipcMain.handle('copyToClipboard', async (event, b64) => {
-    return new Promise((resolve, reject) => {
-      clipboard.writeImage(nativeImage.createFromDataURL(b64));
-    });
+    clipboard.writeImage(nativeImage.createFromDataURL(b64));
   });
 
-  ipcMain.handle("reinstallArtroom", (event, argx = 0) => {
+  ipcMain.handle("reinstallArtroom", () => {
     return new Promise((resolve, reject) => {
       console.log("Reinstalling Artroom...");
       // Define the path to the external .exe file
@@ -234,7 +183,7 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle("getSettings", (event, argx = 0) => {
+  ipcMain.handle("getSettings", () => {
     return new Promise((resolve, reject) => {
       fs.readFile(artroom_path + "\\artroom\\settings\\sd_settings.json", "utf8", function (err, data) {
         if (err) {
@@ -247,7 +196,7 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle("uploadSettings", (event, argx = 0) => {
+  ipcMain.handle("uploadSettings", () => {
     return new Promise((resolve, reject) => {
       let properties: OpenDialogOptions['properties'];
       if (os.platform() === 'linux' || os.platform() === 'win32') {
@@ -280,7 +229,7 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle("chooseImages", (event, argx = 0) => {
+  ipcMain.handle("chooseImages", () => {
     return new Promise((resolve, reject) => {
       let properties: OpenDialogOptions['properties'];
       if (os.platform() === 'linux' || os.platform() === 'win32') {

@@ -34,12 +34,17 @@ function SDSettings () {
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
     const [ckpts, setCkpts] = useState([]);
+    const [vaes, setVaes] = useState([]);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
     const getCkpts = () => {
         window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
+        });
+        window.api.getVaes(imageSettings.ckpt_dir).then((result) => {
+            // console.log(result);
+            setVaes(result);
         });
     };
 
@@ -173,8 +178,8 @@ function SDSettings () {
                                 id="n_iter"
                                 min={1}
                                 name="n_iter"
-                                onChange={(v) => {
-                                    setImageSettings({...imageSettings, n_iter: v});
+                                onChange={(v, n) => {
+                                    setImageSettings({...imageSettings, n_iter: n});
                                 }}
                                 value={imageSettings.n_iter}
                                 variant="outline"
@@ -203,8 +208,8 @@ function SDSettings () {
                                 id="steps"
                                 min={1}
                                 name="steps"
-                                onChange={(v) => {
-                                    setImageSettings({...imageSettings, steps: v});
+                                onChange={(v, n) => {
+                                    setImageSettings({...imageSettings, steps: n});
                                 }}
                                 value={imageSettings.steps}
                                 variant="outline"
@@ -424,8 +429,8 @@ function SDSettings () {
                             id="cfg_scale"
                             min={0}
                             name="cfg_scale"
-                            onChange={(v) => {
-                                setImageSettings({...imageSettings, cfg_scale: v});
+                            onChange={(v, n) => {
+                                setImageSettings({...imageSettings, cfg_scale: n});
                             }}         
                             value={imageSettings.cfg_scale}
                                variant="outline"
@@ -606,7 +611,7 @@ function SDSettings () {
                             value={imageSettings.ckpt}
                             variant="outline"
                         >
-                            {ckpts?.length > 0
+                            {ckpts.length > 0
                                 ? <option
                                     style={{ 'backgroundColor': '#080B16' }}
                                     value=""
@@ -615,7 +620,44 @@ function SDSettings () {
                                 </option>
                                 : <></>}
 
-                            {ckpts?.map((ckpt_option, i) => (<option
+                            {ckpts.map((ckpt_option, i) => (<option
+                                key={i}
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value={ckpt_option}
+                            >
+                                {ckpt_option}
+                            </option>))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl className="model-ckpt-input">
+                        <FormLabel htmlFor="Ckpt">
+                            <HStack>
+                                <Text>
+                                    Model
+                                </Text>
+
+                                {cloudMode
+                                    ? <Icon as={IoMdCloud} />
+                                    : null}
+                            </HStack>
+                        </FormLabel>
+
+                        <Select
+                            id="vae"
+                            name="vae"
+                            onChange={(event) => setImageSettings({...imageSettings, vae: event.target.value})}
+                            onMouseEnter={getCkpts}
+                            value={imageSettings.vae}
+                            variant="outline"
+                        >
+                            <option
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value=""
+                            >
+                                No vae
+                            </option>
+                            {vaes.map((ckpt_option, i) => (<option
                                 key={i}
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}

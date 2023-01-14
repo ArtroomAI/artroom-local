@@ -224,39 +224,6 @@ function Settings () {
                     </HStack>
                 </FormControl>
 
-                <FormControl
-                    className="model-vae-input"
-                    width="full">
-                    <HStack>
-                        <Tooltip
-                            fontSize="md"
-                            label="Choose vae file"
-                            placement="top"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-
-                        <FormLabel htmlFor="vae">
-                            Vae file
-                        </FormLabel>
-                    </HStack>
-
-                    <HStack>
-                        <Input
-                            id="vae"
-                            name="vae"
-                            onChange={(event) => setImageSettings({...imageSettings, vae: event.target.value})}
-                            type="text"
-                            value={imageSettings.vae}
-                            variant="outline"
-                        />
-
-                        <Button onClick={chooseVae}>
-                            Choose
-                        </Button>
-                    </HStack>
-                </FormControl>
-
                 <FormControl className="speed-input">
                     <HStack>
                         <Tooltip
