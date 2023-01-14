@@ -439,9 +439,7 @@ function SDSettings () {
                                 <FormLabel htmlFor="Strength">
                                     Image Variation Strength:
                                 </FormLabel>
-
                                 <Spacer />
-
                                 <Tooltip
                                     fontSize="md"
                                     label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
@@ -455,7 +453,6 @@ function SDSettings () {
                             <Slider
                                 defaultValue={0.75}
                                 id="strength"
-                                isDisabled={imageSettings.init_image.length === 0}
                                 max={0.99}
                                 min={0.0}
                                 name="strength"

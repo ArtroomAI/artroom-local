@@ -188,14 +188,15 @@ function Main () {
                             </VStack>
                         </HStack>
                         :  
-                    <Button
-                        aria-label="View"
-                        variant="outline"
-                        onClick={()=>{setShowLoginModal(true)}}
-                        >
-                        Login
-                        {' '}
-                    </Button>
+                    <></>
+                    // <Button
+                    //     aria-label="View"
+                    //     variant="outline"
+                    //     onClick={()=>{setShowLoginModal(true)}}
+                    //     >
+                    //     Login
+                    //     {' '}
+                    // </Button>
                 }
             </GridItem>
 

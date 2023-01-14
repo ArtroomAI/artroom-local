@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useReducer} from 'react';
+import React, {useEffect, useState, useReducer, useRef} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, setIsMaskEnabledAction, stageScaleAtom, stageDimensionsAtom } from './UnifiedCanvas/atoms/canvas.atoms';
@@ -30,6 +30,13 @@ const loadImage = async (b64: string) => {
       }
     });
   }
+
+
+window.addEventListener('keydown', function(e) {
+    if (e.code === 'Space') {
+    e.preventDefault();
+    }
+});
   
 function Paint () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
@@ -325,9 +332,11 @@ function Paint () {
         3000
     );
 
+    const prevSelectedIndex = useRef(0);
     useEffect(() => {
-        if (latestImages.length > 0){
+        if (latestImages.length > 0 && prevSelectedIndex.current !== state.selectedIndex){
             addToCanvas(latestImages[state?.selectedIndex]);
+            prevSelectedIndex.current = state.selectedIndex;
         }
         },[state?.selectedIndex]
     );
