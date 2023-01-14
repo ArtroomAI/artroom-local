@@ -124,12 +124,9 @@ def infill_patchmatch(im: Image.Image) -> Image:
         print("patchmatch not available")
         return im
     
-    im.save("TEST.png")
-
     # Patchmatch (note, we may want to expose patch_size? Increasing it significantly impacts performance though)
     im_patched_np = patchmatch.inpaint(im.convert('RGB'), ImageOps.invert(im.split()[-1]), patch_size = 3)
     im_patched = Image.fromarray(im_patched_np, mode = 'RGB')
-    im_patched.save("TEST_PATCHED.png")
 
     return im_patched
 
