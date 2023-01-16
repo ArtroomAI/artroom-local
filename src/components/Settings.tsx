@@ -152,10 +152,6 @@ function Settings () {
     const chooseCkptDir = () => {
         window.api.chooseUploadPath().then((result)=>{setImageSettings({...imageSettings,ckpt_dir: result})});
     };
-    
-    const chooseVae = () => {
-        window.api.chooseVae().then((result)=>{setImageSettings({...imageSettings, vae: result})});
-    };
 
     return (
         <Box

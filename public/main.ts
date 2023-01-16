@@ -138,7 +138,7 @@ function createWindow() {
   });
 
   ipcMain.handle('getVaes', async (event, data) => {
-    return getFiles(data, 'vae.pt,vae.ckpt,vae.safetensor');
+    return getFiles(data, 'vae.pt,vae.ckpt,vae.safetensors');
   });
 
   ipcMain.handle('getImages', async (event, data) => {
@@ -309,27 +309,6 @@ function createWindow() {
 
     });
   });
-  
-  ipcMain.handle('chooseVae', (event) => {
-    return new Promise((resolve, reject) => {
-      dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [
-          { name: 'Vaes', extensions: ['pt', 'ckpt', 'safetensor'] },
-        ]
-      }).then(result => {
-        if (result.filePaths.length > 0) {
-          resolve(result.filePaths[0]);
-        } else {
-          resolve("");
-        }
-      }).catch(err => {
-        resolve("");
-      })
-
-    });
-  });
-
 
   //startup test logic
   function runPyTests() {
