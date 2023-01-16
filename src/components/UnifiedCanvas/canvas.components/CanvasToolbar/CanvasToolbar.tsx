@@ -54,6 +54,8 @@ export const CanvasOutpaintingControls: FC = () => {
   const shouldCropToBoundingBoxOnSave = useRecoilValue(
     shouldCropToBoundingBoxOnSaveAtom
   );
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
   const isProcessing = useRecoilValue(isProcessingAtom);
   const isStaging = useRecoilValue(isStagingSelector);
 
@@ -138,7 +140,10 @@ export const CanvasOutpaintingControls: FC = () => {
     const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
       canvasBaseLayer,
       stageScale,
-      stageCoordinates
+      stageCoordinates,
+      shouldCropToBoundingBoxOnSave
+      ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
+      : undefined
     );
     const timestamp = new Date().getTime();
     const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".jpg");
@@ -154,11 +159,13 @@ export const CanvasOutpaintingControls: FC = () => {
 
   const handleCopyImageToClipboard = () => {
     const canvasBaseLayer = getCanvasBaseLayer();
-
     const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
       canvasBaseLayer,
       stageScale,
-      stageCoordinates
+      stageCoordinates,
+      shouldCropToBoundingBoxOnSave
+      ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
+      : undefined
     );
     window.api.copyToClipboard(dataURL);
     toast({

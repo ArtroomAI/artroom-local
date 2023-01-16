@@ -31,12 +31,6 @@ const loadImage = async (b64: string) => {
     });
   }
 
-
-window.addEventListener('keydown', function(e) {
-    if (e.code === 'Space') {
-    e.preventDefault();
-    }
-});
   
 function Paint () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;

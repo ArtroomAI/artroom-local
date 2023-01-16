@@ -475,7 +475,7 @@ function SDSettings () {
                                 <Tooltip
                                     bg="#4f8ff8"
                                     color="white"
-                                    isOpen={!(imageSettings.init_image.length === 0)}
+                                    isOpen={true}
                                     label={`${imageSettings.strength}`}
                                     placement="right"
                                 >

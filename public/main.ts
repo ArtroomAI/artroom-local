@@ -137,7 +137,7 @@ function createWindow() {
     const imagePath = json.imagePath;
   
     // convert dataURL to a buffer
-    const buffer = new Buffer.from(dataUrl.split(',')[1], 'base64');
+    const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
   
     try {
       // write the buffer to the specified image path

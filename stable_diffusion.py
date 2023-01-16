@@ -148,7 +148,7 @@ class StableDiffusion:
     def get_latest_image(self):
         latest_images = self.get_latest_images()
         if len(latest_images) > 0:
-            return image_to_b64(Image.open(latest_images[-1]).convert('RGB'))
+            return support.image_to_b64(Image.open(latest_images[-1]).convert('RGB'))
         else:
             return ''
 
