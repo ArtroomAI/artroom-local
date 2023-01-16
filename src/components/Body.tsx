@@ -37,6 +37,7 @@ function Body () {
     const [focused, setFocused] = useState(false);
 
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const [shard, setShard] = useRecoilState(atom.shardState);
     
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
@@ -271,8 +272,38 @@ function Body () {
             catch((error) => console.log(error));
     };
 
+    const submitCloud = () => {
+        ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
+            setShard(response.data.shard_balance);
+            toast({
+                title: 'Job Submission  Success',
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }).catch((err: any) => {
+            console.log(err);
+            toast({
+                title: 'Error',
+                status: 'error',
+                description: err.response.data.detail,
+                position: 'top',
+                duration: 5000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        });
+    };
+
+
     const getProfile = () => {
-        ProtectedReqManager.make_request(`${ARTROOM_URL}/users/me`).then((response: { data: { email: string; }; }) => {
+        ProtectedReqManager.make_get_request(`${ARTROOM_URL}/users/me`).then((response: { data: { email: string; }; }) => {
             console.log(response);
             toast({
                 title: 'Auth Test Success: ' + response.data.email,
@@ -287,7 +318,7 @@ function Body () {
         }).catch((err: any) => {
             console.log(err);
         });
-    }
+    };
 
 
     return (
@@ -336,7 +367,7 @@ function Body () {
                     ? <Button
                         className="run-button"
                         ml={2}
-                        onClick={submitMain}
+                        onClick={submitCloud}
                         variant="outline"
                         width="200px">
                         <Text pr={2}>
