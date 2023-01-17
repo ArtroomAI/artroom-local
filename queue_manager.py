@@ -165,6 +165,7 @@ class QueueManager():
         print("Saving settings to folder...")
         self.save_to_settings_folder(next_gen)
         ckpt_path = os.path.join(next_gen['ckpt_dir'],next_gen['ckpt']).replace(os.sep, '/')
+        vae_path = os.path.join(next_gen['ckpt_dir'],next_gen['vae']).replace(os.sep, '/')
         try:
             print("Starting gen...")
             self.SD.generate(
@@ -183,7 +184,7 @@ class QueueManager():
                 sampler=next_gen['sampler'],
                 cfg_scale=float(next_gen['cfg_scale']),
                 ckpt=ckpt_path,
-                vae=next_gen['vae'],
+                vae=vae_path,
                 image_save_path=next_gen['image_save_path'],
                 speed=next_gen['speed'],
                 skip_grid=not next_gen['save_grid'],
