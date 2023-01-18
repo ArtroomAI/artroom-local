@@ -322,7 +322,7 @@ class StableDiffusion:
         self.stage = "Finished Loading Model"
         print("Model loading finished")
         print("Loading vae")
-        if vae != "":
+        if '.vae' in vae:
             try:
                 self.load_vae(vae)
                 print("Loading vae finished")

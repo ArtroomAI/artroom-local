@@ -6,6 +6,7 @@ import time
 import math
 from safe import load as safe_load
 from safetensors import safe_open
+from safetensors.torch import save_file
 import ctypes
 
 """
@@ -81,7 +82,10 @@ def merge_models(model_0, model_1, alpha, output=None):
 
     print(f"Saving as {output_file}\n")
 
-    torch.save(model_0, output_file)
+    if model_ext_0 == 'safetensors':
+        save_file(model_0, output_file)
+    else:
+        torch.save(model_0, output_file)
     return output_file.rsplit("/", 1)[-1]
 
 
@@ -99,7 +103,7 @@ def merge_three(model_0, model_1, alpha, output=None):
     if output is None:
         output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha * 100)}-{modelName_1}-{round(100 - alpha * 100)}_3_{modelName_2}.{model_ext_0}'
     else:
-        output_file = f'{models_path}//merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{round(alpha * 100)}%.{model_ext_0}'
+        output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{round(alpha * 100)}.{model_ext_0}'
 
     for key in tqdm(model_0.keys()):
         if 'model' in key and key in model_1:
@@ -115,7 +119,10 @@ def merge_three(model_0, model_1, alpha, output=None):
 
     print(f"Saving as {output_file}\n")
 
-    torch.save(model_0, output_file)
+    if model_ext_0 == 'safetensors':
+        save_file(model_0, output_file)
+    else:
+        torch.save(model_0, output_file)
     return output_file.rsplit("/", 1)[-1]
 
 
