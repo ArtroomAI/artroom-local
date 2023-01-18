@@ -89,7 +89,7 @@ const serverCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" ru
 
 const mergeModelsCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python model_merger.py`;
 
-let server = spawn(serverCommand, { detached: sd_data.debug_mode, shell: true })
+let server = spawn(serverCommand, { detached: sd_data.debug_mode, shell: true });
 
 const getFiles = (folder_path: string, ext: string) => {
   return new Promise((resolve, reject) => {
@@ -104,8 +104,6 @@ const getFiles = (folder_path: string, ext: string) => {
 }
 
 function createWindow() {
-  //Connect to server
-  axios.get(`${LOCAL_URL}/start`);
   console.log("Artroom Log: " + artroom_install_log);
 
   ipcMain.handle('login', async(event,data) =>{
@@ -143,6 +141,11 @@ function createWindow() {
 
   ipcMain.handle('getImages', async (event, data) => {
     return getFiles(data, 'jpg,png,jpeg');
+  });
+
+  ipcMain.handle('showInExplorer', async (event, data) => {
+    console.log('show in explorer: ', data);
+    shell.showItemInFolder(data);
   });
 
   ipcMain.handle('getImageFromPath', async (event, data) => {

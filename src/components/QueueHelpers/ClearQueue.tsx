@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useContext, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import axios from 'axios';
@@ -12,21 +12,32 @@ import {
     AlertDialogFooter,
     Button
 } from '@chakra-ui/react';
+import { SocketContext } from '../..';
 
 function ClearQueue () {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
+    const socket = useContext(SocketContext);
+
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
-    const clearQueue = () => {
-        axios.post(
-            'http://127.0.0.1:5300/clear_queue',
-            {}
-        );
+    const handleClearQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
         setQueue([]);
         onClose();
-    };
+    }, []);
+
+    const clearQueue = useCallback(() => {
+        socket.emit('clear_queue', {});
+    }, [socket]);
+
+    useEffect(() => {
+        socket.on('clear_queue', handleClearQueue);
+
+        return () => {
+          socket.off('clear_queue', handleClearQueue);
+        };
+    }, [socket, handleClearQueue]);
 
     return (
         <>

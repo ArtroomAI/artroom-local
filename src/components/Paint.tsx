@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useReducer, useRef} from 'react';
+import React, {useEffect, useState, useReducer, useRef, useContext, useCallback} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, setIsMaskEnabledAction, stageScaleAtom, stageDimensionsAtom } from './UnifiedCanvas/atoms/canvas.atoms';
@@ -20,6 +20,7 @@ import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+import { SocketContext } from '..';
 
 const loadImage = async (b64: string) => {
     const image = new Image();
@@ -41,7 +42,6 @@ function Paint () {
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-    const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [progress, setProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
@@ -58,7 +58,9 @@ function Paint () {
     const stageScale = useRecoilValue(stageScaleAtom);   
     const stageDimensions = useRecoilValue(stageDimensionsAtom);
 
-    const handleRunInpainting = () => {
+    const socket = useContext(SocketContext);
+
+    const handleRunInpainting = useCallback(() => {
         const canvasBaseLayer = getCanvasBaseLayer();
         const boundingBox = {
           ...boundingBoxCoordinates,
@@ -90,16 +92,9 @@ function Paint () {
           init_image: imageDataURL,
           mask_image: maskDataURL
         };
-        axios.post(
-          `${baseURL}/add_to_queue`,
-          body,
-          {
-            headers: { 'Content-Type': 'application/json' }
-          }
-          ).then(result =>{
-            console.log(result);
-          })
-      };
+
+        socket.emit('add_to_queue', body);
+    }, [socket]);
 
     // useEffect(() =>{
     //     console.log({...boundingBoxCoordinates, ...boundingBoxDimensions});
@@ -111,9 +106,7 @@ function Paint () {
         return estimated_price;
     }
 
-    function addToCanvas(imageData: { b64: string, path: string; }){
-
-    
+    function addToCanvas(imageData: { b64?: string, path?: string; batch_id?: number }){
         const scaledDimensions = getScaledBoundingBoxDimensions(
             boundingBoxDimensions
         );         
@@ -303,28 +296,22 @@ function Paint () {
         []
     );
 
-    useInterval(
-        () => {
-            axios.get(
-                `${baseURL}/get_images`,
-                { params: { 'path': 'latest',
-                    'id': latestImagesID },
-                headers: { 'Content-Type': 'application/json' } }
-            ).then((result) => {
-                const id = result.data.content.latest_images_id;
-                if (result.data.status === 'Success') {
-                    if (id !== latestImagesID) {
-                        setLatestImagesID(id);
-                        setLatestImages(result.data.content.latest_images);
-                        setMainImage(result.data.content.latest_images[result.data.content.latest_images.length - 1]);
-                    }
-                } else if (result.data.status === 'Failure') {
-                    setMainImage('');
-                }
-            });
-        },
-        3000
-    );
+    const handleGetImages = useCallback((data: { b64: string; path: string; batch_id: number }) => {
+        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
+            setLatestImages([data]);
+        } else {
+            setLatestImages([...latestImages, data]);
+        }
+        setMainImage(data);
+    }, [])
+
+    useEffect(() => {
+        socket.on('get_images', handleGetImages);
+
+        return () => {
+          socket.off('get_images', handleGetImages);
+        };
+    }, [socket, handleGetImages]);
 
     const prevSelectedIndex = useRef(0);
     useEffect(() => {

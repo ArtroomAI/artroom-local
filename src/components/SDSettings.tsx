@@ -319,7 +319,7 @@ function SDSettings () {
                                     ? <Input
                                         id="aspect_ratio"
                                         name="aspect_ratio"
-                                        onChange={(event) =>                                             setImageSettings({...imageSettings, aspect_ratio: event.target.value})}
+                                        onChange={(event) => setImageSettings({...imageSettings, aspect_ratio: event.target.value})}
                                         value={imageSettings.aspect_ratio}
                                         variant="outline"
                                     />
@@ -440,53 +440,53 @@ function SDSettings () {
                     </FormControl>
 
                     <FormControl className="strength-input">
-                            <HStack>
-                                <FormLabel htmlFor="Strength">
-                                    Image Variation Strength:
-                                </FormLabel>
-                                <Spacer />
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
-
-                            <Slider
-                                defaultValue={0.75}
-                                id="strength"
-                                max={0.99}
-                                min={0.0}
-                                name="strength"
-                                onChange={(v) => {
-                                    setImageSettings({...imageSettings, strength: v});
-                                }}        
-                                step={0.01}
-                                value={imageSettings.strength}
-                                variant="outline"
+                        <HStack>
+                            <FormLabel htmlFor="Strength">
+                                Image Variation Strength:
+                            </FormLabel>
+                            <Spacer />
+                            <Tooltip
+                                fontSize="md"
+                                label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                                placement="left"
+                                shouldWrapChildren
                             >
-                                <SliderTrack bg="#EEEEEE">
-                                    <Box
-                                        position="relative"
-                                        right={10}
-                                    />
+                                <FaQuestionCircle color="#777" />
+                            </Tooltip>
+                        </HStack>
 
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
+                        <Slider
+                            defaultValue={0.75}
+                            id="strength"
+                            max={0.99}
+                            min={0.0}
+                            name="strength"
+                            onChange={(v) => {
+                                setImageSettings({...imageSettings, strength: v});
+                            }}        
+                            step={0.01}
+                            value={imageSettings.strength}
+                            variant="outline"
+                        >
+                            <SliderTrack bg="#EEEEEE">
+                                <Box
+                                    position="relative"
+                                    right={10}
+                                />
 
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={true}
-                                    label={`${imageSettings.strength}`}
-                                    placement="right"
-                                >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
+                                <SliderFilledTrack bg="#4f8ff8" />
+                            </SliderTrack>
+
+                            <Tooltip
+                                bg="#4f8ff8"
+                                color="white"
+                                isOpen={true}
+                                label={`${imageSettings.strength}`}
+                                placement="right"
+                            >
+                                <SliderThumb />
+                            </Tooltip>
+                        </Slider>
                     </FormControl>
 
                     <FormControl className="samplers-input">

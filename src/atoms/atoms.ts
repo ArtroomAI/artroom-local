@@ -116,19 +116,14 @@ export const initImageThumbnailState = atom({
         'b64': '' }
 });
 
-export const mainImageState = atom({
+export const mainImageState = atom<{ b64?: string; path?: string; batch_id?: number }>({
     key: 'mainImage',
-    default: ''
+    default: { 'b64': '', 'path': '', 'batch_id': 0 }
 });
 
-export const latestImageState = atom({
+export const latestImageState = atom<Array<{ b64?: string; path?: string; batch_id?: number }>>({
     key: 'latestImage',
     default: []
-});
-
-export const latestImagesIDState = atom({
-    key: 'latestImagesID',
-    default: 0
 });
 
 export const imageViewPathState = atom({

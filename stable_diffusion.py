@@ -104,8 +104,6 @@ class StableDiffusion:
         self.running = False
 
         self.artroom_path = None
-        self.latest_images_part1 = []
-        self.latest_images_part2 = []
         self.latest_images_id = 0
 
         self.model = None
@@ -141,16 +139,6 @@ class StableDiffusion:
             return self.current_num, self.total_num, self.model.current_step, self.model.total_steps
         else:
             return 0, 0, 0, 0
-
-    def get_latest_images(self):
-        return self.latest_images_part1 + self.latest_images_part2
-
-    def get_latest_image(self):
-        latest_images = self.get_latest_images()
-        if len(latest_images) > 0:
-            return support.image_to_b64(Image.open(latest_images[-1]).convert('RGB'))
-        else:
-            return ''
 
     def clean_up(self):
         self.total_num = 0
@@ -332,8 +320,11 @@ class StableDiffusion:
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
-                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
+                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False, batch_id=0):
         self.running = True
+
+        if batch_id == 0:
+            batch_id = random.randint(1, 922337203685)
 
         oldW, oldH = W, H
         if W * H > 1024 * 1024 and self.highres_fix:
@@ -346,9 +337,6 @@ class StableDiffusion:
             highres_fix_steps = 1
 
         print("Starting generate process...")
-
-        self.latest_images_part1 = self.latest_images_part2
-        self.latest_images_part2 = []
 
         torch.cuda.empty_cache()
         gc.collect()
@@ -570,15 +558,8 @@ class StableDiffusion:
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
                             os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
-                        self.latest_images_part2.append(
-                            {"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
 
-                        self.socketio.emit('message', {'data': 'testInside'})
-                        while True:
-                            newrand = random.randint(1, 922337203685)
-                            if newrand != self.latest_images_id:
-                                self.latest_images_id = newrand
-                                break
+                        self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
 
                         base_count += 1
                         seed += 1

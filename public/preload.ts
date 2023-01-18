@@ -19,6 +19,7 @@ const api = {
     chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
     runPyTests: async () => {return await ipcRenderer.invoke('runPyTests');},
     restartServer: async (isDebug: boolean) => {return await ipcRenderer.invoke('restartServer',isDebug);},
+    showInExplorer: async (path: string) => {return await ipcRenderer.invoke('showInExplorer', path);},
     minimizeWindow: async () => {return await ipcRenderer.invoke('minimizeWindow');},
     unmaximizeWindow: async () => {return await ipcRenderer.invoke('unmaximizeWindow');},
     maxUnmaxWindow: async () => {return await ipcRenderer.invoke('maxUnmaxWindow');},
