@@ -627,11 +627,11 @@ function SDSettings () {
                         </Select>
                     </FormControl>
 
-                    <FormControl className="model-ckpt-input">
-                        <FormLabel htmlFor="Ckpt">
+                    <FormControl className="vae-ckpt-input">
+                        <FormLabel htmlFor="Vae">
                             <HStack>
                                 <Text>
-                                    Model
+                                    VAE
                                 </Text>
 
                                 {cloudMode

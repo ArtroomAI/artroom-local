@@ -8,7 +8,7 @@
   SetDetailsView show
   DetailPrint "Installing Model Weights and CONDA dependencies"
   ${if} ${isUpdated}
-    ;${StdUtils.ExecShellWaitEx} $0 $1 "$INSTDIR\py_cuda_install.exe" "open" "1"
+    ${StdUtils.ExecShellWaitEx} $0 $1 "$INSTDIR\py_cuda_install.exe" "open" "1"
   ${Else}
     ${StdUtils.ExecShellWaitEx} $0 $1 "$INSTDIR\py_cuda_install.exe" "open" "$skipWeights $logDir"
   ${endIf}
@@ -43,8 +43,12 @@
 
 !macro customInstall
   ;!insertmacro customDirectory
-  MessageBox MB_OK "Upon Pressing OK, the installer will install Conda dependencies and model weights to $logDir . Please wait until the installer is finished installing."
-  !insertmacro RunInstaller
+  ${If} ${isUpdated}
+    DetailPrint "Skipping conda environment install"
+  ${Else}
+    MessageBox MB_OK "Upon Pressing OK, the installer will install Conda dependencies and model weights to $logDir . Please wait until the installer is finished installing."
+    !insertmacro RunInstaller
+  ${EndIf}
 !macroend
 
 ; !macro getArtroomDir
