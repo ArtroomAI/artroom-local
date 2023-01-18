@@ -4,7 +4,7 @@ import random
 from glob import glob
 import os
 import re
-from artroom_helpers.gpu_detect import is_16xx_series
+from artroom_helpers.gpu_detect import get_gpu_architecture
 
 
 def return_error(status, status_message='', content=''):
@@ -198,7 +198,7 @@ class QueueManager():
         if not self.running:
             print("Queue is running")
             self.running = True
-            while(self.running):
+            while self.running:
                 if len(self.queue) > 0 and not self.SD.stage == "Loading Model":
                     print("Generating next item from queue...")
                     queue_item = self.queue[0]
