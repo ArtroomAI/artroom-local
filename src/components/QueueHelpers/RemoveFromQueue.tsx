@@ -29,7 +29,7 @@ function RemoveFromQueue ({ index } : { index: number }) {
     const removeFromQueue = useCallback(() => {
         onClose();
         socket.emit('remove_from_queue', { id: queue[index - 1].id });
-    }, [socket, queue, index]);
+    }, [onClose, socket, queue, index]);
 
     const handleRemoveFromQueue = useCallback((data: { status: 'Success' | 'Failure'; queue: QueueType[] }) => {
         if (data.status === 'Success') {

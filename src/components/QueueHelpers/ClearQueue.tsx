@@ -23,9 +23,11 @@ function ClearQueue () {
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
     const handleClearQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
-        setQueue([]);
+        if(data.status === 'Success') {
+            setQueue([]);
+        }
         onClose();
-    }, []);
+    }, [onClose, setQueue]);
 
     const clearQueue = useCallback(() => {
         socket.emit('clear_queue', {});

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useReducer, useContext, useCallback } from 'react';
-import { useInterval } from './Reusable/useInterval/useInterval';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import axios from 'axios';
@@ -40,6 +39,47 @@ function Body () {
     const [shard, setShard] = useRecoilState(atom.shardState);
     
     const socket = useContext(SocketContext);
+
+    const addToQueue = useCallback(() => {
+        socket.emit('add_to_queue', imageSettings);
+    }, [socket, imageSettings]);
+
+    const handleAddToQueue = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string; queue_size?: number }) => {
+        if (data.status === 'Success') {
+            toast({
+                title: 'Added to Queue!',
+                description: `Currently ${data.queue_size} elements in queue`,
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        } else {
+            toast({
+                title: 'Error',
+                status: 'error',
+                description: data.status_message,
+                position: 'top',
+                duration: 5000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('add_to_queue', handleAddToQueue);
+    
+        return () => {
+            socket.off('add_to_queue', handleAddToQueue);
+        };
+    }, [socket, handleAddToQueue]);
     
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
@@ -101,7 +141,7 @@ function Body () {
                 window.removeEventListener('keydown', leftHandler);
                 window.removeEventListener('keyup', rightHandler);
             };
-        }, [targetKey]);
+        }, [targetKey, useAltKey]);
 
         return keyPressed;
     };
@@ -117,7 +157,7 @@ function Body () {
                 payload: undefined
             });
         }
-    }, [arrowRightPressed]);
+    }, [arrowRightPressed, focused]);
 
     useEffect(() => {
         if (arrowLeftPressed && !focused) {
@@ -126,17 +166,17 @@ function Body () {
                 payload: undefined
             });
         }
-    }, [arrowLeftPressed]);
+    }, [arrowLeftPressed, focused]);
 
     useEffect(() => {
         if (altRPressed) {
             addToQueue();
         }
-    }, [altRPressed]);
+    }, [addToQueue, altRPressed]);
 
     useEffect(() => {
         setMainImage(latestImages[state.selectedIndex]);
-    }, [state]);
+    }, [latestImages, setMainImage, state]);
 
     useEffect(
         () => {
@@ -179,64 +219,6 @@ function Body () {
         },
         []
     );
-
-    const handleGetImages = useCallback((data: { b64: string; path: string; batch_id: number }) => {
-        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
-            setLatestImages([data]);
-        } else {
-            setLatestImages([...latestImages, data]);
-        }
-        setMainImage(data);
-    }, [latestImages])
-
-    useEffect(() => {
-        socket.on('get_images', handleGetImages);
-
-        return () => {
-          socket.off('get_images', handleGetImages);
-        };
-    }, [socket, handleGetImages]);
-
-    const addToQueue = useCallback(() => {
-        socket.emit('add_to_queue', imageSettings);
-    }, [socket, imageSettings]);
-
-    const handleAddToQueue = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string; queue_size?: number }) => {
-        if (data.status === 'Success') {
-            toast({
-                title: 'Added to Queue!',
-                description: `Currently ${data.queue_size} elements in queue`,
-                status: 'success',
-                position: 'top',
-                duration: 2000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        } else {
-            toast({
-                title: 'Error',
-                status: 'error',
-                description: data.status_message,
-                position: 'top',
-                duration: 5000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, []);
-
-    // on socket message
-    useEffect(() => {
-        socket.on('add_to_queue', handleAddToQueue);
-    
-        return () => {
-            socket.off('add_to_queue', handleAddToQueue);
-        };
-    }, [socket, handleAddToQueue]);
 
     const submitCloud = () => {
         ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {

@@ -59,7 +59,7 @@ function Queue () {
 
     const handleGetQueue = useCallback((data: { queue: QueueType[] }) => {
         setQueue(data.queue);
-    }, []);
+    }, [setQueue]);
     
     const handleStartQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
         if(data.status === 'Success') {
@@ -76,7 +76,7 @@ function Queue () {
                 }
             });
         }
-    }, [socket]);
+    }, [toast]);
     
     const handlePauseQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
         if(data.status === 'Success') {
@@ -93,7 +93,7 @@ function Queue () {
                 }
             });
         }
-    }, [socket]);
+    }, [toast]);
 
     
     const handleStopQueue = useCallback((data: { status: 'Success' }) => {
@@ -112,7 +112,7 @@ function Queue () {
                 }
             });
         }
-    }, [socket]);
+    }, [toast]);
 
     // on socket message
     useEffect(() => {
@@ -133,7 +133,7 @@ function Queue () {
           socket.off('pause_queue', handlePauseQueue);
           socket.off('stop_queue', handleStopQueue);
         };
-    }, [socket, handleGetServerStatus, handleGetQueue, handleStartQueue, handlePauseQueue, handleStopQueue]);
+    }, [socket, handleGetServerStatus, handleGetQueue, handleStartQueue, handlePauseQueue, handleStopQueue, getQueue]);
 
     return (
         <Box

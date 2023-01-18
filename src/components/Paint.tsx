@@ -14,12 +14,11 @@ import {
     useToast
 } from '@chakra-ui/react';
 import Prompt from './Prompt';
-import { useInterval } from './Reusable/useInterval/useInterval';
 import Shards from '../images/shards.png';
 import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
-import { isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 import { SocketContext } from '..';
 
 const loadImage = async (b64: string) => {
@@ -35,12 +34,10 @@ const loadImage = async (b64: string) => {
   
 function Paint () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const baseURL = LOCAL_URL;
 
     const toast = useToast({});
 
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
 
     const [progress, setProgress] = useState(-1);
@@ -94,7 +91,7 @@ function Paint () {
         };
 
         socket.emit('add_to_queue', body);
-    }, [socket]);
+    }, [boundingBoxCoordinates, boundingBoxDimensions, isMaskEnabled, layerState.objects, stageScale, imageSettings, socket]);
 
     // useEffect(() =>{
     //     console.log({...boundingBoxCoordinates, ...boundingBoxDimensions});
@@ -118,40 +115,38 @@ function Paint () {
         console.log(boundingBox)
 
         const image = {
-        ...scaledDimensions,
-        category: "user",
-        mtime: 1673399421.3987432,
-        url: imageData.path,
-        uuid: uuidv4(),
-        kind: "image",
-        layer: "base",
-        x: 0,
-        y: 0
-    }
+            ...scaledDimensions,
+            category: "user",
+            mtime: 1673399421.3987432,
+            url: imageData.path,
+            uuid: uuidv4(),
+            kind: "image",
+            layer: "base",
+            x: 0,
+            y: 0
+        }
 
         if (!boundingBox || !image) return;
 
-        setPastLayerStates([
-        ...pastLayerStates,
-        _.cloneDeep(layerState),
-        ]);
+        setPastLayerStates([...pastLayerStates, _.cloneDeep(layerState)]);
 
         if (pastLayerStates.length > maxHistory) {
-        setPastLayerStates(pastLayerStates.slice(1));
+            setPastLayerStates(pastLayerStates.slice(1));
         }
+
+
         //Filters so that the same image isn't used in the same spot, saving memory
         setLayerState({
-        ...layerState,
-        objects: [
-            ...layerState.objects.filter(
-                object => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)
-                ),                    
-            {
-                kind: 'image',
-                layer: 'base',
-                ...boundingBox,
-                image,
-            },
+            ...layerState,
+            objects: [
+                ...layerState.objects.filter(
+                    (object: CanvasImage) => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)),                    
+                {
+                    kind: 'image',
+                    layer: 'base',
+                    ...boundingBox,
+                    image,
+                },
             ],
         });
         setFutureLayerStates([]);
@@ -295,23 +290,6 @@ function Paint () {
         },
         []
     );
-
-    const handleGetImages = useCallback((data: { b64: string; path: string; batch_id: number }) => {
-        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
-            setLatestImages([data]);
-        } else {
-            setLatestImages([...latestImages, data]);
-        }
-        setMainImage(data);
-    }, [])
-
-    useEffect(() => {
-        socket.on('get_images', handleGetImages);
-
-        return () => {
-          socket.off('get_images', handleGetImages);
-        };
-    }, [socket, handleGetImages]);
 
     const prevSelectedIndex = useRef(0);
     useEffect(() => {

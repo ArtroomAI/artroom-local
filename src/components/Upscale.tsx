@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
-import axios from 'axios';
 import {
     Box,
     Button,
@@ -69,7 +66,7 @@ function Upscale () {
         };
 
         socket.emit('upscale', output);
-    }, [socket]);
+    }, [socket, toast, upscale_dest, upscale_factor, upscale_images, upscale_strength, upscaler]);
     
     const handleUpscale = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string}) => {
         if (data.status === 'Success') {
@@ -96,7 +93,7 @@ function Upscale () {
                 }
             });
         }
-    }, [socket]);
+    }, [toast]);
 
     // on socket message
     useEffect(() => {

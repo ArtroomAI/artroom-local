@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions, session } from 'electron';
 import { autoUpdater } from "electron-updater";
 autoUpdater.autoDownload = false;
 import os from 'os';
@@ -144,8 +144,8 @@ function createWindow() {
   });
 
   ipcMain.handle('showInExplorer', async (event, data) => {
-    console.log('show in explorer: ', data);
-    shell.showItemInFolder(data);
+    const p = path.resolve(data);
+    shell.showItemInFolder(p);
   });
 
   ipcMain.handle('getImageFromPath', async (event, data) => {
@@ -479,6 +479,12 @@ function createWindow() {
 
   win.once('ready-to-show', () => {
     autoUpdater.checkForUpdatesAndNotify();
+    if(isDev) {
+      console.log(path.resolve('scripts/fmkadmapgofadopljbjfkapdkoienihi'))
+      session.defaultSession.loadExtension(path.resolve('scripts/fmkadmapgofadopljbjfkapdkoienihi'))
+        .then(({ name }) => console.log(`Added Extension:  ${name}`))
+        .catch((err) => console.log('An error occurred: ', err));
+    }
   });
 }
 

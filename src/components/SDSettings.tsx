@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -37,7 +37,7 @@ function SDSettings () {
     const [vaes, setVaes] = useState([]);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
-    const getCkpts = () => {
+    const getCkpts = useCallback(() => {
         window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
@@ -46,21 +46,15 @@ function SDSettings () {
             // console.log(result);
             setVaes(result);
         });
-    };
+    }, [imageSettings.ckpt_dir]);
 
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        []
-    );
+    useEffect(() => {
+        getCkpts();
+    }, []);
 
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        [imageSettings.ckpt_dir]
-    );
+    useEffect(() => {
+        getCkpts();
+    }, [getCkpts]);
 
     useEffect(
         () => {

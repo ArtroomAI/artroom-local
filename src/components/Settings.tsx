@@ -60,6 +60,8 @@ function Settings () {
                 setDebugModeOrig(settings.debug_mode);
             });
         },
+        // run only once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
 
@@ -88,7 +90,7 @@ function Settings () {
                 }
             });
         }
-    }, []);
+    }, [toast]);
 
     const saveSettings = useCallback(() => {
         setDebugModeOrig(debug_mode);
@@ -104,7 +106,7 @@ function Settings () {
             ckpt_dir: imageSettings.ckpt_dir
         };
         socket.emit('update_settings', output)
-    }, [socket]);
+    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
 
     // on socket message
     useEffect(() => {

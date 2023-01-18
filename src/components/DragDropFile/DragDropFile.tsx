@@ -21,7 +21,7 @@ const DragDropFile = () => {
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
     
 
-    function getImageFromPath () {
+    useEffect(() => {
         if (initImagePath.length > 0) {
             console.log(initImagePath);
             window.api.getImageFromPath(initImagePath).then((result) => {
@@ -31,14 +31,7 @@ const DragDropFile = () => {
                 });
             });
         }
-    }
-
-    useEffect(
-        () => {
-            getImageFromPath();
-        },
-        [initImagePath]
-    );
+    }, [imageSettings, initImagePath, setImageSettings]);
 
     // Handle drag events
     const handleDrag: React.DragEventHandler<HTMLElement> = function (e) {

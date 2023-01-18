@@ -25,7 +25,7 @@ export const Console = () => {
         } else {
             setLogPos(logPos + 1);
         }
-    }, []);
+    }, [log, logPos]);
 
     useEffect(() => {
         // subscribe to socket events
@@ -36,7 +36,7 @@ export const Console = () => {
           // unbind all event handlers used in this component
           socket.offAny(handleMessage);
         };
-    }, [socket]);
+    }, [handleMessage, socket]);
 
     const displayMessages = () => {
         const messages = [];
