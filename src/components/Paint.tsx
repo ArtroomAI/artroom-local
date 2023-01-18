@@ -1,7 +1,7 @@
 import React, {useEffect, useState, useReducer, useRef} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
-import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, setIsMaskEnabledAction, stageScaleAtom, stageDimensionsAtom } from './UnifiedCanvas/atoms/canvas.atoms';
+import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, stageScaleAtom, shouldPreserveMaskedAreaAtom } from './UnifiedCanvas/atoms/canvas.atoms';
 import axios from 'axios';
 import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
 import {
@@ -54,9 +54,8 @@ function Paint () {
     const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
     const [futureLayerStates, setFutureLayerStates] = useRecoilState(futureLayerStatesAtom);  
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
-    const [isMaskEnabled, setIsMaskEnabled] = useRecoilState(setIsMaskEnabledAction);
+    const shouldPreserveMaskedArea = useRecoilValue(shouldPreserveMaskedAreaAtom)
     const stageScale = useRecoilValue(stageScaleAtom);   
-    const stageDimensions = useRecoilValue(stageDimensionsAtom);
 
     const handleRunInpainting = () => {
         const canvasBaseLayer = getCanvasBaseLayer();
@@ -65,7 +64,7 @@ function Paint () {
           ...boundingBoxDimensions,
         };
         const maskDataURL = generateMask(
-          isMaskEnabled ? layerState.objects.filter(isCanvasMaskLine) : [],
+          layerState.objects.filter(isCanvasMaskLine),
           boundingBox
         );
         const tempScale = canvasBaseLayer.scale();
@@ -88,7 +87,8 @@ function Paint () {
         const body = {
           ...imageSettings,
           init_image: imageDataURL,
-          mask_image: maskDataURL
+          mask_image: maskDataURL,
+          invert: shouldPreserveMaskedArea
         };
         axios.post(
           `${baseURL}/add_to_queue`,

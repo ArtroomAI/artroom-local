@@ -33,12 +33,13 @@ import { isProcessingAtom } from '../../atoms/system.atoms';
 import { Select, IconButton } from '../../components';
 import { CanvasLayer, isCanvasMaskLine, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
 import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
-import {copyImage, generateMask, getCanvasBaseLayer, layerToDataURL } from '../../util';
+import {getCanvasBaseLayer, layerToDataURL } from '../../util';
 import { CanvasMaskOptions } from './CanvasMaskOptions';
 import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
 import { CanvasRedoButton } from './CanvasRedoButton';
 import { CanvasUndoButton } from './CanvasUndoButton';
 import path from 'path';
+import { CanvasUpscaleButtonPopover } from './CanvasUpscaleButtonPopover';
 
 export const CanvasOutpaintingControls: FC = () => {
   const canvasBaseLayer = getCanvasBaseLayer();
@@ -216,6 +217,7 @@ export const CanvasOutpaintingControls: FC = () => {
         />
       </ButtonGroup>
       <ButtonGroup isAttached>
+      <CanvasUpscaleButtonPopover />
       <IconButton
           aria-label="Save to Gallery (Shift+S)"
           tooltip="Save to Gallery (Shift+S)"

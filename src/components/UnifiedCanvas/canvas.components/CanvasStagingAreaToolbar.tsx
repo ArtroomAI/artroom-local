@@ -182,17 +182,6 @@ export const CanvasStagingAreaToolbar: FC = () => {
           onClick={() => setShouldShowStagingImage(!shouldShowStagingImage)}
           data-selected
         />
-        {/* <IconButton
-					tooltip="Save to Gallery"
-					aria-label="Save to Gallery"
-					icon={<FaSave/>}
-					onClick={() =>
-						dispatch(
-							saveStagingAreaImageToGallery(currentStagingAreaImage.image.url)
-						)
-					}
-					data-selected={true}
-				/> */}
         <IconButton
           tooltip="Discard All"
           aria-label="Discard All"

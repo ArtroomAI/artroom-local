@@ -10,7 +10,7 @@ from omegaconf import OmegaConf
 from itertools import islice
 from einops import rearrange, repeat
 from contextlib import nullcontext
-from PIL import Image
+from PIL import Image, ImageOps
 import torch
 import gc
 import re
@@ -68,7 +68,7 @@ def load_img(image, h0, w0, inpainting=False):
     return 2. * image - 1.
 
 
-def load_mask(mask, newH, newW, invert=False):
+def load_mask(mask, newH, newW):
     image = np.array(mask)
     image = Image.fromarray(image).convert("RGB")
     w, h = image.size
@@ -151,6 +151,9 @@ class StableDiffusion:
             return support.image_to_b64(Image.open(latest_images[-1]).convert('RGB'))
         else:
             return ''
+
+    def add_to_latest(self, new_image: Image.Image, path = ""):
+        self.latest_images_part2.append({"b64": support.image_to_b64(new_image.convert('RGB')), "path": path})
 
     def clean_up(self):
         self.total_num = 0
@@ -333,6 +336,7 @@ class StableDiffusion:
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
+        
         self.running = True
 
         oldW, oldH = W, H
@@ -381,11 +385,11 @@ class StableDiffusion:
                 print(f"Loading from path {init_image_str}")
                 image = Image.open(init_image_str)
             
-            try:
-                image = inpainting.infill_patchmatch(image)
-                pass
-            except Exception as e:
-                print(f"Failed to outpaint the alpha layer {e}")
+            if len(mask_b64) > 0:
+                try:
+                    image = inpainting.infill_patchmatch(image)
+                except Exception as e:
+                    print(f"Failed to outpaint the alpha layer {e}")
 
             init_image = load_img(image.convert('RGB'), H, W, inpainting = (len(mask_b64) > 0)).to(self.device)
             _, _, H, W = init_image.shape
@@ -488,10 +492,13 @@ class StableDiffusion:
                             if len(mask_b64) > 0 and init_image is not None:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
-                                    mask = support.b64_to_image(mask_b64).convert('L')
+                                    mask_image = support.b64_to_image(mask_b64).convert('L')
                                 else:
-                                    mask = Image.open(mask).convert("L")
-                                mask = load_mask(mask, init_latent.shape[2], init_latent.shape[3], invert).to(self.device)
+                                    mask_image = Image.open(mask).convert("L")
+                                if invert:
+                                    mask_image = ImageOps.invert(mask_image)
+
+                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]).to(self.device)
                                 mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(mask, '1 ... -> b ...', b=batch_size)
                                 if self.v1:
@@ -545,11 +552,8 @@ class StableDiffusion:
                                 original_init_image = support.b64_to_image(init_image_str).convert('RGB')
                             else:
                                 original_init_image = Image.open(init_image_str).convert('RGB')
-                            if mask_b64[:4] == 'data':
-                                original_init_mask = support.b64_to_image(mask_b64).convert('L')
-                            else:
-                                original_init_mask = Image.open(mask).convert("L")
-                            out_image = support.repaste_and_color_correct(result=out_image, init_image=original_init_image, init_mask=original_init_mask, mask_blur_radius=8)
+
+                            out_image = support.repaste_and_color_correct(result=out_image, init_image=original_init_image, init_mask=mask_image, mask_blur_radius=8)
 
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now

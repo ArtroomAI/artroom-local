@@ -13,7 +13,7 @@ import json
 import shutil
 import threading
 import ctypes
-import traceback
+import random
 from uuid import uuid4
 
 kernel32 = ctypes.windll.kernel32
@@ -38,7 +38,7 @@ def reset_settings_to_default(self):
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=False, engineio_logger=False)
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False)
 SD = StableDiffusion(socketio)
 UP = Upscaler()
 
@@ -72,11 +72,42 @@ def upscale():
     if len(data['upscale_images']) == 0:
         print('Failure to upscale, please select an image')
         return return_output('Failure', 'Please select an image')
-    # returns (status,status_message)
-    upscale_status = UP.upscale(
-        data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
-    return return_output(upscale_status[0], upscale_status[1])
 
+    if data['upscale_dest'] == '':
+        data['upscale_dest'] = SD.image_save_path+'/upscale_outputs'
+
+    upscale_output = UP.upscale(
+        data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
+    print(upscale_output)
+    return return_output(upscale_output['status'], upscale_output['status_message'])
+
+@app.route('/upscale_canvas', methods=['POST'])
+def upscale_canvas():
+    print('Running upscale...')
+    data = json.loads(request.data)
+    if UP.running:
+        print('Failure to upscale, upscale is already running')
+        return return_output('Failure', 'Upscale is already running')
+    
+    os.makedirs(f'{SD.artroom_path}/artroom/intermediates/', exist_ok=True)
+    canvas_temp_path = os.path.join(f'{SD.artroom_path}','artroom/intermediates/canvas.png')
+    upscale_temp_path = os.path.join(f'{SD.artroom_path}','artroom/intermediates/')
+    canvas_image = support.dataURL_to_image(data['upscale_image']).convert('RGBA')
+    #Crops to only visible
+    visible_image_bbox = canvas_image.getbbox()
+    canvas_image = canvas_image.crop(visible_image_bbox)
+    canvas_image.save(canvas_temp_path)
+
+    upscale_output = UP.upscale(
+        images = [canvas_temp_path],
+        upscaler = data['upscaler'], 
+        upscale_factor = data['upscale_factor'],
+        upscale_dest = upscale_temp_path
+        )
+    SD.add_to_latest(upscale_output["content"]["output_images"][0], upscale_output["content"]["save_paths"][0])
+    SD.latest_images_id = random.randint(1, 922337203685)
+    print("Upscale Finished")
+    return return_output(upscale_output['status'], upscale_output['status_message'])
 
 @app.route('/get_images', methods=['GET'])
 def get_images():
@@ -90,7 +121,7 @@ def get_images():
             image_data = SD.get_latest_images()            
         else:
             image = Image.open(path).convert('RGB')
-            image_data = [{"b64": support.image_to_b64(image), "path": path}]
+            image_data = [{'b64': support.image_to_b64(image), 'path': path}]
         return return_output('Success', content={'latest_images_id': SD.latest_images_id, 'latest_images': image_data})
     except Exception as e:
         print(e)
@@ -209,7 +240,7 @@ def remove_from_queue():
     print('Removing from queue...')
     data = json.loads(request.data)
     QM.remove_from_queue(data['id'])
-    print(f"{data['id']} removed from queue")
+    print(f'{data["id"]} removed from queue')
     return return_output('Success', content={'queue': QM.queue})
 
 
@@ -226,9 +257,9 @@ def add_to_queue():
     # Cleans up printout so you don't print out the whole b64
     data_copy = dict(data)
     if len(data_copy['init_image']):
-        data_copy['init_image'] = data_copy['init_image'][:100]+"..."
+        data_copy['init_image'] = data_copy['init_image'][:100]+'...'
     if len(data_copy['mask_image']):
-        data_copy['mask_image'] = data_copy['mask_image'][:100]+"..."
+        data_copy['mask_image'] = data_copy['mask_image'][:100]+'...'
     print(f'Added to queue: {data_copy}')
     if not QM.running:
         run_sd()
@@ -252,24 +283,24 @@ def shutdown():
     stop_queue()
     os._exit(0)
 
-@socketio.on("connect")
+@socketio.on('connect')
 def connected():
-    """event listener when client connects to the server"""
+    '''event listener when client connects to the server'''
     print(request.sid)
-    print("client has connected")
-    socketio.emit("connect",{"data":f"id: {request.sid} is connected"})
+    print('client has connected')
+    socketio.emit('connect',{'data':f'id: {request.sid} is connected'})
 
 @socketio.on('message')
 def handle_message(data):
-    """event listener when client types a message"""
-    print("data from the front end: ",str(data))
-    socketio.emit("message",{'data':data,'id':request.sid},broadcast=True)
+    '''event listener when client types a message'''
+    print('data from the front end: ',str(data))
+    socketio.emit('message',{'data':data,'id':request.sid},broadcast=True)
 
-@socketio.on("disconnect")
+@socketio.on('disconnect')
 def disconnected():
-    """event listener when client disconnects to the server"""
-    print("user disconnected")
-    socketio.emit("disconnect",f"user {request.sid} disconnected",broadcast=True)
+    '''event listener when client disconnects to the server'''
+    print('user disconnected')
+    socketio.emit('disconnect',f'user {request.sid} disconnected',broadcast=True)
     
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5300)

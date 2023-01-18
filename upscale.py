@@ -24,30 +24,30 @@ class Upscaler():
         sys.path.append(f"{self.artroom_path}/artroom/upscalers/GFPGAN")
 
     def upscale(self, images, upscaler, upscale_factor, upscale_dest, upscale_strength=None):
-        print("Starting upscale...")
         self.running = True
         if upscale_dest == "":
             upscale_dest = os.path.dirname(images[0])
-        if upscale_dest[-1] == "/":
-            upscale_dest = upscaler[:-1]
+        elif upscale_dest[-1] == "/":
+            upscale_dest = upscale_dest[:-1]
+            
         upscale_dest += f"/{upscaler.replace(' ','')}/"
 
         try:
             self.add_images(images)
             if "GFPGAN" in upscaler or "RestoreFormer" in upscaler:
-                self.GFPGAN(upscaler, upscale_factor, upscale_dest)
+                output_images, save_paths = self.GFPGAN(upscaler, upscale_factor, upscale_dest)
             elif "RealESRGAN" in upscaler:
-                self.RealESRGAN(upscaler, upscale_factor, upscale_dest)
+                output_images, save_paths = self.RealESRGAN(upscaler, upscale_factor, upscale_dest)
 
             print("Running cleanup")
             # Clean up
             shutil.rmtree(self.upscale_queue_path)
             self.running = False
-            return ("Success", "")
+            return {"status": "Success", "status_message": "", "content": {"output_images": output_images, "save_paths": save_paths}}
         except Exception as e:
             self.running = False
             print(f"Upscale Failed, error: {e}")
-            return ("Failure", f"Error: {e}")
+            return {"status": "Failure", "status_message": f"Error: {e}", "content": {"output_images": output_images, "save_paths": save_paths}}
 
     def GFPGAN(self, upscaler, upscale_factor, upscale_dest):
         # sys.path.append(f"{self.artroom_path}/artroom/upscalers/GFPGAN")\
@@ -57,6 +57,7 @@ class Upscaler():
         from basicsr.utils import imwrite
         from gfpgan import GFPGANer
         from basicsr.utils.download_util import load_file_from_url
+        from PIL import Image
 
         # Potentially problematic
         torch.set_default_tensor_type(torch.FloatTensor)
@@ -157,6 +158,8 @@ class Upscaler():
             channel_multiplier=channel_multiplier,
             bg_upsampler=bg_upsampler)
 
+        output_images = []
+        save_paths = []
         # ------------------------ restore ------------------------
         for img_path in img_list:
             # read image
@@ -207,9 +210,12 @@ class Upscaler():
                     save_restore_path = os.path.join(
                         outdir, 'restored_imgs', f'{basename}.{extension}')
                 imwrite(restored_img, save_restore_path)
+                output_images.append(Image.fromarray(cv2.cvtColor(restored_img, cv2.COLOR_BGRA2RGB)))
+                save_paths.append(save_restore_path)
         tensor = torch.HalfTensor if is_16xx_series() == 'NVIDIA' else torch.FloatTensor
         torch.set_default_tensor_type(tensor)
-
+        return output_images, save_paths
+        
     def RealESRGAN(self, upscaler, upscale_factor, upscale_dest):
         import cv2
         import numpy as np
@@ -217,7 +223,7 @@ class Upscaler():
         from basicsr.archs.rrdbnet_arch import RRDBNet
         from basicsr.utils.download_util import load_file_from_url
         from realesrgan import RealESRGANer
-
+        
         outdir = upscale_dest
         outscale = int(upscale_factor)
         input = self.upscale_queue_path
@@ -271,7 +277,8 @@ class Upscaler():
             img_list = [input]
         else:
             img_list = sorted(glob(os.path.join(input, '*')))
-
+        output_images = []
+        save_paths = []
         for idx, path in enumerate(img_list):
             imgname, extension = os.path.splitext(os.path.basename(path))
             img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
@@ -286,6 +293,9 @@ class Upscaler():
                     outdir, f'{imgname}_{suffix}.{extension[1:]}')
                 print(save_path)
                 cv2.imwrite(save_path, output)
+                output_images.append(Image.fromarray(cv2.cvtColor(output, cv2.COLOR_BGRA2RGB)))
+                save_paths.append(save_path)
+        return output_images, save_paths
 
     def add_images(self, images):
         # Filter non-images
