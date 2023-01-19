@@ -1,7 +1,9 @@
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
-from artroom_helpers.gpu_detect import is_16xx_series
+from artroom_helpers.gpu_detect import get_gpu_architecture
+from skimage import exposure
+import cv2
 import random
 from transformers import logging
 from torch import autocast
@@ -117,8 +119,8 @@ class StableDiffusion:
         self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
         self.long_save_path = False
         self.highres_fix = False
-        self.is_nvidia = is_16xx_series() == 'NVIDIA'
-        self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
+        self.is_nvidia = get_gpu_architecture() == 'NVIDIA'
+        self.device = 'cpu' if get_gpu_architecture() == 'None' else "cuda"
         self.speed = "Max"
         self.socketio = socketio
 
@@ -187,32 +189,33 @@ class StableDiffusion:
         print(f"Attempting to load {ckpt}, speed: {speed}")
         assert ckpt != '', 'Checkpoint cannot be empty'
         if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
-            try:
-                print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae)
-                print("Successfully set up model")
-                return True
-            except Exception as e:
-                print(f"Setting up model failed: {e}")
-                self.stage = ""
-                self.model = None
-                self.modelCS = None
-                self.modelFS = None
-                return False
+            # try:
+            print("Setting up model...")
+            self.set_up_models(ckpt, speed, vae)
+            print("Successfully set up model")
+            return True
+            # except Exception as e:
+            #     print(f"Setting up model failed: {e}")
+            #     self.stage = ""
+            #     self.model = None
+            #     self.modelCS = None
+            #     self.modelFS = None
+            #     return False
 
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
         self.stage = "Loading Model"
-        del self.model
-        self.model = None
         try:
+            del self.model
             del self.modelFS
             del self.modelCS
-            self.modelFS = None 
+            self.model = None
+            self.modelFS = None
             self.modelCS = None
         except:
             pass
         torch.cuda.empty_cache()
+        gc.collect()
 
         print("Loading model from config")
         sd = load_model_from_config(f"{ckpt}")
@@ -244,10 +247,6 @@ class StableDiffusion:
             self.model.parameterization = parameterization
             self.model.cdevice = self.device
             self.model.to(self.device)
-            if self.is_nvidia:
-                self.model.half()
-                torch.set_default_tensor_type(torch.HalfTensor)
-
             self.modelCS = self.model  # just link without a copy
             self.modelFS = self.model  # just link without a copy
             self.v1 = False
@@ -313,11 +312,11 @@ class StableDiffusion:
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
-            if self.is_nvidia:
-                self.model.half()
-                self.modelCS.half()
-                self.modelFS.half()
-                torch.set_default_tensor_type(torch.HalfTensor)
+        if self.is_nvidia:
+            self.model.half()
+            self.modelCS.half()
+            self.modelFS.half()
+            torch.set_default_tensor_type(torch.HalfTensor)
         del sd
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed

@@ -1,7 +1,8 @@
 import torch
 
-#Need to expand to include more options, 10XX, 20XX, 30XX for auto xformers
-def is_16xx_series():
+
+# Need to expand to include more options, 10XX, 20XX, 30XX for auto xformers
+def get_gpu_architecture():
     if torch.cuda.is_available():
         gpu_info = torch.cuda.get_device_name(0)
         if '1630' in gpu_info or '1650' in gpu_info or '1660' in gpu_info or '1600' in gpu_info:

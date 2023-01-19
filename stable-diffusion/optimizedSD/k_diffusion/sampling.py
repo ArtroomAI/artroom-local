@@ -48,7 +48,8 @@ def get_ancestral_step(sigma_from, sigma_to):
 
 
 @torch.no_grad()
-def sample_euler(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.):
+def sample_euler(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0.,
+                 s_tmax=float('inf'), s_noise=1.):
     """Implements Algorithm 2 (Euler steps) from Karras et al. (2022)."""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
@@ -87,7 +88,8 @@ def sample_euler_ancestral(model, x, sigmas, extra_args=None, callback=None, dis
 
 
 @torch.no_grad()
-def sample_heun(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.):
+def sample_heun(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0.,
+                s_tmax=float('inf'), s_noise=1.):
     """Implements Algorithm 2 (Heun steps) from Karras et al. (2022)."""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
@@ -116,7 +118,8 @@ def sample_heun(model, x, sigmas, extra_args=None, callback=None, disable=None, 
 
 
 @torch.no_grad()
-def sample_dpm_2(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.):
+def sample_dpm_2(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0.,
+                 s_tmax=float('inf'), s_noise=1.):
     """A sampler inspired by DPM-Solver-2 and Algorithm 2 from Karras et al. (2022)."""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
@@ -167,6 +170,7 @@ def sample_dpm_2_ancestral(model, x, sigmas, extra_args=None, callback=None, dis
 def linear_multistep_coeff(order, t, i, j):
     if order - 1 > i:
         raise ValueError(f'Order {order} too high for step {i}')
+
     def fn(tau):
         prod = 1.
         for k in range(order):
@@ -174,6 +178,7 @@ def linear_multistep_coeff(order, t, i, j):
                 continue
             prod *= (tau - t[i - k]) / (t[i - j] - t[i - k])
         return prod
+
     return integrate.quad(fn, t[i], t[i + 1], epsrel=1e-4)[0]
 
 
@@ -202,6 +207,7 @@ def log_likelihood(model, x, sigma_min, sigma_max, extra_args=None, atol=1e-4, r
     s_in = x.new_ones([x.shape[0]])
     v = torch.randint_like(x, 2) * 2 - 1
     fevals = 0
+
     def ode_fn(sigma, x):
         nonlocal fevals
         with torch.enable_grad():
@@ -212,6 +218,7 @@ def log_likelihood(model, x, sigma_min, sigma_max, extra_args=None, atol=1e-4, r
             grad = torch.autograd.grad((d * v).sum(), x)[0]
             d_ll = (v * grad).flatten(1).sum(1)
         return d.detach(), d_ll
+
     x_min = x, x.new_zeros([x.shape[0]])
     t = x.new_tensor([sigma_min, sigma_max])
     sol = odeint(ode_fn, x_min, t, atol=atol, rtol=rtol, method='dopri5')
