@@ -656,6 +656,9 @@ class UNet(DDPM):
                 attr = attr.to(torch.device(self.cdevice))
         setattr(self, name, attr)
 
+    def make_schedule_plms(self, ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
+        pass
+
     def make_schedule(self, ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
 
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps,
@@ -748,6 +751,7 @@ class UNet(DDPM):
         x_latent = noise if x0 is None else x0
         # sampling
         if sampler == "plms":
+            self.make_schedule_plms(ddim_num_steps=S, ddim_eta=eta, verbose=False)
             print(f'Data shape for PLMS sampling is {shape}')
             samples = self.plms_sampling(conditioning, batch_size, x_latent,
                                          callback=callback,
@@ -976,7 +980,6 @@ class UNet(DDPM):
         def apply_inner_model(input_x, sigma, **kwargs):
             c_out, c_in = [self.append_dims(x, input_x.ndim) for x in get_scalings(sigma)]
             eps = self.apply_model(input_x * c_in, sigma_to_t(sigma), **kwargs)
-            # eps = model_wrap.get_eps(input_x * c_in, model_wrap.sigma_to_t(sigma), **kwargs)
             return input_x + eps * c_out
 
         x_in = torch.cat([x] * 2)
@@ -985,8 +988,8 @@ class UNet(DDPM):
         # e_t_uncond, e_t = model_wrap(x_in, t_in, cond=c_in).chunk(2)
         e_t_uncond, e_t = apply_inner_model(x_in, t_in, cond=c_in).chunk(2)
         e_t = e_t_uncond + cond_scale * (e_t - e_t_uncond)
-        if self.parameterization == "v":
-            e_t = self.predict_eps_from_z_and_v(x, t, e_t)
+        # if self.parameterization == "v":
+        #     e_t = self.predict_eps_from_z_and_v(x, t.to(torch.int64), e_t)
         return e_t
 
     def linear_multistep_coeff(self, order, t, i, j):
@@ -1182,7 +1185,7 @@ class UNet(DDPM):
             model_uncond, model_t = self.apply_model(x_in, t_in, c_in).chunk(2)
             model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)
 
-        if self.parameterization.strip() == "v":
+        if self.parameterization == "v":
             e_t = self.predict_eps_from_z_and_v(x, t, model_output)
         else:
             e_t = model_output
@@ -1422,3 +1425,33 @@ class UNetV2(UNet):
             return x_recon[0]
         else:
             return x_recon
+
+    def make_schedule_plms(self, ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
+        self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps,
+                                                  num_ddpm_timesteps=self.num_timesteps, verbose=verbose)
+        alphas_cumprod = self.alphas_cumprod
+        to_torch = lambda x: x.to(self.cdevice)
+
+        self.register_buffer('betas', to_torch(self.betas))
+        self.register_buffer('alphas_cumprod', to_torch(alphas_cumprod))
+        self.register_buffer('alphas_cumprod_prev', to_torch(self.alphas_cumprod_prev))
+
+        # calculations for diffusion q(x_t | x_{t-1}) and others
+        self.register_buffer('sqrt_alphas_cumprod', to_torch(np.sqrt(alphas_cumprod.cpu())))
+        self.register_buffer('sqrt_one_minus_alphas_cumprod', to_torch(np.sqrt(1. - alphas_cumprod.cpu())))
+        self.register_buffer('log_one_minus_alphas_cumprod', to_torch(np.log(1. - alphas_cumprod.cpu())))
+        self.register_buffer('sqrt_recip_alphas_cumprod', to_torch(np.sqrt(1. / alphas_cumprod.cpu())))
+        self.register_buffer('sqrt_recipm1_alphas_cumprod', to_torch(np.sqrt(1. / alphas_cumprod.cpu() - 1)))
+
+        # ddim sampling parameters
+        ddim_sigmas, ddim_alphas, ddim_alphas_prev = make_ddim_sampling_parameters(alphacums=alphas_cumprod.cpu(),
+                                                                                   ddim_timesteps=self.ddim_timesteps,
+                                                                                   eta=ddim_eta, verbose=verbose)
+        self.register_buffer('ddim_sigmas', ddim_sigmas)
+        self.register_buffer('ddim_alphas', ddim_alphas)
+        self.register_buffer('ddim_alphas_prev', ddim_alphas_prev)
+        self.register_buffer('ddim_sqrt_one_minus_alphas', np.sqrt(1. - ddim_alphas))
+        sigmas_for_original_sampling_steps = ddim_eta * torch.sqrt(
+            (1 - self.alphas_cumprod_prev) / (1 - self.alphas_cumprod) * (
+                    1 - self.alphas_cumprod / self.alphas_cumprod_prev))
+        self.register_buffer('ddim_sigmas_for_original_num_steps', sigmas_for_original_sampling_steps)

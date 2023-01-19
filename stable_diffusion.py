@@ -189,18 +189,18 @@ class StableDiffusion:
         print(f"Attempting to load {ckpt}, speed: {speed}")
         assert ckpt != '', 'Checkpoint cannot be empty'
         if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
-            # try:
-            print("Setting up model...")
-            self.set_up_models(ckpt, speed, vae)
-            print("Successfully set up model")
-            return True
-            # except Exception as e:
-            #     print(f"Setting up model failed: {e}")
-            #     self.stage = ""
-            #     self.model = None
-            #     self.modelCS = None
-            #     self.modelFS = None
-            #     return False
+            try:
+                print("Setting up model...")
+                self.set_up_models(ckpt, speed, vae)
+                print("Successfully set up model")
+                return True
+            except Exception as e:
+                print(f"Setting up model failed: {e}")
+                self.stage = ""
+                self.model = None
+                self.modelCS = None
+                self.modelFS = None
+                return False
 
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")

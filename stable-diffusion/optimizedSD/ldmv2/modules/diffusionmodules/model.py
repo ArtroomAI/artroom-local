@@ -298,7 +298,7 @@ def make_attn(in_channels, attn_type="vanilla", attn_kwargs=None):
         assert attn_kwargs is None
         return AttnBlock(in_channels)
     elif attn_type == "vanilla-xformers":
-        print(f"building MemoryEfficientAttnBlock with {in_channels} in_channels...")
+        # print(f"building MemoryEfficientAttnBlock with {in_channels} in_channels...")
         return MemoryEfficientAttnBlock(in_channels)
     elif type == "memory-efficient-cross-attn":
         attn_kwargs["query_dim"] = in_channels
@@ -827,7 +827,7 @@ class Upsampler(nn.Module):
         assert out_size >= in_size
         num_blocks = int(np.log2(out_size//in_size))+1
         factor_up = 1.+ (out_size % in_size)
-        print(f"Building {self.__class__.__name__} with in_size: {in_size} --> out_size {out_size} and factor {factor_up}")
+        # print(f"Building {self.__class__.__name__} with in_size: {in_size} --> out_size {out_size} and factor {factor_up}")
         self.rescaler = LatentRescaler(factor=factor_up, in_channels=in_channels, mid_channels=2*in_channels,
                                        out_channels=in_channels)
         self.decoder = Decoder(out_ch=out_channels, resolution=out_size, z_channels=in_channels, num_res_blocks=2,
