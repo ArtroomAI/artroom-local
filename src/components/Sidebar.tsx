@@ -15,8 +15,8 @@ import {
 import {
     FiGitMerge,
     FiMenu,
-    FiSettings
 } from 'react-icons/fi';
+import {IoSettingsSharp} from 'react-icons/io5'
 import {
     GiResize
 } from 'react-icons/gi';
@@ -89,12 +89,12 @@ export default function Sidebar () {
                         linkTo="#/merge"
                         navSize={navSize}
                         title="Merge models" />
-                    <NavItem
+                    {/* <NavItem
                         className="image-viewer"
                         icon={FaFileImage}
                         linkTo="#/imageviewer"
                         navSize={navSize}
-                        title="Image Viewer" />
+                        title="Image Viewer" /> */}
 
                 </Flex>
 
@@ -113,7 +113,7 @@ export default function Sidebar () {
 
                     <NavItem
                         className="settings-nav"
-                        icon={FiSettings}
+                        icon={IoSettingsSharp}
                         linkTo="#/settings"
                         navSize={navSize}
                         title="Settings" />

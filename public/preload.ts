@@ -17,7 +17,6 @@ const api = {
     copyToClipboard: async (data: string) => {return await ipcRenderer.invoke('copyToClipboard',data);},
     saveFromDataURL: async (data: string) => {return await ipcRenderer.invoke('saveFromDataURL',data);},
     chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
-    chooseVae: async (): Promise<string> => {return await ipcRenderer.invoke('chooseVae');},
     runPyTests: async () => {return await ipcRenderer.invoke('runPyTests');},
     restartServer: async (isDebug: boolean) => {return await ipcRenderer.invoke('restartServer',isDebug);},
     minimizeWindow: async () => {return await ipcRenderer.invoke('minimizeWindow');},

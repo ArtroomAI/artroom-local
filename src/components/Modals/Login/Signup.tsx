@@ -15,7 +15,7 @@ import {
     FormHelperText,
     Text,
     Image,
-    createStandaloneToast
+    useToast
 } from '@chakra-ui/react';
 import Select from 'react-select';
 import { FaUserAlt, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -32,8 +32,8 @@ interface DateType {
 }
 
 const SignUp = ({ setState }: { setState: React.Dispatch<React.SetStateAction<string>> }) => {
-    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
-    const { ToastContainer, toast } = createStandaloneToast();
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const toast = useToast({});
     const [email, setEmail] = useRecoilState(atom.emailState);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');

@@ -19,8 +19,8 @@ import {
     Select,
     NumberInput,
     NumberInputField,
-    createStandaloneToast,
-    Spacer
+    Spacer,
+    useToast
 } from '@chakra-ui/react';
 import {
     FaQuestionCircle
@@ -28,7 +28,7 @@ import {
 import DebugInstallerModal from './Modals/DebugInstallerModal';
 
 function Settings () {
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
@@ -152,10 +152,6 @@ function Settings () {
     const chooseCkptDir = () => {
         window.api.chooseUploadPath().then((result)=>{setImageSettings({...imageSettings,ckpt_dir: result})});
     };
-    
-    const chooseVae = () => {
-        window.api.chooseVae().then((result)=>{setImageSettings({...imageSettings, vae: result})});
-    };
 
     return (
         <Box
@@ -219,39 +215,6 @@ function Settings () {
                         />
 
                         <Button onClick={chooseCkptDir}>
-                            Choose
-                        </Button>
-                    </HStack>
-                </FormControl>
-
-                <FormControl
-                    className="model-vae-input"
-                    width="full">
-                    <HStack>
-                        <Tooltip
-                            fontSize="md"
-                            label="Choose vae file"
-                            placement="top"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-
-                        <FormLabel htmlFor="vae">
-                            Vae file
-                        </FormLabel>
-                    </HStack>
-
-                    <HStack>
-                        <Input
-                            id="vae"
-                            name="vae"
-                            onChange={(event) => setImageSettings({...imageSettings, vae: event.target.value})}
-                            type="text"
-                            value={imageSettings.vae}
-                            variant="outline"
-                        />
-
-                        <Button onClick={chooseVae}>
                             Choose
                         </Button>
                     </HStack>

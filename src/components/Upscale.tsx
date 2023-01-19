@@ -3,12 +3,10 @@ import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import axios from 'axios';
 import {
-    createStandaloneToast,
     Box,
     Button,
     ButtonGroup,
     IconButton,
-    Flex,
     FormControl,
     FormLabel,
     Input,
@@ -20,17 +18,14 @@ import {
     Text,
     Stack,
     Select,
-    Slider,
-    SliderThumb,
-    SliderFilledTrack,
-    SliderTrack
+    useToast
 } from '@chakra-ui/react';
 import {
     FaQuestionCircle,
     FaTrashAlt
 } from 'react-icons/fa';
 function Upscale () {
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     const [upscale_images, setUpscaleImages] = useState('');
     const [upscale_dest, setUpscaleDest] = useState('');
     const [upscaler, setUpscaler] = useState('ESRGAN');

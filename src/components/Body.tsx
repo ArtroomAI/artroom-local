@@ -12,7 +12,7 @@ import {
     SimpleGrid,
     Image,
     Text,
-    createStandaloneToast
+    useToast
 } from '@chakra-ui/react';
 import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
@@ -21,10 +21,10 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
 function Body () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const baseURL = LOCAL_URL;
 
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
 
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
@@ -37,7 +37,8 @@ function Body () {
     const [focused, setFocused] = useState(false);
 
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-
+    const [shard, setShard] = useRecoilState(atom.shardState);
+    
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
         switch (action.type) {
@@ -271,8 +272,38 @@ function Body () {
             catch((error) => console.log(error));
     };
 
+    const submitCloud = () => {
+        ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
+            setShard(response.data.shard_balance);
+            toast({
+                title: 'Job Submission  Success',
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }).catch((err: any) => {
+            console.log(err);
+            toast({
+                title: 'Error',
+                status: 'error',
+                description: err.response.data.detail,
+                position: 'top',
+                duration: 5000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        });
+    };
+
+
     const getProfile = () => {
-        ProtectedReqManager.make_request(`${ARTROOM_URL}/users/me`).then((response: { data: { email: string; }; }) => {
+        ProtectedReqManager.make_get_request(`${ARTROOM_URL}/users/me`).then((response: { data: { email: string; }; }) => {
             console.log(response);
             toast({
                 title: 'Auth Test Success: ' + response.data.email,
@@ -287,7 +318,7 @@ function Body () {
         }).catch((err: any) => {
             console.log(err);
         });
-    }
+    };
 
 
     return (
@@ -297,11 +328,14 @@ function Body () {
             <VStack spacing={3}>
                 <Box
                     className="image-box"
-                    width="80%">
+                    width="80%"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    >
                     <ImageObj
                         b64={mainImage}
                         active />
-
                     {
                         progress >= 0
                             ? <Progress
@@ -333,7 +367,7 @@ function Body () {
                     ? <Button
                         className="run-button"
                         ml={2}
-                        onClick={getProfile}
+                        onClick={submitCloud}
                         variant="outline"
                         width="200px">
                         <Text pr={2}>

@@ -21,25 +21,30 @@ import {
     Checkbox,
     Select,
     Spacer,
-    createStandaloneToast,
     Text,
-    Icon
+    Icon,
+    useToast
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 
 function SDSettings () {
-    const { ToastContainer, toast } = createStandaloneToast();
+    const toast = useToast({});
     
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
     const [ckpts, setCkpts] = useState([]);
+    const [vaes, setVaes] = useState([]);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
     const getCkpts = () => {
         window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
+        });
+        window.api.getVaes(imageSettings.ckpt_dir).then((result) => {
+            // console.log(result);
+            setVaes(result);
         });
     };
 
@@ -173,8 +178,8 @@ function SDSettings () {
                                 id="n_iter"
                                 min={1}
                                 name="n_iter"
-                                onChange={(v) => {
-                                    setImageSettings({...imageSettings, n_iter: parseInt(v)});
+                                onChange={(v, n) => {
+                                    setImageSettings({...imageSettings, n_iter: n});
                                 }}
                                 value={imageSettings.n_iter}
                                 variant="outline"
@@ -203,8 +208,8 @@ function SDSettings () {
                                 id="steps"
                                 min={1}
                                 name="steps"
-                                onChange={(v) => {
-                                    setImageSettings({...imageSettings, steps: parseInt(v)});
+                                onChange={(v, n) => {
+                                    setImageSettings({...imageSettings, steps: n});
                                 }}
                                 value={imageSettings.steps}
                                 variant="outline"
@@ -337,7 +342,7 @@ function SDSettings () {
                                 min={256}
                                 name="width"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, width: parseInt(v)});
+                                    setImageSettings({...imageSettings, width: v});
                                 }}                                
                                 step={64}
                                 value={imageSettings.width}
@@ -375,7 +380,7 @@ function SDSettings () {
                                 max={1920}
                                 min={256}
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, height: parseInt(v)});
+                                    setImageSettings({...imageSettings, height: v});
                                 }}                                        
                                 step={64}
                                 value={imageSettings.height}
@@ -424,25 +429,22 @@ function SDSettings () {
                             id="cfg_scale"
                             min={0}
                             name="cfg_scale"
-                            onChange={(v) => {
-                                setImageSettings({...imageSettings, cfg_scale: parseInt(v)});
-                            }}        
+                            onChange={(v, n) => {
+                                setImageSettings({...imageSettings, cfg_scale: n});
+                            }}         
                             value={imageSettings.cfg_scale}
-                            variant="outline"
+                               variant="outline"
                         >
                             <NumberInputField id="cfg_scale" />
                         </NumberInput>
                     </FormControl>
 
-                    {imageSettings.init_image.length > 0
-                        ? <FormControl className="strength-input">
+                    <FormControl className="strength-input">
                             <HStack>
                                 <FormLabel htmlFor="Strength">
                                     Image Variation Strength:
                                 </FormLabel>
-
                                 <Spacer />
-
                                 <Tooltip
                                     fontSize="md"
                                     label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
@@ -456,12 +458,11 @@ function SDSettings () {
                             <Slider
                                 defaultValue={0.75}
                                 id="strength"
-                                isDisabled={imageSettings.init_image.length === 0}
                                 max={0.99}
                                 min={0.0}
                                 name="strength"
                                 onChange={(v) => {
-                                    setImageSettings({...imageSettings, strength: parseFloat(v)});
+                                    setImageSettings({...imageSettings, strength: v});
                                 }}        
                                 step={0.01}
                                 value={imageSettings.strength}
@@ -479,15 +480,14 @@ function SDSettings () {
                                 <Tooltip
                                     bg="#4f8ff8"
                                     color="white"
-                                    isOpen={!(imageSettings.init_image.length === 0)}
+                                    isOpen={true}
                                     label={`${imageSettings.strength}`}
                                     placement="right"
                                 >
                                     <SliderThumb />
                                 </Tooltip>
                             </Slider>
-                        </FormControl>
-                        : <></>}
+                    </FormControl>
 
                     <FormControl className="samplers-input">
                         <HStack>
@@ -608,7 +608,7 @@ function SDSettings () {
                             value={imageSettings.ckpt}
                             variant="outline"
                         >
-                            {ckpts?.length > 0
+                            {ckpts.length > 0
                                 ? <option
                                     style={{ 'backgroundColor': '#080B16' }}
                                     value=""
@@ -617,7 +617,44 @@ function SDSettings () {
                                 </option>
                                 : <></>}
 
-                            {ckpts?.map((ckpt_option, i) => (<option
+                            {ckpts.map((ckpt_option, i) => (<option
+                                key={i}
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value={ckpt_option}
+                            >
+                                {ckpt_option}
+                            </option>))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl className="vae-ckpt-input">
+                        <FormLabel htmlFor="Vae">
+                            <HStack>
+                                <Text>
+                                    VAE
+                                </Text>
+
+                                {cloudMode
+                                    ? <Icon as={IoMdCloud} />
+                                    : null}
+                            </HStack>
+                        </FormLabel>
+
+                        <Select
+                            id="vae"
+                            name="vae"
+                            onChange={(event) => setImageSettings({...imageSettings, vae: event.target.value})}
+                            onMouseEnter={getCkpts}
+                            value={imageSettings.vae}
+                            variant="outline"
+                        >
+                            <option
+                                style={{ 'backgroundColor': '#080B16' }}
+                                value=""
+                            >
+                                No vae
+                            </option>
+                            {vaes.map((ckpt_option, i) => (<option
                                 key={i}
                                 style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}

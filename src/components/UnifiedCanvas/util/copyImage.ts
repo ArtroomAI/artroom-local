@@ -13,6 +13,7 @@ export const copyImage = (url: string, width: number, height: number) => {
 
 		if (!context) return;
 
+		// context.globalCompositeOperation = "destination-in";
 		context.drawImage(imageElement, 0, 0);
 
 		canvas.toBlob(blob => {

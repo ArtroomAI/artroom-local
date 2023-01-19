@@ -1,5 +1,5 @@
 import React from 'react';
-import { ButtonGroup, createStandaloneToast } from '@chakra-ui/react';
+import { ButtonGroup, useToast } from '@chakra-ui/react';
 import {
   FaArrowsAlt,
   FaCopy,
@@ -33,17 +33,13 @@ import { isProcessingAtom } from '../../atoms/system.atoms';
 import { Select, IconButton } from '../../components';
 import { CanvasLayer, isCanvasMaskLine, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
 import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
-import {copyImage, generateMask, getCanvasBaseLayer, layerToDataURL } from '../../util';
+import {getCanvasBaseLayer, layerToDataURL } from '../../util';
 import { CanvasMaskOptions } from './CanvasMaskOptions';
 import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
 import { CanvasRedoButton } from './CanvasRedoButton';
 import { CanvasUndoButton } from './CanvasUndoButton';
-import axios from 'axios';
 import path from 'path';
-
-const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-const ARTROOM_URL = process.env.REACT_APP_SERVER_URL;
-const baseURL = LOCAL_URL;
+import { CanvasUpscaleButtonPopover } from './CanvasUpscaleButtonPopover';
 
 export const CanvasOutpaintingControls: FC = () => {
   const canvasBaseLayer = getCanvasBaseLayer();
@@ -59,19 +55,18 @@ export const CanvasOutpaintingControls: FC = () => {
   const shouldCropToBoundingBoxOnSave = useRecoilValue(
     shouldCropToBoundingBoxOnSaveAtom
   );
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
   const isProcessing = useRecoilValue(isProcessingAtom);
   const isStaging = useRecoilValue(isStagingSelector);
 
   const { openUploader } = useImageUploader();
 
   //For Generation
-  const stageScale = useRecoilValue(stageScaleAtom);  
-  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
-  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
-  const layerState = useRecoilValue(layerStateAtom);  
+  const stageScale = useRecoilValue(stageScaleAtom);   
   const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
   const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
-  const { ToastContainer, toast } = createStandaloneToast();
+  const toast = useToast({});
 
   useHotkeys(
     ['v'],
@@ -146,7 +141,10 @@ export const CanvasOutpaintingControls: FC = () => {
     const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
       canvasBaseLayer,
       stageScale,
-      stageCoordinates
+      stageCoordinates,
+      shouldCropToBoundingBoxOnSave
+      ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
+      : undefined
     );
     const timestamp = new Date().getTime();
     const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".jpg");
@@ -162,11 +160,13 @@ export const CanvasOutpaintingControls: FC = () => {
 
   const handleCopyImageToClipboard = () => {
     const canvasBaseLayer = getCanvasBaseLayer();
-
     const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
       canvasBaseLayer,
       stageScale,
-      stageCoordinates
+      stageCoordinates,
+      shouldCropToBoundingBoxOnSave
+      ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
+      : undefined
     );
     window.api.copyToClipboard(dataURL);
     toast({
@@ -175,51 +175,6 @@ export const CanvasOutpaintingControls: FC = () => {
       duration: 1500,
       isClosable: true,
     })
-  };
-
-  const handleRunInpainting = () => {
-    const canvasBaseLayer = getCanvasBaseLayer();
-    const boundingBox = {
-      ...boundingBoxCoordinates,
-      ...boundingBoxDimensions,
-    };
-    const maskDataURL = generateMask(
-      isMaskEnabled ? layerState.objects.filter(isCanvasMaskLine) : [],
-      boundingBox
-    );
-  
-    const tempScale = canvasBaseLayer.scale();
-  
-    canvasBaseLayer.scale({
-      x: 1 / stageScale,
-      y: 1 / stageScale,
-    });
-  
-    const absPos = canvasBaseLayer.getAbsolutePosition();
-  
-    const imageDataURL = canvasBaseLayer.toDataURL({
-      x: boundingBox.x + absPos.x,
-      y: boundingBox.y + absPos.y,
-      width: boundingBox.width,
-      height: boundingBox.height,
-    });
-
-    canvasBaseLayer.scale(tempScale);
-    const body = {
-      ...imageSettings,
-      init_image: imageDataURL,
-      mask_image: maskDataURL
-    };
-    
-    axios.post(
-      `${baseURL}/add_to_queue`,
-      body,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-      ).then(result =>{
-        console.log(result);
-      })
   };
 
   const handleChangeLayer = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -262,6 +217,7 @@ export const CanvasOutpaintingControls: FC = () => {
         />
       </ButtonGroup>
       <ButtonGroup isAttached>
+      <CanvasUpscaleButtonPopover />
       <IconButton
           aria-label="Save to Gallery (Shift+S)"
           tooltip="Save to Gallery (Shift+S)"
@@ -297,18 +253,6 @@ export const CanvasOutpaintingControls: FC = () => {
         <CanvasUndoButton />
         <CanvasRedoButton />
       </ButtonGroup>
-
-
-
-        <ButtonGroup isAttached>
-        <IconButton
-            aria-label="Run (Alt+R)"
-            tooltip="Run (Alt+R)"
-            icon={<FaPlay />}
-            onClick={handleRunInpainting}
-            isDisabled={isStaging}
-          />
-        </ButtonGroup>
     </div>
   );
 };

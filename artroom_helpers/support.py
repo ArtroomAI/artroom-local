@@ -1,9 +1,11 @@
 import base64
-import os
 import io
-from PIL import Image, ImageChops
+import cv2
+from PIL import Image, ImageChops, ImageFilter
 from PIL.Image import Image as ImageType
-from typing import Union, Literal
+import numpy as np
+from io import BytesIO
+import re 
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
@@ -14,6 +16,9 @@ def image_to_b64(image):
     imgb64 = base64.b64encode(im_bytes)
     return 'data:image/jpeg;base64,' + str(imgb64)[2:-1]
 
+def b64_to_image(b64):
+    image_data = re.sub('^data:image/.+;base64,', '', b64)
+    return Image.open(BytesIO(base64.b64decode(image_data)))
 
 def allowed_file(filename: str) -> bool:
     return (
@@ -41,94 +46,53 @@ def dataURL_to_image(dataURL: str) -> ImageType:
         )
     )
     return image
-"""
-Saves a thumbnail of an image, returning its path.
-"""
 
-def save_thumbnail(
-    image: ImageType,
-    filename: str,
-    path: str,
-    size: int = 256,
-) -> str:
-    base_filename = os.path.splitext(filename)[0]
-    thumbnail_path = os.path.join(path, base_filename + ".webp")
+def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init_mask: Image.Image, mask_blur_radius: int = 8) -> Image.Image:
+    if init_image is None or init_mask is None:
+        return result
+    
+    # Get the original alpha channel of the mask if there is one.
+    # Otherwise it is some other black/white image format ('1', 'L' or 'RGB')
+    pil_init_mask = init_mask.getchannel('A') if init_mask.mode == 'RGBA' else init_mask.convert('L')
+    pil_init_image = init_image.convert('RGBA') # Add an alpha channel if one doesn't exist
 
-    if os.path.exists(thumbnail_path):
-        return thumbnail_path
+    # Build an image with only visible pixels from source to use as reference for color-matching.
+    init_rgb_pixels = np.asarray(init_image.convert('RGB'), dtype=np.uint8)
+    init_a_pixels = np.asarray(pil_init_image.getchannel('A'), dtype=np.uint8)
+    init_mask_pixels = np.asarray(pil_init_mask, dtype=np.uint8)
 
-    thumbnail_width = size
-    thumbnail_height = round(size * (image.height / image.width))
+    # Get numpy version of result
+    np_image = np.asarray(result, dtype=np.uint8)
 
-    image_copy = image.copy()
-    image_copy.thumbnail(size=(thumbnail_width, thumbnail_height))
+    # Mask and calculate mean and standard deviation
+    mask_pixels = init_a_pixels * init_mask_pixels > 0
+    np_init_rgb_pixels_masked = init_rgb_pixels[mask_pixels, :]
+    np_image_masked = np_image[mask_pixels, :]
 
-    image_copy.save(thumbnail_path, "WEBP")
+    if np_init_rgb_pixels_masked.size > 0:
+        init_means = np_init_rgb_pixels_masked.mean(axis=0)
+        init_std = np_init_rgb_pixels_masked.std(axis=0)
+        gen_means = np_image_masked.mean(axis=0)
+        gen_std = np_image_masked.std(axis=0)
 
-    return thumbnail_path
-
-# https://stackoverflow.com/questions/43864101/python-pil-check-if-image-is-transparent
-def check_for_any_transparency(img: Union[ImageType, str]) -> bool:
-    if type(img) is str:
-        img = Image.open(str)
-
-    if img.info.get("transparency", None) is not None:
-        return True
-    if img.mode == "P":
-        transparent = img.info.get("transparency", -1)
-        for _, index in img.getcolors():
-            if index == transparent:
-                return True
-    elif img.mode == "RGBA":
-        extrema = img.getextrema()
-        if extrema[3][0] < 255:
-            return True
-    return False
-
-def get_canvas_generation_mode(
-    init_img: Union[ImageType, str], init_mask: Union[ImageType, str]
-) -> Literal["txt2img", "outpainting", "inpainting", "img2img",]:
-    if type(init_img) is str:
-        init_img = Image.open(init_img)
-
-    if type(init_mask) is str:
-        init_mask = Image.open(init_mask)
-
-    init_img = init_img.convert("RGBA")
-
-    # Get alpha from init_img
-    init_img_alpha = init_img.split()[-1]
-    init_img_alpha_mask = init_img_alpha.convert("L")
-    init_img_has_transparency = check_for_any_transparency(init_img)
-
-    if init_img_has_transparency:
-        init_img_is_fully_transparent = (
-            True if init_img_alpha_mask.getbbox() is None else False
-        )
-
-    """
-    Mask images are white in areas where no change should be made, black where changes
-    should be made.
-    """
-
-    # Fit the mask to init_img's size and convert it to greyscale
-    init_mask = init_mask.resize(init_img.size).convert("L")
-
-    """
-    PIL.Image.getbbox() returns the bounding box of non-zero areas of the image, so we first
-    invert the mask image so that masked areas are white and other areas black == zero.
-    getbbox() now tells us if the are any masked areas.
-    """
-    init_mask_bbox = ImageChops.invert(init_mask).getbbox()
-    init_mask_exists = False if init_mask_bbox is None else True
-
-    if init_img_has_transparency:
-        if init_img_is_fully_transparent:
-            return "txt2img"
-        else:
-            return "outpainting"
+        # Color correct
+        np_matched_result = np_image.copy()
+        np_matched_result[:,:,:] = (((np_matched_result[:,:,:].astype(np.float32) - gen_means[None,None,:]) / gen_std[None,None,:]) * init_std[None,None,:] + init_means[None,None,:]).clip(0, 255).astype(np.uint8)
+        matched_result = Image.fromarray(np_matched_result, mode='RGB')
     else:
-        if init_mask_exists:
-            return "inpainting"
-        else:
-            return "img2img"
+        matched_result = Image.fromarray(np_image, mode='RGB')
+
+    # Blur the mask out (into init image) by specified amount
+    if mask_blur_radius > 0:
+        nm = np.asarray(pil_init_mask, dtype=np.uint8)
+        nmd = cv2.erode(nm, kernel=np.ones((3,3), dtype=np.uint8), iterations=int(mask_blur_radius / 2))
+        pmd = Image.fromarray(nmd, mode='L')
+        blurred_init_mask = pmd.filter(ImageFilter.BoxBlur(mask_blur_radius))
+    else:
+        blurred_init_mask = pil_init_mask
+
+    multiplied_blurred_init_mask = ImageChops.multiply(blurred_init_mask, pil_init_image.split()[-1])
+
+    # Paste original on color-corrected generation (using blurred mask)
+    matched_result.paste(init_image, (0,0), mask = multiplied_blurred_init_mask)
+    return matched_result

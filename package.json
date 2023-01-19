@@ -1,6 +1,6 @@
 {
   "name": "artroom-beta",
-  "version": "1.1.0-beta.2",
+  "version": "1.1.1-beta.3",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/artmamedov/artroom-stable-difusion.git"
+    "url": "https://github.com/ArtroomAI/artroom-beta.git"
   },
   "build": {
     "extends": null,
@@ -26,8 +26,8 @@
       "publish": [
         {
           "provider": "github",
-          "owner": "artmamedov",
-          "repo": "artroom-stable-diffusion"
+          "owner": "ArtroomAI",
+          "repo": "artroom-beta"
         }
       ],
       "target": "nsis",
