@@ -89,12 +89,12 @@ export default function Sidebar () {
                         linkTo="#/merge"
                         navSize={navSize}
                         title="Merge models" />
-                    {/* <NavItem
+                    <NavItem
                         className="image-viewer"
                         icon={FaFileImage}
                         linkTo="#/imageviewer"
                         navSize={navSize}
-                        title="Image Viewer" /> */}
+                        title="Image Viewer" />
 
                 </Flex>
 

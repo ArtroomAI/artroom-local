@@ -57,6 +57,46 @@ function Paint () {
     const shouldPreserveMaskedArea = useRecoilValue(shouldPreserveMaskedAreaAtom)
     const stageScale = useRecoilValue(stageScaleAtom);   
 
+
+    const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width: number, height: number) => {
+        // Create a new canvas element
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+    
+        // Load the transparent PNG and the mask PNG
+        var regular = new Image();
+        regular.src = imageDataURL;
+        var mask = new Image();
+        mask.src = maskDataURL;
+    
+        return new Promise((resolve, reject) => {
+            regular.onload = function() {
+                mask.onload = function() {
+                    // Draw the image on the canvas
+                    canvas.width = regular.width;
+                    canvas.height = regular.height;
+                    ctx.drawImage(regular, 0, 0);
+                    // Get the image data from the canvas
+                    var imageData = ctx.getImageData(0, 0, regular.width, regular.height);
+                    var data = imageData.data;
+                    // Iterate through the image data and set the alpha value to the color value
+                    for (var i = 0; i < data.length; i += 4) {
+                        var alpha = data[i + 3];
+                        data[i] = alpha;
+                        data[i + 1] = alpha;
+                        data[i + 2] = alpha;
+                    }
+                    // Put the image data back on the canvas
+                    ctx.putImageData(imageData, 0, 0);
+                    ctx.globalCompositeOperation = "source-in";
+                    ctx.drawImage(mask, 0, 0);
+                    var dataUrl = canvas.toDataURL();
+                    resolve(dataUrl);
+                }
+            };
+        });
+    }
+
     const handleRunInpainting = () => {
         const canvasBaseLayer = getCanvasBaseLayer();
         const boundingBox = {
@@ -84,26 +124,25 @@ function Paint () {
         });
     
         canvasBaseLayer.scale(tempScale);
-        const body = {
-          ...imageSettings,
-          init_image: imageDataURL,
-          mask_image: maskDataURL,
-          invert: shouldPreserveMaskedArea
-        };
-        axios.post(
-          `${baseURL}/add_to_queue`,
-          body,
-          {
-            headers: { 'Content-Type': 'application/json' }
-          }
-          ).then(result =>{
-            console.log(result);
-          })
+        addOutpaintingLayer(imageDataURL, maskDataURL, boundingBox.width, boundingBox.height).then(combinedMask =>{
+            console.log(combinedMask)
+            const body = {
+                ...imageSettings,
+                init_image: imageDataURL,
+                mask_image: combinedMask,
+                invert: shouldPreserveMaskedArea
+              };
+            axios.post(`${baseURL}/add_to_queue`,body,
+            {
+                headers: { 'Content-Type': 'application/json' }
+            }
+            ).then(result =>{
+                console.log(result);
+            })
+        }).catch(err =>{
+           console.log(err);
+        })
       };
-
-    // useEffect(() =>{
-    //     console.log({...boundingBoxCoordinates, ...boundingBoxDimensions});
-    // },[boundingBoxCoordinates, boundingBoxDimensions])
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10

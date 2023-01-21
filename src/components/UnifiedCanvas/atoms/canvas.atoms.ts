@@ -166,7 +166,7 @@ export const shouldPreserveMaskedAreaAtom = atom({
 
 export const shouldRestrictStrokesToBoxAtom = atom({
   key: 'canvas.shouldRestrictStrokesToBox',
-  default: true,
+  default: false,
 });
 
 export const shouldShowBoundingBoxAtom = atom({
