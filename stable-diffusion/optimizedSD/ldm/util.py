@@ -74,6 +74,10 @@ def count_params(model, verbose=False):
         print(f"{model.__class__.__name__} has {total_params * 1.e-6:.2f} M params.")
     return total_params
 
+def disabled_train(self):
+    """Overwrite model.train with this function to make sure train/eval mode
+    does not change anymore."""
+    return self
 
 def instantiate_from_config(config):
     if not "target" in config:

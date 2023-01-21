@@ -1,7 +1,9 @@
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
-from artroom_helpers.gpu_detect import is_16xx_series
+from artroom_helpers.gpu_detect import get_gpu_architecture
+from skimage import exposure
+import cv2
 import random
 from transformers import logging
 from torch import autocast
@@ -34,6 +36,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 def chunk(it, size):
     it = iter(it)
     return iter(lambda: tuple(islice(it, size)), ())
+
 
 def load_model_from_config(ckpt, use_safe_load=True):
     print(f"Loading model from {ckpt}")
@@ -117,10 +120,21 @@ class StableDiffusion:
         self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
         self.long_save_path = False
         self.highres_fix = False
-        self.is_nvidia = is_16xx_series() == 'NVIDIA'
-        self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
+        self.is_nvidia = get_gpu_architecture() == 'NVIDIA'
+        self.device = 'cpu' if get_gpu_architecture() == 'None' else "cuda"
         self.speed = "Max"
         self.socketio = socketio
+        self.v1 = False
+        self.cc = self.get_cc()
+
+    def get_cc(self):
+        try:
+            cc = torch.cuda.get_device_capability()
+            cc = cc[0] * 10 + cc[1]
+            return cc
+        except:
+            # probably no cuda gpus
+            return 0
 
     def set_artroom_path(self, path):
         print("Setting up artroom path")
@@ -152,7 +166,7 @@ class StableDiffusion:
         else:
             return ''
 
-    def add_to_latest(self, new_image: Image.Image, path = ""):
+    def add_to_latest(self, new_image: Image.Image, path=""):
         self.latest_images_part2.append({"b64": support.image_to_b64(new_image.convert('RGB')), "path": path})
 
     def clean_up(self):
@@ -163,7 +177,7 @@ class StableDiffusion:
             self.model.total_steps = 0
 
         self.stage = ""
-        self.running = False    
+        self.running = False
         if self.device != "cpu" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
@@ -203,16 +217,17 @@ class StableDiffusion:
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
         self.stage = "Loading Model"
-        del self.model
-        self.model = None
         try:
+            del self.model
             del self.modelFS
             del self.modelCS
-            self.modelFS = None 
+            self.model = None
+            self.modelFS = None
             self.modelCS = None
         except:
             pass
         torch.cuda.empty_cache()
+        gc.collect()
 
         print("Loading model from config")
         sd = load_model_from_config(f"{ckpt}")
@@ -244,10 +259,6 @@ class StableDiffusion:
             self.model.parameterization = parameterization
             self.model.cdevice = self.device
             self.model.to(self.device)
-            if self.is_nvidia:
-                self.model.half()
-                torch.set_default_tensor_type(torch.HalfTensor)
-
             self.modelCS = self.model  # just link without a copy
             self.modelFS = self.model  # just link without a copy
             self.v1 = False
@@ -268,17 +279,22 @@ class StableDiffusion:
                     self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
             else:
                 print("Loading ordinary model")
-                if speed == 'Low':
-                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
-                elif speed == 'Medium':
-                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
-                elif speed == 'High':
-                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
-                elif speed == 'Max':
+                if 60 <= self.cc <= 86:
+                    print("Congrats, your gpu supports xformers, autoselecting it")
                     self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                 else:
-                    print(f"Not recognized speed: {speed}")
-                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                    print("Using speed mode from artroom settings")
+                    if speed == 'Low':
+                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                    elif speed == 'Medium':
+                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                    elif speed == 'High':
+                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                    elif speed == 'Max':
+                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
+                    else:
+                        print(f"Not recognized speed: {speed}")
+                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
             li = []
             lo = []
             for key, value in sd.items():
@@ -313,11 +329,11 @@ class StableDiffusion:
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
-            if self.is_nvidia:
-                self.model.half()
-                self.modelCS.half()
-                self.modelFS.half()
-                torch.set_default_tensor_type(torch.HalfTensor)
+        if self.is_nvidia:
+            self.model.half()
+            self.modelCS.half()
+            self.modelFS.half()
+            torch.set_default_tensor_type(torch.HalfTensor)
         del sd
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
@@ -336,7 +352,7 @@ class StableDiffusion:
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
-        
+
         self.running = True
 
         oldW, oldH = W, H
@@ -384,14 +400,14 @@ class StableDiffusion:
             else:
                 print(f"Loading from path {init_image_str}")
                 image = Image.open(init_image_str)
-            
+
             if len(mask_b64) > 0:
                 try:
                     image = inpainting.infill_patchmatch(image)
                 except Exception as e:
                     print(f"Failed to outpaint the alpha layer {e}")
 
-            init_image = load_img(image.convert('RGB'), H, W, inpainting = (len(mask_b64) > 0)).to(self.device)
+            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0)).to(self.device)
             _, _, H, W = init_image.shape
             if self.is_nvidia:
                 init_image = init_image.half()
@@ -528,10 +544,19 @@ class StableDiffusion:
                             )
                             if self.v1:
                                 self.modelFS.to(self.device)
+
                             x_samples_ddim = self.modelFS.decode_first_stage(
                                 x0[0].unsqueeze(0))
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                            # print(x_sample.shape)  # 1, 3, 768, 768
+                            if abs(float(x_sample.flatten().sum())) <= 1.0:  # black square
+                                self.modelFS.to(torch.float32)
+                                x_samples_ddim = self.modelFS.decode_first_stage(
+                                    x0[0].to(torch.float32).unsqueeze(0))
+                                x_sample = torch.clamp(
+                                    (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0).half()
+                                self.modelFS.half()
                             x_sample = 255. * \
                                        rearrange(
                                            x_sample[0].cpu().numpy(), 'c h w -> h w c')
@@ -553,7 +578,9 @@ class StableDiffusion:
                             else:
                                 original_init_image = Image.open(init_image_str).convert('RGB')
 
-                            out_image = support.repaste_and_color_correct(result=out_image, init_image=original_init_image, init_mask=mask_image, mask_blur_radius=8)
+                            out_image = support.repaste_and_color_correct(result=out_image,
+                                                                          init_image=original_init_image,
+                                                                          init_mask=mask_image, mask_blur_radius=8)
 
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now
