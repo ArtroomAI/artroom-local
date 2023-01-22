@@ -27,7 +27,7 @@ import Card from '../helpers/Card';
 import CardHeader from '../helpers/CardHeader';
 import QueueRow from './QueueHelpers/QueueRow';
 import ClearQueue from './QueueHelpers/ClearQueue';
-import { SocketContext } from '..';
+import { SocketContext, SocketOnEvents } from '../socket';
 
 function Queue () {
     const toast = useToast({});
@@ -48,20 +48,19 @@ function Queue () {
     }, [socket]);
 
     const stopQueue = useCallback(() => {
-        console.log('??');
         socket.emit('stop_queue');
     }, [socket]);
 
     // handles
-    const handleGetServerStatus = useCallback((data: { server_running: boolean }) => {
+    const handleGetServerStatus: SocketOnEvents['get_server_status']  = useCallback((data) => {
         setServerRunning(data.server_running);
     }, []);
 
-    const handleGetQueue = useCallback((data: { queue: QueueType[] }) => {
+    const handleGetQueue: SocketOnEvents['get_queue'] = useCallback((data) => {
         setQueue(data.queue);
     }, [setQueue]);
     
-    const handleStartQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
+    const handleStartQueue: SocketOnEvents['start_queue'] = useCallback((data) => {
         if(data.status === 'Success') {
             setServerRunning(true);
             toast({
@@ -78,7 +77,7 @@ function Queue () {
         }
     }, [toast]);
     
-    const handlePauseQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
+    const handlePauseQueue: SocketOnEvents['pause_queue'] = useCallback((data) => {
         if(data.status === 'Success') {
             setServerRunning(false);
             toast({
@@ -96,9 +95,8 @@ function Queue () {
     }, [toast]);
 
     
-    const handleStopQueue = useCallback((data: { status: 'Success' }) => {
+    const handleStopQueue: SocketOnEvents['stop_queue'] = useCallback((data) => {
         if(data.status === 'Success') {
-            console.log('what');
             setServerRunning(false);
             toast({
                 title: 'Stopped queue',
@@ -124,7 +122,6 @@ function Queue () {
         
         socket.emit('get_server_status');
         getQueue();
-        console.log('????');
 
         return () => {
           socket.off('get_server_status', handleGetServerStatus);

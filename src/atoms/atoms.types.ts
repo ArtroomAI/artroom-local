@@ -42,3 +42,9 @@ export type AppSettings = {
     init_image: string;
     mask_image: string;
 };
+
+export interface ImageState {
+    b64: string;
+    path: string;
+    batch_id: number
+}

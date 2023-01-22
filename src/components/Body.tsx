@@ -17,7 +17,7 @@ import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
-import { SocketContext } from '..';
+import { SocketContext } from '../socket';
 
 function Body () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;

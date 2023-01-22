@@ -21,7 +21,7 @@ import {
     FaQuestionCircle,
     FaTrashAlt
 } from 'react-icons/fa';
-import { SocketContext } from '..';
+import { SocketContext, SocketOnEvents } from '../socket';
 
 function Upscale () {
     const toast = useToast({});
@@ -47,7 +47,7 @@ function Upscale () {
 
     const upscale = useCallback(() => {
         toast({
-            title: 'Recieved!',
+            title: 'Received!',
             description: 'You\'ll get a notification 🔔 when your upscale is ready! (First time upscales make take longer while it downloads the models)',
             status: 'success',
             position: 'top',
@@ -68,7 +68,7 @@ function Upscale () {
         socket.emit('upscale', output);
     }, [socket, toast, upscale_dest, upscale_factor, upscale_images, upscale_strength, upscaler]);
     
-    const handleUpscale = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string}) => {
+    const handleUpscale: SocketOnEvents['upscale']  = useCallback((data) => {
         if (data.status === 'Success') {
             toast({
                 title: 'Upscale Completed',

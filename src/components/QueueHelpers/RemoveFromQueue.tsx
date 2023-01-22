@@ -16,7 +16,7 @@ import {
 import {
     FaTrashAlt
 } from 'react-icons/fa';
-import { SocketContext } from '../..';
+import { SocketContext, SocketOnEvents } from '../../socket';
 
 function RemoveFromQueue ({ index } : { index: number }) {
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -31,7 +31,7 @@ function RemoveFromQueue ({ index } : { index: number }) {
         socket.emit('remove_from_queue', { id: queue[index - 1].id });
     }, [onClose, socket, queue, index]);
 
-    const handleRemoveFromQueue = useCallback((data: { status: 'Success' | 'Failure'; queue: QueueType[] }) => {
+    const handleRemoveFromQueue: SocketOnEvents['remove_from_queue']  = useCallback((data) => {
         if (data.status === 'Success') {
             setQueue(data.queue);
         }

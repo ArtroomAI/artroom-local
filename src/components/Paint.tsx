@@ -19,7 +19,7 @@ import _ from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
-import { SocketContext } from '..';
+import { SocketContext } from '../socket';
 
 const loadImage = async (b64: string) => {
     const image = new Image();

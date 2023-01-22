@@ -1,7 +1,6 @@
 import React, { useCallback, useContext, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
-import axios from 'axios';
 import {
     useDisclosure,
     AlertDialog,
@@ -12,7 +11,7 @@ import {
     AlertDialogFooter,
     Button
 } from '@chakra-ui/react';
-import { SocketContext } from '../..';
+import { SocketContext, SocketOnEvents } from '../../socket';
 
 function ClearQueue () {
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -22,7 +21,7 @@ function ClearQueue () {
 
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
-    const handleClearQueue = useCallback((data: { status: 'Success' | 'Failure' }) => {
+    const handleClearQueue: SocketOnEvents['clear_queue'] = useCallback((data) => {
         if(data.status === 'Success') {
             setQueue([]);
         }
@@ -30,7 +29,7 @@ function ClearQueue () {
     }, [onClose, setQueue]);
 
     const clearQueue = useCallback(() => {
-        socket.emit('clear_queue', {});
+        socket.emit('clear_queue');
     }, [socket]);
 
     useEffect(() => {

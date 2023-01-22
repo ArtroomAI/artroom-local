@@ -32,7 +32,8 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
 import { Console } from './Console';
-import { SocketContext } from '..';
+import { SocketContext } from '../socket';
+import { ImageState } from '../atoms/atoms.types';
 
 export default function App () {
     // Connect to the server
@@ -61,7 +62,7 @@ export default function App () {
 
     const socket = useContext(SocketContext);
 
-    const handleGetImages = useCallback((data: { b64: string; path: string; batch_id: number }) => {
+    const handleGetImages = useCallback((data: ImageState) => {
         if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
             setLatestImages([data]);
         } else {
