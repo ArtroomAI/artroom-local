@@ -26,7 +26,7 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { SocketContext } from '..';
+import { SocketContext } from '../socket';
 
 function Settings () {
     const toast = useToast({});
