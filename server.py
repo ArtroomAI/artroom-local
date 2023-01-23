@@ -39,8 +39,8 @@ def reset_settings_to_default(self):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False)
-SD = StableDiffusion(socketio)
 UP = Upscaler()
+SD = StableDiffusion(socketio = socketio, Upscaler = UP)
 
 def set_artroom_paths(artroom_path):
     QM.set_artroom_path(artroom_path)

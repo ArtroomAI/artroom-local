@@ -1,9 +1,7 @@
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
-from artroom_helpers.gpu_detect import get_gpu_architecture
-from skimage import exposure
-import cv2
+from artroom_helpers.gpu_detect import is_16xx_series
 import random
 from transformers import logging
 from torch import autocast
@@ -25,8 +23,9 @@ import sys
 from safetensors import safe_open
 from artroom_helpers import support, inpainting
 
-sys.path.append("stable-diffusion/optimizedSD")
+sys.path.append("stable-diffusion/optimizedSD/")
 from ldm.util import instantiate_from_config
+
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -35,7 +34,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 def chunk(it, size):
     it = iter(it)
     return iter(lambda: tuple(islice(it, size)), ())
-
 
 def load_model_from_config(ckpt, use_safe_load=True):
     print(f"Loading model from {ckpt}")
@@ -99,9 +97,7 @@ def image_grid(imgs, rows, cols, path):
 
 
 class StableDiffusion:
-    def __init__(self, socketio=None, Upscaler = None):
-        self.Upscaler = Upscaler
-
+    def __init__(self, socketio=None):
         self.current_num = 0
         self.total_num = 0
         self.stage = ''
@@ -121,21 +117,10 @@ class StableDiffusion:
         self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
         self.long_save_path = False
         self.highres_fix = False
-        self.is_nvidia = get_gpu_architecture() == 'NVIDIA'
-        self.device = 'cpu' if get_gpu_architecture() == 'None' else "cuda"
+        self.is_nvidia = is_16xx_series() == 'NVIDIA'
+        self.device = 'cpu' if is_16xx_series() == 'None' else "cuda"
         self.speed = "Max"
         self.socketio = socketio
-        self.v1 = False
-        self.cc = self.get_cc()
-
-    def get_cc(self):
-        try:
-            cc = torch.cuda.get_device_capability()
-            cc = cc[0] * 10 + cc[1]
-            return cc
-        except:
-            # probably no cuda gpus
-            return 0
 
     def set_artroom_path(self, path):
         print("Setting up artroom path")
@@ -167,7 +152,7 @@ class StableDiffusion:
         else:
             return ''
 
-    def add_to_latest(self, new_image: Image.Image, path=""):
+    def add_to_latest(self, new_image: Image.Image, path = ""):
         self.latest_images_part2.append({"b64": support.image_to_b64(new_image.convert('RGB')), "path": path})
 
     def clean_up(self):
@@ -178,7 +163,7 @@ class StableDiffusion:
             self.model.total_steps = 0
 
         self.stage = ""
-        self.running = False
+        self.running = False    
         if self.device != "cpu" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
@@ -191,7 +176,6 @@ class StableDiffusion:
     def load_vae(self, vae_path, safe_load_=True):
         vae = load_model_from_config(vae_path, safe_load_)
         vae = {k: v for k, v in vae.items() if
-        
                ("loss" not in k) and
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
@@ -219,17 +203,16 @@ class StableDiffusion:
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
         self.stage = "Loading Model"
+        del self.model
+        self.model = None
         try:
-            del self.model
             del self.modelFS
             del self.modelCS
-            self.model = None
-            self.modelFS = None
+            self.modelFS = None 
             self.modelCS = None
         except:
             pass
         torch.cuda.empty_cache()
-        gc.collect()
 
         print("Loading model from config")
         sd = load_model_from_config(f"{ckpt}")
@@ -261,11 +244,13 @@ class StableDiffusion:
             self.model.parameterization = parameterization
             self.model.cdevice = self.device
             self.model.to(self.device)
+            if self.is_nvidia:
+                self.model.half()
+                torch.set_default_tensor_type(torch.HalfTensor)
+
             self.modelCS = self.model  # just link without a copy
             self.modelFS = self.model  # just link without a copy
             self.v1 = False
-
-
         else:
             self.v1 = True
             if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
@@ -283,22 +268,17 @@ class StableDiffusion:
                     self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
             else:
                 print("Loading ordinary model")
-                if 60 <= self.cc <= 86:
-                    print("Congrats, your gpu supports xformers, autoselecting it")
+                if speed == 'Low':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                elif speed == 'Medium':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                elif speed == 'High':
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                elif speed == 'Max':
                     self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                 else:
-                    print("Using speed mode from artroom settings")
-                    if speed == 'Low':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
-                    elif speed == 'Medium':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
-                    elif speed == 'High':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
-                    elif speed == 'Max':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
-                    else:
-                        print(f"Not recognized speed: {speed}")
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                    print(f"Not recognized speed: {speed}")
+                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
             li = []
             lo = []
             for key, value in sd.items():
@@ -333,11 +313,11 @@ class StableDiffusion:
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
-        if self.is_nvidia:
-            self.model.half()
-            self.modelCS.half()
-            self.modelFS.half()
-            torch.set_default_tensor_type(torch.HalfTensor)
+            if self.is_nvidia:
+                self.model.half()
+                self.modelCS.half()
+                self.modelFS.half()
+                torch.set_default_tensor_type(torch.HalfTensor)
         del sd
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
@@ -352,135 +332,23 @@ class StableDiffusion:
             except:
                 print("Failed to load vae")
 
-    @torch.no_grad()
-    def generate_image(
-        self, 
-        prompts_data="", 
-        negative_prompts_data="", 
-        precision_scope=None, 
-        init_image = None,        
-        mask_b64="",
-        invert=False,
-        steps=50, 
-        H=512, 
-        W=512, 
-        cfg_scale=7.5, 
-        seed=-1,
-        sampler="ddim", 
-        C=4, 
-        ddim_eta=0.0, 
-        f=8, 
-        ddim_steps = 0,
-        batch_size=1):
-        for prompts in prompts_data:
-            with precision_scope(self.device):
-                if self.v1:
-                    self.modelCS.to(self.device)
-                uc = None
-                if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(
-                        negative_prompts_data)
-                if isinstance(prompts, tuple):
-                    prompts = list(prompts)
-                weighted_prompt = weights_handling([prompts])
-                print(f"Weighted prompts: {weighted_prompt}")
-                if len(weighted_prompt) > 1:
-                    c = torch.zeros_like(uc)
-                    # normalize each "sub prompt" and add it
-                    for i in range(len(weighted_prompt)):
-                        weight = weighted_prompt[i][1]
-                        # if not skip_normalize:
-                        c = torch.add(c, self.modelCS.get_learned_conditioning(
-                            weighted_prompt[i][0]), alpha=weight)
-                else:
-                    c = self.modelCS.get_learned_conditioning(prompts)
-                shape = [batch_size, C, H // f, W // f]
-
-                print("Sampler", sampler)
-                x0 = None
-
-                if init_image is not None:
-                    init_image = repeat(
-                        init_image, '1 ... -> b ...', b=batch_size)
-                    init_latent = self.modelFS.get_first_stage_encoding(
-                        self.modelFS.encode_first_stage(init_image)).to(
-                        self.device)  # move to latent space
-
-                    x0 = self.model.stochastic_encode(
-                        init_latent,
-                        torch.tensor(
-                            [steps] * batch_size).to(self.device),
-                        seed,
-                        ddim_eta,
-                        ddim_steps,
-                    )
-                if len(mask_b64) > 0 and init_image is not None:
-                    if mask_b64[:4] == 'data':
-                        print("Loading mask from b64")
-                        mask_image = support.b64_to_image(mask_b64).convert('L')
-                    else:
-                        mask_image = Image.open(mask_b64).convert("L")
-                    if invert:
-                        mask_image = ImageOps.invert(mask_image)
-
-                    mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]).to(self.device)
-                    mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
-                    mask = repeat(mask, '1 ... -> b ...', b=batch_size)
-                    if self.v1:
-                        if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9:
-                            init_latent = torch.cat(
-                                (init_latent, x0, mask[:, :1, :, :]), dim=1)  # yeah basically
-                    x_T = init_latent
-                else:
-                    mask_image = None
-                    mask = None
-                    x_T = None
-
-                x0 = self.model.sample(
-                    S=steps,
-                    conditioning=c,
-                    x0=(x0 if init_image is None or "ddim" in sampler.lower(
-                    ) else init_latent),
-                    S_ddim_steps=ddim_steps,
-                    unconditional_guidance_scale=cfg_scale,
-                    unconditional_conditioning=uc,
-                    eta=ddim_eta,
-                    sampler=sampler,
-                    shape=shape,
-                    batch_size=batch_size,
-                    seed=seed,
-                    mask=mask,
-                    x_T=x_T
-                )
-                if self.v1:
-                    self.modelFS.to(self.device)
-
-                x_samples_ddim = self.modelFS.decode_first_stage(
-                    x0[0].unsqueeze(0))
-                x_sample = torch.clamp(
-                    (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
-                # print(x_sample.shape)  # 1, 3, 768, 768
-                if abs(float(x_sample.flatten().sum())) <= 1.0:  # black square
-                    self.modelFS.to(torch.float32)
-                    x_samples_ddim = self.modelFS.decode_first_stage(
-                        x0[0].to(torch.float32).unsqueeze(0))
-                    x_sample = torch.clamp(
-                        (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0).half()
-                    self.modelFS.half()
-                x_sample = 255. * \
-                            rearrange(
-                                x_sample[0].cpu().numpy(), 'c h w -> h w c')
-                out_image = Image.fromarray(x_sample.astype(np.uint8))
-                return out_image
-
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
-
-
-
+        
         self.running = True
+
+        oldW, oldH = W, H
+        if W * H > 1024 * 1024 and self.highres_fix:
+            highres_fix_steps = math.ceil((W * H) / (1024 * 1024))
+            W, H = W // highres_fix_steps, H // highres_fix_steps
+            W = math.floor(W / 64) * 64
+            H = math.floor(H / 64) * 64
+            print(f"Using a highres fix of {highres_fix_steps}")
+        else:
+            highres_fix_steps = 1
+
         print("Starting generate process...")
 
         self.latest_images_part1 = self.latest_images_part2
@@ -516,14 +384,14 @@ class StableDiffusion:
             else:
                 print(f"Loading from path {init_image_str}")
                 image = Image.open(init_image_str)
-
+            
             if len(mask_b64) > 0:
                 try:
                     image = inpainting.infill_patchmatch(image)
                 except Exception as e:
                     print(f"Failed to outpaint the alpha layer {e}")
-            image.convert("RGB").save("TEST_INPUT.jpg")
-            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0)).to(self.device)
+
+            init_image = load_img(image.convert('RGB'), H, W, inpainting = (len(mask_b64) > 0)).to(self.device)
             _, _, H, W = init_image.shape
             if self.is_nvidia:
                 init_image = init_image.half()
@@ -531,7 +399,7 @@ class StableDiffusion:
             init_image = None
 
         print("Prompt:", text_prompts)
-        prompts_data = [batch_size * text_prompts]
+        data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
         negative_prompts_data = [batch_size * negative_prompts]
 
@@ -576,66 +444,150 @@ class StableDiffusion:
                 self.current_num = n
                 self.model.current_step = 0
                 self.model.total_steps = steps
-                # if init_image_str[:4] == 'data':
-                #     original_init_image = support.b64_to_image(init_image_str).convert('RGB')
-                # else:
-                #     original_init_image = Image.open(init_image_str).convert('RGB')  
-                
+                for prompts in data:
+                    with precision_scope(self.device):
+                        if self.v1:
+                            self.modelCS.to(self.device)
+                        uc = None
+                        if cfg_scale != 1.0:
+                            uc = self.modelCS.get_learned_conditioning(
+                                negative_prompts_data)
+                        if isinstance(prompts, tuple):
+                            prompts = list(prompts)
+                        weighted_prompt = weights_handling([prompts])
+                        print(f"Weighted prompts: {weighted_prompt}")
+                        if len(weighted_prompt) > 1:
+                            c = torch.zeros_like(uc)
+                            # normalize each "sub prompt" and add it
+                            for i in range(len(weighted_prompt)):
+                                weight = weighted_prompt[i][1]
+                                # if not skip_normalize:
+                                c = torch.add(c, self.modelCS.get_learned_conditioning(
+                                    weighted_prompt[i][0]), alpha=weight)
+                        else:
+                            c = self.modelCS.get_learned_conditioning(prompts)
+                        shape = [batch_size, C, H // f, W // f]
 
-                if self.highres_fix: 
-                    new_size = (int(width/scale), int(height/scale))
-                    out_image = out_image.resize(new_size, resample=Image.BICUBIC)
-                    
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, init_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
-                
-                    out_image.convert("RGB").save("TEST_FIRST.jpg")
+                        print("Sampler", sampler)
+                        x0 = None
+                        for ij in range(1, highres_fix_steps + 1):
+                            if init_image is not None:
+                                init_image = init_image.to(self.device)
+                                if self.is_nvidia:
+                                    init_image = init_image.half()
+                                init_image = repeat(
+                                    init_image, '1 ... -> b ...', b=batch_size)
+                                init_latent = self.modelFS.get_first_stage_encoding(
+                                    self.modelFS.encode_first_stage(init_image)).to(
+                                    self.device)  # move to latent space
 
-                    upscaled_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=2, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
-                    upscaled_image.save("TEST_UPSCALE.jpg")
+                                x0 = self.model.stochastic_encode(
+                                    init_latent,
+                                    torch.tensor(
+                                        [steps] * batch_size).to(self.device),
+                                    seed,
+                                    ddim_eta,
+                                    ddim_steps,
+                                )
+                            if len(mask_b64) > 0 and init_image is not None:
+                                if mask_b64[:4] == 'data':
+                                    print("Loading mask from b64")
+                                    mask_image = support.b64_to_image(mask_b64).convert('L')
+                                else:
+                                    mask_image = Image.open(mask).convert("L")
+                                if invert:
+                                    mask_image = ImageOps.invert(mask_image)
 
-                    init_image = load_img(upscaled_image, upscaled_image.size[1], upscaled_image.size[0], inpainting=(len(mask_b64) > 0)).to(self.device)
-                    del upscaled_image
-                    _, _, H, W = init_image.shape
-                    if self.is_nvidia:
-                        init_image = init_image.half()
+                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]).to(self.device)
+                                mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
+                                mask = repeat(mask, '1 ... -> b ...', b=batch_size)
+                                if self.v1:
+                                    if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9:
+                                        init_latent = torch.cat(
+                                            (init_latent, x0, mask[:, :1, :, :]), dim=1)  # yeah basically
+                                x_T = init_latent
+                            else:
+                                mask = None
+                                x_T = None
 
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, init_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
-                    out_image.convert("RGB").save("TEST_FINAL.jpg")
-                else:
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, init_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
-                exif_data = out_image.getexif()
-                # Does not include Mask, ImageB64, or if Inverted. Only settings for now
-                settings_data = {
-                    "text_prompts": text_prompts,
-                    "negative_prompts": negative_prompts,
-                    "steps": steps,
-                    "H": H,
-                    "W": W,
-                    "strength": strength,
-                    "cfg_scale": cfg_scale,
-                    "seed": seed,
-                    "sampler": sampler,
-                    "ckpt": os.path.basename(ckpt),
-                    "vae": os.path.basename(vae)
-                }
-                # 0x9286 Exif Code for UserComment
-                exif_data[0x9286] = json.dumps(settings_data)
-                out_image.save(
-                    os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
-                self.latest_images_part2.append(
-                    {"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
+                            x0 = self.model.sample(
+                                S=steps,
+                                conditioning=c,
+                                x0=(x0 if init_image is None or "ddim" in sampler.lower(
+                                ) else init_latent),
+                                S_ddim_steps=ddim_steps,
+                                unconditional_guidance_scale=cfg_scale,
+                                unconditional_conditioning=uc,
+                                eta=ddim_eta,
+                                sampler=sampler,
+                                shape=shape,
+                                batch_size=batch_size,
+                                seed=seed,
+                                mask=mask,
+                                x_T=x_T
+                            )
+                            if self.v1:
+                                self.modelFS.to(self.device)
+                            x_samples_ddim = self.modelFS.decode_first_stage(
+                                x0[0].unsqueeze(0))
+                            x_sample = torch.clamp(
+                                (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                            x_sample = 255. * \
+                                       rearrange(
+                                           x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                            out_image = Image.fromarray(
+                                x_sample.astype(np.uint8))
+                            if ij < highres_fix_steps - 1:
+                                init_image = load_img(
+                                    out_image, H * (ij + 1), W * (ij + 1))
+                                if self.is_nvidia:
+                                    init_image = init_image.half()
+                            elif ij == highres_fix_steps - 1:
+                                init_image = load_img(out_image, oldH, oldW)
+                                if self.is_nvidia:
+                                    init_image = init_image.half()
 
-                self.socketio.emit('message', {'data': 'testInside'})
-                while True:
-                    newrand = random.randint(1, 922337203685)
-                    if newrand != self.latest_images_id:
-                        self.latest_images_id = newrand
-                        break
+                        if mask is not None:
+                            if init_image_str[:4] == 'data':
+                                original_init_image = support.b64_to_image(init_image_str).convert('RGB')
+                            else:
+                                original_init_image = Image.open(init_image_str).convert('RGB')
 
-                base_count += 1
-                seed += 1
-                if not skip_grid and n_iter > 1:
-                    all_samples.append(out_image)
+                            out_image = support.repaste_and_color_correct(result=out_image, init_image=original_init_image, init_mask=mask_image, mask_blur_radius=8)
+
+                        exif_data = out_image.getexif()
+                        # Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                        settings_data = {
+                            "text_prompts": text_prompts,
+                            "negative_prompts": negative_prompts,
+                            "steps": steps,
+                            "H": H,
+                            "W": W,
+                            "strength": strength,
+                            "cfg_scale": cfg_scale,
+                            "seed": seed,
+                            "sampler": sampler,
+                            "ckpt": os.path.basename(ckpt),
+                            "vae": os.path.basename(vae)
+                        }
+                        # 0x9286 Exif Code for UserComment
+                        exif_data[0x9286] = json.dumps(settings_data)
+                        out_image.save(
+                            os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
+                        self.latest_images_part2.append(
+                            {"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
+
+                        self.socketio.emit('message', {'data': 'testInside'})
+                        while True:
+                            newrand = random.randint(1, 922337203685)
+                            if newrand != self.latest_images_id:
+                                self.latest_images_id = newrand
+                                break
+
+                        base_count += 1
+                        seed += 1
+                        if not skip_grid and n_iter > 1:
+                            all_samples.append(out_image)
 
             if not skip_grid and n_iter > 1:
                 # additionally, save as grid

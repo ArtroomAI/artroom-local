@@ -62,9 +62,7 @@ const sd_data = loadSDData();
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
-    const parser = ExifParser.create(buffer);
-    const exifData = parser.parse();
-    const userComment = exifData.tags.UserComment;
+    let userComment = '';
 
     const ext = path.extname(image_path).toLowerCase();
     let mimeType;
@@ -72,6 +70,13 @@ async function getImage(image_path: string) {
       mimeType = 'image/png';
     } else if (ext === '.jpg' || ext === '.jpeg') {
       mimeType = 'image/jpeg';
+      try {
+        const parser = ExifParser.create(buffer);
+        const exifData = parser.parse();
+        userComment = exifData.tags.UserComment;
+      } catch (error) {
+        console.log("No exif data found")  
+      }
     } else {
       mimeType = '';
     }

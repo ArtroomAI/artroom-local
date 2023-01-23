@@ -1,7 +1,7 @@
 import base64
 import io
 import cv2
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops, ImageFilter, ImageOps
 from PIL.Image import Image as ImageType
 import numpy as np
 from io import BytesIO
@@ -48,9 +48,19 @@ def dataURL_to_image(dataURL: str) -> ImageType:
     return image
 
 def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init_mask: Image.Image, mask_blur_radius: int = 8) -> Image.Image:
-    if init_image is None or init_mask is None:
+    if init_image is None:
         return result
     
+    if result.size != init_image.size:
+        init_image = init_image.resize(result.size, resample=Image.BICUBIC)
+        if init_mask is not None:
+            init_mask = init_mask.resize(result.size, resample=Image.BICUBIC)
+
+    if init_mask is None:
+        init_mask = Image.new('RGB', init_image.size, (0, 0, 0)).convert('L')
+    
+    init_mask = ImageOps.invert(init_mask)
+
     # Get the original alpha channel of the mask if there is one.
     # Otherwise it is some other black/white image format ('1', 'L' or 'RGB')
     pil_init_mask = init_mask.getchannel('A') if init_mask.mode == 'RGBA' else init_mask.convert('L')
@@ -81,7 +91,7 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
         matched_result = Image.fromarray(np_matched_result, mode='RGB')
     else:
         matched_result = Image.fromarray(np_image, mode='RGB')
-
+    matched_result.save(f"TEST_BEFORE_{result.size[0]}_{result.size[1]}.png")
     # Blur the mask out (into init image) by specified amount
     if mask_blur_radius > 0:
         nm = np.asarray(pil_init_mask, dtype=np.uint8)
@@ -95,4 +105,20 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
 
     # Paste original on color-corrected generation (using blurred mask)
     matched_result.paste(init_image, (0,0), mask = multiplied_blurred_init_mask)
+    matched_result.save(f"TEST_AFTER_{result.size[0]}_{result.size[1]}.png")
+
     return matched_result
+
+def correct_colors(image,
+                    reference_image):
+    correction_target = cv2.cvtColor(np.asarray(reference_image),
+                                        cv2.COLOR_RGB2LAB)
+    image = cv2.cvtColor(np.asarray(image),
+                            cv2.COLOR_RGB2LAB)
+    image = exposure.match_histograms(image,
+                                                correction_target,
+                                                channel_axis=2)
+    image = Image.fromarray(
+        cv2.cvtColor(image, cv2.COLOR_LAB2RGB).astype("uint8")
+    )
+    return image
