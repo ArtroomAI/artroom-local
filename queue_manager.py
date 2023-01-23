@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 import random
 from glob import glob
@@ -13,18 +14,29 @@ def return_error(status, status_message='', content=''):
     return {'status': status, 'status_message': status_message, 'content': content}
 
 
-class QueueManager():
+class QueueManager:
     def __init__(self, SD, artroom_path=None):
         self.SD = SD
         self.artroom_path = artroom_path
         self.queue = []
-        self.running = False
+        self.running = {}
         self.delay = 5
-        self.thread = None
+        self.threads = None
 
         self.error = None
 
         self.read_queue_json()
+
+    def resume_all(self):
+        for idx in self.running.keys():
+            self.running[idx] = True
+
+    def pause_all(self):
+        for idx in self.running.keys():
+            self.running[idx] = False
+
+    def any_is_running(self):
+        return True in self.running.values()
 
     def parse_errors(self, error):
         self.error = return_error('Error')
@@ -132,22 +144,23 @@ class QueueManager():
     def save_to_settings_folder(self, data):
         print("Saving settings...")
         if self.SD.long_save_path:
-            image_folder = os.path.join(data['image_save_path'],data['batch_name'], re.sub(
+            image_folder = os.path.join(data['image_save_path'], data['batch_name'], re.sub(
                 r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
             os.makedirs(image_folder, exist_ok=True)
-            os.makedirs(image_folder+'/settings', exist_ok=True)
-            sd_settings_count = len(glob(image_folder+'/settings/*.json'))
+            os.makedirs(image_folder + '/settings', exist_ok=True)
+            sd_settings_count = len(glob(image_folder + '/settings/*.json'))
             with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
                 json.dump(data, outfile, indent=4)
         else:
             image_folder = os.path.join(
-                data['image_save_path'],data['batch_name'])
+                data['image_save_path'], data['batch_name'])
             os.makedirs(image_folder, exist_ok=True)
-            os.makedirs(image_folder+'/settings', exist_ok=True)
-            sd_settings_count = len(glob(image_folder+'/settings/*.json'))
+            os.makedirs(image_folder + '/settings', exist_ok=True)
+            sd_settings_count = len(glob(image_folder + '/settings/*.json'))
             prompt_name = re.sub(
                 r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
-            with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
+            with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
+                      'w') as outfile:
                 json.dump(data, outfile, indent=4)
         print("Settings saved")
 
@@ -164,8 +177,8 @@ class QueueManager():
         init_image_str = next_gen['init_image']
         print("Saving settings to folder...")
         self.save_to_settings_folder(next_gen)
-        ckpt_path = os.path.join(next_gen['ckpt_dir'],next_gen['ckpt']).replace(os.sep, '/')
-        vae_path = os.path.join(next_gen['ckpt_dir'],next_gen['vae']).replace(os.sep, '/')
+        ckpt_path = os.path.join(next_gen['ckpt_dir'], next_gen['ckpt']).replace(os.sep, '/')
+        vae_path = os.path.join(next_gen['ckpt_dir'], next_gen['vae']).replace(os.sep, '/')
         try:
             print("Starting gen...")
             self.SD.generate(
@@ -192,32 +205,31 @@ class QueueManager():
         except Exception as e:
             print(f'Failure: {e}')
             self.parse_errors(e)
-            self.running = False
+            self.running = {}
             self.SD.running = False
 
-    def run_queue(self):
-        if not self.running:
-            print("Queue is running")
-            self.running = True
-            while self.running:
-                if len(self.queue) > 0 and not self.SD.stage == "Loading Model":
-                    print("Generating next item from queue...")
-                    queue_item = self.queue[0]
-                    try:
-                        self.generate(queue_item)
-                    except Exception as e:
-                        print(f"Failed to generate: {e}")
+            self.SD.lock_models(lock=False)  # unlock
 
-                    try:
-                        self.remove_from_queue(queue_item['id'])
-                    except:
-                        pass
-                    self.write_queue_json()
-                else:
-                    pass
-                    # print(f"Items in queue: {len(self.queue)}")
-                    # if len(self.SD.stage) > 0:
-                    #     print(self.SD.stage)
-                time.sleep(self.delay)
-                if len(self.queue) == 0:
-                    self.running = False
+    def run_queue(self):
+        self.running[str(threading.get_native_id())] = True
+        while self.running[str(threading.get_native_id())]:
+            if len(self.queue) > 0 and not self.SD.stage == "Loading Model":
+                queue_item = self.queue.pop()
+                self.SD.lock_models()
+                try:
+                    self.generate(queue_item)
+                except Exception as e:
+                    print(f"Failed to generate: {e}")
+                try:
+                    self.remove_from_queue(queue_item['id'])
+                except Exception as e:
+                    print(f"Failed to remove: {e}")
+                self.write_queue_json()
+            else:
+                pass
+            time.sleep(self.delay)
+            if len(self.queue) == 0:
+                self.running[str(threading.get_native_id())] = False
+        if not self.any_is_running():
+            print("All threads are done")
+            self.SD.lock_models(lock=False)  # unlock

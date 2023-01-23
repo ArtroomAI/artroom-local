@@ -1,3 +1,5 @@
+import time
+
 from flask import Flask, request, jsonify, make_response
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
@@ -23,10 +25,12 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 print('Running in Debug Mode. Please keep CMD window open')
 
+
 def return_output(status, status_message='', content=''):
     if not status_message and status == 'Failure':
         status_message = 'Unknown Error'
     return jsonify({'status': status, 'status_message': status_message, 'content': content})
+
 
 def reset_settings_to_default(self):
     print('Failure, sd_settings not found. Resetting to default')
@@ -36,16 +40,19 @@ def reset_settings_to_default(self):
     else:
         print('Resetting failed')
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False)
 UP = Upscaler()
-SD = StableDiffusion(socketio = socketio, Upscaler = UP)
+SD = StableDiffusion(socketio=socketio, Upscaler=UP)
+
 
 def set_artroom_paths(artroom_path):
     QM.set_artroom_path(artroom_path)
     UP.set_artroom_path(artroom_path)
     SD.set_artroom_path(artroom_path)
+
 
 user_profile = os.environ['USERPROFILE']
 artroom_install_log = f'{user_profile}/AppData/Local/artroom_install.log'
@@ -62,6 +69,7 @@ QM = QueueManager(SD, artroom_path)
 threading.Thread(target=set_artroom_paths, args=[
     artroom_path], daemon=True).start()
 
+
 @app.route('/upscale', methods=['POST'])
 def upscale():
     print('Running upscale...')
@@ -74,12 +82,13 @@ def upscale():
         return return_output('Failure', 'Please select an image')
 
     if data['upscale_dest'] == '':
-        data['upscale_dest'] = SD.image_save_path+'/upscale_outputs'
+        data['upscale_dest'] = SD.image_save_path + '/upscale_outputs'
 
     upscale_output = UP.upscale(
         data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
     print(upscale_output)
     return return_output(upscale_output['status'], upscale_output['status_message'])
+
 
 @app.route('/upscale_canvas', methods=['POST'])
 def upscale_canvas():
@@ -88,26 +97,27 @@ def upscale_canvas():
     if UP.running:
         print('Failure to upscale, upscale is already running')
         return return_output('Failure', 'Upscale is already running')
-    
+
     os.makedirs(f'{SD.artroom_path}/artroom/intermediates/', exist_ok=True)
-    canvas_temp_path = os.path.join(f'{SD.artroom_path}','artroom/intermediates/canvas.png')
-    upscale_temp_path = os.path.join(f'{SD.artroom_path}','artroom/intermediates/')
+    canvas_temp_path = os.path.join(f'{SD.artroom_path}', 'artroom/intermediates/canvas.png')
+    upscale_temp_path = os.path.join(f'{SD.artroom_path}', 'artroom/intermediates/')
     canvas_image = support.dataURL_to_image(data['upscale_image']).convert('RGBA')
-    #Crops to only visible
+    # Crops to only visible
     visible_image_bbox = canvas_image.getbbox()
     canvas_image = canvas_image.crop(visible_image_bbox)
     canvas_image.save(canvas_temp_path)
 
     upscale_output = UP.upscale(
-        images = [canvas_temp_path],
-        upscaler = data['upscaler'], 
-        upscale_factor = data['upscale_factor'],
-        upscale_dest = upscale_temp_path
-        )
+        images=[canvas_temp_path],
+        upscaler=data['upscaler'],
+        upscale_factor=data['upscale_factor'],
+        upscale_dest=upscale_temp_path
+    )
     SD.add_to_latest(upscale_output["content"]["output_images"][0], upscale_output["content"]["save_paths"][0])
     SD.latest_images_id = random.randint(1, 922337203685)
     print("Upscale Finished")
     return return_output(upscale_output['status'], upscale_output['status_message'])
+
 
 @app.route('/get_images', methods=['GET'])
 def get_images():
@@ -115,10 +125,10 @@ def get_images():
     id = int(request.args.get('id'))
     if id == SD.latest_images_id:
         return return_output('Hold', 'No new updates on images',
-                            content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
+                             content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
     try:
         if path == 'latest':
-            image_data = SD.get_latest_images()            
+            image_data = SD.get_latest_images()
         else:
             image = Image.open(path).convert('RGB')
             image_data = [{'b64': support.image_to_b64(image), 'path': path}]
@@ -139,11 +149,13 @@ def get_progress():
     if SD.stage == 'Generating':
         percentage = 0
     current_num, total_num, current_step, total_step = SD.get_steps()
-    if total_step*total_num > 0:
-        percentage = (current_num*total_step+current_step) / \
-            (total_num*total_step)
-    return return_output('Success', content={'current_name': current_num, 'total_num': total_num, 'current_step': current_step, 'total_step': total_step,
-                                            'percentage': int(percentage*100), 'status': SD.stage})
+    if total_step * total_num > 0:
+        percentage = (current_num * total_step + current_step) / \
+                     (total_num * total_step)
+    return return_output('Success',
+                         content={'current_name': current_num, 'total_num': total_num, 'current_step': current_step,
+                                  'total_step': total_step,
+                                  'percentage': int(percentage * 100), 'status': SD.stage})
 
 
 @app.route('/update_settings', methods=['POST'])
@@ -202,31 +214,34 @@ def get_queue():
 @app.route('/start_queue', methods=['GET'])
 def start_queue():
     print('Starting Queue...')
-    if not QM.running:
+    if not QM.any_is_running():
         run_sd()
         return return_output('Success')
     else:
         print('Queue already running')
         return return_output('Failure')
 
+
 @app.route('/pause_queue', methods=['GET'])
 def pause_queue():
     print('Pausing queue...')
-    if QM.running:
-        QM.running = False
+    if QM.any_is_running():
+        QM.pause_all()
         print('Queue paused')
         return return_output('Success')
     else:
         print('Failed to pause queue')
         return return_output('Failure')
 
+
 @app.route('/stop_queue', methods=['GET'])
 def stop_queue():
     print('Stopping queue...')
-    QM.running = False
+    QM.pause_all()
     SD.running = False
     print('Queue stopped')
     return return_output('Success')
+
 
 @app.route('/clear_queue', methods=['POST'])
 def clear_queue():
@@ -234,6 +249,7 @@ def clear_queue():
     QM.clear_queue()
     print('Queue cleared')
     return return_output('Success')
+
 
 @app.route('/remove_from_queue', methods=['POST'])
 def remove_from_queue():
@@ -257,51 +273,59 @@ def add_to_queue():
     # Cleans up printout so you don't print out the whole b64
     data_copy = dict(data)
     if len(data_copy['init_image']):
-        data_copy['init_image'] = data_copy['init_image'][:100]+'...'
+        data_copy['init_image'] = data_copy['init_image'][:100] + '...'
     if len(data_copy['mask_image']):
-        data_copy['mask_image'] = data_copy['mask_image'][:100]+'...'
+        data_copy['mask_image'] = data_copy['mask_image'][:100] + '...'
     print(f'Added to queue: {data_copy}')
-    if not QM.running:
+    if not QM.any_is_running():
         run_sd()
     return return_output('Success', content={'queue': QM.queue})
 
 
 @app.route('/start', methods=['POST'])
 def run_sd():
-    if not QM.running:
+    number_of_threads = 2
+    if not QM.any_is_running():
         print('Queue started!')
         QM.read_queue_json()
-        QM.thread = threading.Thread(target=QM.run_queue, daemon=True)
-        QM.thread.start()
+        QM.threads = [threading.Thread(target=QM.run_queue, daemon=True) for _ in range(number_of_threads)]
+        for i, t in enumerate(QM.threads):
+            print(f"Starting thread {i}")
+            t.start()
+            time.sleep(3)
         return return_output('Success', 'Starting Artroom')
     else:
         print('Queue already running')
         return return_output('Failure', 'Already running')
+
 
 @app.route('/shutdown', methods=['GET'])
 def shutdown():
     stop_queue()
     os._exit(0)
 
+
 @socketio.on('connect')
 def connected():
-    '''event listener when client connects to the server'''
+    """event listener when client connects to the server"""
     print(request.sid)
     print('client has connected')
-    socketio.emit('connect',{'data':f'id: {request.sid} is connected'})
+    socketio.emit('connect', {'data': f'id: {request.sid} is connected'})
+
 
 @socketio.on('message')
 def handle_message(data):
-    '''event listener when client types a message'''
-    print('data from the front end: ',str(data))
-    socketio.emit('message',{'data':data,'id':request.sid},broadcast=True)
+    """event listener when client types a message"""
+    print('data from the front end: ', str(data))
+    socketio.emit('message', {'data': data, 'id': request.sid}, broadcast=True)
+
 
 @socketio.on('disconnect')
 def disconnected():
-    '''event listener when client disconnects to the server'''
+    """event listener when client disconnects to the server"""
     print('user disconnected')
-    socketio.emit('disconnect',f'user {request.sid} disconnected',broadcast=True)
-    
+    socketio.emit('disconnect', f'user {request.sid} disconnected', broadcast=True)
+
+
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5300)
-

@@ -580,6 +580,8 @@ class UNet(DDPM):
             self.init_from_ckpt(ckpt_path, ignore_keys)
             self.restarted_from_ckpt = True
 
+        self.models_lock = False
+
     def make_cond_schedule(self, ):
         self.cond_ids = torch.full(size=(self.num_timesteps,), fill_value=self.num_timesteps - 1, dtype=torch.long)
         ids = torch.round(torch.linspace(0, self.num_timesteps - 1, self.num_timesteps_cond)).long()
@@ -630,7 +632,7 @@ class UNet(DDPM):
             for j in range(lenhs):
                 hs[j] = torch.cat((hs[j], hs_temp[j]))
 
-        if not self.turbo:
+        if not self.turbo and not self.models_lock:
             self.model1.to("cpu")
             self.model2.to(self.cdevice)
 
@@ -642,7 +644,7 @@ class UNet(DDPM):
             x_recon1 = self.model2(h[i:i + step], emb[i:i + step], x_noisy.dtype, hs_temp, cond[i:i + step])
             x_recon = torch.cat((x_recon, x_recon1))
 
-        if not self.turbo:
+        if not self.turbo and not self.models_lock:
             self.model2.to("cpu")
 
         if isinstance(x_recon, tuple) and not return_ids:
@@ -779,7 +781,7 @@ class UNet(DDPM):
                                       unconditional_conditioning=unconditional_conditioning,
                                       mask=mask, init_latent=x0, use_original_steps=False)
 
-        if self.turbo and self.v1:
+        if self.turbo and self.v1 and not self.models_lock:
             self.model1.to("cpu")
             self.model2.to("cpu")
 

@@ -27,6 +27,7 @@ from artroom_helpers import support, inpainting
 
 sys.path.append("stable-diffusion/optimizedSD")
 from ldm.util import instantiate_from_config
+
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -52,6 +53,7 @@ def load_model_from_config(ckpt, use_safe_load=True):
     if "state_dict" in pl_sd:
         return pl_sd["state_dict"]
     return pl_sd
+
 
 def load_mask(mask, newH, newW):
     image = np.array(mask)
@@ -82,7 +84,7 @@ def image_grid(imgs, rows, cols, path):
 
 
 class StableDiffusion:
-    def __init__(self, socketio=None, Upscaler = None):
+    def __init__(self, socketio=None, Upscaler=None):
         self.Upscaler = Upscaler
 
         self.current_num = 0
@@ -111,8 +113,8 @@ class StableDiffusion:
         self.v1 = False
         self.cc = self.get_cc()
 
-        #Generation Runtime Parameters
-        
+        # self.models_lock = False  # so that we don't cpu them unless other threads need it
+
     def get_cc(self):
         try:
             cc = torch.cuda.get_device_capability()
@@ -155,6 +157,14 @@ class StableDiffusion:
     def add_to_latest(self, new_image: Image.Image, path=""):
         self.latest_images_part2.append({"b64": support.image_to_b64(new_image.convert('RGB')), "path": path})
 
+    def lock_models(self, lock=True):
+        try:
+            self.model.models_lock = lock
+            self.modelCS.models_lock = lock
+            self.modelFS.models_lock = lock
+        except:
+            pass
+
     def clean_up(self):
         self.total_num = 0
         self.current_num = 0
@@ -164,7 +174,7 @@ class StableDiffusion:
 
         self.stage = ""
         self.running = False
-        if self.device != "cpu" and self.v1:
+        if self.device != "cpu" and self.v1 and not self.modelFS.models_lock:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
             while torch.cuda.memory_allocated() / 1e6 >= mem:
@@ -176,7 +186,7 @@ class StableDiffusion:
     def load_vae(self, vae_path, safe_load_=True):
         vae = load_model_from_config(vae_path, safe_load_)
         vae = {k: v for k, v in vae.items() if
-        
+
                ("loss" not in k) and
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
@@ -249,8 +259,6 @@ class StableDiffusion:
             self.modelCS = self.model  # just link without a copy
             self.modelFS = self.model  # just link without a copy
             self.v1 = False
-
-
         else:
             self.v1 = True
             if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
@@ -336,10 +344,11 @@ class StableDiffusion:
                 print("Loading vae finished")
             except:
                 print("Failed to load vae")
+        self.lock_models(lock=False)  # unlock
 
     def get_image(self, init_image_str, mask_b64):
         if len(init_image_str) == 0:
-            return None 
+            return None
 
         if init_image_str[:4] == 'data':
             print("Loading image from b64")
@@ -368,7 +377,7 @@ class StableDiffusion:
         image = np.array(image).astype(np.float32) / 255.0
         image = image[None].transpose(0, 3, 1, 2)
         image = torch.from_numpy(image)
-        init_image =  2. * image - 1.
+        init_image = 2. * image - 1.
         init_image = init_image.to(self.device)
         _, _, H, W = image.shape
         if self.is_nvidia:
@@ -378,24 +387,24 @@ class StableDiffusion:
 
     @torch.no_grad()
     def generate_image(
-        self, 
-        prompts_data="", 
-        negative_prompts_data="", 
-        precision_scope=None, 
-        starting_image = None,        
-        mask_b64="",
-        invert=False,
-        steps=50, 
-        H=512, 
-        W=512, 
-        cfg_scale=7.5, 
-        seed=-1,
-        sampler="ddim", 
-        C=4, 
-        ddim_eta=0.0, 
-        f=8, 
-        ddim_steps = 0,
-        batch_size=1):
+            self,
+            prompts_data="",
+            negative_prompts_data="",
+            precision_scope=None,
+            starting_image=None,
+            mask_b64="",
+            invert=False,
+            steps=50,
+            H=512,
+            W=512,
+            cfg_scale=7.5,
+            seed=-1,
+            sampler="ddim",
+            C=4,
+            ddim_eta=0.0,
+            f=8,
+            ddim_steps=0,
+            batch_size=1):
 
         if starting_image:
             init_image, H, W = self.load_image(starting_image, H, W, inpainting=(len(mask_b64) > 0))
@@ -497,8 +506,8 @@ class StableDiffusion:
                         (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0).half()
                     self.modelFS.half()
                 x_sample = 255. * \
-                            rearrange(
-                                x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                           rearrange(
+                               x_sample[0].cpu().numpy(), 'c h w -> h w c')
                 out_image = Image.fromarray(x_sample.astype(np.uint8))
                 return out_image
 
@@ -506,7 +515,6 @@ class StableDiffusion:
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
-
 
         self.highres_fix = False
         self.running = True
@@ -538,8 +546,8 @@ class StableDiffusion:
         outdir = os.path.join(self.image_save_path, batch_name)
         os.makedirs(outdir, exist_ok=True)
 
-        starting_image = self.get_image(init_image_str, mask_b64)  
-        
+        starting_image = self.get_image(init_image_str, mask_b64)
+
         print("Prompt:", text_prompts)
         prompts_data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
@@ -586,24 +594,35 @@ class StableDiffusion:
                 self.current_num = n
                 self.model.current_step = 0
                 self.model.total_steps = steps
-            
-                if self.highres_fix: 
+
+                if self.highres_fix:
                     if min(W, H) > 512:
                         scale = min(W, H) / 512
                         print(f"Hires Scale: {scale}")
-                        W, H = (int(W/scale), int(H/scale))
-                    
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
-                
+                        W, H = (int(W / scale), int(H / scale))
+
+                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope,
+                                                    starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed,
+                                                    sampler, C, ddim_eta, f, ddim_steps)
+
                     out_image.convert("RGB").save("TEST_FIRST.jpg")
 
-                    starting_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
+                    starting_image = self.Upscaler.upscale(
+                        images=["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"],
+                        upscaler="RealESRGAN", upscale_factor=scale,
+                        upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))[
+                        "content"]["output_images"][0].convert("RGB")
                     starting_image.save("TEST_UPSCALE.jpg")
 
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, starting_image.size[1], starting_image.size[0], cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope,
+                                                    starting_image, mask_b64, invert, steps, starting_image.size[1],
+                                                    starting_image.size[0], cfg_scale, seed, sampler, C, ddim_eta, f,
+                                                    ddim_steps)
                     out_image.convert("RGB").save("TEST_FINAL.jpg")
                 else:
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope,
+                                                    starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed,
+                                                    sampler, C, ddim_eta, f, ddim_steps)
                 exif_data = out_image.getexif()
                 # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                 settings_data = {
