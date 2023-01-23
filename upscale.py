@@ -62,7 +62,7 @@ class Upscaler():
         # Potentially problematic
         torch.set_default_tensor_type(torch.FloatTensor)
         input = self.upscale_queue_path
-        upscale = int(upscale_factor)
+        upscale = upscale_factor
         if "1.3" in upscaler:
             version = "1.3"  # GFPGANv1.3
         elif "1.4" in upscaler:
@@ -225,7 +225,7 @@ class Upscaler():
         from realesrgan import RealESRGANer
         
         outdir = upscale_dest
-        outscale = int(upscale_factor)
+        outscale = upscale_factor
         input = self.upscale_queue_path
 
         if upscaler == "RealESRGAN":

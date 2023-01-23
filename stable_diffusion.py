@@ -53,23 +53,6 @@ def load_model_from_config(ckpt, use_safe_load=True):
         return pl_sd["state_dict"]
     return pl_sd
 
-
-def load_img(image, h0, w0, inpainting=False):
-    w, h = image.size
-    if not inpainting and h0 != 0 and w0 != 0:
-        h, w = h0, w0
-
-    # resize to integer multiple of 32
-    w, h = map(lambda x: x - x % 64, (w, h))
-    print(f"New image size ({w}, {h})")
-    image = image.resize((w, h), resample=Image.LANCZOS)
-
-    image = np.array(image).astype(np.float32) / 255.0
-    image = image[None].transpose(0, 3, 1, 2)
-    image = torch.from_numpy(image)
-    return 2. * image - 1.
-
-
 def load_mask(mask, newH, newW):
     image = np.array(mask)
     image = Image.fromarray(image).convert("RGB")
@@ -128,6 +111,8 @@ class StableDiffusion:
         self.v1 = False
         self.cc = self.get_cc()
 
+        #Generation Runtime Parameters
+        
     def get_cc(self):
         try:
             cc = torch.cuda.get_device_capability()
@@ -352,13 +337,52 @@ class StableDiffusion:
             except:
                 print("Failed to load vae")
 
+    def get_image(self, init_image_str, mask_b64):
+        if len(init_image_str) == 0:
+            return None 
+
+        if init_image_str[:4] == 'data':
+            print("Loading image from b64")
+            init_image = support.b64_to_image(init_image_str)
+        else:
+            print(f"Loading from path {init_image_str}")
+            init_image = Image.open(init_image_str)
+
+        if len(mask_b64) > 0:
+            try:
+                init_image = inpainting.infill_patchmatch(init_image)
+            except Exception as e:
+                print(f"Failed to outpaint the alpha layer {e}")
+        return init_image.convert("RGB")
+
+    def load_image(self, image, h0, w0, inpainting=False):
+        w, h = image.size
+        if not inpainting and h0 != 0 and w0 != 0:
+            h, w = h0, w0
+
+        # resize to integer multiple of 32
+        w, h = map(lambda x: x - x % 64, (w, h))
+        print(f"New image size ({w}, {h})")
+        image = image.resize((w, h), resample=Image.LANCZOS)
+
+        image = np.array(image).astype(np.float32) / 255.0
+        image = image[None].transpose(0, 3, 1, 2)
+        image = torch.from_numpy(image)
+        init_image =  2. * image - 1.
+        init_image = init_image.to(self.device)
+        _, _, H, W = image.shape
+        if self.is_nvidia:
+            init_image = init_image.half()
+
+        return init_image, H, W
+
     @torch.no_grad()
     def generate_image(
         self, 
         prompts_data="", 
         negative_prompts_data="", 
         precision_scope=None, 
-        init_image = None,        
+        starting_image = None,        
         mask_b64="",
         invert=False,
         steps=50, 
@@ -372,6 +396,11 @@ class StableDiffusion:
         f=8, 
         ddim_steps = 0,
         batch_size=1):
+
+        if starting_image:
+            init_image, H, W = self.load_image(starting_image, H, W, inpainting=(len(mask_b64) > 0))
+        else:
+            init_image = None
         for prompts in prompts_data:
             with precision_scope(self.device):
                 if self.v1:
@@ -479,7 +508,7 @@ class StableDiffusion:
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
 
 
-
+        self.highres_fix = False
         self.running = True
         print("Starting generate process...")
 
@@ -509,27 +538,8 @@ class StableDiffusion:
         outdir = os.path.join(self.image_save_path, batch_name)
         os.makedirs(outdir, exist_ok=True)
 
-        if len(init_image_str) > 0:
-            if init_image_str[:4] == 'data':
-                print("Loading image from b64")
-                image = support.b64_to_image(init_image_str)
-            else:
-                print(f"Loading from path {init_image_str}")
-                image = Image.open(init_image_str)
-
-            if len(mask_b64) > 0:
-                try:
-                    image = inpainting.infill_patchmatch(image)
-                except Exception as e:
-                    print(f"Failed to outpaint the alpha layer {e}")
-            image.convert("RGB").save("TEST_INPUT.jpg")
-            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0)).to(self.device)
-            _, _, H, W = init_image.shape
-            if self.is_nvidia:
-                init_image = init_image.half()
-        else:
-            init_image = None
-
+        starting_image = self.get_image(init_image_str, mask_b64)  
+        
         print("Prompt:", text_prompts)
         prompts_data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
@@ -544,7 +554,7 @@ class StableDiffusion:
         os.makedirs(sample_path, exist_ok=True)
         base_count = len(os.listdir(sample_path))
 
-        if init_image is not None:
+        if starting_image is not None:
             if self.v1:
                 self.modelFS.to(self.device)
 
@@ -576,33 +586,24 @@ class StableDiffusion:
                 self.current_num = n
                 self.model.current_step = 0
                 self.model.total_steps = steps
-                # if init_image_str[:4] == 'data':
-                #     original_init_image = support.b64_to_image(init_image_str).convert('RGB')
-                # else:
-                #     original_init_image = Image.open(init_image_str).convert('RGB')  
-                
-
+            
                 if self.highres_fix: 
-                    new_size = (int(width/scale), int(height/scale))
-                    out_image = out_image.resize(new_size, resample=Image.BICUBIC)
+                    if min(W, H) > 512:
+                        scale = min(W, H) / 512
+                        print(f"Hires Scale: {scale}")
+                        W, H = (int(W/scale), int(H/scale))
                     
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, init_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
                 
                     out_image.convert("RGB").save("TEST_FIRST.jpg")
 
-                    upscaled_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=2, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
-                    upscaled_image.save("TEST_UPSCALE.jpg")
+                    starting_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
+                    starting_image.save("TEST_UPSCALE.jpg")
 
-                    init_image = load_img(upscaled_image, upscaled_image.size[1], upscaled_image.size[0], inpainting=(len(mask_b64) > 0)).to(self.device)
-                    del upscaled_image
-                    _, _, H, W = init_image.shape
-                    if self.is_nvidia:
-                        init_image = init_image.half()
-
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, init_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, starting_image.size[1], starting_image.size[0], cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
                     out_image.convert("RGB").save("TEST_FINAL.jpg")
                 else:
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, init_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
                 exif_data = out_image.getexif()
                 # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                 settings_data = {

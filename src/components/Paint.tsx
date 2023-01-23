@@ -151,8 +151,6 @@ function Paint () {
     }
 
     function addToCanvas(imageData: { b64: string, path: string; }){
-
-    
         const scaledDimensions = getScaledBoundingBoxDimensions(
             boundingBoxDimensions
         );         
@@ -413,7 +411,7 @@ function Paint () {
                             Run
                         </Text>
 
-                        <Image
+                        <ChakraImage
                             src={Shards}
                             width="12px" />
 
