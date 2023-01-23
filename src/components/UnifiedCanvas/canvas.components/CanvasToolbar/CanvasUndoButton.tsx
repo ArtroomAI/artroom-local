@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FC } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FaUndo } from 'react-icons/fa';
@@ -34,9 +34,9 @@ export const CanvasUndoButton: FC = () => {
   const undo = useSetRecoilState(undoAction);
   const canUndo = useRecoilValue(canUndoSelector);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     undo();
-  };
+  }, []);
 
   useHotkeys(
     ['meta+z', 'ctrl+z'],

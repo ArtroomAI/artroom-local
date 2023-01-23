@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FC } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FaRedo } from 'react-icons/fa';
@@ -35,9 +35,9 @@ export const CanvasRedoButton: FC = () => {
   const redo = useSetRecoilState(redoAction);
   const canRedo = useRecoilValue(canRedoSelector);
 
-  const handleRedo = () => {
+  const handleRedo = useCallback(() => {
     redo();
-  };
+  }, []);
 
   useHotkeys(
     ['meta+shift+z', 'ctrl+shift+z', 'control+y', 'meta+y'],
