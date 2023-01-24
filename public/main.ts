@@ -127,14 +127,32 @@ function createWindow() {
     const imagePath = json.imagePath;
   
     // convert dataURL to a buffer
-    const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-  
-    try {
-      // write the buffer to the specified image path
-      fs.writeFileSync(imagePath, buffer);
+    try{
+      const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
+      try {
+        // write the buffer to the specified image path
+        fs.writeFileSync(imagePath, buffer);
+      } catch (err) {
+        console.error(err);
+        return;
+      }
     } catch (err) {
-      console.error(err);
-      return;
+      axios.get(dataUrl, {
+        responseType: "arraybuffer",
+      }).then((raw) => {
+        // create a base64 encoded string
+        try {
+          // write the buffer to the specified image path
+          const buffer = Buffer.from(raw.data, "binary").toString("base64");
+          //fs.writeFileSync(imagePath, buffer);
+          fs.writeFile(imagePath, buffer, 'base64', function(err) {
+            console.log(err);
+          });
+        } catch (err) {
+          console.error(err);
+          return;
+        }
+      });
     }
   });
 

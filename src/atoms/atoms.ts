@@ -104,6 +104,11 @@ export const runningState = atom({
     default: false
 });
 
+export const cloudRunningState = atom({
+    key: 'cloud_running',
+    default: false
+});
+
 export const debugMode = atom({
     key: 'debug_mode',
     default: false
