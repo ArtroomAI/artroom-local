@@ -63,7 +63,6 @@ def load_mask(mask, newH, newW):
 
     # image = image.resize((64, 64), resample=Image.LANCZOS)
     image = np.array(image)
-
     image = image.astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -103,7 +102,6 @@ class StableDiffusion:
         self.vae = ''
         self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
         self.long_save_path = False
-        self.highres_fix = False
         self.is_nvidia = get_gpu_architecture() == 'NVIDIA'
         self.device = 'cpu' if get_gpu_architecture() == 'None' else "cuda"
         self.speed = "Max"
@@ -112,6 +110,11 @@ class StableDiffusion:
         self.cc = self.get_cc()
 
         #Generation Runtime Parameters
+        self.highres_fix = False
+        self.highres_fix_strength = 0.1    
+
+        self.original_starting_image = None 
+        self.mask_image = None 
         
     def get_cc(self):
         try:
@@ -350,6 +353,7 @@ class StableDiffusion:
 
         if len(mask_b64) > 0:
             try:
+                init_image.convert("RGB").save("TEST_BEFORE_PATCH.jpg")
                 init_image = inpainting.infill_patchmatch(init_image)
             except Exception as e:
                 print(f"Failed to outpaint the alpha layer {e}")
@@ -357,7 +361,7 @@ class StableDiffusion:
 
     def load_image(self, image, h0, w0, inpainting=False):
         w, h = image.size
-        if not inpainting and h0 != 0 and w0 != 0:
+        if self.highres_fix or (not inpainting and h0 != 0 and w0 != 0):
             h, w = h0, w0
 
         # resize to integer multiple of 32
@@ -383,8 +387,7 @@ class StableDiffusion:
         negative_prompts_data="", 
         precision_scope=None, 
         starting_image = None,        
-        mask_b64="",
-        invert=False,
+        mask_image=None,
         steps=50, 
         H=512, 
         W=512, 
@@ -396,9 +399,11 @@ class StableDiffusion:
         f=8, 
         ddim_steps = 0,
         batch_size=1):
+        
+        inpaint_replace = 0.1
 
         if starting_image:
-            init_image, H, W = self.load_image(starting_image, H, W, inpainting=(len(mask_b64) > 0))
+            init_image, H, W = self.load_image(starting_image, H, W, inpainting=(mask_image is not None))
         else:
             init_image = None
         for prompts in prompts_data:
@@ -443,25 +448,28 @@ class StableDiffusion:
                         ddim_eta,
                         ddim_steps,
                     )
-                if len(mask_b64) > 0 and init_image is not None:
-                    if mask_b64[:4] == 'data':
-                        print("Loading mask from b64")
-                        mask_image = support.b64_to_image(mask_b64).convert('L')
-                    else:
-                        mask_image = Image.open(mask_b64).convert("L")
-                    if invert:
-                        mask_image = ImageOps.invert(mask_image)
-
-                    mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]).to(self.device)
+                if self.mask_image:    
+                    mask = load_mask(self.mask_image, init_latent.shape[2], init_latent.shape[3]).to(self.device)
                     mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
                     mask = repeat(mask, '1 ... -> b ...', b=batch_size)
+
+                    # to replace masked area with latent noise, weighted by inpaint_replace strength
+                    # if inpaint_replace > 0.0:
+                    #     print(f'>> inpaint will replace what was under the mask with a strength of {inpaint_replace}')
+                    #     l_noise = inpainting.get_noise(W,H, perlin=0, device=self.device)
+                    #     inverted_mask = 1 - mask  # there will be 1s where the mask is
+                    #     masked_region = (1.0-inpaint_replace) * inverted_mask * x0 + inpaint_replace * inverted_mask * l_noise
+                    #     x0   = x0 * mask + masked_region
+
                     if self.v1:
                         if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9:
                             init_latent = torch.cat(
                                 (init_latent, x0, mask[:, :1, :, :]), dim=1)  # yeah basically
                     x_T = init_latent
+                    
+
+
                 else:
-                    mask_image = None
                     mask = None
                     x_T = None
 
@@ -508,7 +516,8 @@ class StableDiffusion:
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
 
 
-        self.highres_fix = False
+        self.highres_fix = True
+
         self.running = True
         print("Starting generate process...")
 
@@ -538,8 +547,21 @@ class StableDiffusion:
         outdir = os.path.join(self.image_save_path, batch_name)
         os.makedirs(outdir, exist_ok=True)
 
-        starting_image = self.get_image(init_image_str, mask_b64)  
-        
+        self.original_starting_image = self.get_image(init_image_str, mask_b64) 
+        if self.original_starting_image:
+            self.original_starting_image.save("TEST_INPUT.JPG")
+        if len(mask_b64) > 0 or (W == 0 and H == 0):
+            W, H = self.original_starting_image.size
+
+        if len(mask_b64) > 0 and self.original_starting_image is not None:
+            if mask_b64[:4] == 'data':
+                print("Loading mask from b64")
+                self.mask_image = support.b64_to_image(mask_b64).convert('L')
+            else:
+                self.mask_image = Image.open(mask_b64).convert("L")
+            if invert:
+                self.mask_image = ImageOps.invert(self.mask_image)
+            self.mask_image.save("TEST_MASK.jpg")
         print("Prompt:", text_prompts)
         prompts_data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
@@ -554,11 +576,11 @@ class StableDiffusion:
         os.makedirs(sample_path, exist_ok=True)
         base_count = len(os.listdir(sample_path))
 
-        if starting_image is not None:
+        if self.original_starting_image is not None:
             if self.v1:
                 self.modelFS.to(self.device)
 
-            steps = int(strength * steps)
+            steps = int(strength * ddim_steps)
             if steps <= 0:
                 steps = 1
 
@@ -576,6 +598,8 @@ class StableDiffusion:
                     self.clean_up()
                     return
 
+                starting_image = self.original_starting_image
+
                 if self.long_save_path:
                     save_name = f"{base_count:05}_seed_{str(seed)}.jpg"
                 else:
@@ -588,24 +612,75 @@ class StableDiffusion:
                 self.model.total_steps = steps
             
                 if self.highres_fix: 
+                    originalW, originalH = (W,H)
                     if min(W, H) > 512:
                         scale = min(W, H) / 512
                         print(f"Hires Scale: {scale}")
                         W, H = (int(W/scale), int(H/scale))
-                    
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
-                
+
+                    out_image = self.generate_image(
+                        prompts_data = prompts_data, 
+                        negative_prompts_data = negative_prompts_data, 
+                        precision_scope = precision_scope, 
+                        starting_image = starting_image, 
+                        mask_image = self.mask_image, 
+                        steps = steps, 
+                        H = H, 
+                        W = W, 
+                        cfg_scale = cfg_scale, 
+                        seed = seed, 
+                        sampler = sampler, 
+                        ddim_steps = ddim_steps)
                     out_image.convert("RGB").save("TEST_FIRST.jpg")
+                    # if self.mask_image is not None:
+                    #     out_image = support.repaste_and_color_correct(out_image, self.original_starting_image, self.mask_image)
+                    # out_image.convert("sRGB").save("TEST_FIRST_COLOR_CORRECTION.jpg")
+
+                    #Set this up if you haven't done so previously
+                    if starting_image is None:
+                        if self.v1:
+                            self.modelFS.to(self.device)
+
+                    steps = int(self.highres_fix_strength * ddim_steps)
+                    if steps <= 0:
+                        steps = 1
 
                     starting_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
                     starting_image.save("TEST_UPSCALE.jpg")
-
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, starting_image.size[1], starting_image.size[0], cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    
+                    out_image = self.generate_image(
+                        prompts_data = prompts_data, 
+                        negative_prompts_data = negative_prompts_data, 
+                        precision_scope = precision_scope, 
+                        starting_image = starting_image, 
+                        mask_image = self.mask_image, 
+                        steps = steps, 
+                        H = originalH, 
+                        W = originalW, 
+                        cfg_scale = cfg_scale, 
+                        seed = seed, 
+                        sampler = sampler, 
+                        ddim_steps = ddim_steps)
                     out_image.convert("RGB").save("TEST_FINAL.jpg")
+                    # if self.mask_image is not None:
+                    #     out_image = support.repaste_and_color_correct(out_image, self.original_starting_image, self.mask_image)
+                    # out_image.convert("RGB").save("TEST_FINAL_COLOR_CORRECTION.jpg")
                 else:
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(
+                        prompts_data = prompts_data, 
+                        negative_prompts_data = negative_prompts_data, 
+                        precision_scope = precision_scope, 
+                        starting_image = starting_image, 
+                        mask_image = self.mask_image, 
+                        steps = steps, 
+                        H = H, 
+                        W = W, 
+                        cfg_scale = cfg_scale, 
+                        seed = seed, 
+                        sampler = sampler, 
+                        ddim_steps = ddim_steps)
                 exif_data = out_image.getexif()
-                # Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                # Does not include Mask, ImageB64. Only settings for now
                 settings_data = {
                     "text_prompts": text_prompts,
                     "negative_prompts": negative_prompts,

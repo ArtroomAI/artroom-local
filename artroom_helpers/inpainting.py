@@ -2,6 +2,7 @@ from artroom_helpers import patchmatch
 from PIL import Image, ImageFilter, ImageOps
 import numpy as np 
 import math
+import torch
 import cv2
 
 def mask_edge(mask: Image, edge_size: int, edge_blur: int) -> Image:
@@ -188,3 +189,51 @@ def tile_fill_missing(im: Image.Image, tile_size: int = 16, seed: int = None) ->
     si = Image.fromarray(st, mode='RGBA')
 
     return si
+
+def rand_perlin_2d(shape, res, device, fade = lambda t: 6*t**5 - 15*t**4 + 10*t**3):
+    delta = (res[0] / shape[0], res[1] / shape[1])
+    d = (shape[0] // res[0], shape[1] // res[1])
+
+    grid = torch.stack(torch.meshgrid(torch.arange(0, res[0], delta[0]), torch.arange(0, res[1], delta[1]), indexing='ij'), dim = -1).to(device) % 1
+
+    rand_val = torch.rand(res[0]+1, res[1]+1)
+
+    angles = 2*math.pi*rand_val
+    gradients = torch.stack((torch.cos(angles), torch.sin(angles)), dim = -1).to(device)
+
+    tile_grads = lambda slice1, slice2: gradients[slice1[0]:slice1[1], slice2[0]:slice2[1]].repeat_interleave(d[0], 0).repeat_interleave(d[1], 1)
+
+    dot = lambda grad, shift: (torch.stack((grid[:shape[0],:shape[1],0] + shift[0], grid[:shape[0],:shape[1], 1] + shift[1]  ), dim = -1) * grad[:shape[0], :shape[1]]).sum(dim = -1)
+
+    n00 = dot(tile_grads([0, -1], [0, -1]), [0,  0]).to(device)
+    n10 = dot(tile_grads([1, None], [0, -1]), [-1, 0]).to(device)
+    n01 = dot(tile_grads([0, -1],[1, None]), [0, -1]).to(device)
+    n11 = dot(tile_grads([1, None], [1, None]), [-1,-1]).to(device)
+    t = fade(grid[:shape[0], :shape[1]])
+    return math.sqrt(2) * torch.lerp(torch.lerp(n00, n10, t[..., 0]), torch.lerp(n01, n11, t[..., 0]), t[..., 1]).to(device)
+
+def get_perlin_noise(width, height, device):
+    latent_channels = 4
+    return torch.stack([rand_perlin_2d((height, width), (8, 8), device = device).to(device) for _ in range(latent_channels)], dim=0).to(device)
+
+# returns a tensor filled with random numbers from a normal distribution
+def get_noise(width, height, perlin, device = 'cuda'):
+    downsampling_factor = 8
+    latent_channels = 4
+    # if self.use_mps_noise or self.device.type == 'mps':
+    #     x = torch.randn([1,
+    #                         latent_channels,
+    #                         height // downsampling_factor,
+    #                         width  // downsampling_factor],
+    #                        device='cpu').to(self.device)
+    # else:
+    x = torch.randn([1,
+                        latent_channels,
+                        height // downsampling_factor,
+                        width  // downsampling_factor],
+                        device='cpu').to(device)
+    if perlin > 0.0:
+        print("Currently bugged with something not being implemented for half")
+        print(f"Using Perline noise of: {perlin}")
+        x = (1-perlin)*x + perlin*get_perlin_noise(width  // downsampling_factor, height // downsampling_factor, device = device).to(device)
+    return x
