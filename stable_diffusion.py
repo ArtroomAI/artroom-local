@@ -158,12 +158,13 @@ class StableDiffusion:
         self.latest_images_part2.append({"b64": support.image_to_b64(new_image.convert('RGB')), "path": path})
 
     def lock_models(self, lock=True):
-        try:
-            self.model.models_lock = lock
-            self.modelCS.models_lock = lock
-            self.modelFS.models_lock = lock
-        except:
-            pass
+        if self.model is not None:
+            try:
+                self.model.models_lock = lock
+                self.modelCS.models_lock = lock
+                self.modelFS.models_lock = lock
+            except:
+                pass
 
     def clean_up(self):
         self.total_num = 0
