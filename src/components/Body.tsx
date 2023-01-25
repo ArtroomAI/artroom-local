@@ -260,6 +260,7 @@ function Body () {
                     let job_list = response.data.jobs;
                     let text = "";
                     let pending_cnt = 0;
+                    let newCloudImages = [];
                     for (let i = 0; i < job_list.length; i++) {
                         for (let j = 0; j < job_list[i].images.length; j++) {
                             if (job_list[i].images[j].status == 'PENDING') {
@@ -281,10 +282,12 @@ function Body () {
                                 //const timestamp = new Date().getTime();
                                 console.log(imagePath);
                                 let dataURL = job_list[i].images[j].url;
+                                newCloudImages.push({"b64": dataURL})
                                 window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
                             }
                         }
                     }
+                    setLatestImages([...latestImages, ...newCloudImages])
                     toast({
                         title: 'Cloud jobs running!\n',
                         description: text + pending_cnt + " jobs pending",
