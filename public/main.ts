@@ -125,7 +125,11 @@ function createWindow() {
     const json = JSON.parse(data);
     const dataUrl = json.dataURL;
     const imagePath = json.imagePath;
-  
+
+    let imagePathDirName = path.dirname(imagePath);
+
+    fs.mkdirSync(imagePathDirName, { recursive: true });
+
     // convert dataURL to a buffer
     try{
       const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
