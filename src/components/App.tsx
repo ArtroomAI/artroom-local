@@ -52,6 +52,8 @@ export default function App () {
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
+    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
+    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
 
     //make sure cloudmode is off, while not signed in
@@ -82,6 +84,7 @@ export default function App () {
                     let job_list = response.data.jobs;
                     let text = "";
                     let pending_cnt = 0;
+                    let newCloudImages = [];
                     for (let i = 0; i < job_list.length; i++) {
                         for (let j = 0; j < job_list[i].images.length; j++) {
                             if (job_list[i].images[j].status == 'PENDING') {
@@ -103,10 +106,13 @@ export default function App () {
                                 //const timestamp = new Date().getTime();
                                 console.log(imagePath);
                                 let dataURL = job_list[i].images[j].url;
+                                newCloudImages.push({"b64": dataURL})
                                 window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
                             }
                         }
                     }
+                    setLatestImages([...latestImages, ...newCloudImages]);
+                    setMainImage(newCloudImages[newCloudImages.length-1]?.b64)
                     toast({
                         title: 'Cloud jobs running!\n',
                         description: text + pending_cnt + " jobs pending",
