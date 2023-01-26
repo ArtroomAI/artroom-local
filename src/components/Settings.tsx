@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import axios from 'axios';
@@ -26,6 +26,7 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
+import { SocketContext } from '../socket';
 
 function Settings () {
     const toast = useToast({});
@@ -36,6 +37,8 @@ function Settings () {
     const [delay, setDelay] = useRecoilState(atom.delayState);
 
     const [debug_mode_orig, setDebugModeOrig] = useState(true);
+    
+    const socket = useContext(SocketContext);
 
     useEffect(
         () => {
@@ -57,11 +60,39 @@ function Settings () {
                 setDebugModeOrig(settings.debug_mode);
             });
         },
+        // run only once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
 
+    const handleSaveSettings = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string}) => {
+        if(data.status === 'Success') {
+            toast({
+                title: 'Settings have been updated',
+                status: 'success',
+                position: 'top',
+                duration: 1500,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        } else {
+            toast({
+                title: 'Error during updating settings',
+                description: data.status_message,
+                status: 'error',
+                position: 'top',
+                duration: 1500,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
 
-    const saveSettings = () => {
+    const saveSettings = useCallback(() => {
         setDebugModeOrig(debug_mode);
         const output = {
             long_save_path,
@@ -74,25 +105,17 @@ function Settings () {
             vae: imageSettings.vae,
             ckpt_dir: imageSettings.ckpt_dir
         };
-        axios.post(
-            'http://127.0.0.1:5300/update_settings',
-            output,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        ).then(() => {
-            toast({
-                title: 'Settings have been updated',
-                status: 'success',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        });
-    };
+        socket.emit('update_settings', output)
+    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('update_settings', handleSaveSettings);
+    
+        return () => {
+            socket.off('update_settings', handleSaveSettings);
+        };
+    }, [socket, handleSaveSettings]);
 
     const failedFlaskRestartMessage = () => {
         toast({

@@ -10,7 +10,7 @@ import ContextMenuItem from '../ContextMenu/ContextMenuItem';
 import ContextMenuList from '../ContextMenu/ContextMenuList';
 import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
 
-export default function ImageObj ({ b64, active } : { b64: string; active: boolean }) {
+export default function ImageObj ({ b64 = '', path = '', active } : { b64: string; path: string; active: boolean }) {
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
     const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
@@ -18,6 +18,12 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
 
     const copyToClipboard = () => {
         window.api.copyToClipboard(b64);
+    };
+
+    const showInExplorer = () => {
+        if (path !== '') {
+            window.api.showInExplorer(path);
+        }
     };
 
     return (
@@ -47,10 +53,12 @@ export default function ImageObj ({ b64, active } : { b64: string; active: boole
                     Set As Starting Image
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={() => {
-                    copyToClipboard();
-                } } colorScheme={undefined} disabled={false}>
+                <ContextMenuItem onClick={copyToClipboard} colorScheme={undefined} disabled={false}>
                     Copy To Clipboard
+                </ContextMenuItem>
+
+                <ContextMenuItem onClick={showInExplorer} colorScheme={undefined} disabled={false}>
+                    Show In Explorer
                 </ContextMenuItem>
             </ContextMenuList>
         </ContextMenu>

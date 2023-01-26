@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -34,6 +34,8 @@ import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
 import path from 'path';
 import { Console } from './Console';
+import { SocketContext } from '../socket';
+import { ImageState } from '../atoms/atoms.types';
 
 export default function App () {
     // Connect to the server
@@ -55,6 +57,28 @@ export default function App () {
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
+
+    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
+    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
+
+    const socket = useContext(SocketContext);
+
+    const handleGetImages = useCallback((data: ImageState) => {
+        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
+            setLatestImages([data]);
+        } else {
+            setLatestImages([...latestImages, data]);
+        }
+        setMainImage(data);
+    }, [latestImages, setLatestImages, setMainImage])
+
+    useEffect(() => {
+        socket.on('get_images', handleGetImages);
+
+        return () => {
+          socket.off('get_images', handleGetImages);
+        };
+    }, [socket, handleGetImages]);
 
     //make sure cloudmode is off, while not signed in
     if (!loggedIn) {
@@ -196,6 +220,8 @@ export default function App () {
                 toggleColorMode();
             }
         },
+        // load only once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
 

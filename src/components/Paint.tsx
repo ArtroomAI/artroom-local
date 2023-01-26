@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useReducer, useRef} from 'react';
+import React, {useEffect, useState, useReducer, useRef, useContext, useCallback} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, stageScaleAtom, shouldPreserveMaskedAreaAtom } from './UnifiedCanvas/atoms/canvas.atoms';
@@ -14,12 +14,12 @@ import {
     useToast
 } from '@chakra-ui/react';
 import Prompt from './Prompt';
-import { useInterval } from './Reusable/useInterval/useInterval';
 import Shards from '../images/shards.png';
 import _ from 'lodash';
-import { v4 as uuidv4 } from 'uuid';
+import { uuidv4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
-import { isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+import { SocketContext } from '../socket';
 
 const loadImage = async (b64: string) => {
     const image = new Image();
@@ -34,14 +34,11 @@ const loadImage = async (b64: string) => {
   
 function Paint () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const baseURL = LOCAL_URL;
 
     const toast = useToast({});
 
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-    const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [progress, setProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
@@ -97,7 +94,9 @@ function Paint () {
         });
     }
 
-    const handleRunInpainting = () => {
+    const socket = useContext(SocketContext);
+
+    const handleRunInpainting = useCallback(() => {
         const canvasBaseLayer = getCanvasBaseLayer();
         const boundingBox = {
           ...boundingBoxCoordinates,
@@ -131,18 +130,14 @@ function Paint () {
                 init_image: imageDataURL,
                 mask_image: combinedMask,
                 invert: shouldPreserveMaskedArea
-              };
-            axios.post(`${baseURL}/add_to_queue`,body,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-            ).then(result =>{
-                console.log(result);
-            })
+              }
+            socket.emit('add_to_queue', body);
         }).catch(err =>{
            console.log(err);
-        })
-      };
+        })        
+
+    }, [boundingBoxCoordinates, boundingBoxDimensions, layerState.objects, stageScale, imageSettings, socket]);
+
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
@@ -150,7 +145,7 @@ function Paint () {
         return estimated_price;
     }
 
-    function addToCanvas(imageData: { b64: string, path: string; }){
+    function addToCanvas(imageData: { b64?: string, path?: string; batch_id?: number }){
         const scaledDimensions = getScaledBoundingBoxDimensions(
             boundingBoxDimensions
         );         
@@ -162,40 +157,38 @@ function Paint () {
         console.log(boundingBox)
 
         const image = {
-        ...scaledDimensions,
-        category: "user",
-        mtime: 1673399421.3987432,
-        url: imageData.path,
-        uuid: uuidv4(),
-        kind: "image",
-        layer: "base",
-        x: 0,
-        y: 0
-    }
+            ...scaledDimensions,
+            category: "user",
+            mtime: 1673399421.3987432,
+            url: imageData.path,
+            uuid: uuidv4(),
+            kind: "image",
+            layer: "base",
+            x: 0,
+            y: 0
+        }
 
         if (!boundingBox || !image) return;
 
-        setPastLayerStates([
-        ...pastLayerStates,
-        _.cloneDeep(layerState),
-        ]);
+        setPastLayerStates([...pastLayerStates, _.cloneDeep(layerState)]);
 
         if (pastLayerStates.length > maxHistory) {
-        setPastLayerStates(pastLayerStates.slice(1));
+            setPastLayerStates(pastLayerStates.slice(1));
         }
+
+
         //Filters so that the same image isn't used in the same spot, saving memory
         setLayerState({
-        ...layerState,
-        objects: [
-            ...layerState.objects.filter(
-                object => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)
-                ),                    
-            {
-                kind: 'image',
-                layer: 'base',
-                ...boundingBox,
-                image,
-            },
+            ...layerState,
+            objects: [
+                ...layerState.objects.filter(
+                    (object: CanvasImage) => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)),                    
+                {
+                    kind: 'image',
+                    layer: 'base',
+                    ...boundingBox,
+                    image,
+                },
             ],
         });
         setFutureLayerStates([]);
@@ -338,29 +331,6 @@ function Paint () {
             };
         },
         []
-    );
-
-    useInterval(
-        () => {
-            axios.get(
-                `${baseURL}/get_images`,
-                { params: { 'path': 'latest',
-                    'id': latestImagesID },
-                headers: { 'Content-Type': 'application/json' } }
-            ).then((result) => {
-                const id = result.data.content.latest_images_id;
-                if (result.data.status === 'Success') {
-                    if (id !== latestImagesID) {
-                        setLatestImagesID(id);
-                        setLatestImages(result.data.content.latest_images);
-                        setMainImage(result.data.content.latest_images[result.data.content.latest_images.length - 1]);
-                    }
-                } else if (result.data.status === 'Failure') {
-                    setMainImage('');
-                }
-            });
-        },
-        3000
     );
 
     const prevSelectedIndex = useRef(0);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useContext } from 'react';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -27,106 +27,110 @@ import Card from '../helpers/Card';
 import CardHeader from '../helpers/CardHeader';
 import QueueRow from './QueueHelpers/QueueRow';
 import ClearQueue from './QueueHelpers/ClearQueue';
+import { SocketContext, SocketOnEvents } from '../socket';
 
 function Queue () {
     const toast = useToast({});
     const [queue, setQueue] = useRecoilState(atom.queueState);
     const [serverRunning, setServerRunning] = useState(false);
+    const socket = useContext(SocketContext);
 
-    useEffect(
-        () => {
-            getQueue();
-            getServerStatus();
-        },
-        []
-    );
+    const getQueue = useCallback(() => {
+        socket.emit('get_queue');
+    }, [socket]);
+    
+    const startQueue = useCallback(() => {
+        socket.emit('start_queue');
+    }, [socket]);
+    
+    const pauseQueue = useCallback(() => {
+        socket.emit('pause_queue');
+    }, [socket]);
 
-    const getServerStatus = () => {
-        axios.get(
-            'http://127.0.0.1:5300/get_server_status',
-            { headers: { 'Content-Type': 'application/json' } }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                setServerRunning(result.data.content.server_running);
-            }
-        });
-    };
-    const getQueue = () => {
-        axios.get(
-            'http://127.0.0.1:5300/get_queue',
-            { headers: { 'Content-Type': 'application/json' } }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                setQueue(result.data.content.queue);
-            }
-        });
-    };
+    const stopQueue = useCallback(() => {
+        socket.emit('stop_queue');
+    }, [socket]);
 
-    const startQueue = () => {
-        axios.get(
-            'http://127.0.0.1:5300/start_queue',
-            { headers: { 'Content-Type': 'application/json' } }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                setServerRunning(true);
-                toast({
-                    title: 'Started queue',
-                    description: 'Queue will pick up from where it left off',
-                    status: 'success',
-                    position: 'top',
-                    duration: 4000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            }
-        });
-    };
+    // handles
+    const handleGetServerStatus: SocketOnEvents['get_server_status']  = useCallback((data) => {
+        setServerRunning(data.server_running);
+    }, []);
 
-    const pauseQueue = () => {
-        axios.get(
-            'http://127.0.0.1:5300/pause_queue',
-            { headers: { 'Content-Type': 'application/json' } }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                setServerRunning(false);
-                toast({
-                    title: 'Paused queue',
-                    description: 'Will stop after current batch',
-                    status: 'success',
-                    position: 'top',
-                    duration: 4000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            }
-        });
-    };
+    const handleGetQueue: SocketOnEvents['get_queue'] = useCallback((data) => {
+        setQueue(data.queue);
+    }, [setQueue]);
+    
+    const handleStartQueue: SocketOnEvents['start_queue'] = useCallback((data) => {
+        if(data.status === 'Success') {
+            setServerRunning(true);
+            toast({
+                title: 'Started queue',
+                description: 'Queue will pick up from where it left off',
+                status: 'success',
+                position: 'top',
+                duration: 4000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
+    
+    const handlePauseQueue: SocketOnEvents['pause_queue'] = useCallback((data) => {
+        if(data.status === 'Success') {
+            setServerRunning(false);
+            toast({
+                title: 'Paused queue',
+                description: 'Will stop after current batch',
+                status: 'success',
+                position: 'top',
+                duration: 4000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
 
-    const stopQueue = () => {
-        axios.get(
-            'http://127.0.0.1:5300/stop_queue',
-            { headers: { 'Content-Type': 'application/json' } }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                setServerRunning(false);
-                toast({
-                    title: 'Stopped queue',
-                    description: 'Current batch has been interrupted and queue has been stopped',
-                    status: 'success',
-                    position: 'top',
-                    duration: 4000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            }
-        });
-    };
+    
+    const handleStopQueue: SocketOnEvents['stop_queue'] = useCallback((data) => {
+        if(data.status === 'Success') {
+            setServerRunning(false);
+            toast({
+                title: 'Stopped queue',
+                description: 'Current batch has been interrupted and queue has been stopped',
+                status: 'success',
+                position: 'top',
+                duration: 4000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('get_server_status', handleGetServerStatus);
+        socket.on('get_queue', handleGetQueue);
+        socket.on('start_queue', handleStartQueue);
+        socket.on('pause_queue', handlePauseQueue);
+        socket.on('stop_queue', handleStopQueue);
+        
+        socket.emit('get_server_status');
+        getQueue();
+
+        return () => {
+          socket.off('get_server_status', handleGetServerStatus);
+          socket.off('get_queue', handleGetQueue);
+          socket.off('start_queue', handleStartQueue);
+          socket.off('pause_queue', handlePauseQueue);
+          socket.off('stop_queue', handleStopQueue);
+        };
+    }, [socket, handleGetServerStatus, handleGetQueue, handleStartQueue, handlePauseQueue, handleStopQueue, getQueue]);
 
     return (
         <Box

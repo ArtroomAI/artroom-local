@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -126,26 +126,20 @@ export const ModelMerger = () => {
 
     };
 
-    const getCkpts = () => {
+    const getCkpts = useCallback(() => {
         window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
         });
-    };
+    }, [imageSettings.ckpt_dir]);
 
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        []
-    );
+    useEffect(() => {
+        getCkpts();
+    }, []);
 
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        [imageSettings.ckpt_dir]
-    );
+    useEffect(() => {
+        getCkpts();
+    }, [getCkpts]);
 
     return (
         <Box

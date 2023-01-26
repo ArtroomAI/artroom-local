@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useReducer } from 'react';
-import { useInterval } from './Reusable/useInterval/useInterval';
+import React, { useState, useEffect, useReducer, useContext, useCallback } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import axios from 'axios';
@@ -19,6 +18,7 @@ import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import path from 'path';
+import { SocketContext } from '../socket';
 
 function Body () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
@@ -41,6 +41,49 @@ function Body () {
 
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
     const [shard, setShard] = useRecoilState(atom.shardState);
+    
+    const socket = useContext(SocketContext);
+
+    const addToQueue = useCallback(() => {
+        socket.emit('add_to_queue', imageSettings);
+    }, [socket, imageSettings]);
+
+    const handleAddToQueue = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string; queue_size?: number }) => {
+        if (data.status === 'Success') {
+            toast({
+                title: 'Added to Queue!',
+                description: `Currently ${data.queue_size} elements in queue`,
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        } else {
+            toast({
+                title: 'Error',
+                status: 'error',
+                description: data.status_message,
+                position: 'top',
+                duration: 5000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('add_to_queue', handleAddToQueue);
+    
+        return () => {
+            socket.off('add_to_queue', handleAddToQueue);
+        };
+    }, [socket, handleAddToQueue]);
     
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
@@ -69,10 +112,7 @@ function Body () {
         }
     };
 
-    const [state, dispatch] = useReducer(
-        reducer,
-        mainImageIndex
-    );
+    const [state, dispatch] = useReducer(reducer, mainImageIndex);
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
@@ -83,94 +123,64 @@ function Body () {
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
 
-        useEffect(
-            () => {
-                const leftHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
-                    if (key === targetKey && altKey === useAltKey) {
-                        console.log(key);
-                        console.log(altKey);
-                        setKeyPressed(true);
-                    }
-                };
+        useEffect(() => {
+            const leftHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
+                if (key === targetKey && altKey === useAltKey) {
+                    console.log(key);
+                    console.log(altKey);
+                    setKeyPressed(true);
+                }
+            };
 
-                const rightHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
-                    if (key === targetKey && altKey === useAltKey) {
-                        setKeyPressed(false);
-                    }
-                };
+            const rightHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
+                if (key === targetKey && altKey === useAltKey) {
+                    setKeyPressed(false);
+                }
+            };
 
-                window.addEventListener(
-                    'keydown',
-                    leftHandler
-                );
-                window.addEventListener(
-                    'keyup',
-                    rightHandler
-                );
+            window.addEventListener('keydown', leftHandler);
+            window.addEventListener('keyup', rightHandler);
 
-                return () => {
-                    window.removeEventListener(
-                        'keydown',
-                        leftHandler
-                    );
-                    window.removeEventListener(
-                        'keyup',
-                        rightHandler
-                    );
-                };
-            },
-            [targetKey]
-        );
+            return () => {
+                window.removeEventListener('keydown', leftHandler);
+                window.removeEventListener('keyup', rightHandler);
+            };
+        }, [targetKey, useAltKey]);
 
         return keyPressed;
     };
 
     const arrowRightPressed = useKeyPress('ArrowRight');
     const arrowLeftPressed = useKeyPress('ArrowLeft');
-    const altRPressed = useKeyPress(
-        'r',
-        true
-    );
+    const altRPressed = useKeyPress('r', true);
 
-    useEffect(
-        () => {
-            if (arrowRightPressed && !focused) {
-                dispatch({
-                    type: 'arrowRight',
-                    payload: undefined
-                });
-            }
-        },
-        [arrowRightPressed]
-    );
+    useEffect(() => {
+        if (arrowRightPressed && !focused) {
+            dispatch({
+                type: 'arrowRight',
+                payload: undefined
+            });
+        }
+    }, [arrowRightPressed, focused]);
 
-    useEffect(
-        () => {
-            if (arrowLeftPressed && !focused) {
-                dispatch({
-                    type: 'arrowLeft',
-                    payload: undefined
-                });
-            }
-        },
-        [arrowLeftPressed]
-    );
+    useEffect(() => {
+        if (arrowLeftPressed && !focused) {
+            dispatch({
+                type: 'arrowLeft',
+                payload: undefined
+            });
+        }
+    }, [arrowLeftPressed, focused]);
 
-    useEffect(
-        () => {
-            if (altRPressed) {
-                submitMain();
-            }
-        },
-        [altRPressed]
-    );
+    useEffect(() => {
+        if (altRPressed) {
+            addToQueue();
+        }
+    }, [addToQueue, altRPressed]);
 
-    useEffect(
-        () => {
-            setMainImage(latestImages[state.selectedIndex]?.b64);
-        },
-        [state]
-    );
+    useEffect(() => {
+        setMainImage(latestImages[state.selectedIndex]);
+    }, [latestImages, setMainImage, state]);
 
     useEffect(
         () => {
@@ -337,7 +347,8 @@ function Body () {
                     justifyContent="center"
                     >
                     <ImageObj
-                        b64={mainImage}
+                        b64={mainImage?.b64}
+                        path={mainImage?.path}
                         active />
                     {
                         progress >= 0
@@ -388,7 +399,7 @@ function Body () {
                     : <Button
                         className="run-button"
                         ml={2}
-                        onClick={submitMain}
+                        onClick={addToQueue}
                         width="200px"> 
                         Run
                     </Button>}

@@ -1,5 +1,5 @@
 import { atom } from 'recoil';
-import { ImageSettings, AppSettings } from './atoms.types';
+import { ImageSettings, AppSettings, ImageState } from './atoms.types';
 
 export const imageSettingsState = atom<ImageSettings>({
     key: 'imageSettings',
@@ -121,19 +121,14 @@ export const initImageThumbnailState = atom({
         'b64': '' }
 });
 
-export const mainImageState = atom({
+export const mainImageState = atom<Partial<ImageState>>({
     key: 'mainImage',
-    default: ''
+    default: { 'b64': '', 'path': '', 'batch_id': 0 }
 });
 
-export const latestImageState = atom({
+export const latestImageState = atom<Array<Partial<ImageState>>>({
     key: 'latestImage',
     default: []
-});
-
-export const latestImagesIDState = atom({
-    key: 'latestImagesID',
-    default: 0
 });
 
 export const imageViewPathState = atom({

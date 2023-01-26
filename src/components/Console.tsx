@@ -1,7 +1,57 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Box, Flex, Icon, Modal, ModalBody, ModalContent, ModalHeader, ModalOverlay } from '@chakra-ui/react';
-import { SocketContext } from '../index';
+import { SocketContext, SocketOnEvents } from '../socket';
 import { FaTerminal } from 'react-icons/fa';
+
+type MessageType<K extends keyof SocketOnEvents> = Parameters<SocketOnEvents[K]>[0];
+
+function parseSocketMessage<T extends keyof SocketOnEvents>(type: T, message: MessageType<T>) {
+    return JSON.stringify(message);
+    // TODO: Custom messages for each event
+    if(type === 'add_to_queue') {
+        const typed = message as MessageType<'add_to_queue'>;
+    }
+    if(type === 'clear_queue') {
+        const typed = message as MessageType<'clear_queue'>;
+        return;
+    }
+    if(type === 'get_images') {
+        const typed = message as MessageType<'get_images'>;
+        return;
+    }
+    if(type === 'get_queue') {
+        const typed = message as MessageType<'get_queue'>;
+        return;
+    }
+    if(type === 'get_server_status') {
+        const typed = message as MessageType<'get_server_status'>;
+        return;
+    }
+    if(type === 'pause_queue') {
+        const typed = message as MessageType<'pause_queue'>;
+        return;
+    }
+    if(type === 'remove_from_queue') {
+        const typed = message as MessageType<'remove_from_queue'>;
+        return;
+    }
+    if(type === 'start_queue') {
+        const typed = message as MessageType<'start_queue'>;
+        return;
+    }
+    if(type === 'stop_queue') {
+        const typed = message as MessageType<'stop_queue'>;
+        return;
+    }
+    if(type === 'update_settings') {
+        const typed = message as MessageType<'update_settings'>;
+        return;
+    }
+    if(type === 'upscale') {
+        const typed = message as MessageType<'upscale'>;
+        return;
+    }
+}
 
 export const Console = () => {
     const socket = useContext(SocketContext);
@@ -16,16 +66,16 @@ export const Console = () => {
         setShowConsole(true)
     }
 
-    const handleMessage = useCallback((type: string, message: string) => {
+    const handleMessage = useCallback((type: keyof SocketOnEvents, message: MessageType<keyof SocketOnEvents>) => {
         console.log(type, message);
-        log[logPos] = `${type} : ${message}`;
+        log[logPos] = `${type} : ${parseSocketMessage(type, message)}`;
         setLog(log);
         if(logPos === 100) {
             setLogPos(0);
         } else {
             setLogPos(logPos + 1);
         }
-    }, []);
+    }, [log, logPos]);
 
     useEffect(() => {
         // subscribe to socket events
@@ -36,9 +86,9 @@ export const Console = () => {
           // unbind all event handlers used in this component
           socket.offAny(handleMessage);
         };
-    }, [socket]);
+    }, [handleMessage, socket]);
 
-    const displayMessages = () => {
+    const displayMessages = useCallback(() => {
         const messages = [];
         for(let i = logPos; i < log.length; ++i) {
             messages.push(<Flex w="100%">{log[i]}</Flex>);
@@ -47,7 +97,7 @@ export const Console = () => {
             messages.push(<Flex w="100%">{log[i]}</Flex>);
         }
         return messages;
-    }
+    }, [log, logPos])
 
     return (<>
         <Box pos="fixed" bottom="1" right="1" width="50px" height="50px" bgColor='#000' onClick={handleOpen}>
