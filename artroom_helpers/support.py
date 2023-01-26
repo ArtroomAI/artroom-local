@@ -59,7 +59,7 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
     if init_mask is None:
         init_mask = Image.new('RGB', init_image.size, (0, 0, 0)).convert('L')
     
-    init_mask = ImageOps.invert(init_mask)
+    # init_mask = ImageOps.invert(init_mask)
 
     # Get the original alpha channel of the mask if there is one.
     # Otherwise it is some other black/white image format ('1', 'L' or 'RGB')

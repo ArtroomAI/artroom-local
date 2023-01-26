@@ -598,15 +598,15 @@ class StableDiffusion:
                                 if self.is_nvidia:
                                     init_image = init_image.half()
 
-                        # if mask is not None:
-                        #     if init_image_str[:4] == 'data':
-                        #         original_init_image = support.b64_to_image(init_image_str).convert('RGB')
-                        #     else:
-                        #         original_init_image = Image.open(init_image_str).convert('RGB')
+                        if mask is not None:
+                            if init_image_str[:4] == 'data':
+                                original_init_image = support.b64_to_image(init_image_str).convert('RGB')
+                            else:
+                                original_init_image = Image.open(init_image_str).convert('RGB')
 
-                            # out_image = support.repaste_and_color_correct(result=out_image,
-                            #                                               init_image=original_init_image,
-                            #                                               init_mask=mask_image, mask_blur_radius=8)
+                            out_image = support.repaste_and_color_correct(result=out_image,
+                                                                          init_image=original_init_image,
+                                                                          init_mask=mask_image, mask_blur_radius=8)
 
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now
