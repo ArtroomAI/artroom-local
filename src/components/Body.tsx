@@ -19,6 +19,7 @@ import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import path from 'path';
 import { SocketContext } from '../socket';
+import { useInterval } from './Reusable/useInterval/useInterval';
 
 function Body () {
     const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
