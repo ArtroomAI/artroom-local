@@ -713,7 +713,6 @@ class UNet(DDPM):
                S_ddim_steps=None,
                seed=1234,
                callback=None,
-               img_callback=None,
                quantize_x0=False,
                eta=0.,
                mask=None,
@@ -756,7 +755,6 @@ class UNet(DDPM):
             print(f'Data shape for PLMS sampling is {shape}')
             samples = self.plms_sampling(conditioning, batch_size, x_latent,
                                          callback=callback,
-                                         img_callback=img_callback,
                                          quantize_denoised=quantize_x0,
                                          mask=mask, x0=x0,
                                          ddim_use_original_steps=False,
@@ -770,14 +768,14 @@ class UNet(DDPM):
                                          )
 
         elif sampler == "ddim":
-            samples = self.ddim_sampling(x_latent, conditioning, S,
+            samples = self.ddim_sampling(x_latent, conditioning, S, callback=callback,
                                          unconditional_guidance_scale=unconditional_guidance_scale,
                                          unconditional_conditioning=unconditional_conditioning,
                                          mask=mask, init_latent=x_T, use_original_steps=False)
         else:
             samples = self.k_sampling(x_latent, conditioning, S, sampler, S_ddim_steps=S_ddim_steps,
                                       unconditional_guidance_scale=unconditional_guidance_scale,
-                                      unconditional_conditioning=unconditional_conditioning,
+                                      unconditional_conditioning=unconditional_conditioning, callback=callback,
                                       mask=mask, init_latent=x0, use_original_steps=False)
 
         if self.turbo and self.v1:
@@ -797,7 +795,7 @@ class UNet(DDPM):
     def plms_sampling(self, cond, b, img,
                       ddim_use_original_steps=False,
                       callback=None, quantize_denoised=False,
-                      mask=None, x0=None, img_callback=None, log_every_t=100,
+                      mask=None, x0=None, log_every_t=100,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None):
 
@@ -833,8 +831,8 @@ class UNet(DDPM):
             old_eps.append(e_t)
             if len(old_eps) >= 4:
                 old_eps.pop(0)
-            if callback: callback(i)
-            if img_callback: img_callback(pred_x0, i)
+            if callback:
+                callback(pred_x0)
 
         return img
 
@@ -1116,7 +1114,7 @@ class UNet(DDPM):
 
     @torch.no_grad()
     def ddim_sampling(self, x_latent, cond, t_start, unconditional_guidance_scale=1.0, unconditional_conditioning=None,
-                      mask=None, init_latent=None, use_original_steps=False):
+                      mask=None, init_latent=None, use_original_steps=False, callback=None):
 
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:t_start]
@@ -1139,6 +1137,8 @@ class UNet(DDPM):
             x_dec = self.p_sample_ddim(x_dec, cond, ts, index=index, use_original_steps=use_original_steps,
                                        unconditional_guidance_scale=unconditional_guidance_scale,
                                        unconditional_conditioning=unconditional_conditioning)
+            if callback:
+                callback(x_dec)
 
         if mask is not None:
             return x0 * mask + (1. - mask) * x_dec
@@ -1210,7 +1210,7 @@ class UNet(DDPM):
         return self.append_zero(sigmas).to(device)
 
     def k_sampling(self, x_latent, cond, S, sampler, unconditional_guidance_scale=1.0,
-                   unconditional_conditioning=None, S_ddim_steps=None,
+                   unconditional_conditioning=None, S_ddim_steps=None, callback=None,
                    mask=None, init_latent=None, use_original_steps=False):
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:S]
@@ -1240,6 +1240,8 @@ class UNet(DDPM):
                                        unconditional_guidance_scale=unconditional_guidance_scale,
                                        unconditional_conditioning=unconditional_conditioning,
                                        model_wrap_sigmas=model_wrap_sigmas, ds=ds)
+            if callback:
+                callback(x_latent)
 
         return x_latent
 

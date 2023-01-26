@@ -166,34 +166,34 @@ class QueueManager():
         self.save_to_settings_folder(next_gen)
         ckpt_path = os.path.join(next_gen['ckpt_dir'],next_gen['ckpt']).replace(os.sep, '/')
         vae_path = os.path.join(next_gen['ckpt_dir'],next_gen['vae']).replace(os.sep, '/')
-        try:
-            print("Starting gen...")
-            self.SD.generate(
-                text_prompts=next_gen['text_prompts'],
-                negative_prompts=next_gen['negative_prompts'],
-                batch_name=next_gen['batch_name'],
-                init_image_str=init_image_str,
-                strength=next_gen['strength'],
-                mask_b64=mask_b64,
-                invert=next_gen['invert'],
-                n_iter=int(next_gen['n_iter']),
-                steps=int(next_gen['steps']),
-                H=int(next_gen['height']),
-                W=int(next_gen['width']),
-                seed=int(next_gen['seed']),
-                sampler=next_gen['sampler'],
-                cfg_scale=float(next_gen['cfg_scale']),
-                ckpt=ckpt_path,
-                vae=vae_path,
-                image_save_path=next_gen['image_save_path'],
-                speed=next_gen['speed'],
-                skip_grid=not next_gen['save_grid'],
-            )
-        except Exception as e:
-            print(f'Failure: {e}')
-            self.parse_errors(e)
-            self.running = False
-            self.SD.running = False
+        # try:
+        print("Starting gen...")
+        self.SD.generate(
+            text_prompts=next_gen['text_prompts'],
+            negative_prompts=next_gen['negative_prompts'],
+            batch_name=next_gen['batch_name'],
+            init_image_str=init_image_str,
+            strength=next_gen['strength'],
+            mask_b64=mask_b64,
+            invert=next_gen['invert'],
+            n_iter=int(next_gen['n_iter']),
+            steps=int(next_gen['steps']),
+            H=int(next_gen['height']),
+            W=int(next_gen['width']),
+            seed=int(next_gen['seed']),
+            sampler=next_gen['sampler'],
+            cfg_scale=float(next_gen['cfg_scale']),
+            ckpt=ckpt_path,
+            vae=vae_path,
+            image_save_path=next_gen['image_save_path'],
+            speed=next_gen['speed'],
+            skip_grid=not next_gen['save_grid'],
+        )
+        # except Exception as e:
+        #     print(f'Failure: {e}')
+        #     self.parse_errors(e)
+        #     self.running = False
+        #     self.SD.running = False
 
     def run_queue(self):
         if not self.running:
@@ -203,10 +203,10 @@ class QueueManager():
                 if len(self.queue) > 0 and not self.SD.stage == "Loading Model":
                     print("Generating next item from queue...")
                     queue_item = self.queue[0]
-                    try:
-                        self.generate(queue_item)
-                    except Exception as e:
-                        print(f"Failed to generate: {e}")
+                    # try:
+                    self.generate(queue_item)
+                    # except Exception as e:
+                    #     print(f"Failed to generate: {e}")
 
                     try:
                         self.remove_from_queue(queue_item['id'])

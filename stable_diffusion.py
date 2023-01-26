@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+from torchvision.utils import make_grid
+
 from safe import load as safe_load
 import warnings
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
@@ -126,6 +129,7 @@ class StableDiffusion:
         self.socketio = socketio
         self.v1 = False
         self.cc = self.get_cc()
+        self.callback_counter = 0
 
         # Generation Runtime Parameters
 
@@ -381,6 +385,34 @@ class StableDiffusion:
 
         return init_image, H, W
 
+    def callback_fn(self, x, enabled=False):
+        if not enabled:
+            return
+        if self.callback_counter % 5 == 0:  # every 5 gens
+            def float_tensor_to_pil(tensor: torch.Tensor):
+                """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
+                (Reproduced here to save a torchvision dependency in this demo.)
+                """
+                tensor = (((tensor + 1) / 2)
+                          .clamp(0, 1)  # change scale from -1..1 to 0..1
+                          .mul(0xFF)  # to 0..255
+                          .byte())
+                tensor = rearrange(tensor, 'c h w -> h w c')
+                return Image.fromarray(tensor.cpu().numpy())
+
+            x = x.detach().cpu()
+            x = make_grid(x, nrow=x.shape[0]).to(torch.float32)
+            x = float_tensor_to_pil(torch.einsum('...lhw,lr -> ...rhw', x, torch.tensor([
+                #   R        G        B
+                [0.298, 0.207, 0.208],  # L1
+                [0.187, 0.286, 0.173],  # L2
+                [-0.158, 0.189, 0.264],  # L3
+                [-0.184, -0.271, -0.473],  # L4
+            ], dtype=torch.float32)))
+            self.callback_counter += 1
+            x = x.resize((x.width * 4, x.height * 4))
+            # x.show()
+
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
@@ -540,7 +572,7 @@ class StableDiffusion:
                                 if invert:
                                     mask_image = ImageOps.invert(mask_image)
 
-                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3])\
+                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]) \
                                     .to(self.device)
                                 mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(mask, '1 ... -> b ...', b=batch_size)
@@ -567,8 +599,10 @@ class StableDiffusion:
                                 batch_size=batch_size,
                                 seed=seed,
                                 mask=mask,
-                                x_T=x_T
+                                x_T=x_T,
+                                callback=self.callback_fn
                             )
+                            self.callback_counter = 0
                             if self.v1:
                                 self.modelFS.to(self.device)
 
