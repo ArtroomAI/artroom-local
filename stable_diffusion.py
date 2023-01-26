@@ -440,7 +440,7 @@ class StableDiffusion:
         gc.collect()
         seed_everything(seed)
 
-        if len(init_image_str) > 0 and sampler == 'plms' or len(mask_b64) > 0:
+        if (len(init_image_str) > 0 and sampler == 'plms') or (len(mask_b64) > 0 and sampler == 'plms'):
             if len(mask_b64) > 0:
                 print("Currently, only DDIM works with masks. Switching samplers to DDIM")
             sampler = 'ddim'

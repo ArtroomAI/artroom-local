@@ -1234,7 +1234,7 @@ class UNet(DDPM):
         for i in trange(total_steps, desc='Decoding image', total=total_steps):
             self.current_step = i
             if mask is not None and x_latent.shape[1] != 9:
-                x_latent = ((1 - mask) * noise) + (mask * x_latent)
+                x_latent = init_latent * mask + (1. - mask) * x_latent
 
             x_latent = self.p_k_sample(x_latent, cond, sigmas, sampler, s_in=s_in, i=i,
                                        unconditional_guidance_scale=unconditional_guidance_scale,
