@@ -16,7 +16,7 @@ import {
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 import _ from 'lodash';
-import { uuidv4 } from 'uuid';
+import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 import { SocketContext } from '../socket';
@@ -161,7 +161,7 @@ function Paint () {
             category: "user",
             mtime: 1673399421.3987432,
             url: imageData.path,
-            uuid: uuidv4(),
+            uuid: v4(),
             kind: "image",
             layer: "base",
             x: 0,

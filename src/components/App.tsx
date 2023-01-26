@@ -58,9 +58,6 @@ export default function App () {
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
 
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
-    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-
     const socket = useContext(SocketContext);
 
     const handleGetImages = useCallback((data: ImageState) => {

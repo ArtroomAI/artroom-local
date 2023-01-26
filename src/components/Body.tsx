@@ -32,7 +32,6 @@ function Body () {
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-    const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
     const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
     
 
@@ -224,66 +223,6 @@ function Body () {
         },
         []
     );
-
-    useInterval(
-        () => {
-            axios.get(
-                `${baseURL}/get_images`,
-                { params: { 'path': 'latest',
-                    'id': latestImagesID },
-                headers: { 'Content-Type': 'application/json' } }
-            ).then((result) => {
-                const id = result.data.content.latest_images_id;
-
-
-                if (result.data.status === 'Success') {
-                    if (id !== latestImagesID) {
-                        setLatestImagesID(id);
-                        setLatestImages(result.data.content.latest_images);
-                        setMainImage(result.data.content.latest_images[result.data.content.latest_images.length - 1]?.b64);
-                    }
-                } else if (result.data.status === 'Failure') {
-                    setMainImage('');
-                }
-            });
-        },
-        3000
-    );
-
-    const submitMain = () => {
-        axios.post(
-            `${baseURL}/add_to_queue`, imageSettings,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                toast({
-                    title: 'Added to Queue!',
-                    status: 'success',
-                    position: 'top',
-                    duration: 2000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            } else {
-                toast({
-                    title: 'Error',
-                    status: 'error',
-                    description: result.data.status_message,
-                    position: 'top',
-                    duration: 5000,
-                    isClosable: true,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            }
-        }).
-            catch((error) => console.log(error));
-    };
 
     const submitCloud = () => {
         ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {

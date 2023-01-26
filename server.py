@@ -82,26 +82,7 @@ def upscale(data):
     return return_output(upscale_status[0], upscale_status[1])
 
 
-@app.route('/get_images', methods=['GET'])
-def get_images():
-    path = request.args.get('path')
-    id = int(request.args.get('id'))
-    if id == SD.latest_images_id:
-        return return_output('Hold', 'No new updates on images',
-                            content={'latest_images_id': SD.latest_images_id, 'latest_images': []})
-    try:
-        if path == 'latest':
-            image_data = SD.get_latest_images()            
-        else:
-            image = Image.open(path).convert('RGB')
-            image_data = [{"b64": support.image_to_b64(image), "path": path}]
-        return return_output('Success', content={'latest_images_id': SD.latest_images_id, 'latest_images': image_data})
-    except Exception as e:
-        print(e)
-        return return_output('Failure', 'Failed to get image', {'latest_images_id': -1, 'latest_images': []})
-
-
-@app.route('/get_server_status', methods=['GET'])
+@socketio.on('/get_server_status')
 def get_server_status():
     socketio.emit("get_server_status", {'server_running': SD.running }, broadcast=True)
 
@@ -233,78 +214,6 @@ def get_settings():
     sd_settings = json.load(
         open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
     return return_output('Success', content={'status': QM.queue, 'settings': sd_settings})
-
-
-@app.route('/get_queue', methods=['GET'])
-def get_queue():
-    return return_output('Success', content={'queue': QM.queue})
-
-
-@app.route('/start_queue', methods=['GET'])
-def start_queue():
-    print('Starting Queue...')
-    if not QM.running:
-        run_sd()
-        return return_output('Success')
-    else:
-        print('Queue already running')
-        return return_output('Failure')
-
-@app.route('/pause_queue', methods=['GET'])
-def pause_queue():
-    print('Pausing queue...')
-    if QM.running:
-        QM.running = False
-        print('Queue paused')
-        return return_output('Success')
-    else:
-        print('Failed to pause queue')
-        return return_output('Failure')
-
-@app.route('/stop_queue', methods=['GET'])
-def stop_queue():
-    print('Stopping queue...')
-    QM.running = False
-    SD.running = False
-    print('Queue stopped')
-    return return_output('Success')
-
-@app.route('/clear_queue', methods=['POST'])
-def clear_queue():
-    print('Clearing queue...')
-    QM.clear_queue()
-    print('Queue cleared')
-    return return_output('Success')
-
-@app.route('/remove_from_queue', methods=['POST'])
-def remove_from_queue():
-    print('Removing from queue...')
-    data = json.loads(request.data)
-    QM.remove_from_queue(data['id'])
-    print(f"{data['id']} removed from queue")
-    return return_output('Success', content={'queue': QM.queue})
-
-
-@app.route('/add_to_queue', methods=['POST'])
-def add_to_queue():
-    print('Adding to queue...')
-    data = json.loads(request.data)
-    if data['ckpt'] == '':
-        print('Failure, model checkpoint cannot be blank')
-        return return_output('Failure', 'Model Checkpoint cannot be blank. Please go to Settings and set a model ckpt.')
-
-    QM.add_to_queue(data)
-
-    # Cleans up printout so you don't print out the whole b64
-    data_copy = dict(data)
-    if len(data_copy['init_image']):
-        data_copy['init_image'] = data_copy['init_image'][:100]+"..."
-    if len(data_copy['mask_image']):
-        data_copy['mask_image'] = data_copy['mask_image'][:100]+"..."
-    print(f'Added to queue: {data_copy}')
-    if not QM.running:
-        run_sd()
-    return return_output('Success', content={'queue': QM.queue})
 
 
 def run_sd():
