@@ -27,6 +27,7 @@ from artroom_helpers import support, inpainting
 
 sys.path.append("stable-diffusion/optimizedSD")
 from ldm.util import instantiate_from_config
+
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -52,6 +53,7 @@ def load_model_from_config(ckpt, use_safe_load=True):
     if "state_dict" in pl_sd:
         return pl_sd["state_dict"]
     return pl_sd
+
 
 def load_mask(mask, newH, newW):
     image = np.array(mask)
@@ -96,8 +98,10 @@ def load_img(image, h0, w0, inpainting=False):
     image = torch.from_numpy(image)
     return 2. * image - 1.
 
+
 class StableDiffusion:
-    def __init__(self, socketio=None, Upscaler = None):
+    def __init__(self, socketio=None, Upscaler=None):
+        self.dtype = None
         self.Upscaler = Upscaler
 
         self.current_num = 0
@@ -108,7 +112,7 @@ class StableDiffusion:
         self.artroom_path = None
 
         self.model = None
-        self.modelCS = None 
+        self.modelCS = None
         self.modelFS = None
 
         self.ckpt = ''
@@ -123,8 +127,8 @@ class StableDiffusion:
         self.v1 = False
         self.cc = self.get_cc()
 
-        #Generation Runtime Parameters
-        
+        # Generation Runtime Parameters
+
     def get_cc(self):
         try:
             cc = torch.cuda.get_device_capability()
@@ -175,7 +179,7 @@ class StableDiffusion:
     def load_vae(self, vae_path, safe_load_=True):
         vae = load_model_from_config(vae_path, safe_load_)
         vae = {k: v for k, v in vae.items() if
-        
+
                ("loss" not in k) and
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
@@ -248,8 +252,6 @@ class StableDiffusion:
             self.modelCS = self.model  # just link without a copy
             self.modelFS = self.model  # just link without a copy
             self.v1 = False
-
-
         else:
             self.v1 = True
             if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
@@ -322,6 +324,10 @@ class StableDiffusion:
             self.modelCS.half()
             self.modelFS.half()
             torch.set_default_tensor_type(torch.HalfTensor)
+        else:
+            self.model.to(torch.float32)
+            self.modelCS.to(torch.float32)
+            self.modelFS.to(torch.float32)
         del sd
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
@@ -338,7 +344,7 @@ class StableDiffusion:
 
     def get_image(self, init_image_str, mask_b64):
         if len(init_image_str) == 0:
-            return None 
+            return None
 
         if init_image_str[:4] == 'data':
             print("Loading image from b64")
@@ -367,7 +373,7 @@ class StableDiffusion:
         image = np.array(image).astype(np.float32) / 255.0
         image = image[None].transpose(0, 3, 1, 2)
         image = torch.from_numpy(image)
-        init_image =  2. * image - 1.
+        init_image = 2. * image - 1.
         init_image = init_image.to(self.device)
         _, _, H, W = image.shape
         if self.is_nvidia:
@@ -378,8 +384,10 @@ class StableDiffusion:
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
-                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False, batch_id=0):
+                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False,
+                 batch_id=0):
         self.running = True
+        self.dtype = torch.float16 if self.is_nvidia else torch.float32
 
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
@@ -435,8 +443,7 @@ class StableDiffusion:
 
             init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0)).to(self.device)
             _, _, H, W = init_image.shape
-            if self.is_nvidia:
-                init_image = init_image.half()
+            init_image = init_image.to(self.dtype)
         else:
             init_image = None
 
@@ -462,14 +469,9 @@ class StableDiffusion:
             if steps <= 0:
                 steps = 1
 
-        if self.is_nvidia:
-            precision_scope = autocast
-        else:
-            precision_scope = nullcontext
-
         self.total_num = n_iter
         all_samples = []
-
+        precision_scope = autocast if self.is_nvidia else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
                 if not self.running:
@@ -505,9 +507,9 @@ class StableDiffusion:
                                 weight = weighted_prompt[i][1]
                                 # if not skip_normalize:
                                 c = torch.add(c, self.modelCS.get_learned_conditioning(
-                                    weighted_prompt[i][0]), alpha=weight)
+                                    weighted_prompt[i][0]), alpha=weight).to(self.device)
                         else:
-                            c = self.modelCS.get_learned_conditioning(prompts)
+                            c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
 
                         print("Sampler", sampler)
@@ -515,8 +517,6 @@ class StableDiffusion:
                         for ij in range(1, highres_fix_steps + 1):
                             if init_image is not None:
                                 init_image = init_image.to(self.device)
-                                if self.is_nvidia:
-                                    init_image = init_image.half()
                                 init_image = repeat(
                                     init_image, '1 ... -> b ...', b=batch_size)
                                 init_latent = self.modelFS.get_first_stage_encoding(
@@ -540,7 +540,8 @@ class StableDiffusion:
                                 if invert:
                                     mask_image = ImageOps.invert(mask_image)
 
-                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]).to(self.device)
+                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3])\
+                                    .to(self.device)
                                 mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(mask, '1 ... -> b ...', b=batch_size)
                                 if self.v1:
@@ -577,6 +578,7 @@ class StableDiffusion:
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                             # print(x_sample.shape)  # 1, 3, 768, 768
                             if abs(float(x_sample.flatten().sum())) <= 1.0:  # black square
+                                print("Fixing a black square")
                                 self.modelFS.to(torch.float32)
                                 x_samples_ddim = self.modelFS.decode_first_stage(
                                     x0[0].to(torch.float32).unsqueeze(0))
@@ -590,50 +592,48 @@ class StableDiffusion:
                                 x_sample.astype(np.uint8))
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1))
-                                if self.is_nvidia:
-                                    init_image = init_image.half()
+                                    out_image, H * (ij + 1), W * (ij + 1)).to(self.device).to(self.dtype)
                             elif ij == highres_fix_steps - 1:
-                                init_image = load_img(out_image, oldH, oldW)
-                                if self.is_nvidia:
-                                    init_image = init_image.half()
+                                init_image = load_img(out_image, oldH, oldW).to(self.device).to(self.dtype)
 
-                        if mask is not None:
-                            if init_image_str[:4] == 'data':
-                                original_init_image = support.b64_to_image(init_image_str).convert('RGB')
-                            else:
-                                original_init_image = Image.open(init_image_str).convert('RGB')
+                            if mask is not None:
+                                if init_image_str[:4] == 'data':
+                                    original_init_image = support.b64_to_image(init_image_str).convert('RGB')
+                                else:
+                                    original_init_image = Image.open(init_image_str).convert('RGB')
 
-                            out_image = support.repaste_and_color_correct(result=out_image,
-                                                                          init_image=original_init_image,
-                                                                          init_mask=mask_image, mask_blur_radius=8)
+                                out_image = support.repaste_and_color_correct(result=out_image,
+                                                                              init_image=original_init_image,
+                                                                              init_mask=mask_image, mask_blur_radius=8)
 
-                        exif_data = out_image.getexif()
-                        # Does not include Mask, ImageB64, or if Inverted. Only settings for now
-                        settings_data = {
-                            "text_prompts": text_prompts,
-                            "negative_prompts": negative_prompts,
-                            "steps": steps,
-                            "H": H,
-                            "W": W,
-                            "strength": strength,
-                            "cfg_scale": cfg_scale,
-                            "seed": seed,
-                            "sampler": sampler,
-                            "ckpt": os.path.basename(ckpt),
-                            "vae": os.path.basename(vae)
-                        }
-                        # 0x9286 Exif Code for UserComment
-                        exif_data[0x9286] = json.dumps(settings_data)
-                        out_image.save(
-                            os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
+                            exif_data = out_image.getexif()
+                            # Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                            settings_data = {
+                                "text_prompts": text_prompts,
+                                "negative_prompts": negative_prompts,
+                                "steps": steps,
+                                "H": H,
+                                "W": W,
+                                "strength": strength,
+                                "cfg_scale": cfg_scale,
+                                "seed": seed,
+                                "sampler": sampler,
+                                "ckpt": os.path.basename(ckpt),
+                                "vae": os.path.basename(vae)
+                            }
+                            # 0x9286 Exif Code for UserComment
+                            exif_data[0x9286] = json.dumps(settings_data)
+                            out_image.save(
+                                os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
 
-                        self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
+                            self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
+                                                              'path': os.path.join(sample_path, save_name),
+                                                              'batch_id': batch_id})
 
-                        base_count += 1
-                        seed += 1
-                        if not skip_grid and n_iter > 1:
-                            all_samples.append(out_image)
+                            base_count += 1
+                            seed += 1
+                            if not skip_grid and n_iter > 1:
+                                all_samples.append(out_image)
 
             if not skip_grid and n_iter > 1:
                 # additionally, save as grid
