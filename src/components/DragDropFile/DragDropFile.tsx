@@ -155,6 +155,7 @@ const DragDropFile = () => {
                     id="label-file-upload"
                 >
                     <ButtonGroup
+                        pt={2}
                         isAttached
                         variant="outline"
                     >
