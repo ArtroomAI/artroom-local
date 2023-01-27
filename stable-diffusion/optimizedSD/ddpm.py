@@ -1220,13 +1220,12 @@ class UNet(DDPM):
         model_wrap_sigmas = (((1 - self.alphas_cumprod) / self.alphas_cumprod) ** 0.5).to(x_latent.device)
 
         if init_latent is not None:  # img2img
-            sigmas = self.get_sigmas(S_ddim_steps + 1, model_wrap_sigmas)
+            sigmas = self.get_sigmas(S_ddim_steps, model_wrap_sigmas)
             noise = torch.randn_like(x_latent, device=x_latent.device) * sigmas[S_ddim_steps - S - 1]
             x_latent = x_latent + noise
             sigmas = sigmas[S_ddim_steps - S - 1:]
         else:
-            sigmas = self.get_sigmas(S + 1, model_wrap_sigmas)
-            noise = torch.randn_like(x_latent, device=x_latent.device)
+            sigmas = self.get_sigmas(S, model_wrap_sigmas)
             x_latent = x_latent * sigmas[0]
 
         s_in = x_latent.new_ones([x_latent.shape[0]]).to(x_latent.dtype).to(x_latent.device)
