@@ -8,7 +8,7 @@ import fs from "fs";
 import glob from 'glob';
 import axios from 'axios';
 import kill from 'tree-kill';
-import { spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 const ExifParser = require('exif-parser');
 
 require("dotenv").config();
@@ -94,7 +94,7 @@ const serverCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" ru
 
 const mergeModelsCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python model_merger.py`;
 
-let server = spawn(serverCommand, { detached: sd_data.debug_mode, shell: true });
+let server: ChildProcessWithoutNullStreams;
 
 const getFiles = (folder_path: string, ext: string) => {
   return new Promise((resolve, reject) => {
@@ -110,14 +110,7 @@ const getFiles = (folder_path: string, ext: string) => {
 
 function createWindow() {
   console.log("Artroom Log: " + artroom_install_log);
-
-  ipcMain.handle('login', async(event,data) =>{
-    return new Promise((resolve, reject) => {
-      //axios.post('login')
-      //store jwt token in safe storage
-      //store url
-    });
-  })
+  server = spawn(serverCommand, { detached: true, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);

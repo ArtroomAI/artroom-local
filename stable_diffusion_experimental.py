@@ -578,13 +578,10 @@ class StableDiffusion:
                     
                     out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
                 
-                    out_image.convert("RGB").save("TEST_FIRST.jpg")
 
                     starting_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
-                    starting_image.save("TEST_UPSCALE.jpg")
 
                     out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, starting_image.size[1], starting_image.size[0], cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
-                    out_image.convert("RGB").save("TEST_FINAL.jpg")
                 else:
                     out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
                 exif_data = out_image.getexif()

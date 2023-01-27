@@ -91,7 +91,6 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
         matched_result = Image.fromarray(np_matched_result, mode='RGB')
     else:
         matched_result = Image.fromarray(np_image, mode='RGB')
-    matched_result.save(f"TEST_BEFORE_{result.size[0]}_{result.size[1]}.png")
     # Blur the mask out (into init image) by specified amount
     if mask_blur_radius > 0:
         nm = np.asarray(pil_init_mask, dtype=np.uint8)
@@ -105,7 +104,6 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
 
     # Paste original on color-corrected generation (using blurred mask)
     matched_result.paste(init_image, (0,0), mask = multiplied_blurred_init_mask)
-    matched_result.save(f"TEST_AFTER_{result.size[0]}_{result.size[1]}.png")
 
     return matched_result
 

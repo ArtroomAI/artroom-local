@@ -70,7 +70,7 @@ export default function App () {
     }, [latestImages, setLatestImages, setMainImage])
 
     useEffect(() => {
-        socket.on('get_images', handleGetImages);
+        socket.on('get_images', handleGetImages); 
 
         return () => {
           socket.off('get_images', handleGetImages);

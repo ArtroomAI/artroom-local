@@ -77,10 +77,9 @@ def upscale(data):
     if data['upscale_dest'] == '':
         data['upscale_dest'] = SD.image_save_path+'/upscale_outputs'
 
-    upscale_output = UP.upscale(
-        data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
-    return return_output(upscale_status[0], upscale_status[1])
-
+    UP.upscale(data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
+    socketio.emit('upscale', { 'status': 'Success', 'status_message': 'Your upscale has completed' })
+    return 
 
 @socketio.on('/get_server_status')
 def get_server_status():
