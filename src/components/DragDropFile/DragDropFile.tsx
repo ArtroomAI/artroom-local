@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
@@ -19,10 +19,9 @@ const DragDropFile = () => {
     const inputRef = useRef(null);
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
-    
 
     useEffect(() => {
-        if (initImagePath.length > 0) {
+        if (initImagePath) {
             console.log(initImagePath);
             window.api.getImageFromPath(initImagePath).then((result) => {
                 setImageSettings({
@@ -31,7 +30,9 @@ const DragDropFile = () => {
                 });
             });
         }
-    }, [imageSettings, initImagePath, setImageSettings]);
+        // update only on when ImagePath is changed - prevents changing settings infinitely
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initImagePath]);
 
     // Handle drag events
     const handleDrag: React.DragEventHandler<HTMLElement> = function (e) {
@@ -45,16 +46,16 @@ const DragDropFile = () => {
     };
 
     // Triggers when file is dropped
-    const handleDrop: React.DragEventHandler<HTMLDivElement> = function (e) {
+    const handleDrop: React.DragEventHandler<HTMLDivElement> = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             handleFile(e.dataTransfer.files);
         }
-    };
+    }, []);
 
-    const handleFile = function (e: FileList) {
+    const handleFile = useCallback((e: FileList) => {
         const file = e[0];
         if (file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/heic") {
             console.log(file.path);
@@ -62,7 +63,7 @@ const DragDropFile = () => {
         } else {
             console.log("Invalid file type. Please select an image file (jpg, png or heic).");
         }
-    };
+    }, []);
 
     // Triggers when file is selected with click
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = function (e) {
