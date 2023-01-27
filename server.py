@@ -38,7 +38,8 @@ def reset_settings_to_default(self):
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False)
+max_ws_http_buffer_size = 50_000_000 # 50MB
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False, max_http_buffer_size=max_ws_http_buffer_size)
 UP = Upscaler()
 SD = StableDiffusion(socketio = socketio, Upscaler = UP)
 
