@@ -27,6 +27,7 @@ import {
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
+//import {Jimp} from 'jimp';
 
 function SDSettings () {
     const toast = useToast({});
@@ -231,7 +232,46 @@ function SDSettings () {
                                     name="aspect_ratio_selection"
                                     onChange={(event) => {
                                         setAspectRatioSelection(event.target.value);
-                                        if (event.target.value !== 'Custom') {
+
+                                        if (event.target.value === 'Init Image' && !imageSettings.init_image) {
+                                            //Switch to aspect ratio to none and print warning that no init image is set
+                                            setAspectRatioSelection('None');
+                                            setImageSettings({...imageSettings, aspect_ratio: 'None'});
+                                            toast({
+                                                'title': 'Invalid Aspect Ratio Selection',
+                                                'description': 'Must upload Starting Image first to use its resolution',
+                                                'status': 'error',
+                                                'position': 'top',
+                                                'duration': 3000,
+                                                'isClosable': true,
+                                                'containerStyle': {
+                                                    'pointerEvents': 'none'
+                                                }
+                                            });
+                                        } else if (event.target.value === 'Init Image') {
+                                            //read init image b64 and set proper height and width resolution so correct shard costs can be charged
+                                            const imageBuffer = Buffer.from(imageSettings.init_image, 'base64');
+                                            // Jimp.read(imageBuffer).then((image: any) => {
+                                            //     const { width, height } = image.bitmap;
+                                            //     console.log(`Width: ${width}, Height: ${height}`);
+                                            //     setImageSettings({...imageSettings, aspect_ratio: event.target.value, width: width, height: height});
+                                            // }).catch((err: any) => {
+                                            //     setAspectRatioSelection('None');
+                                            //     setImageSettings({...imageSettings, aspect_ratio: 'None'});
+                                            //     toast({
+                                            //         'title': 'Invalid Starting Image',
+                                            //         'description': 'Unable to load current Starting Image',
+                                            //         'status': 'error',
+                                            //         'position': 'top',
+                                            //         'duration': 3000,
+                                            //         'isClosable': true,
+                                            //         'containerStyle': {
+                                            //             'pointerEvents': 'none'
+                                            //         }
+                                            //     });
+                                            // });
+
+                                        } else if (event.target.value !== 'Custom') {
                                             setImageSettings({...imageSettings, aspect_ratio: event.target.value});
                                         }
                                     }}
