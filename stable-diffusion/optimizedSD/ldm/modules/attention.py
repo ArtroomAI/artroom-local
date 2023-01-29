@@ -12,6 +12,7 @@ from ldm.modules.diffusionmodules.util import checkpoint
 import xformers
 import xformers.ops
 
+
 def exists(val):
     return val is not None
 
@@ -79,6 +80,7 @@ def zero_module(module):
 
 def Normalize(in_channels):
     return torch.nn.GroupNorm(num_groups=32, num_channels=in_channels, eps=1e-6, affine=True)
+
 
 class LinearAttention(nn.Module):
     def __init__(self, dim, heads=4, dim_head=32):
@@ -151,8 +153,9 @@ class SpatialSelfAttention(nn.Module):
 
         return x + h_
 
+
 class MemoryEfficientCrossAttention(nn.Module):
-    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0.0,superfastmode=False):
+    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0.0, superfastmode=False):
         super().__init__()
         inner_dim = dim_head * heads
         context_dim = default(context_dim, query_dim)
@@ -176,10 +179,10 @@ class MemoryEfficientCrossAttention(nn.Module):
         b, _, _ = q.shape
         q, k, v = map(
             lambda t: t.unsqueeze(3)
-            .reshape(b, t.shape[1], self.heads, self.dim_head)
-            .permute(0, 2, 1, 3)
-            .reshape(b * self.heads, t.shape[1], self.dim_head)
-            .contiguous(),
+                .reshape(b, t.shape[1], self.heads, self.dim_head)
+                .permute(0, 2, 1, 3)
+                .reshape(b * self.heads, t.shape[1], self.dim_head)
+                .contiguous(),
             (q, k, v),
         )
 
@@ -191,11 +194,12 @@ class MemoryEfficientCrossAttention(nn.Module):
             raise NotImplementedError
         out = (
             out.unsqueeze(0)
-            .reshape(b, self.heads, out.shape[1], self.dim_head)
-            .permute(0, 2, 1, 3)
-            .reshape(b, out.shape[1], self.heads * self.dim_head)
+                .reshape(b, self.heads, out.shape[1], self.dim_head)
+                .permute(0, 2, 1, 3)
+                .reshape(b, out.shape[1], self.heads * self.dim_head)
         )
         return self.to_out(out)
+
 
 class CrossAttention(nn.Module):
     def __init__(self, query_dim, superfastmode=True, context_dim=None, heads=8, dim_head=64, dropout=0.):
@@ -268,14 +272,15 @@ class CrossAttention(nn.Module):
             mem_free_total = mem_free_cuda + mem_free_torch
 
             # mem counted before q k v are generated because they're gonna be stored on cpu
-            allocatable_mem = int(mem_free_total // 2)+1 if dtype == torch.float16 else \
-                int(mem_free_total // 4)+1
-            required_mem = int(q_proj.shape[0] * q_proj.shape[1] * q_proj.shape[2] * 4 * 2 * 50) if dtype == torch.float16 \
+            allocatable_mem = int(mem_free_total // 2) + 1 if dtype == torch.float16 else \
+                int(mem_free_total // 4) + 1
+            required_mem = int(
+                q_proj.shape[0] * q_proj.shape[1] * q_proj.shape[2] * 4 * 2 * 50) if dtype == torch.float16 \
                 else int(q_proj.shape[0] * q_proj.shape[1] * q_proj.shape[2] * 8 * 2 * 50)  # the last 50 is for speed
             chunk_split = (required_mem // allocatable_mem) * 2 if required_mem > allocatable_mem else 1
         except Exception as e:
             chunk_split = 1
-            #print(e)
+            # print(e)
 
         # print(f"allocatable_mem: {allocatable_mem}, required_mem: {required_mem}, chunk_split: {chunk_split}")
         # print(q.shape) torch.Size([1, 4096, 320])
@@ -285,7 +290,7 @@ class CrossAttention(nn.Module):
         torch.cuda.empty_cache()
 
         r1 = torch.zeros(q.shape[0], q.shape[1], v.shape[2], device=torch.device("cpu"))
-        mp = q.shape[1]//chunk_split
+        mp = q.shape[1] // chunk_split
         for i in range(0, q.shape[1], mp):
             q, k = q.to(device), k.to(device)
             s1 = einsum('b i d, b j d -> b i j', q[:, i:i + mp], k)
@@ -299,6 +304,7 @@ class CrossAttention(nn.Module):
         del r1, q, k, v
 
         return self.to_out(r2)
+
 
 class BasicTransformerBlock(nn.Module):
     r"""
@@ -314,25 +320,26 @@ class BasicTransformerBlock(nn.Module):
     """
 
     def __init__(
-        self,
-        dim: int,
-        n_heads: int,
-        d_head: int,
-        dropout=0.0,
-        context_dim: Optional[int] = None,
-        gated_ff: bool = True,
-        checkpoint: bool = True,
-        superfastmode=False,
-        use_xformers = False
+            self,
+            dim: int,
+            n_heads: int,
+            d_head: int,
+            dropout=0.0,
+            context_dim: Optional[int] = None,
+            gated_ff: bool = True,
+            checkpoint: bool = True,
+            superfastmode=False,
+            use_xformers=False
     ):
         super().__init__()
         AttentionBuilder = MemoryEfficientCrossAttention if use_xformers else CrossAttention
         self.attn1 = AttentionBuilder(
-            query_dim=dim, heads=n_heads, dim_head=d_head, dropout=dropout,superfastmode=superfastmode
+            query_dim=dim, heads=n_heads, dim_head=d_head, dropout=dropout, superfastmode=superfastmode
         )  # is a self-attention
         self.ff = FeedForward(dim, dropout=dropout, glu=gated_ff)
         self.attn2 = AttentionBuilder(
-            query_dim=dim, context_dim=context_dim, heads=n_heads, dim_head=d_head, dropout=dropout,superfastmode=superfastmode
+            query_dim=dim, context_dim=context_dim, heads=n_heads, dim_head=d_head, dropout=dropout,
+            superfastmode=superfastmode
         )  # is self-attn if context is none
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
@@ -349,6 +356,7 @@ class BasicTransformerBlock(nn.Module):
         hidden_states = self.attn2(self.norm2(hidden_states), context=context) + hidden_states
         hidden_states = self.ff(self.norm3(hidden_states)) + hidden_states
         return hidden_states
+
 
 class SpatialTransformer(nn.Module):
     """
@@ -373,7 +381,8 @@ class SpatialTransformer(nn.Module):
                                  padding=0)
 
         self.transformer_blocks = nn.ModuleList(
-            [BasicTransformerBlock(inner_dim, n_heads, d_head, use_xformers=use_xformers, superfastmode=superfastmode, dropout=dropout,context_dim=context_dim)
+            [BasicTransformerBlock(inner_dim, n_heads, d_head, use_xformers=use_xformers, superfastmode=superfastmode,
+                                   dropout=dropout, context_dim=context_dim)
              for _ in range(depth)]
         )
         self.proj_out = zero_module(nn.Conv2d(inner_dim,
@@ -382,7 +391,7 @@ class SpatialTransformer(nn.Module):
                                               stride=1,
                                               padding=0))
 
-    def forward(self, x, context=None): 
+    def forward(self, x, context=None):
         # note: if no context is given, cross-attention defaults to self-attention
         b, c, h, w = x.shape
         x_in = x
