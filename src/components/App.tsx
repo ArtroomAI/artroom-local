@@ -38,7 +38,7 @@ import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
 
 export default function App () {
-    // Connect to the server
+    // Connect to the server 
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
@@ -52,6 +52,7 @@ export default function App () {
 
     const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const [shard, setShard] = useRecoilState(atom.shardState);
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
@@ -102,6 +103,7 @@ export default function App () {
                     });
                     setCloudRunning(false);
                 } else {
+                    setShard(response.data.shards);
                     let job_list = response.data.jobs;
                     let text = "";
                     let pending_cnt = 0;
@@ -110,6 +112,20 @@ export default function App () {
                         for (let j = 0; j < job_list[i].images.length; j++) {
                             if (job_list[i].images[j].status == 'PENDING') {
                                 pending_cnt = pending_cnt + 1;
+                            } else if (job_list[i].images[j].status == 'FAILED') {
+
+                                let shard_refund = job_list[i].image_settings.shard_cost/job_list[i].image_settings.n_iter;
+                                toast({
+                                    title: 'Cloud Error Occurred, ' + shard_refund +' Shards Refunded to account',
+                                    description: "Failure on Image id: " + job_list[i].images[j].id + " Job id: " + job_list[i].id,
+                                    status: 'error',
+                                    position: 'top',
+                                    duration: 10000,
+                                    isClosable: true,
+                                    containerStyle: {
+                                        pointerEvents: 'none'
+                                    }
+                                });
                             } else if (job_list[i].images[j].status == 'SUCCESS') {
                                 //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
                                 let img_name = job_list[i].id + '_' + job_list[i].images[j].id;

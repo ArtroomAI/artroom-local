@@ -1,20 +1,15 @@
 import itertools
-import math
 import torch
 
-import k_diffusion as K
 import numpy as np
 import pytorch_lightning as pl
 
-from einops import rearrange, repeat
+from einops import rearrange
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from scipy import integrate
-from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 from tqdm.auto import trange, tqdm
 from functools import partial
-from omegaconf import ListConfig
-from contextlib import contextmanager, nullcontext
 
 from ldm.modules.ema import LitEma
 from ldm.models.autoencoder import VQModelInterface
