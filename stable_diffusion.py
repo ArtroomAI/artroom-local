@@ -418,15 +418,20 @@ class StableDiffusion:
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False,
                  batch_id=0):
+
+        self.highres_fix = True
         self.running = True
         self.dtype = torch.float16 if self.is_nvidia else torch.float32
 
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
 
+        print("HIGHRES FIX:",self.highres_fix)
+        print(W,H)
+
         oldW, oldH = W, H
-        if W * H > 1024 * 1024 and self.highres_fix:
-            highres_fix_steps = math.ceil((W * H) / (1024 * 1024))
+        if W * H > 768 * 768 and self.highres_fix:
+            highres_fix_steps = math.ceil((W * H) / (768 * 768))
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
             H = math.floor(H / 64) * 64

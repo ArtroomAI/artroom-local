@@ -279,10 +279,6 @@ function Settings () {
                             <Radio value="High">
                                 High
                             </Radio>
-
-                            <Radio value="Max">
-                                Max (experimental)
-                            </Radio>
                         </Stack>
                     </RadioGroup>
                 </FormControl>

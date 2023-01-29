@@ -17,7 +17,7 @@
     "image_save_path": "%UserProfile%/Desktop/",
     "long_save_path": false,
     "highres_fix": true,
-    "speed": "Max",
+    "speed": "High",
     "save_grid": false,
     "debug_mode": true,
     "ckpt": "model.ckpt",
