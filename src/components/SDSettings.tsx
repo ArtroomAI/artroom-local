@@ -332,7 +332,7 @@ function SDSettings () {
                                 defaultValue={512}
                                 id="width"
                                 isReadOnly={imageSettings.aspect_ratio === 'Init Image'}
-                                max={1920}
+                                max={2048}
                                 min={256}
                                 name="width"
                                 onChange={(v) => {
@@ -371,7 +371,7 @@ function SDSettings () {
                             <Slider
                                 defaultValue={512}
                                 isReadOnly={imageSettings.aspect_ratio === 'Init Image'}
-                                max={1920}
+                                max={2048}
                                 min={256}
                                 onChange={(v) => {
                                     setImageSettings({...imageSettings, height: v});

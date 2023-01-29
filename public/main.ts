@@ -13,6 +13,7 @@ const ExifParser = require('exif-parser');
 
 require("dotenv").config();
 import { exposeMenuFunctions } from './menu-functions';
+import { handlers } from './ipcHandles';
 
 let win;
 let hd = os.homedir();
@@ -57,8 +58,7 @@ const loadSDData = () => {
   return sd_data;
 }
 
-//replace placeholders with actual paths
-const sd_data = loadSDData();
+loadSDData();
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
@@ -484,6 +484,7 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
+  handlers(artroom_path);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   
