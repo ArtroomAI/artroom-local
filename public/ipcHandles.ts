@@ -57,5 +57,5 @@ const backupPythonInstallation = (artroom_path: string) => () => {
 };
 
 export const handlers = (artroom_path: string) => {
-    ipcMain.handle('saveFromDataURL', backupPythonInstallation(artroom_path));
+    ipcMain.handle('pythonInstall', backupPythonInstallation(artroom_path));
 }
