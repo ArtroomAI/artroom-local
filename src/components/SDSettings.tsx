@@ -231,7 +231,23 @@ function SDSettings () {
                                     name="aspect_ratio_selection"
                                     onChange={(event) => {
                                         setAspectRatioSelection(event.target.value);
-                                        if (event.target.value !== 'Custom') {
+
+                                        if (event.target.value === 'Init Image' && !imageSettings.init_image) {
+                                            //Switch to aspect ratio to none and print warning that no init image is set
+                                            setAspectRatioSelection('None');
+                                            setImageSettings({...imageSettings, aspect_ratio: 'None'});
+                                            toast({
+                                                'title': 'Invalid Aspect Ratio Selection',
+                                                'description': 'Must upload Starting Image first to use its resolution',
+                                                'status': 'error',
+                                                'position': 'top',
+                                                'duration': 3000,
+                                                'isClosable': true,
+                                                'containerStyle': {
+                                                    'pointerEvents': 'none'
+                                                }
+                                            });
+                                        } else if (event.target.value !== 'Custom') {
                                             setImageSettings({...imageSettings, aspect_ratio: event.target.value});
                                         }
                                     }}

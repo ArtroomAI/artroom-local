@@ -19,6 +19,7 @@ const DragDropFile = () => {
     const inputRef = useRef(null);
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
+    const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
 
     useEffect(() => {
         if (initImagePath) {
@@ -167,9 +168,11 @@ const DragDropFile = () => {
                             icon={<FaTrashAlt />}
                             onClick={(event) => {
                                 setInitImagePath('');
+                                setAspectRatioSelection('None');
                                 setImageSettings({
                                     ...imageSettings,
                                     init_image: '',
+                                    aspect_ratio: 'None'
                                   });
                             }}
                         />
