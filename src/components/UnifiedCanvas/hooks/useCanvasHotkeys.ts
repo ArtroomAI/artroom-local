@@ -141,18 +141,6 @@ export const useInpaintingCanvasHotkeys = () => {
   );
 
   useHotkeys(
-    'shift+h',
-    () => {
-      setShouldShowBoundingBox(!shouldShowBoundingBox);
-    },
-    {
-      enabled: () => !isStaging,
-      preventDefault: true,
-    },
-    [shouldShowBoundingBox]
-  );
-
-  useHotkeys(
     ['space'],
     (e: KeyboardEvent) => {
       e.preventDefault();
