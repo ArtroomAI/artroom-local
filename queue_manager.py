@@ -32,7 +32,10 @@ class QueueManager():
 
     def clear_queue(self):
         self.queue = []
-
+        queue_json = {'queue': []}
+        with open(f'{self.artroom_path}/artroom/settings/queue.json', 'w') as outfile:
+            json.dump(queue_json, outfile, indent=4)
+        
     def remove_from_queue(self, id):
         for i, item in enumerate(self.queue):
             if item['id'] == id:

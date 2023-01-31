@@ -261,12 +261,12 @@ function SDSettings () {
                                         None
                                     </option>
 
-                                    <option
+                                    {imageSettings.init_image.length && <option
                                         style={{ 'backgroundColor': '#080B16' }}
                                         value="Init Image"
                                     >
                                         Init Image
-                                    </option>
+                                    </option>}
 
                                     <option
                                         style={{ 'backgroundColor': '#080B16' }}

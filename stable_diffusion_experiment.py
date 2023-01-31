@@ -494,7 +494,7 @@ class StableDiffusion:
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
             
-        self.highres_fix = False
+        self.highres_fix = True
         self.running = True
         print("Starting generate process...")
 
@@ -571,19 +571,80 @@ class StableDiffusion:
                 self.model.total_steps = steps
             
                 if self.highres_fix: 
+                    original_W, original_H = (W,H)
                     if min(W, H) > 512:
                         scale = min(W, H) / 512
                         print(f"Hires Scale: {scale}")
                         W, H = (int(W/scale), int(H/scale))
-                    
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
                 
+                    print("STEPS")
+                    print(steps, ddim_steps)
+                    print(len(mask_b64))
+                    out_image = self.generate_image(
+                        prompts_data=prompts_data, 
+                        negative_prompts_data=negative_prompts_data, 
+                        precision_scope=precision_scope, 
+                        starting_image = starting_image,        
+                        mask_b64=mask_b64,
+                        invert=invert,
+                        steps=steps, 
+                        H=H, 
+                        W=W, 
+                        cfg_scale=cfg_scale, 
+                        seed=seed,
+                        sampler=sampler,
+                        ddim_steps=ddim_steps)
 
-                    starting_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
+                    temp_path = os.path.join(self.artroom_path, "intermediates")
+                    os.makedirs(temp_path, exist_ok=True)
+                    print(os.path.join(self.artroom_path,"highres.jpg"))
+                    out_image.save(os.path.join(temp_path,"highres.jpg"))
+                    self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
 
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, starting_image.size[1], starting_image.size[0], cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    upscaled_image = self.Upscaler.upscale(images = [os.path.join(temp_path,"highres.jpg")], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join(temp_path))["content"]["output_images"][0].convert("RGB")
+
+                    self.socketio.emit('get_images', {'b64': support.image_to_b64(upscaled_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
+
+                    #If haven't done already
+                    if starting_image is None:
+                        if self.v1:
+                            self.modelFS.to(self.device)
+
+                        steps = int(strength * ddim_steps)
+                        if steps <= 0:
+                            steps = 1
+                    print("STEPS")
+                    print(steps, ddim_steps)
+                    out_image = self.generate_image(
+                        prompts_data=prompts_data, 
+                        negative_prompts_data=negative_prompts_data, 
+                        precision_scope=precision_scope, 
+                        starting_image = upscaled_image,        
+                        mask_b64=mask_b64,
+                        invert=invert,
+                        steps=steps, 
+                        H=original_H, 
+                        W=original_W, 
+                        cfg_scale=cfg_scale, 
+                        seed=seed,
+                        sampler=sampler,
+                        ddim_steps=ddim_steps)
                 else:
-                    out_image = self.generate_image(prompts_data, negative_prompts_data, precision_scope, starting_image, mask_b64, invert, steps, H, W, cfg_scale, seed, sampler, C, ddim_eta, f, ddim_steps)
+                    out_image = self.generate_image(
+                        prompts_data=prompts_data, 
+                        negative_prompts_data=negative_prompts_data, 
+                        precision_scope=precision_scope, 
+                        starting_image = starting_image,        
+                        mask_b64=mask_b64,
+                        invert=invert,
+                        steps=steps, 
+                        H=H, 
+                        W=W, 
+                        cfg_scale=cfg_scale, 
+                        seed=seed,
+                        sampler=sampler,
+                        ddim_steps=ddim_steps)
+
                 exif_data = out_image.getexif()
                 # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                 settings_data = {

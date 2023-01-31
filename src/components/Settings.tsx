@@ -409,9 +409,8 @@ function Settings () {
                         onClick={submitEvent}>
                         Save Settings
                     </Button>
-
-                    {/* <Spacer></Spacer>
-                <DebugInstallerModal/> */}
+                    <Spacer/>
+                    <DebugInstallerModal/>
                 </Flex>
             </VStack>
         </Box>

@@ -419,7 +419,6 @@ class StableDiffusion:
                  n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False,
                  batch_id=0):
 
-        self.highres_fix = True
         self.running = True
         self.dtype = torch.float16 if self.is_nvidia else torch.float32
 
@@ -430,8 +429,8 @@ class StableDiffusion:
         print(W,H)
 
         oldW, oldH = W, H
-        if W * H > 768 * 768 and self.highres_fix:
-            highres_fix_steps = math.ceil((W * H) / (768 * 768))
+        if W * H > 512 * 512 and self.highres_fix:
+            highres_fix_steps = math.ceil((W * H) / (512 * 512))
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
             H = math.floor(H / 64) * 64

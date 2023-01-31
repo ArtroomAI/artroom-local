@@ -3,7 +3,7 @@ import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
     Box,
-    Image,
+    Image as ChakraImage,
     IconButton,
     ButtonGroup
 } from '@chakra-ui/react';
@@ -14,6 +14,15 @@ import {
     FaTrashAlt
 } from 'react-icons/fa';
 
+const getImageDimensions = (base64: string) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = reject;
+      img.src = base64;
+    });
+  };
+
 const DragDropFile = () => {
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef(null);
@@ -23,17 +32,30 @@ const DragDropFile = () => {
 
     useEffect(() => {
         if (initImagePath) {
-            console.log(initImagePath);
-            window.api.getImageFromPath(initImagePath).then((result) => {
+          console.log(initImagePath);
+          window.api.getImageFromPath(initImagePath).then((result) => {
+            getImageDimensions(result.b64).then((dimensions) => {
+              if (aspectRatioSelection === "Init Image"){
                 setImageSettings({
                     ...imageSettings,
                     init_image: result.b64,
-                });
+                    width: dimensions.width,
+                    height: dimensions.height,
+                  });
+              }
+              else{
+                setImageSettings({
+                    ...imageSettings,
+                    init_image: result.b64,
+                  });
+              }
+
             });
+          });
         }
-        // update only on when ImagePath is changed - prevents changing settings infinitely
+        // update only when ImagePath is changed - prevents changing settings infinitely
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initImagePath]);
+      }, [initImagePath]);
 
     // Handle drag events
     const handleDrag: React.DragEventHandler<HTMLElement> = function (e) {
@@ -103,7 +125,7 @@ const DragDropFile = () => {
                         borderColor: '#FFFFFF20' }}
                     width="140px"
                 >
-                    <Image
+                    <ChakraImage
                         boxSize="140px"
                         fit="contain"
                         rounded="md"
@@ -161,19 +183,25 @@ const DragDropFile = () => {
                             width="100px"
                             aria-label='upload'
                         />
-
                         <IconButton
                             aria-label="Clear Init Image"
                             border="2px"
                             icon={<FaTrashAlt />}
                             onClick={(event) => {
                                 setInitImagePath('');
-                                setAspectRatioSelection('None');
-                                setImageSettings({
+                                if (aspectRatioSelection === "Init Image") {
+                                    setImageSettings({
                                     ...imageSettings,
                                     init_image: '',
-                                    aspect_ratio: 'None'
-                                  });
+                                    aspect_ratio: 'None',
+                                    });
+                                    setAspectRatioSelection('None');
+                                } else {
+                                    setImageSettings({
+                                    ...imageSettings,
+                                    init_image: '',
+                                    });
+                                }
                             }}
                         />
                     </ButtonGroup>
