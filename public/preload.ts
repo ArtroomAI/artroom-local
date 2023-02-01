@@ -25,6 +25,8 @@ const api = {
     maxUnmaxWindow: async () => {return await ipcRenderer.invoke('maxUnmaxWindow');},
     closeWindow: async () => {return await ipcRenderer.invoke('closeWindow');},
     getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
+    pythonInstall: async() => {return await ipcRenderer.invoke('pythonInstall');},
+    fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent) => void) => {ipcRenderer.on('', callback)}
 }
 
 if (process.env.NODE_ENV !== 'production') {

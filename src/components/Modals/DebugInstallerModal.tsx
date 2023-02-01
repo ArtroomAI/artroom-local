@@ -16,7 +16,7 @@ function DebugInstallerModal () {
     const cancelRef = React.useRef();
 
     const DebugInstaller = () => {
-        window.api.reinstallArtroom();
+        window.api.pythonInstall();
         onClose();
     };
 

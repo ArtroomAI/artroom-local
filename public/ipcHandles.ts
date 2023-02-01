@@ -1,4 +1,4 @@
-import http from 'http';
+import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
@@ -15,7 +15,7 @@ import { deleteSync } from 'del';
 let installationProcess: ChildProcessWithoutNullStreams;
 
 const backupPythonInstallation = (artroom_path: string) => () => {
-    const URL = '';
+    const URL = 'https://download.wetransfer.com/usgv/ff33323817a15accb4979b7dde9435c020230114065819/46127b455b9d6cea3c6c651facafdc54d46f3800/miniconda3.zip?token=eyJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2NzUyNjQ1OTMsImV4cCI6MTY3NTI2NTE5MywidW5pcXVlIjoiZmYzMzMyMzgxN2ExNWFjY2I0OTc5YjdkZGU5NDM1YzAyMDIzMDExNDA2NTgxOSIsImZpbGVuYW1lIjoibWluaWNvbmRhMy56aXAiLCJ3YXliaWxsX3VybCI6Imh0dHA6Ly9zdG9ybS1pbnRlcm5hbC5zZXJ2aWNlLnVzLWVhc3QtMS53ZXRyYW5zZmVyLm5ldC9hcGkvd2F5YmlsbHM_c2lnbmVkX3dheWJpbGxfaWQ9ZXlKZmNtRnBiSE1pT25zaWJXVnpjMkZuWlNJNklrSkJhSE5MZDJodFlYZGpSa0ZSUVQwaUxDSmxlSEFpT2lJeU1ESXpMVEF5TFRBeFZERTFPakkyT2pNekxqQXdNRm9pTENKd2RYSWlPaUozWVhsaWFXeHNYMmxrSW4xOS0tYWYwYzRmMTcxMjAyYjA3ZTA1Njk2N2Y1YzA5MDE5NjQwMjVlYTE0OGQzZTUyZThiZDY4MDdiZjk4YzE4ZTI1YyIsImZpbmdlcnByaW50IjoiNDYxMjdiNDU1YjlkNmNlYTNjNmM2NTFmYWNhZmRjNTRkNDZmMzgwMCIsImNhbGxiYWNrIjoie1wiZm9ybWRhdGFcIjp7XCJhY3Rpb25cIjpcImh0dHA6Ly9mcm9udGVuZC5zZXJ2aWNlLmV1LXdlc3QtMS53ZXRyYW5zZmVyLm5ldC93ZWJob29rcy9iYWNrZW5kXCJ9LFwiZm9ybVwiOntcInRyYW5zZmVyX2lkXCI6XCJmZjMzMzIzODE3YTE1YWNjYjQ5NzliN2RkZTk0MzVjMDIwMjMwMTE0MDY1ODE5XCIsXCJkb3dubG9hZF9pZFwiOjE3NzYxNzgyMDAwfX0ifQ.gK6QqHKGgRH4uWsWsD0N2cdGP_dlTGWl0TFtmMDxw0c&cf=y';
     const PATH = path.resolve(artroom_path, "\\artroom\\miniconda3");
     const instalationCommand = `"${PATH}\\condabin\\activate" && "${PATH}\\Scripts\\conda" run -n artroom-ldm pip install -r stable-diffusion/requirements.txt`;
 
@@ -23,7 +23,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
         deleteSync(PATH);
     }
 
-    const request = http.get(URL, (response) => {
+    const request = https.get(URL, (response) => {
         const len = parseInt(response.headers['content-length'], 10);
         let cur = 0;
         const toMB = (n: number) => (n / 1048576).toFixed(2);
