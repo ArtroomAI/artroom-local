@@ -40,6 +40,21 @@ function Settings () {
     
     const socket = useContext(SocketContext);
 
+    useEffect(() => {
+        window.api.fixButtonProgress((_, message) => {
+            toast({
+                title: message,
+                status: 'success',
+                position: 'top',
+                duration: 1500,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        })
+    }, []);
+
     useEffect(
         () => {
             window.api.getSettings().then((result) => {
