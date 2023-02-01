@@ -56,7 +56,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
             const zip = new StreamZip({ file: 'file.zip' });
 
             zip.on('ready', () => {
-                fs.mkdirSync(PATH);
+                fs.mkdirSync(PATH, { recursive: true });
                 zip.extract(null, path.resolve(PATH), (err, count) => {
                     ipcMain.emit('fixButtonProgress', err ? 'Extract error' : `Extracted ${count} entries`);
                     console.log(err ? 'Extract error' : `Extracted ${count} entries`);
