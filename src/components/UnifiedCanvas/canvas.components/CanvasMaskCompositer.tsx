@@ -136,22 +136,21 @@ export const CanvasMaskCompositer: FC<ICanvasMaskCompositerProps> = props => {
 	}, [offset]);
 
 	useEffect(() => {
-		if (fillPatternImage) return;
-		const image = new Image();
+        if (fillPatternImage) {
+            fillPatternImage.src = getColoredSVG(maskColorString);
+            return;
+        } else {
+            const image = new Image();
 
-		image.onload = () => {
-			setFillPatternImage(image);
-		};
-		image.src = getColoredSVG(maskColorString);
+            image.onload = () => {
+                setFillPatternImage(image);
+            };
+            image.src = getColoredSVG(maskColorString);
+        }
 	}, [fillPatternImage, maskColorString]);
 
 	useEffect(() => {
-		if (!fillPatternImage) return;
-		fillPatternImage.src = getColoredSVG(maskColorString);
-	}, [fillPatternImage, maskColorString]);
-
-	useEffect(() => {
-		const timer = setInterval(() => setOffset(i => (i + 1) % 5), 50);
+		const timer = setInterval(() => setOffset(i => (i + 1) % 5), 100);
 		return () => clearInterval(timer);
 	}, []);
 

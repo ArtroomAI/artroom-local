@@ -10,6 +10,7 @@ import {
 	toolAtom,
 	isStagingSelector,
 } from '../atoms/canvas.atoms';
+import { KonvaEventObject } from 'konva/lib/Node';
 
 // import { activeTabNameSelector } from 'options/store/optionsSelectors';
 // import {
@@ -51,9 +52,10 @@ export const useCanvasMouseUp = (
 	const tool = useRecoilValue(toolAtom);
 	const isStaging = useRecoilValue(isStagingSelector);
 
-	return useCallback(() => {
-		if (tool === 'move' || isStaging) {
+	return useCallback((e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+		if (tool === 'move' || isStaging || (e.evt as MouseEvent).button === 1) {
 			setIsMovingStage(false);
+			stageRef.current.stopDrag();
 			return;
 		}
 
