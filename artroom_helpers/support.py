@@ -12,10 +12,10 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
 def image_to_b64(image):
     image_file = io.BytesIO()
-    image.save(image_file, format='JPEG')
+    image.save(image_file, format='PNG')
     im_bytes = image_file.getvalue()  # im_bytes: image in binary format.
     imgb64 = base64.b64encode(im_bytes)
-    return 'data:image/jpeg;base64,' + str(imgb64)[2:-1]
+    return 'data:image/png;base64,' + str(imgb64)[2:-1]
 
 
 def b64_to_image(b64):

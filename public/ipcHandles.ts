@@ -19,7 +19,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
     const PATH = path.resolve(artroom_path, "\\artroom\\miniconda3");
 
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
-
+    const PATH_zip = path.resolve(artroom_path, "file.zip")
     const instalationCommand = `"${PATH}\\condabin\\activate.bat" && "${PATH}\\Scripts\\conda.exe" run -n artroom-ldm pip install -r "${PATH_requirements}"`;
 
     if(fs.existsSync(PATH)) {
@@ -31,7 +31,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
         let cur = 0;
         const toMB = (n: number) => (n / 1048576).toFixed(2);
 
-        const file = fs.createWriteStream("file.zip");
+        const file = fs.createWriteStream(PATH_zip);
         response.pipe(file);
 
         const total = toMB(len); //1048576 - bytes in 1 MB
@@ -53,7 +53,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
             console.log('Downloading complete. Decompressing...');
             
             ipcMain.emit('fixButtonProgress', 'Downloading complete. Decompressing...');
-            const zip = new StreamZip({ file: 'file.zip' });
+            const zip = new StreamZip({ file: PATH_zip});
 
             zip.on('ready', () => {
                 fs.mkdirSync(PATH, { recursive: true });

@@ -147,7 +147,7 @@ export const CanvasOutpaintingControls: FC = () => {
       : undefined
     );
     const timestamp = new Date().getTime();
-    const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".jpg");
+    const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".png");
     console.log(imagePath);
     window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
     toast({

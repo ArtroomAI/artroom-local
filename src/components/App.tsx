@@ -129,7 +129,7 @@ export default function App () {
                             } else if (job_list[i].images[j].status == 'SUCCESS') {
                                 //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
                                 let img_name = job_list[i].id + '_' + job_list[i].images[j].id;
-                                const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, img_name + "_cloud.jpg");
+                                const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, img_name + "_cloud.png");
                                 toast({
                                     title: "Image completed: " + imagePath,
                                     status: 'info',
