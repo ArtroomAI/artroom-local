@@ -275,7 +275,7 @@ const Body = () => {
                                 alignContent="left"
                                 hasStripe
                                 width="100%"
-                                value={progress} />
+                                value={batchProgress} />
                             : <></>
                     }
                     {

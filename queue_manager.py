@@ -203,7 +203,7 @@ class QueueManager():
             print("Queue is running")
             self.running = True
             while self.running:
-                if len(self.queue) > 0 and not self.SD.stage == "Loading Model":
+                if len(self.queue) > 0:
                     print("Generating next item from queue...")
                     queue_item = self.queue[0]
                     # try:
@@ -219,8 +219,6 @@ class QueueManager():
                 else:
                     pass
                     # print(f"Items in queue: {len(self.queue)}")
-                    # if len(self.SD.stage) > 0:
-                    #     print(self.SD.stage)
                 time.sleep(self.delay)
                 if len(self.queue) == 0:
                     self.running = False
