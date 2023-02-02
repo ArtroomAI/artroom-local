@@ -662,7 +662,7 @@ class StableDiffusion:
                             # 0x9286 Exif Code for UserComment
                             exif_data[0x9286] = json.dumps(settings_data)
                             out_image.save(
-                                os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
+                                os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
                             self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
                                                               'path': os.path.join(sample_path, save_name),
