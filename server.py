@@ -155,19 +155,6 @@ def clear_queue():
     print('Queue cleared')
     socketio.emit('clear_queue', { 'status': 'Success' })
 
-@app.route('/get_progress', methods=['GET'])
-def get_progress():
-    percentage = -1
-    if SD.stage == 'Generating':
-        percentage = 0
-    current_num, total_num, current_step, total_step = SD.get_steps()
-    if total_step*total_num > 0:
-        percentage = (current_num*total_step+current_step) / \
-            (total_num*total_step)
-    return return_output('Success', content={'current_name': current_num, 'total_num': total_num, 'current_step': current_step, 'total_step': total_step,
-                                            'percentage': int(percentage*100), 'status': SD.stage})
-
-
 @socketio.on('update_settings')
 def update_settings(data):
     print('Updating Settings...')
