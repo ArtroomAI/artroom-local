@@ -109,7 +109,6 @@ class StableDiffusion:
 
         self.current_num = 0
         self.total_num = 0
-        self.stage = ''
         self.running = False
 
         self.artroom_path = None
@@ -129,7 +128,7 @@ class StableDiffusion:
         self.socketio = socketio
         self.v1 = False
         self.cc = self.get_cc()
-        self.callback_counter = 0
+        self.intermediate_path = ''
 
         # Generation Runtime Parameters
 
@@ -169,7 +168,6 @@ class StableDiffusion:
             self.model.current_step = 0
             self.model.total_steps = 0
 
-        self.stage = ""
         self.running = False
         if self.device != "cpu" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
@@ -202,7 +200,6 @@ class StableDiffusion:
                 return True
             except Exception as e:
                 print(f"Setting up model failed: {e}")
-                self.stage = ""
                 self.model = None
                 self.modelCS = None
                 self.modelFS = None
@@ -210,7 +207,7 @@ class StableDiffusion:
 
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
-        self.stage = "Loading Model"
+        self.socketio.emit('get_status', { 'status': "Loading Model" })
         try:
             del self.model
             del self.modelFS
@@ -336,7 +333,6 @@ class StableDiffusion:
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
         self.vae = vae
-        self.stage = "Finished Loading Model"
         print("Model loading finished")
         print("Loading vae")
         if '.vae' in vae:
@@ -345,6 +341,7 @@ class StableDiffusion:
                 print("Loading vae finished")
             except:
                 print("Failed to load vae")
+        self.socketio.emit('get_status', { 'status': "Finished Loading Model" })
 
     def get_image(self, init_image_str, mask_b64):
         if len(init_image_str) == 0:
@@ -385,33 +382,43 @@ class StableDiffusion:
 
         return init_image, H, W
 
-    def callback_fn(self, x, enabled=False):
+    def callback_fn(self, x, enabled=True):
         if not enabled:
             return
-        if self.callback_counter % 5 == 0:  # every 5 gens
-            def float_tensor_to_pil(tensor: torch.Tensor):
-                """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
-                (Reproduced here to save a torchvision dependency in this demo.)
-                """
-                tensor = (((tensor + 1) / 2)
-                          .clamp(0, 1)  # change scale from -1..1 to 0..1
-                          .mul(0xFF)  # to 0..255
-                          .byte())
-                tensor = rearrange(tensor, 'c h w -> h w c')
-                return Image.fromarray(tensor.cpu().numpy())
+        current_num, total_num, current_step, total_steps = self.get_steps()
 
-            x = x.detach().cpu()
-            x = make_grid(x, nrow=x.shape[0]).to(torch.float32)
-            x = float_tensor_to_pil(torch.einsum('...lhw,lr -> ...rhw', x, torch.tensor([
-                #   R        G        B
-                [0.298, 0.207, 0.208],  # L1
-                [0.187, 0.286, 0.173],  # L2
-                [-0.158, 0.189, 0.264],  # L3
-                [-0.184, -0.271, -0.473],  # L4
-            ], dtype=torch.float32)))
-            self.callback_counter += 1
-            x = x.resize((x.width * 4, x.height * 4))
-            # x.show()
+        self.socketio.emit('get_progress', { 'current_step': current_step + 1, 'total_steps': total_steps,
+                'current_num': current_num, 'total_num': total_num })
+
+        # TODO front-end support and settings for it
+        # if current_step % 5 == 0:  # every 5 gens
+        #     def float_tensor_to_pil(tensor: torch.Tensor):
+        #         """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
+        #         (Reproduced here to save a torchvision dependency in this demo.)
+        #         """
+        #         tensor = (((tensor + 1) / 2)
+        #                   .clamp(0, 1)  # change scale from -1..1 to 0..1
+        #                   .mul(0xFF)  # to 0..255
+        #                   .byte())
+        #         tensor = rearrange(tensor, 'c h w -> h w c')
+        #         return Image.fromarray(tensor.cpu().numpy())
+
+        #     x = x.detach().cpu()
+        #     x = make_grid(x, nrow=x.shape[0]).to(torch.float32)
+        #     x = float_tensor_to_pil(torch.einsum('...lhw,lr -> ...rhw', x, torch.tensor([
+        #         #   R        G        B
+        #         [0.298, 0.207, 0.208],  # L1
+        #         [0.187, 0.286, 0.173],  # L2
+        #         [-0.158, 0.189, 0.264],  # L3
+        #         [-0.184, -0.271, -0.473],  # L4
+        #     ], dtype=torch.float32)))
+
+        #     self.socketio.emit('intermediate_image', { 'b64': support.image_to_b64(x) })
+
+        #     if settings_save_intermediates >= 1: # save intermediates
+        #         if settings_save_intermediates == 2: # upscale intermediates
+        #             x = x.resize((x.width * 8, x.height * 8))
+        #         x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
 
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
@@ -459,7 +466,7 @@ class StableDiffusion:
             return 'Failure'
 
         print("Generating...")
-        self.stage = "Generating"
+        self.socketio.emit('get_status', { 'status': "Generating" })
         outdir = os.path.join(self.image_save_path, batch_name)
         os.makedirs(outdir, exist_ok=True)
 
@@ -494,7 +501,8 @@ class StableDiffusion:
         else:
             sample_path = outdir
 
-        os.makedirs(sample_path, exist_ok=True)
+        self.intermediate_path = os.path.join(sample_path, 'intermediates/', f'{batch_id}/')
+        os.makedirs(self.intermediate_path, exist_ok=True)
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
@@ -606,7 +614,6 @@ class StableDiffusion:
                                 x_T=x_T,
                                 callback=self.callback_fn
                             )
-                            self.callback_counter = 0
                             if self.v1:
                                 self.modelFS.to(self.device)
 

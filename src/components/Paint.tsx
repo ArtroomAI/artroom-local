@@ -2,7 +2,6 @@ import React, {useEffect, useState, useReducer, useRef, useContext, useCallback}
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, stageScaleAtom, shouldPreserveMaskedAreaAtom } from './UnifiedCanvas/atoms/canvas.atoms';
-import axios from 'axios';
 import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
 import {
     Text,
@@ -11,7 +10,8 @@ import {
     SimpleGrid,
     Image as ChakraImage,
     Button,
-    useToast
+    useToast,
+    Progress
 } from '@chakra-ui/react';
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
@@ -19,28 +19,15 @@ import _ from 'lodash';
 import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
-import { SocketContext } from '../socket';
+import { SocketContext, SocketOnEvents } from '../socket';
 
-const loadImage = async (b64: string) => {
-    const image = new Image();
-    image.src = b64;
-    return new Promise((resolve) => {
-      image.onload = () => {
-        resolve({width: image.width, height: image.height});
-      }
-    });
-  }
-
-  
 function Paint () {
-    const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const baseURL = LOCAL_URL;
-
     const toast = useToast({});
 
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
 
     const [progress, setProgress] = useState(-1);
+    const [batchProgress, setBatchProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
@@ -138,6 +125,38 @@ function Paint () {
 
     }, [boundingBoxCoordinates, boundingBoxDimensions, layerState.objects, stageScale, imageSettings, socket]);
 
+    const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
+        setProgress((100 * data.current_step / data.total_steps));
+        setBatchProgress(100 * (data.current_num * data.total_steps + data.current_step) / (data.total_steps * data.total_num));
+    }, []);
+
+    const handleGetStatus: SocketOnEvents['get_status'] = useCallback((data) => {
+        if (data.status === 'Loading Model') {
+            toast({
+                id: 'loading-model',
+                title: 'Loading model...',
+                status: 'info',
+                position: 'bottom-right',
+                duration: null,
+                isClosable: false
+            });
+        } else if (data.status === 'Finished Loading Model') {
+            if (toast.isActive('loading-model')) {
+                toast.close('loading-model');
+            }
+        }
+    }, [toast]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('get_progress', handleGetProgress);
+        socket.on('get_status', handleGetStatus);
+    
+        return () => {
+            socket.off('get_progress', handleGetProgress);
+            socket.off('get_status', handleGetStatus);
+        };
+    }, [socket, handleGetProgress, handleGetStatus]);
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
@@ -293,46 +312,6 @@ function Paint () {
         [arrowLeftPressed]
     );
 
-    useEffect(
-        () => {
-            const interval = setInterval(
-                () => axios.get(
-                    `${baseURL}/get_progress`,
-                    { headers: { 'Content-Type': 'application/json' } }
-                ).then((result) => {
-                    if (result.data.status === 'Success') {
-                        setProgress(result.data.content.percentage);
-                        if (result.data.content.status === 'Loading Model' && !toast.isActive('loading-model')) {
-                            toast({
-                                id: 'loading-model',
-                                title: 'Loading model...',
-                                status: 'info',
-                                position: 'bottom-right',
-                                duration: 30000,
-                                isClosable: false
-                            });
-                        }
-                        if (!(result.data.content.status === 'Loading Model')) {
-                            if (toast.isActive('loading-model')) {
-                                toast.close('loading-model');
-                            }
-                        }
-                    } else {
-                        setProgress(-1);
-                        if (toast.isActive('loading-model')) {
-                            toast.close('loading-model');
-                        }
-                    }
-                }),
-                500
-            );
-            return () => {
-                clearInterval(interval);
-            };
-        },
-        []
-    );
-
     const prevSelectedIndex = useRef(0);
     useEffect(() => {
         if (latestImages.length > 0 && prevSelectedIndex.current !== state.selectedIndex){
@@ -350,7 +329,25 @@ function Paint () {
                 spacing={4}>
                 <Box
                     className="paint-output">
-                    <UnifiedCanvas></UnifiedCanvas>
+                    <UnifiedCanvas />
+                    {
+                        (batchProgress >= 0 && batchProgress !== 100)
+                            ? <Progress
+                                alignContent="left"
+                                hasStripe
+                                width="100%"
+                                value={progress} />
+                            : <></>
+                    }
+                    {
+                        (progress >= 0 && progress !== 100)
+                            ? <Progress
+                                alignContent="left"
+                                hasStripe
+                                width="100%"
+                                value={progress} />
+                            : <></>
+                    }
                 </Box>
                 
                 <Box

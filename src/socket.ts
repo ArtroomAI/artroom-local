@@ -11,7 +11,9 @@ export interface SocketOnEvents {
     get_images: (res: ImageState) => void;
     get_server_status: (res: { server_running: boolean }) => void;
     add_to_queue: (res: WithStatus & { queue_size?: number }) => void;
+    get_progress: (res: { current_step: number; total_steps: number; current_num: number; total_num: number }) => void;
     get_queue: (res: { queue: QueueType[] }) => void;
+    get_status: (res: { status: 'Loading Model' | 'Finished Loading Model' | 'Generating' }) => void;
     start_queue: (res: WithStatus) => void;
     pause_queue: (res: WithStatus) => void;
     stop_queue: (res: WithStatus) => void;
