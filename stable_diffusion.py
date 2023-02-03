@@ -186,7 +186,7 @@ class StableDiffusion:
                (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
                           'post_quant_conv.bias'])}
         vae = {k.replace("encoder", "first_stage_model.encoder")
-                   .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
+               .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
     def load_ckpt(self, ckpt, speed, vae):
@@ -207,7 +207,7 @@ class StableDiffusion:
 
     def set_up_models(self, ckpt, speed, vae):
         print("Loading in model...")
-        self.socketio.emit('get_status', { 'status': "Loading Model" })
+        self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
             del self.model
             del self.modelFS
@@ -268,6 +268,19 @@ class StableDiffusion:
                 else:
                     print(f"Dafuq is {speed}")
                     self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
+            elif sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 8:
+                print("Detected pix2pix model")
+                if speed == 'Low':
+                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                elif speed == 'Medium':
+                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                elif speed == 'High':
+                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                elif speed == 'Max':
+                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
+                else:
+                    print(f"Dafuq is {speed}")
+                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
             else:
                 print("Loading ordinary model")
                 if 60 <= self.cc <= 86:
@@ -341,7 +354,7 @@ class StableDiffusion:
                 print("Loading vae finished")
             except:
                 print("Failed to load vae")
-        self.socketio.emit('get_status', { 'status': "Finished Loading Model" })
+        self.socketio.emit('get_status', {'status': "Finished Loading Model"})
 
     def get_image(self, init_image_str, mask_b64):
         if len(init_image_str) == 0:
@@ -387,8 +400,8 @@ class StableDiffusion:
             return
         current_num, total_num, current_step, total_steps = self.get_steps()
 
-        self.socketio.emit('get_progress', { 'current_step': current_step + 1, 'total_steps': total_steps,
-                'current_num': current_num, 'total_num': total_num })
+        self.socketio.emit('get_progress', {'current_step': current_step + 1, 'total_steps': total_steps,
+                                            'current_num': current_num, 'total_num': total_num})
 
         # TODO front-end support and settings for it
         # if current_step % 5 == 0:  # every 5 gens
@@ -432,8 +445,8 @@ class StableDiffusion:
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
 
-        print("HIGHRES FIX:",self.highres_fix)
-        print(W,H)
+        print("HIGHRES FIX:", self.highres_fix)
+        print(W, H)
 
         oldW, oldH = W, H
         if W * H > 512 * 512 and self.highres_fix:
@@ -466,7 +479,7 @@ class StableDiffusion:
             return 'Failure'
 
         print("Generating...")
-        self.socketio.emit('get_status', { 'status': "Generating" })
+        self.socketio.emit('get_status', {'status': "Generating"})
         outdir = os.path.join(self.image_save_path, batch_name)
         os.makedirs(outdir, exist_ok=True)
 
@@ -490,6 +503,10 @@ class StableDiffusion:
         else:
             init_image = None
 
+        mode = "default" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4 else (
+            "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
+        )
+
         print("Prompt:", text_prompts)
         data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
@@ -509,9 +526,10 @@ class StableDiffusion:
             if self.v1:
                 self.modelFS.to(self.device)
 
-            steps = int(strength * steps)
-            if steps <= 0:
-                steps = 1
+            if mode != "pix2pix":
+                steps = int(strength * steps)
+                if steps <= 0:
+                    steps = 1
 
         self.total_num = n_iter
         all_samples = []
@@ -563,9 +581,9 @@ class StableDiffusion:
                                 init_image = init_image.to(self.device)
                                 init_image = repeat(
                                     init_image, '1 ... -> b ...', b=batch_size)
-                                init_latent = self.modelFS.get_first_stage_encoding(
-                                    self.modelFS.encode_first_stage(init_image)).to(
-                                    self.device)  # move to latent space
+                                init_latent_1stage = self.modelFS.encode_first_stage(init_image)
+                                init_latent_1stage = init_latent_1stage.mode() if mode == "pix2pix" else init_latent_1stage
+                                init_latent = self.modelFS.get_first_stage_encoding(init_latent_1stage).to(self.device)
 
                                 x0 = self.model.stochastic_encode(
                                     init_latent,
@@ -588,20 +606,17 @@ class StableDiffusion:
                                     .to(self.device)
                                 mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
                                 mask = repeat(mask, '1 ... -> b ...', b=batch_size)
-                                if self.v1:
-                                    if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9:
-                                        init_latent = torch.cat(
-                                            (init_latent, x0, mask[:, :1, :, :]), dim=1)  # yeah basically
                                 x_T = init_latent
                             else:
                                 mask = None
                                 x_T = None
 
+                            x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
+                            x0 = init_latent_1stage if mode == "pix2pix" else x0
                             x0 = self.model.sample(
                                 S=steps,
                                 conditioning=c,
-                                x0=(x0 if init_image is None or "ddim" in sampler.lower(
-                                ) else init_latent),
+                                x0=x0,
                                 S_ddim_steps=ddim_steps,
                                 unconditional_guidance_scale=cfg_scale,
                                 unconditional_conditioning=uc,
@@ -612,7 +627,8 @@ class StableDiffusion:
                                 seed=seed,
                                 mask=mask,
                                 x_T=x_T,
-                                callback=self.callback_fn
+                                callback=self.callback_fn,
+                                mode=mode
                             )
                             if self.v1:
                                 self.modelFS.to(self.device)
