@@ -9,8 +9,7 @@ import {
 	isDrawingAtom,
 	isMovingStageAtom,
 	toolAtom,
-	isStagingSelector,
-	isMovingBoundingBoxAtom,
+	isStagingSelector
 } from '../atoms/canvas.atoms';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 
@@ -49,7 +48,6 @@ export const useCanvasMouseDown = (
 	const setIsMovingStage = useSetRecoilState(isMovingStageAtom);
 	const tool = useRecoilValue(toolAtom);
 	const isStaging = useRecoilValue(isStagingSelector);
-	const isMovingBoundingBox = useRecoilValue(isMovingBoundingBoxAtom);
 
 	return useCallback(
 		(e: KonvaEventObject<MouseEvent | TouchEvent>) => {
@@ -59,10 +57,13 @@ export const useCanvasMouseDown = (
 
 			e.evt.preventDefault();
 
-			if (tool === 'move' || isStaging || e.evt.button === 1) {
-				if(!isMovingBoundingBox) {
-					stageRef.current.startDrag();
-				}
+			if(e.evt.button === 1) {
+				stageRef.current.startDrag();
+				return;
+			}
+
+			if (tool === 'move' || isStaging) {
+				setIsMovingStage(true);
 				return;
 			}
 
