@@ -114,12 +114,13 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
     else:
         blurred_init_mask = pil_init_mask
 
-    # multiplied_blurred_init_mask = ImageChops.multiply(blurred_init_mask, pil_init_image.split()[-1])
+    multiplied_blurred_init_mask = ImageChops.multiply(blurred_init_mask, pil_init_image.split()[-1])
+    matched_result.paste(init_image, (0, 0), mask=multiplied_blurred_init_mask)
 
-    matched_result = ImageOps.autocontrast(matched_result, cutoff=0)
-    blurred_init_mask = ImageChops.multiply(blurred_init_mask, pil_init_image.split()[-1])
+    #matched_result = ImageOps.autocontrast(matched_result, cutoff=0)
+    #blurred_init_mask = ImageChops.multiply(blurred_init_mask, pil_init_image.split()[-1])
 
     # Paste original on color-corrected generation (using blurred mask)
-    matched_result.paste(init_image, (0, 0), mask=blurred_init_mask)
+    #matched_result.paste(init_image, (0, 0), mask=blurred_init_mask)
 
     return matched_result
