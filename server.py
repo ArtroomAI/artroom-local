@@ -190,6 +190,40 @@ def update_settings(data):
     print('Settings updated')
     return return_output('Success')
 
+@socketio.on('update_settings_with_restart')
+def update_settings(data):
+    print('Updating Settings...')
+    if not SD.artroom_path:
+        print('Failure, artroom path not found')
+        socketio.emit('update_settings_with_restart', { 'status': 'Failure', 'status_message': 'Artroom Path not found' })
+        return
+    if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
+        reset_settings_to_default()
+        socketio.emit('update_settings_with_restart', { 'status': 'Failure', 'status_message': 'sd_settings.json not found' })
+        return
+    if 'delay' in data:
+        QM.update_delay = data['delay']
+    if 'long_save_path' in data:
+        SD.long_save_path = data['long_save_path']
+    if 'highres_fix' in data:
+        SD.highres_fix = data['highres_fix']
+
+    sd_settings = json.load(
+        open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
+    for key in data:
+        value = data[key]
+        if type(value) == str and '%UserProfile%' in value:
+            value = value.replace(
+                '%UserProfile%', os.environ['USERPROFILE']).replace(os.sep, '/')
+        if type(value) == str and '%InstallPath%' in value:
+            value = value.replace(
+                '%InstallPath%', SD.artroom_path).replace(os.sep, '/')
+        sd_settings[key] = value
+    with open(f'{SD.artroom_path}/artroom/settings/sd_settings.json', 'w') as outfile:
+        json.dump(sd_settings, outfile, indent=4)
+    # SD.load_from_settings_json()
+    print('Settings updated')
+    socketio.emit('update_settings_with_restart', { 'status': 'Success' })
 
 @app.route('/get_settings', methods=['GET'])
 def get_settings():
@@ -240,5 +274,5 @@ def disconnected():
     socketio.emit('disconnect',f'user {request.sid} disconnected',broadcast=True)
     
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=5300)
+    socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
 
