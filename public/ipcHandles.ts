@@ -20,7 +20,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroom_pa
 
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     const PATH_zip = path.resolve(artroom_path, "file.zip")
-    const instalationCommand = `"${PATH}\\condabin\\activate.bat" && "${PATH}\\Scripts\\conda.exe" run -n artroom-ldm pip install -r "${PATH_requirements}"`;
+    const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
 
     if(fs.existsSync(PATH)) {
         deleteSync(PATH);
@@ -60,7 +60,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroom_pa
                 zip.extract(null, path.resolve(PATH), (err, count) => {
                     mainWindow.webContents.send('fixButtonProgress', err ? 'Extract error' : `Extracted ${count} entries`);
                     console.log(err ? 'Extract error' : `Extracted ${count} entries`);
-                    installationProcess = spawn(instalationCommand, { shell: true, detached: true });
+                    installationProcess = spawn(installationCommand, { shell: true, detached: true });
                     installationProcess.stdout.on("data", (data) => {
                         console.log(`stdout: ${data}`);
                     });
@@ -89,9 +89,10 @@ const reinstallPythonDependencies = (artroom_path: string) => () => {
     console.log(PATH);
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     console.log(PATH_requirements)
-    const instalationCommand = `"${PATH}\\condabin\\activate.bat" && "${PATH}\\Scripts\\conda.exe" run -n artroom-ldm pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please press any key to close"`;
-    console.log(instalationCommand)
-    installationProcess = spawn(instalationCommand, { shell: true, detached: true });
+    const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
+    
+    console.log(installationCommand)
+    installationProcess = spawn(installationCommand, { shell: true, detached: true });
 
     installationProcess.stdout.on('data', function(data) {
         console.log("Child data: " + data);
