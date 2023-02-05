@@ -34,25 +34,11 @@ function Settings () {
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
+    const [downloadMessage, setDownloadMessage] = useState('');
 
     const [debug_mode_orig, setDebugModeOrig] = useState(true);
     
     const socket = useContext(SocketContext);
-
-    useEffect(() => {
-        window.api.fixButtonProgress((_, message) => {
-            toast({
-                title: message,
-                status: 'success',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        })
-    }, []);
 
     useEffect(
         () => {
@@ -165,6 +151,13 @@ function Settings () {
         };
         socket.emit('update_settings_with_restart', output)
     }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
+
+    useEffect(() => {
+        window.api.fixButtonProgress((_, str) => {
+            setDownloadMessage(str);
+            console.log(str);
+        });
+    }, []);
 
     // on socket message
     useEffect(() => {
@@ -450,7 +443,25 @@ function Settings () {
                     </Button>
                     <Spacer/>
                     <DebugInstallerModal/>
+                    <Button
+                        marginLeft={1}
+                        backgroundColor="red.600"
+                        colorScheme="red"
+                        alignContent="center"
+                        className="reinstall-python-dependencies"
+                        onClick={window.api.pythonInstallDependencies}>
+                        Reinstall python dependencies
+                    </Button>
                 </Flex>
+                
+                {
+                    downloadMessage && (
+                        <Flex width="100%">
+                            <Flex width="100%">Installation progress</Flex>
+                            <Spacer/>
+                            <Flex width="100%">{downloadMessage}</Flex>
+                        </Flex>)
+                }
             </VStack>
         </Box>
     );

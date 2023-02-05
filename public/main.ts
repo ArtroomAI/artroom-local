@@ -289,7 +289,7 @@ function createWindow() {
           return;
         }
         const json = JSON.parse(data);
-        let imgPath = path.resolve(json['image_save_path'], json['batch_name']);
+        let imgPath = path.join(json['image_save_path'], json['batch_name']);
         if (fs.existsSync(imgPath.split(path.sep).join(path.posix.sep))) {
           shell.openPath(imgPath.split(path.sep).join(path.posix.sep))
         }
@@ -478,7 +478,7 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
-  handlers(artroom_path);
+  handlers(win);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   

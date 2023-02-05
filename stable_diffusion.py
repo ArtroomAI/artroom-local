@@ -447,7 +447,7 @@ class StableDiffusion:
 
         print("Starting generate process...")
 
-        torch.cuda.empty_cache()
+        #torch.cuda.empty_cache()
         gc.collect()
         seed_everything(seed)
 
@@ -651,34 +651,34 @@ class StableDiffusion:
                                                                               init_image=original_init_image,
                                                                               init_mask=mask_image, mask_blur_radius=8)
 
-                            exif_data = out_image.getexif()
-                            # Does not include Mask, ImageB64, or if Inverted. Only settings for now
-                            settings_data = {
-                                "text_prompts": text_prompts,
-                                "negative_prompts": negative_prompts,
-                                "steps": steps,
-                                "H": H,
-                                "W": W,
-                                "strength": strength,
-                                "cfg_scale": cfg_scale,
-                                "seed": seed,
-                                "sampler": sampler,
-                                "ckpt": os.path.basename(ckpt),
-                                "vae": os.path.basename(vae)
-                            }
-                            # 0x9286 Exif Code for UserComment
-                            exif_data[0x9286] = json.dumps(settings_data)
-                            out_image.save(
-                                os.path.join(sample_path, save_name), "PNG", exif=exif_data)
+                        exif_data = out_image.getexif()
+                        # Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                        settings_data = {
+                            "text_prompts": text_prompts,
+                            "negative_prompts": negative_prompts,
+                            "steps": steps,
+                            "H": H,
+                            "W": W,
+                            "strength": strength,
+                            "cfg_scale": cfg_scale,
+                            "seed": seed,
+                            "sampler": sampler,
+                            "ckpt": os.path.basename(ckpt),
+                            "vae": os.path.basename(vae)
+                        }
+                        # 0x9286 Exif Code for UserComment
+                        exif_data[0x9286] = json.dumps(settings_data)
+                        out_image.save(
+                            os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
-                            self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                              'path': os.path.join(sample_path, save_name),
-                                                              'batch_id': batch_id})
+                        self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
+                                                            'path': os.path.join(sample_path, save_name),
+                                                            'batch_id': batch_id})
 
-                            base_count += 1
-                            seed += 1
-                            if not skip_grid and n_iter > 1:
-                                all_samples.append(out_image)
+                        base_count += 1
+                        seed += 1
+                        if not skip_grid and n_iter > 1:
+                            all_samples.append(out_image)
 
             if not skip_grid and n_iter > 1:
                 # additionally, save as grid

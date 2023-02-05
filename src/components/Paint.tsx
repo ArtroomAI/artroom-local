@@ -42,7 +42,7 @@ function Paint () {
     const stageScale = useRecoilValue(stageScaleAtom);   
 
 
-    const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width: number, height: number) => {
+    const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width?: number, height?: number) => {
         // Create a new canvas element
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d');
@@ -57,11 +57,11 @@ function Paint () {
             regular.onload = function() {
                 mask.onload = function() {
                     // Draw the image on the canvas
-                    canvas.width = regular.width;
-                    canvas.height = regular.height;
+                    canvas.width = width || regular.width;
+                    canvas.height = height || regular.height;
                     ctx.drawImage(regular, 0, 0);
                     // Get the image data from the canvas
-                    var imageData = ctx.getImageData(0, 0, regular.width, regular.height);
+                    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     var data = imageData.data;
                     // Iterate through the image data and set the alpha value to the color value
                     for (var i = 0; i < data.length; i += 4) {
@@ -111,7 +111,6 @@ function Paint () {
     
         canvasBaseLayer.scale(tempScale);
         addOutpaintingLayer(imageDataURL, maskDataURL, boundingBox.width, boundingBox.height).then(combinedMask =>{
-            console.log(combinedMask)
             const body = {
                 ...imageSettings,
                 init_image: imageDataURL,
@@ -173,7 +172,6 @@ function Paint () {
             ...boundingBoxCoordinates,
             ...scaledDimensions,
         };
-        console.log(boundingBox)
 
         const image = {
             ...scaledDimensions,
