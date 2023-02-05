@@ -19,6 +19,7 @@ export interface SocketOnEvents {
     stop_queue: (res: WithStatus) => void;
     clear_queue: (res: WithStatus) => void;
     update_settings: (res: WithStatus) => void;
+    update_settings_with_restart: (res: WithStatus) => void;
     upscale: (res: WithStatus) => void;
     remove_from_queue: (res: WithStatus & { queue: QueueType[] }) => void;
 }
@@ -32,6 +33,17 @@ export interface SocketEmitEvents {
     stop_queue: () => void;
     clear_queue: () => void;
     update_settings: (data: {
+        long_save_path: boolean;
+        highres_fix: boolean;
+        debug_mode: boolean;
+        delay: number;
+        speed: string;
+        image_save_path: string;
+        save_grid: boolean;
+        vae: string;
+        ckpt_dir: string;
+    }) => void;
+    update_settings_with_restart: (data: {
         long_save_path: boolean;
         highres_fix: boolean;
         debug_mode: boolean;
