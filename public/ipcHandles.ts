@@ -14,7 +14,7 @@ import { deleteSync } from 'del';
 
 let installationProcess: ChildProcessWithoutNullStreams;
 
-const backupPythonInstallation = (artroom_path: string) => () => {
+const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroom_path: string) => () => {
     const URL = 'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
     const PATH = path.resolve(artroom_path, "\\artroom\\miniconda3");
 
@@ -43,7 +43,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
             ++chunk_counter;
             if(chunk_counter === 5000) {
                 console.log(`Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
-                ipcMain.emit('fixButtonProgress', `Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
+                mainWindow.webContents.send('fixButtonProgress', `Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
                 chunk_counter = 0;
             }
        });
@@ -52,13 +52,13 @@ const backupPythonInstallation = (artroom_path: string) => () => {
             file.close();
             console.log('Downloading complete. Decompressing...');
             
-            ipcMain.emit('fixButtonProgress', 'Downloading complete. Decompressing...');
+            mainWindow.webContents.send('fixButtonProgress', 'Downloading complete. Decompressing...');
             const zip = new StreamZip({ file: PATH_zip});
 
             zip.on('ready', () => {
                 fs.mkdirSync(PATH, { recursive: true });
                 zip.extract(null, path.resolve(PATH), (err, count) => {
-                    ipcMain.emit('fixButtonProgress', err ? 'Extract error' : `Extracted ${count} entries`);
+                    mainWindow.webContents.send('fixButtonProgress', err ? 'Extract error' : `Extracted ${count} entries`);
                     console.log(err ? 'Extract error' : `Extracted ${count} entries`);
                     installationProcess = spawn(instalationCommand, { shell: true, detached: true });
                     installationProcess.stdout.on("data", (data) => {
@@ -69,7 +69,7 @@ const backupPythonInstallation = (artroom_path: string) => () => {
                     });
                     installationProcess.on("close", (code) => {
                         console.log(`child process exited with code ${code}`);
-                        ipcMain.emit('fixButtonProgress', `child process exited with code ${code}`);
+                        mainWindow.webContents.send('fixButtonProgress', `child process exited with code ${code}`);
                     });
                     zip.close();
                 });
@@ -77,12 +77,46 @@ const backupPythonInstallation = (artroom_path: string) => () => {
         });
 
         request.on("error", (e) => {
-            ipcMain.emit('fixButtonProgress', `Error: ${e.message}`);
+            mainWindow.webContents.send('fixButtonProgress', `Error: ${e.message}`);
             file.close();
         });
     });
 };
 
-export const handlers = (artroom_path: string) => {
-    ipcMain.handle('pythonInstall', backupPythonInstallation(artroom_path));
+const reinstallPythonDependencies = (artroom_path: string) => () => {
+    console.log(artroom_path);
+    const PATH = path.resolve(artroom_path, "artroom\\miniconda3");
+    console.log(PATH);
+    const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
+    console.log(PATH_requirements)
+    const instalationCommand = `"${PATH}\\condabin\\activate.bat" && "${PATH}\\Scripts\\conda.exe" run -n artroom-ldm pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please press any key to close"`;
+    console.log(instalationCommand)
+    installationProcess = spawn(instalationCommand, { shell: true, detached: true });
+
+    installationProcess.stdout.on('data', function(data) {
+        console.log("Child data: " + data);
+      });
+      installationProcess.on('error', function () {
+        console.log("Failed to start child.");
+      });
+      installationProcess.on('close', function (code) {
+        console.log('Child process exited with code ' + code);
+      });
+      installationProcess.stderr.on('data', function (err) {
+        console.log(`error: ${err}`);
+      });
+      installationProcess.on('message', (msg) => {
+        console.log(`msg ${msg}`)
+      })
+      installationProcess.stderr.on('message', (msg) => {
+        console.log(`ermsg ${msg}`)
+      })
+      installationProcess.stdout.on('end', function () {
+        console.log('Finished collecting data chunks.');
+      });
+}
+
+export const handlers = (mainWindow: Electron.BrowserWindow, artroom_path: string) => {
+    ipcMain.handle('pythonInstall', backupPythonInstallation(mainWindow, artroom_path));
+    ipcMain.handle('pythonInstallDependencies', reinstallPythonDependencies(artroom_path));
 }

@@ -478,7 +478,7 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
-  handlers(artroom_path);
+  handlers(win, artroom_path);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   
