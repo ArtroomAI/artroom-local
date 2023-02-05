@@ -108,25 +108,10 @@ const getFiles = (folder_path: string, ext: string) => {
   });
 }
 
-server = spawn(serverCommand, { detached: sddata.debug_mode, shell: true });
 console.log("Artroom Log: " + artroom_install_log);
 
-server.on('error', function () {
-  console.log("Failed to start child.");
-});
-server.on('close', function (code) {
-  console.log('Child process exited with code ' + code);
-});
-server.stdout.on('end', function () {
-  console.log('Finished collecting data chunks.');
-});
-server.stderr.on('data', function (err) {
-  console.log(err.toString());
-});
-
-
-
 function createWindow() {
+  server = spawn(serverCommand, { detached: sddata.debug_mode, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);
@@ -394,27 +379,11 @@ function createWindow() {
   });
 
   ipcMain.handle('restartServer', async (event, isDebug) => {
-    return new Promise((resolve) => {
+    return new Promise(() => {
       console.log(`debug mode: ${isDebug}`)
       kill(server.pid);
       spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
       server = spawn(serverCommand, { detached: isDebug, shell: true });
-      server.stdout.on('data', function(data) {
-        console.log("Child data: " + data);
-      });
-      server.on('error', function () {
-        console.log("Failed to start child.");
-      });
-      server.on('close', function (code) {
-        console.log('Child process exited with code ' + code);
-      });
-      server.stdout.on('end', function () {
-        console.log('Finished collecting data chunks.');
-      });
-      return axios.get(`${LOCAL_URL}/restarted`).then(() => {
-        console.log('restarted');
-        resolve('restarted');
-      });
     });
   });
 
