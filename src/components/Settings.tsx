@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
-import axios from 'axios';
 import {
     Box,
     Button,
@@ -26,7 +25,7 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { SocketContext } from '../socket';
+import { SocketContext, SocketOnEvents } from '../socket';
 
 function Settings () {
     const toast = useToast({});
@@ -35,25 +34,11 @@ function Settings () {
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
+    const [downloadMessage, setDownloadMessage] = useState('');
 
     const [debug_mode_orig, setDebugModeOrig] = useState(true);
     
     const socket = useContext(SocketContext);
-
-    useEffect(() => {
-        window.api.fixButtonProgress((_, message) => {
-            toast({
-                title: message,
-                status: 'success',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        })
-    }, []);
 
     useEffect(
         () => {
@@ -80,7 +65,35 @@ function Settings () {
         []
     );
 
-    const handleSaveSettings = useCallback((data: { status: 'Success' | 'Failure'; status_message?: string}) => {
+    const handleSaveSettingsAndRestart: SocketOnEvents['update_settings_with_restart'] = useCallback((data) => {
+        if(data.status === 'Success') {
+            toast({
+                title: 'Settings have been updated',
+                status: 'success',
+                position: 'top',
+                duration: 1500,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        } else {
+            toast({
+                title: 'Error during updating settings',
+                description: data.status_message,
+                status: 'error',
+                position: 'top',
+                duration: 1500,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+        window.api.restartServer(debug_mode);
+    }, [debug_mode, toast]);
+
+    const handleSaveSettings: SocketOnEvents['update_settings'] = useCallback((data) => {
         if(data.status === 'Success') {
             toast({
                 title: 'Settings have been updated',
@@ -123,38 +136,42 @@ function Settings () {
         socket.emit('update_settings', output)
     }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
 
+    const saveSettingsWithRestart = useCallback(() => {
+        setDebugModeOrig(debug_mode);
+        const output = {
+            long_save_path,
+            highres_fix,
+            debug_mode,
+            delay,
+            speed: imageSettings.speed,
+            image_save_path: imageSettings.image_save_path,
+            save_grid: imageSettings.save_grid,
+            vae: imageSettings.vae,
+            ckpt_dir: imageSettings.ckpt_dir
+        };
+        socket.emit('update_settings_with_restart', output)
+    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
+
+    useEffect(() => {
+        window.api.fixButtonProgress((_, str) => {
+            setDownloadMessage(str);
+            console.log(str);
+        });
+    }, []);
+
     // on socket message
     useEffect(() => {
         socket.on('update_settings', handleSaveSettings);
+        socket.on('update_settings_with_restart', handleSaveSettingsAndRestart);
     
         return () => {
             socket.off('update_settings', handleSaveSettings);
+            socket.off('update_settings_with_restart', handleSaveSettingsAndRestart);
         };
-    }, [socket, handleSaveSettings]);
-
-    const failedFlaskRestartMessage = () => {
-        toast({
-            id: 'restart-server-failed',
-            title: 'Flask server did not restart properly please toggle Debug Mode setting and retry',
-            status: 'error',
-            position: 'top',
-            duration: 7000,
-            isClosable: false
-        });
-    };
-
-    const restartFlask = () => {
-        window.api.restartServer(debug_mode).then((result) => {
-            if (result === 200) {
-                saveSettings();
-                console.log(`Success, Debug Mode now: ${debug_mode}`);
-            } else {
-                failedFlaskRestartMessage();
-            }
-        });
-    };
+    }, [socket, handleSaveSettings, handleSaveSettingsAndRestart]);
 
     const submitEvent = () => {
+        console.log(debug_mode, debug_mode_orig);
         if (debug_mode === true && debug_mode_orig === false) {
             // Restart server and turn debug mode on
             toast({
@@ -165,7 +182,7 @@ function Settings () {
                 duration: 7000,
                 isClosable: true
             });
-            restartFlask(); // Restarts flask server first, then save settings
+            saveSettingsWithRestart(); // Restarts flask server first, then save settings
         } else if (debug_mode === false && debug_mode_orig === true) {
             // Restart server and turn debug mode off
             toast({
@@ -176,7 +193,7 @@ function Settings () {
                 duration: 7000,
                 isClosable: true
             });
-            restartFlask(); // Restarts flask server first, then save settings
+            saveSettingsWithRestart(); // Restarts flask server first, then save settings
         } else {
             // Just save settings as normal
             saveSettings();
@@ -426,7 +443,25 @@ function Settings () {
                     </Button>
                     <Spacer/>
                     <DebugInstallerModal/>
+                    <Button
+                        marginLeft={1}
+                        backgroundColor="red.600"
+                        colorScheme="red"
+                        alignContent="center"
+                        className="reinstall-python-dependencies"
+                        onClick={window.api.pythonInstallDependencies}>
+                        Reinstall python dependencies
+                    </Button>
                 </Flex>
+                
+                {
+                    downloadMessage && (
+                        <Flex width="100%">
+                            <Flex width="100%">Installation progress</Flex>
+                            <Spacer/>
+                            <Flex width="100%">{downloadMessage}</Flex>
+                        </Flex>)
+                }
             </VStack>
         </Box>
     );

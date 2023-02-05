@@ -26,6 +26,7 @@ const api = {
     closeWindow: async () => {return await ipcRenderer.invoke('closeWindow');},
     getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
     pythonInstall: async() => {return await ipcRenderer.invoke('pythonInstall');},
+    pythonInstallDependencies: async() => {return await ipcRenderer.invoke('pythonInstallDependencies');},
     fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback)}
 }
 
