@@ -58,7 +58,7 @@ const loadSDData = () => {
   return sd_data;
 }
 
-loadSDData();
+const sddata = loadSDData();
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
@@ -108,9 +108,10 @@ const getFiles = (folder_path: string, ext: string) => {
   });
 }
 
+console.log("Artroom Log: " + artroom_install_log);
+
 function createWindow() {
-  console.log("Artroom Log: " + artroom_install_log);
-  server = spawn(serverCommand, { detached: true, shell: true });
+  server = spawn(serverCommand, { detached: sddata.debug_mode, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);
@@ -378,18 +379,11 @@ function createWindow() {
   });
 
   ipcMain.handle('restartServer', async (event, isDebug) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(() => {
+      console.log(`debug mode: ${isDebug}`)
       kill(server.pid);
       spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-      if (isDebug) {
-        server = spawn(serverCommand, { detached: true, shell: true });
-      } else {
-        server = spawn(serverCommand, { detached: false, shell: true });
-      }
-      return axios.get(`${LOCAL_URL}/get_progress`,
-        { headers: { 'Content-Type': 'application/json' } }).then((result) => {
-          resolve(result.status);
-        });
+      server = spawn(serverCommand, { detached: isDebug, shell: true });
     });
   });
 
