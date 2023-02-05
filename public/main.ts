@@ -58,7 +58,7 @@ const loadSDData = () => {
   return sd_data;
 }
 
-const sddata = loadSDData();
+loadSDData();
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
@@ -108,10 +108,9 @@ const getFiles = (folder_path: string, ext: string) => {
   });
 }
 
-console.log("Artroom Log: " + artroom_install_log);
-
 function createWindow() {
-  server = spawn(serverCommand, { detached: sddata.debug_mode, shell: true });
+  console.log("Artroom Log: " + artroom_install_log);
+  server = spawn(serverCommand, { detached: true, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);
@@ -289,7 +288,7 @@ function createWindow() {
           return;
         }
         const json = JSON.parse(data);
-        let imgPath = path.resolve(json['image_save_path'], json['batch_name']);
+        let imgPath = path.join(json['image_save_path'], json['batch_name']);
         if (fs.existsSync(imgPath.split(path.sep).join(path.posix.sep))) {
           shell.openPath(imgPath.split(path.sep).join(path.posix.sep))
         }
@@ -379,11 +378,18 @@ function createWindow() {
   });
 
   ipcMain.handle('restartServer', async (event, isDebug) => {
-    return new Promise(() => {
-      console.log(`debug mode: ${isDebug}`)
+    return new Promise((resolve, reject) => {
       kill(server.pid);
       spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-      server = spawn(serverCommand, { detached: isDebug, shell: true });
+      if (isDebug) {
+        server = spawn(serverCommand, { detached: true, shell: true });
+      } else {
+        server = spawn(serverCommand, { detached: false, shell: true });
+      }
+      return axios.get(`${LOCAL_URL}/get_progress`,
+        { headers: { 'Content-Type': 'application/json' } }).then((result) => {
+          resolve(result.status);
+        });
     });
   });
 
@@ -478,7 +484,7 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
-  handlers(artroom_path);
+  handlers(win);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   
