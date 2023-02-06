@@ -111,7 +111,7 @@ export const isTransformingBoundingBoxAtom = atom({
 
 export const layerAtom = atom({
   key: 'canvas.layer',
-  default: 'base',
+  default: 'mask',
 });
 
 export const layerStateAtom = atom({

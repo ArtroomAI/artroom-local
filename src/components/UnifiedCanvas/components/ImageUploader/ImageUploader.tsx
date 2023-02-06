@@ -53,8 +53,7 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
     [toast]
   );
 
-  const fileAcceptedCallback = useCallback(async (file: File) => {
-
+  const fileAcceptedCallback = async (file: File) => {
     uploadImage({
       imageFile: file,
       setInitialCanvasImage,
@@ -67,7 +66,7 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
       setLayerState,
       setFutureLayerStates
     });
-  }, []);
+  };
 
   const onDrop = useCallback(
     (acceptedFiles: Array<File>, fileRejections: Array<FileRejection>) => {

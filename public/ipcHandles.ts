@@ -83,7 +83,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow) => () => {
                     fs.mkdirSync(PATH, { recursive: true });
                     zip.extract(null, path.join(path.join(artroom_path, "\\artroom\\")), (err, count) => {
                         mainWindow.webContents.send('fixButtonProgress', err ? 'Extract error' : `Extracted ${count} entries`);
-                        console.log(err ? 'Extract error' : `Extracted ${count} entries`);
+                        console.log(err ? 'Extract error' : `Finished extracting! Updating libraries...`);
                         installationProcess = spawn(installationCommand, { shell: true, detached: true });
                         installationProcess.stdout.on("data", (data) => {
                             console.log(`stdout: ${data}`);

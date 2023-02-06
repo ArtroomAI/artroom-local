@@ -3,11 +3,11 @@ import { IRect, Vector2d } from 'konva/lib/types';
 import { RgbaColor } from 'react-colorful';
 
 export const LAYER_NAMES_DICT = [
-	{ key: 'Base', value: 'base' },
 	{ key: 'Mask', value: 'mask' },
+	{ key: 'Sketch', value: 'base' },
 ];
 
-export const LAYER_NAMES = ['base', 'mask'] as const;
+export const LAYER_NAMES = ['mask', 'base'] as const;
 
 export type CanvasLayer = typeof LAYER_NAMES[number];
 
