@@ -34,7 +34,7 @@ export const uploadImage = async ({
         height: imageData['height'],
         width: imageData['width'],
         mtime: 1673399421.3987432,
-        url: imageFile.b64,
+        url: URL.createObjectURL(imageFile),
         kind: "image",
         layer: "base",
         ...boundingBoxCoordinates,
@@ -47,7 +47,7 @@ export const uploadImage = async ({
         category: 'user',
         ...image,
       };
-      if (layerState.objects.length == 0){
+      if (layerState.objects.length === 0){
         setInitialCanvasImage(newImage)
       }
       else{
