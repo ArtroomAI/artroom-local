@@ -5,15 +5,13 @@ const config = {
     mode: 'development',
     target: 'electron-preload',
     devtool: 'source-map',
-    entry: './public/preload.js',
+    entry: './public/preload.ts',
     module: {
         rules: [
             {
-                test: /\.(m|j|t)s$/,
-                exclude: /(node_modules|bower_components)/,
-                use: {
-                    loader: 'babel-loader'
-                }
+                test: /\.(m|j|t)s(x?)$/,
+                exclude: /node_modules/,
+                use: 'babel-loader'
             }
         ]
     },

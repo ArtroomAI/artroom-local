@@ -4,29 +4,35 @@ const Dotenv = require('dotenv-webpack');
 
 const config = {
     mode: 'development',
-    entry: './public/renderer.js',
+    entry: './public/renderer.ts',
     target: 'electron-renderer',
     devtool: 'source-map',
     module: {
         rules: [
             {
-                test: /\.css$/,
-                use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
+                test: /\.css$/i,
+                use: [
+                    "style-loader",
+                    "css-loader"
+                ],
+            },
+            {
+                test: /\.s[ac]ss$/i,
+                use: [
+                    "style-loader",
+                    "css-loader",
+                    "sass-loader",
+                ],
             },
             {
                 test: /\.(png|jpe?g|gif|ico)$/i,
                 use: [{ loader: 'file-loader' }]
             },
             {
-                test: /\.ts(x?)$/,
-                include: /src/,
-                use: [{ loader: 'ts-loader' }]
-            },
-            {
-                test: /\.js(x?)$/,
+                test: /\.(m|j|t)s(x?)$/,
                 exclude: /node_modules/,
-                use: ["babel-loader"] 
-            },
+                use: 'babel-loader'
+            }
         ]
     },
     output: {
@@ -41,7 +47,7 @@ const config = {
         })
     ],
     resolve: {
-      extensions: ['.ts', '.tsx', '.js', '.jsx']
+      extensions: ['.ts', '.tsx', '.js', '.jsx', '.scss', '.css', '.sass']
     }
 }
 

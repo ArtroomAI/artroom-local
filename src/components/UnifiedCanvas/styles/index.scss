@@ -1,0 +1,55 @@
+// Themes
+@use './Themes/Colors_Dark';
+@use './Themes/Colors_Light';
+@use './Themes/Colors_Green';
+
+// Component Styles
+
+@use './CanvasWorkarea.scss';
+
+// Component Shared
+@use '../components/IconButton/IconButton.scss';
+@use '../components/Button/Button.scss';
+@use '../components/Select/Select.scss';
+@use '../components/Slider/Slider.scss';
+@use '../components/Checkbox/Checkbox.scss';
+@use '../components/Popover/Popover.scss';
+@use '../components/ColorPicker/ColorPicker.scss';
+@use '../components/ImageUploader/ImageUploader.scss';
+
+// Shared Styles
+@use './Mixins/' as *;
+@use './Modal.scss';
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+// html,
+// body {
+// 	@include HideScrollbar;
+// 	background-color: var(--root-bg-color);
+// 	overflow: hidden;
+// }
+
+// #root {
+// 	background-color: var(--root-bg-color);
+// 	color: var(--text-color);
+// 	font-family: 'Inter', Arial, Helvetica, sans-serif;
+// }
+
+svg {
+	fill: var(--svg-color);
+}
+
+.app-content {
+	//display: grid;
+	//row-gap: 1rem;
+	//grid-auto-rows: min-content auto;
+	width: $app-width;
+	height: $app-height;
+}

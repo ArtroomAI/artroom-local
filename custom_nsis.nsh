@@ -43,8 +43,12 @@
 
 !macro customInstall
   ;!insertmacro customDirectory
-  MessageBox MB_OK "Upon Pressing OK, the installer will install Conda dependencies and model weights to $logDir . Please wait until the installer is finished installing."
-  !insertmacro RunInstaller
+  ${If} ${isUpdated}
+    DetailPrint "Skipping conda environment install"
+  ${Else}
+    MessageBox MB_OK "Upon Pressing OK, the installer will install Conda dependencies and model weights to $logDir . Please wait until the installer is finished installing."
+    !insertmacro RunInstaller
+  ${EndIf}
 !macroend
 
 ; !macro getArtroomDir

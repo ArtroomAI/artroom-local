@@ -4,7 +4,7 @@ import random
 from glob import glob
 import os
 import re
-from artroom_helpers.gpu_detect import is_16xx_series
+from artroom_helpers.gpu_detect import get_gpu_architecture
 
 
 def return_error(status, status_message='', content=''):
@@ -32,7 +32,10 @@ class QueueManager():
 
     def clear_queue(self):
         self.queue = []
-
+        queue_json = {'queue': []}
+        with open(f'{self.artroom_path}/artroom/settings/queue.json', 'w') as outfile:
+            json.dump(queue_json, outfile, indent=4)
+        
     def remove_from_queue(self, id):
         for i, item in enumerate(self.queue):
             if item['id'] == id:
@@ -82,14 +85,6 @@ class QueueManager():
         if data['sampler'] in sampler_format_mapping:
             data['sampler'] = sampler_format_mapping[data['sampler']]
 
-        if len(data['image_save_path']) > 0 and data['image_save_path'][-1] != '/':
-            data['image_save_path'] += '/'
-
-        if data['mask'] == '':
-            data['invert'] = False
-        else:
-            data['invert'] = data['reverse_mask']
-
         if data['use_random_seed']:
             data['seed'] = random.randint(1, 4294967295)
         else:
@@ -105,30 +100,6 @@ class QueueManager():
                 data['strength'] = 0.75
         else:
             data['strength'] = 0.75
-
-        data['precision'] = 'autocast'
-
-        # check whether GPU is a 1600 series and if so, update to use full percision
-        gpu = is_16xx_series()
-        if gpu == '16XX':
-            data['precision'] = 'full'
-        elif gpu == 'None':
-            data['precision'] = 'full'
-            data['use_cpu'] = True
-
-        if data['precision'] == 'full' and data['speed'] in ['Max']:
-            print('Full precision does not work with Max speeds')
-            data['speed'] = 'High'
-
-        if 'use_cpu' in data and data['use_cpu']:
-            data['device'] = 'cpu'
-            data['precision'] = 'full'
-            if data['speed'] == 'Max':
-                print(
-                    'CPU mode does not work with MAX speed setting, switch to High (although there will be no difference in speeds')
-                data['speed'] = 'High'
-        else:
-            data['device'] = 'cuda'
 
         if '%UserProfile%' in data['image_save_path']:
             data['image_save_path'] = data['image_save_path'].replace(
@@ -164,7 +135,7 @@ class QueueManager():
     def save_to_settings_folder(self, data):
         print("Saving settings...")
         if self.SD.long_save_path:
-            image_folder = os.path.join(data['image_save_path']+data['batch_name'], re.sub(
+            image_folder = os.path.join(data['image_save_path'],data['batch_name'], re.sub(
                 r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
             os.makedirs(image_folder, exist_ok=True)
             os.makedirs(image_folder+'/settings', exist_ok=True)
@@ -173,7 +144,7 @@ class QueueManager():
                 json.dump(data, outfile, indent=4)
         else:
             image_folder = os.path.join(
-                data['image_save_path']+data['batch_name'])
+                data['image_save_path'],data['batch_name'])
             os.makedirs(image_folder, exist_ok=True)
             os.makedirs(image_folder+'/settings', exist_ok=True)
             sd_settings_count = len(glob(image_folder+'/settings/*.json'))
@@ -184,58 +155,61 @@ class QueueManager():
         print("Settings saved")
 
     def save_settings_cache(self, data):
+        with open(f'{self.artroom_path}/artroom/settings/sd_settings.json', 'r') as infile:
+            existing_data = json.load(infile)
+        existing_data.update(data)
         with open(f'{self.artroom_path}/artroom/settings/sd_settings.json', 'w') as outfile:
-            json.dump(data, outfile, indent=4)
+            json.dump(existing_data, outfile, indent=4)
 
     def generate(self, next_gen):
-        mask_b64 = next_gen['mask']
-        next_gen['mask'] = ''
+        mask_b64 = next_gen['mask_image']
+        next_gen['mask_image'] = ''
         init_image_str = next_gen['init_image']
         print("Saving settings to folder...")
         self.save_to_settings_folder(next_gen)
         ckpt_path = os.path.join(next_gen['ckpt_dir'],next_gen['ckpt']).replace(os.sep, '/')
-        try:
-            print("Starting gen...")
-            self.SD.generate(
-                text_prompts=next_gen['text_prompts'],
-                negative_prompts=next_gen['negative_prompts'],
-                batch_name=next_gen['batch_name'],
-                init_image_str=init_image_str,
-                strength=next_gen['strength'],
-                mask_b64=mask_b64,
-                invert=next_gen['invert'],
-                n_iter=int(next_gen['n_iter']),
-                steps=int(next_gen['steps']),
-                H=int(next_gen['height']),
-                W=int(next_gen['width']),
-                seed=int(next_gen['seed']),
-                sampler=next_gen['sampler'],
-                cfg_scale=float(next_gen['cfg_scale']),
-                ckpt=ckpt_path,
-                image_save_path=next_gen['image_save_path'],
-                speed=next_gen['speed'],
-                device=next_gen['device'],
-                precision=next_gen['precision'],
-                skip_grid=not next_gen['save_grid'],
-            )
-        except Exception as e:
-            print(f'Failure: {e}')
-            self.parse_errors(e)
-            self.running = False
-            self.SD.running = False
+        vae_path = os.path.join(next_gen['ckpt_dir'],next_gen['vae']).replace(os.sep, '/')
+        # try:
+        print("Starting gen...")
+        self.SD.generate(
+            text_prompts=next_gen['text_prompts'],
+            negative_prompts=next_gen['negative_prompts'],
+            batch_name=next_gen['batch_name'],
+            init_image_str=init_image_str,
+            strength=next_gen['strength'],
+            mask_b64=mask_b64,
+            invert=next_gen['invert'],
+            n_iter=int(next_gen['n_iter']),
+            steps=int(next_gen['steps']),
+            H=int(next_gen['height']),
+            W=int(next_gen['width']),
+            seed=int(next_gen['seed']),
+            sampler=next_gen['sampler'],
+            cfg_scale=float(next_gen['cfg_scale']),
+            ckpt=ckpt_path,
+            vae=vae_path,
+            image_save_path=next_gen['image_save_path'],
+            speed=next_gen['speed'],
+            skip_grid=not next_gen['save_grid'],
+        )
+        # except Exception as e:
+        #     print(f'Failure: {e}')
+        #     self.parse_errors(e)
+        #     self.running = False
+        #     self.SD.running = False
 
     def run_queue(self):
         if not self.running:
             print("Queue is running")
             self.running = True
-            while(self.running):
-                if len(self.queue) > 0 and not self.SD.stage == "Loading Model":
+            while self.running:
+                if len(self.queue) > 0:
                     print("Generating next item from queue...")
                     queue_item = self.queue[0]
-                    try:
-                        self.generate(queue_item)
-                    except Exception as e:
-                        print(f"Failed to generate: {e}")
+                    # try:
+                    self.generate(queue_item)
+                    # except Exception as e:
+                    #     print(f"Failed to generate: {e}")
 
                     try:
                         self.remove_from_queue(queue_item['id'])
@@ -245,8 +219,6 @@ class QueueManager():
                 else:
                     pass
                     # print(f"Items in queue: {len(self.queue)}")
-                    # if len(self.SD.stage) > 0:
-                    #     print(self.SD.stage)
                 time.sleep(self.delay)
                 if len(self.queue) == 0:
                     self.running = False
