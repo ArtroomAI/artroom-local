@@ -709,6 +709,7 @@ class UNet(DDPM):
                x_T=None,
                log_every_t=100,
                unconditional_guidance_scale=1.,
+               txt_scale=1.5,
                unconditional_conditioning=None,
                batch_size=None,
                mode="default"
@@ -776,7 +777,7 @@ class UNet(DDPM):
                                          )
 
         elif sampler == "ddim":
-            samples = self.ddim_sampling(x_latent, conditioning, S, callback=callback, mode=mode,
+            samples = self.ddim_sampling(x_latent, conditioning, S, callback=callback, mode=mode, txt_scale=txt_scale,
                                          unconditional_guidance_scale=unconditional_guidance_scale,
                                          unconditional_conditioning=unconditional_conditioning,
                                          mask=mask, init_latent=x_T, use_original_steps=False)
@@ -1161,7 +1162,7 @@ class UNet(DDPM):
 
     @torch.no_grad()
     def ddim_sampling(self, x_latent, cond, t_start, unconditional_guidance_scale=1.0, unconditional_conditioning=None,
-                      mask=None, init_latent=None, use_original_steps=False, callback=None, mode="default"):
+                      mask=None, init_latent=None, use_original_steps=False, callback=None, mode="default", txt_scale=1.5):
 
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:t_start]
@@ -1182,8 +1183,8 @@ class UNet(DDPM):
                 x_dec = x0_noisy * mask + (1. - mask) * x_dec
 
             x_dec = self.p_sample_ddim(x_dec, cond, ts, index=index, use_original_steps=use_original_steps,
-                                       unconditional_guidance_scale=unconditional_guidance_scale,
-                                       unconditional_conditioning=unconditional_conditioning, mode=mode)
+                                       unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
+                                       text_cfg_scale=txt_scale, unconditional_conditioning=unconditional_conditioning)
             if callback:
                 callback(x_dec)
 

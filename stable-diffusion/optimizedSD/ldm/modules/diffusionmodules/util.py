@@ -64,7 +64,8 @@ def make_ddim_sampling_parameters(alphacums, ddim_timesteps, eta, verbose=True):
     # select alphas for computing the variance schedule
     try:  # fix for the 1000 out of bounds 1000 error
         alphas = alphacums[ddim_timesteps]
-    except:
+    except Exception as e:
+        print(f"1000 {e}")
         alphas = alphacums[ddim_timesteps - 1]
     alphas_prev = np.asarray([alphacums[0]] + alphacums[ddim_timesteps[:-1]].tolist())
 

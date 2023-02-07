@@ -434,10 +434,9 @@ class StableDiffusion:
         #         x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
 
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
-                 invert=False,
-                 steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
-                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False,
-                 batch_id=0):
+                 invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
+                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
+                 speed="High", skip_grid=False, batch_id=0):
 
         self.running = True
         self.dtype = torch.float16 if self.is_nvidia else torch.float32
@@ -446,7 +445,6 @@ class StableDiffusion:
             batch_id = random.randint(1, 922337203685)
 
         print("HIGHRES FIX:", self.highres_fix)
-        print(W, H)
 
         oldW, oldH = W, H
         if W * H > 512 * 512 and self.highres_fix:
@@ -506,6 +504,9 @@ class StableDiffusion:
         mode = "default" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4 else (
             "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
         )
+
+        if mode != "default":
+            highres_fix_steps = 1
 
         print("Prompt:", text_prompts)
         data = [batch_size * text_prompts]
@@ -613,12 +614,14 @@ class StableDiffusion:
 
                             x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                             x0 = init_latent_1stage if mode == "pix2pix" else x0
+                            print("Sampling")
                             x0 = self.model.sample(
                                 S=steps,
                                 conditioning=c,
                                 x0=x0,
                                 S_ddim_steps=ddim_steps,
                                 unconditional_guidance_scale=cfg_scale,
+                                txt_scale=txt_cfg_scale,
                                 unconditional_conditioning=uc,
                                 eta=ddim_eta,
                                 sampler=sampler,
