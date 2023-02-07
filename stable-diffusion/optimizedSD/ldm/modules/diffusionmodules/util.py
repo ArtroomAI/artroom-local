@@ -62,7 +62,11 @@ def make_ddim_timesteps(ddim_discr_method, num_ddim_timesteps, num_ddpm_timestep
 
 def make_ddim_sampling_parameters(alphacums, ddim_timesteps, eta, verbose=True):
     # select alphas for computing the variance schedule
-    alphas = alphacums[ddim_timesteps]
+    try:  # fix for the 1000 out of bounds 1000 error
+        alphas = alphacums[ddim_timesteps]
+    except Exception as e:
+        print(f"1000 {e}")
+        alphas = alphacums[ddim_timesteps - 1]
     alphas_prev = np.asarray([alphacums[0]] + alphacums[ddim_timesteps[:-1]].tolist())
 
     # according the the formula provided in https://arxiv.org/abs/2010.02502
@@ -214,6 +218,7 @@ class SiLU(nn.Module):
 class GroupNorm32(nn.GroupNorm):
     def forward(self, x):
         return super().forward(x.float()).type(x.dtype)
+
 
 def conv_nd(dims, *args, **kwargs):
     """

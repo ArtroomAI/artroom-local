@@ -33,7 +33,6 @@ pillow==9.0.0
 more-itertools>=8.0.0
 jsonmerge
 pyyaml
-transformers
 clean-fid
 scikit-image 
 torchdiffeq
