@@ -505,6 +505,9 @@ class StableDiffusion:
             "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
         )
 
+        if mode == "pix2pix":
+            sampler = "ddim"
+
         if mode != "default":
             highres_fix_steps = 1
 
