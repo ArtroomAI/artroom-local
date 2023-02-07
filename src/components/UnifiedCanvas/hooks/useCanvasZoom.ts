@@ -10,29 +10,9 @@ import {
 	isMoveStageKeyHeldAtom,
 } from '../atoms/canvas.atoms';
 
-// import { canvasSelector } from 'canvas/store/canvasSelectors';
-// import {
-// 	setStageCoordinates,
-// 	setStageScale,
-// } from 'canvas/store/canvasSlice';
-
-// const selector = createSelector(
-// 	[canvasSelector],
-// 	canvas => {
-// 		const { isMoveStageKeyHeld, stageScale } = canvas;
-// 		return {
-// 			isMoveStageKeyHeld,
-// 			stageScale,
-// 		};
-// 	},
-// 	{ memoizeOptions: { resultEqualityCheck: _.isEqual } },
-// );
-
 export const useCanvasWheel = (
 	stageRef: MutableRefObject<Konva.Stage | null>,
 ) => {
-	// const { isMoveStageKeyHeld, stageScale } = useAppSelector(selector);
-
 	const setStageCoordinates = useSetRecoilState(stageCoordinatesAtom);
 	const [stageScale, setStageScale] = useRecoilState(stageScaleAtom);
 	const isMoveStageKeyHeld = useRecoilValue(isMoveStageKeyHeldAtom);

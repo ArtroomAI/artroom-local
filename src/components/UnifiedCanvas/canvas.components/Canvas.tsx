@@ -1,5 +1,4 @@
-import React from 'react';
-import { useCallback, useRef, FC } from 'react';
+import React, { useCallback, useRef, FC } from 'react';
 import Konva from 'konva';
 import { Layer, Stage } from 'react-konva';
 import { CanvasMaskLines } from './CanvasMaskLines';
@@ -40,93 +39,19 @@ import {
 } from '../atoms/canvas.atoms';
 import { useRecoilValue } from 'recoil';
 
-// import _ from 'lodash';
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-
-// const selector = createSelector(
-// 	[canvasSelector, isStagingSelector],
-// 	(canvas, isStaging) => {
-// 		const {
-// 			isMaskEnabled,
-// 			stageScale,
-// 			shouldShowBoundingBox,
-// 			isTransformingBoundingBox,
-// 			isMouseOverBoundingBox,
-// 			isMovingBoundingBox,
-// 			stageDimensions,
-// 			stageCoordinates,
-// 			tool,
-// 			isMovingStage,
-// 			shouldShowIntermediates,
-// 			shouldShowGrid,
-// 			shouldRestrictStrokesToBox,
-// 		} = canvas;
-
-// 		let stageCursor: string | undefined = 'none';
-
-// 		if (tool === 'move' || isStaging) {
-// 			if (isMovingStage) {
-// 				stageCursor = 'grabbing';
-// 			} else {
-// 				stageCursor = 'grab';
-// 			}
-// 		} else if (isTransformingBoundingBox) {
-// 			stageCursor = undefined;
-// 		} else if (shouldRestrictStrokesToBox && !isMouseOverBoundingBox) {
-// 			stageCursor = 'default';
-// 		}
-
-// 		return {
-// 			isMaskEnabled,
-// 			isModifyingBoundingBox:
-// 				isTransformingBoundingBox || isMovingBoundingBox,
-// 			shouldShowBoundingBox,
-// 			shouldShowGrid,
-// 			stageCoordinates,
-// 			stageCursor,
-// 			stageDimensions,
-// 			stageScale,
-// 			tool,
-// 			isStaging,
-// 			shouldShowIntermediates,
-// 		};
-// 	},
-// 	{
-// 		memoizeOptions: {
-// 			resultEqualityCheck: _.isEqual,
-// 		},
-// 	},
-// );
-
 export const Canvas: FC = () => {
-  // const {
-  // 	isMaskEnabled,
-  // 	isModifyingBoundingBox,
-  // 	shouldShowBoundingBox,
-  // 	shouldShowGrid,
-  // 	stageCoordinates,
-  // 	stageCursor,
-  // 	stageDimensions,
-  // 	stageScale,
-  // 	tool,
-  // 	isStaging,
-  // 	shouldShowIntermediates,
-  // } = useAppSelector(selector);
   useInpaintingCanvasHotkeys();
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const canvasBaseLayerRef = useRef<Konva.Layer | null>(null);
 
   const canvasStageRefCallback = useCallback((el: Konva.Stage) => {
-    setCanvasStage(el as Konva.Stage);
+    setCanvasStage(el);
     stageRef.current = el;
   }, []);
 
   const canvasBaseLayerRefCallback = useCallback((el: Konva.Layer) => {
-    setCanvasBaseLayer(el as Konva.Layer);
+    setCanvasBaseLayer(el);
     canvasBaseLayerRef.current = el;
   }, []);
 
@@ -209,8 +134,8 @@ export const Canvas: FC = () => {
           <CanvasBoundingBoxOverlay />
         </Layer>
         <Layer id="preview" imageSmoothingEnabled={false}>
-          {!isStaging && (
-            <CanvasToolPreview visible={tool !== 'move'} listening={false} />
+          {(!isStaging && tool !== 'move') && (
+            <CanvasToolPreview visible={true} listening={false} />
           )}
           <CanvasStagingArea visible={isStaging} />
           {shouldShowIntermediates && <CanvasIntermediateImage />}

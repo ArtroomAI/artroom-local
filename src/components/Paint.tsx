@@ -1,8 +1,7 @@
-import React, {useEffect, useState, useReducer, useRef} from 'react';
+import React, {useEffect, useState, useReducer, useRef, useContext, useCallback} from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, stageScaleAtom, shouldPreserveMaskedAreaAtom } from './UnifiedCanvas/atoms/canvas.atoms';
-import axios from 'axios';
 import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
 import {
     Text,
@@ -11,39 +10,24 @@ import {
     SimpleGrid,
     Image as ChakraImage,
     Button,
-    useToast
+    useToast,
+    Progress
 } from '@chakra-ui/react';
 import Prompt from './Prompt';
-import { useInterval } from './Reusable/useInterval/useInterval';
 import Shards from '../images/shards.png';
 import _ from 'lodash';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
-import { isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
+import { SocketContext, SocketOnEvents } from '../socket';
 
-const loadImage = async (b64: string) => {
-    const image = new Image();
-    image.src = b64;
-    return new Promise((resolve) => {
-      image.onload = () => {
-        resolve({width: image.width, height: image.height});
-      }
-    });
-  }
-
-  
 function Paint () {
-    const LOCAL_URL = process.env.REACT_APP_LOCAL_URL;
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
-    const baseURL = LOCAL_URL;
-
     const toast = useToast({});
 
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-    const [latestImagesID, setLatestImagesID] = useRecoilState(atom.latestImagesIDState);
 
     const [progress, setProgress] = useState(-1);
+    const [batchProgress, setBatchProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
@@ -58,7 +42,7 @@ function Paint () {
     const stageScale = useRecoilValue(stageScaleAtom);   
 
 
-    const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width: number, height: number) => {
+    const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width?: number, height?: number) => {
         // Create a new canvas element
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d');
@@ -73,11 +57,11 @@ function Paint () {
             regular.onload = function() {
                 mask.onload = function() {
                     // Draw the image on the canvas
-                    canvas.width = regular.width;
-                    canvas.height = regular.height;
+                    canvas.width = width || regular.width;
+                    canvas.height = height || regular.height;
                     ctx.drawImage(regular, 0, 0);
                     // Get the image data from the canvas
-                    var imageData = ctx.getImageData(0, 0, regular.width, regular.height);
+                    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     var data = imageData.data;
                     // Iterate through the image data and set the alpha value to the color value
                     for (var i = 0; i < data.length; i += 4) {
@@ -97,7 +81,9 @@ function Paint () {
         });
     }
 
-    const handleRunInpainting = () => {
+    const socket = useContext(SocketContext);
+
+    const handleRunInpainting = useCallback(() => {
         const canvasBaseLayer = getCanvasBaseLayer();
         const boundingBox = {
           ...boundingBoxCoordinates,
@@ -125,24 +111,51 @@ function Paint () {
     
         canvasBaseLayer.scale(tempScale);
         addOutpaintingLayer(imageDataURL, maskDataURL, boundingBox.width, boundingBox.height).then(combinedMask =>{
-            console.log(combinedMask)
             const body = {
                 ...imageSettings,
                 init_image: imageDataURL,
                 mask_image: combinedMask,
                 invert: shouldPreserveMaskedArea
-              };
-            axios.post(`${baseURL}/add_to_queue`,body,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-            ).then(result =>{
-                console.log(result);
-            })
+              }
+            socket.emit('add_to_queue', body);
         }).catch(err =>{
            console.log(err);
-        })
-      };
+        })        
+
+    }, [boundingBoxCoordinates, boundingBoxDimensions, layerState.objects, stageScale, imageSettings, socket]);
+
+    const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
+        setProgress((100 * data.current_step / data.total_steps));
+        setBatchProgress(100 * (data.current_num * data.total_steps + data.current_step) / (data.total_steps * data.total_num));
+    }, []);
+
+    const handleGetStatus: SocketOnEvents['get_status'] = useCallback((data) => {
+        if (data.status === 'Loading Model') {
+            toast({
+                id: 'loading-model',
+                title: 'Loading model...',
+                status: 'info',
+                position: 'bottom-right',
+                duration: null,
+                isClosable: false
+            });
+        } else if (data.status === 'Finished Loading Model') {
+            if (toast.isActive('loading-model')) {
+                toast.close('loading-model');
+            }
+        }
+    }, [toast]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('get_progress', handleGetProgress);
+        socket.on('get_status', handleGetStatus);
+    
+        return () => {
+            socket.off('get_progress', handleGetProgress);
+            socket.off('get_status', handleGetStatus);
+        };
+    }, [socket, handleGetProgress, handleGetStatus]);
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
@@ -150,7 +163,7 @@ function Paint () {
         return estimated_price;
     }
 
-    function addToCanvas(imageData: { b64: string, path: string; }){
+    function addToCanvas(imageData: { b64?: string, path?: string; batch_id?: number }){
         const scaledDimensions = getScaledBoundingBoxDimensions(
             boundingBoxDimensions
         );         
@@ -159,43 +172,40 @@ function Paint () {
             ...boundingBoxCoordinates,
             ...scaledDimensions,
         };
-        console.log(boundingBox)
 
         const image = {
-        ...scaledDimensions,
-        category: "user",
-        mtime: 1673399421.3987432,
-        url: imageData.path,
-        uuid: uuidv4(),
-        kind: "image",
-        layer: "base",
-        x: 0,
-        y: 0
-    }
+            ...scaledDimensions,
+            category: "user",
+            mtime: 1673399421.3987432,
+            url: imageData.path,
+            uuid: v4(),
+            kind: "image",
+            layer: "base",
+            x: 0,
+            y: 0
+        }
 
         if (!boundingBox || !image) return;
 
-        setPastLayerStates([
-        ...pastLayerStates,
-        _.cloneDeep(layerState),
-        ]);
+        setPastLayerStates([...pastLayerStates, _.cloneDeep(layerState)]);
 
         if (pastLayerStates.length > maxHistory) {
-        setPastLayerStates(pastLayerStates.slice(1));
+            setPastLayerStates(pastLayerStates.slice(1));
         }
+
+
         //Filters so that the same image isn't used in the same spot, saving memory
         setLayerState({
-        ...layerState,
-        objects: [
-            ...layerState.objects.filter(
-                object => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)
-                ),                    
-            {
-                kind: 'image',
-                layer: 'base',
-                ...boundingBox,
-                image,
-            },
+            ...layerState,
+            objects: [
+                ...layerState.objects.filter(
+                    (object: CanvasImage) => !(object.image?.url === imageData.path && object.x === boundingBox.x && object.y === boundingBox.y)),                    
+                {
+                    kind: 'image',
+                    layer: 'base',
+                    ...boundingBox,
+                    image,
+                },
             ],
         });
         setFutureLayerStates([]);
@@ -300,69 +310,6 @@ function Paint () {
         [arrowLeftPressed]
     );
 
-    useEffect(
-        () => {
-            const interval = setInterval(
-                () => axios.get(
-                    `${baseURL}/get_progress`,
-                    { headers: { 'Content-Type': 'application/json' } }
-                ).then((result) => {
-                    if (result.data.status === 'Success') {
-                        setProgress(result.data.content.percentage);
-                        if (result.data.content.status === 'Loading Model' && !toast.isActive('loading-model')) {
-                            toast({
-                                id: 'loading-model',
-                                title: 'Loading model...',
-                                status: 'info',
-                                position: 'bottom-right',
-                                duration: 30000,
-                                isClosable: false
-                            });
-                        }
-                        if (!(result.data.content.status === 'Loading Model')) {
-                            if (toast.isActive('loading-model')) {
-                                toast.close('loading-model');
-                            }
-                        }
-                    } else {
-                        setProgress(-1);
-                        if (toast.isActive('loading-model')) {
-                            toast.close('loading-model');
-                        }
-                    }
-                }),
-                500
-            );
-            return () => {
-                clearInterval(interval);
-            };
-        },
-        []
-    );
-
-    useInterval(
-        () => {
-            axios.get(
-                `${baseURL}/get_images`,
-                { params: { 'path': 'latest',
-                    'id': latestImagesID },
-                headers: { 'Content-Type': 'application/json' } }
-            ).then((result) => {
-                const id = result.data.content.latest_images_id;
-                if (result.data.status === 'Success') {
-                    if (id !== latestImagesID) {
-                        setLatestImagesID(id);
-                        setLatestImages(result.data.content.latest_images);
-                        setMainImage(result.data.content.latest_images[result.data.content.latest_images.length - 1]);
-                    }
-                } else if (result.data.status === 'Failure') {
-                    setMainImage('');
-                }
-            });
-        },
-        3000
-    );
-
     const prevSelectedIndex = useRef(0);
     useEffect(() => {
         if (latestImages.length > 0 && prevSelectedIndex.current !== state.selectedIndex){
@@ -380,7 +327,25 @@ function Paint () {
                 spacing={4}>
                 <Box
                     className="paint-output">
-                    <UnifiedCanvas></UnifiedCanvas>
+                    <UnifiedCanvas />
+                    {
+                        (batchProgress >= 0 && batchProgress !== 100)
+                            ? <Progress
+                                alignContent="left"
+                                hasStripe
+                                width="100%"
+                                value={batchProgress} />
+                            : <></>
+                    }
+                    {
+                        (progress >= 0 && progress !== 100)
+                            ? <Progress
+                                alignContent="left"
+                                hasStripe
+                                width="100%"
+                                value={progress} />
+                            : <></>
+                    }
                 </Box>
                 
                 <Box

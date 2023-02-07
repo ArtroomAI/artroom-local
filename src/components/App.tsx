@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -15,6 +15,7 @@ import {
     Button
 } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
+import { useInterval } from './Reusable/useInterval/useInterval';
 import PromptGuide from './PromptGuide';
 import Body from './Body';
 import Sidebar from './Sidebar';
@@ -31,11 +32,14 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
+import path from 'path';
 import { Console } from './Console';
+import { SocketContext } from '../socket';
+import { ImageState } from '../atoms/atoms.types';
 
 export default function App () {
-    // Connect to the server
-
+    // Connect to the server 
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
 
@@ -48,12 +52,31 @@ export default function App () {
 
     const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
-
-    const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
-    const [email, setEmail] = useRecoilState(atom.emailState);
-    const [username, setUsername] = useRecoilState(atom.usernameState);
     const [shard, setShard] = useRecoilState(atom.shardState);
+    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
+    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
+    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
+    const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
+
+    const socket = useContext(SocketContext);
+
+    const handleGetImages = useCallback((data: ImageState) => {
+        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
+            setLatestImages([data]);
+        } else {
+            setLatestImages([...latestImages, data]);
+        }
+        setMainImage(data);
+    }, [latestImages, setLatestImages, setMainImage])
+
+    useEffect(() => {
+        socket.on('get_images', handleGetImages); 
+
+        return () => {
+          socket.off('get_images', handleGetImages);
+        };
+    }, [socket, handleGetImages]);
 
     //make sure cloudmode is off, while not signed in
     if (!loggedIn) {
@@ -63,6 +86,91 @@ export default function App () {
     ProtectedReqManager.setCloudMode = setCloudMode;
     ProtectedReqManager.setLoggedIn = setLoggedIn;
     ProtectedReqManager.toast = toast;
+
+    useInterval(
+        () => {
+            ProtectedReqManager.make_get_request(`${ARTROOM_URL}/image/get_status`).then((response: any) => {
+                if (response.data.jobs.length == 0) {
+                    toast({
+                        title: 'Cloud jobs Complete!',
+                        status: 'success',
+                        position: 'top',
+                        duration: 5000,
+                        isClosable: true,
+                        containerStyle: {
+                            pointerEvents: 'none'
+                        }
+                    });
+                    setCloudRunning(false);
+                } else {
+                    setShard(response.data.shards);
+                    let job_list = response.data.jobs;
+                    let text = "";
+                    let pending_cnt = 0;
+                    let newCloudImages = [];
+                    for (let i = 0; i < job_list.length; i++) {
+                        for (let j = 0; j < job_list[i].images.length; j++) {
+                            if (job_list[i].images[j].status == 'PENDING') {
+                                pending_cnt = pending_cnt + 1;
+                            } else if (job_list[i].images[j].status == 'FAILED') {
+
+                                let shard_refund = job_list[i].image_settings.shard_cost/job_list[i].image_settings.n_iter;
+                                toast({
+                                    title: 'Cloud Error Occurred, ' + shard_refund +' Shards Refunded to account',
+                                    description: "Failure on Image id: " + job_list[i].images[j].id + " Job id: " + job_list[i].id,
+                                    status: 'error',
+                                    position: 'top',
+                                    duration: 10000,
+                                    isClosable: true,
+                                    containerStyle: {
+                                        pointerEvents: 'none'
+                                    }
+                                });
+                            } else if (job_list[i].images[j].status == 'SUCCESS') {
+                                //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
+                                let img_name = job_list[i].id + '_' + job_list[i].images[j].id;
+                                const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, img_name + "_cloud.png");
+                                toast({
+                                    title: "Image completed: " + imagePath,
+                                    status: 'info',
+                                    position: 'top',
+                                    duration: 5000,
+                                    isClosable: true,
+                                    containerStyle: {
+                                        pointerEvents: 'none'
+                                    }
+                                });
+                                //const timestamp = new Date().getTime();
+                                console.log(imagePath);
+                                let dataURL = job_list[i].images[j].url;
+                                newCloudImages.push({"b64": dataURL})
+                                window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
+                            }
+                        }
+                    }
+                    setLatestImages([...latestImages, ...newCloudImages]);
+                    setMainImage(newCloudImages[newCloudImages.length-1]?.b64)
+                    toast({
+                        title: 'Cloud jobs running!\n',
+                        description: text + pending_cnt + " jobs pending",
+                        status: 'info',
+                        position: 'top',
+                        duration: 5000,
+                        isClosable: true,
+                        containerStyle: {
+                            pointerEvents: 'none'
+                        }
+                    });
+                }
+
+            }).catch((err: any) => {
+                console.log(err);
+            });
+        },
+        cloudRunning ? 5000 : null
+    );
+
+
 
     useEffect(
         () => {
@@ -125,6 +233,8 @@ export default function App () {
                 toggleColorMode();
             }
         },
+        // load only once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
 

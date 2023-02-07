@@ -2,12 +2,22 @@
 import gc
 import math
 import torch
+
 import torch.nn as nn
 import numpy as np
+
 from einops import rearrange
 
 from ldm.util import instantiate_from_config
 from ldm.modules.attention import LinearAttention
+
+try:
+    import xformers
+    import xformers.ops
+
+    XFORMERS_IS_AVAILBLE = True
+except:
+    XFORMERS_IS_AVAILBLE = False
 
 
 def get_timestep_embedding(timesteps, embedding_dim):
@@ -38,6 +48,11 @@ def nonlinearity(x):
     del t
 
     return x
+
+
+def clear_fn():
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 def Normalize(in_channels, num_groups=32):
@@ -124,30 +139,26 @@ class ResnetBlock(nn.Module):
                                                     padding=0)
 
     def forward(self, x, temb):
-        h1 = x
-        h2 = self.norm1(h1)
-        del h1
+        try:
+            return self.standard_forward(x, temb)
+        except Exception as e:
+            clear_fn()
+            print(e)
+            return self.forward_cpu(x, temb)
 
-        h3 = nonlinearity(h2)
-        del h2
-
-        h4 = self.conv1(h3)
-        del h3
+    def standard_forward(self, x, temb):
+        h = x
+        h = self.norm1(h)
+        h = nonlinearity(h)
+        h = self.conv1(h)
 
         if temb is not None:
-            h4 = h4 + self.temb_proj(nonlinearity(temb))[:, :, None, None]
+            h = h + self.temb_proj(nonlinearity(temb))[:, :, None, None]
 
-        h5 = self.norm2(h4)
-        del h4
-
-        h6 = nonlinearity(h5)
-        del h5
-
-        h7 = self.dropout(h6)
-        del h6
-
-        h8 = self.conv2(h7)
-        del h7
+        h = self.norm2(h)
+        h = nonlinearity(h)
+        h = self.dropout(h)
+        h = self.conv2(h)
 
         if self.in_channels != self.out_channels:
             if self.use_conv_shortcut:
@@ -155,7 +166,46 @@ class ResnetBlock(nn.Module):
             else:
                 x = self.nin_shortcut(x)
 
-        return x + h8
+        return x + h
+
+    def forward_cpu(self, x, temb):
+        dev = x.device
+        original_dtype = x.dtype
+
+        x = x.cpu().to(torch.float32)
+        h = x
+
+        clear_fn()
+        h = self.norm1.to(torch.float32).cpu()(h)
+        clear_fn()
+        h = nonlinearity(h)
+        clear_fn()
+        h = self.conv1.to(torch.float32).cpu()(h)
+
+        if temb is not None:
+            h = h + self.temb_proj.cpu()(nonlinearity(temb))[:, :, None, None]
+
+        clear_fn()
+        h = self.norm2.to(torch.float32).cpu()(h)
+        clear_fn()
+        h = nonlinearity(h)
+        clear_fn()
+        h = self.dropout.to(torch.float32)(h)
+        clear_fn()
+        h = self.conv2.to(torch.float32).cpu()(h)
+        clear_fn()
+
+        if self.in_channels != self.out_channels:
+            if self.use_conv_shortcut:
+                x = self.conv_shortcut.to(torch.float32).cpu()(x.cpu())
+            else:
+                x = self.nin_shortcut.to(torch.float32).cpu()(x.cpu())
+        else:
+            x = x.cpu()
+        x = x + h
+        del h
+        clear_fn()
+        return x.to(original_dtype).to(dev)
 
 
 class LinAttnBlock(LinearAttention):
@@ -163,6 +213,73 @@ class LinAttnBlock(LinearAttention):
 
     def __init__(self, in_channels):
         super().__init__(dim=in_channels, heads=1, dim_head=in_channels)
+
+
+class MemoryEfficientAttnBlock(nn.Module):
+    """
+        Uses xformers efficient implementation,
+        see https://github.com/MatthieuTPHR/diffusers/blob/d80b531ff8060ec1ea982b65a1b8df70f73aa67c/src/diffusers/models/attention.py#L223
+        Note: this is a single-head self-attention operation
+    """
+
+    #
+    def __init__(self, in_channels):
+        super().__init__()
+        self.in_channels = in_channels
+
+        self.norm = Normalize(in_channels)
+        self.q = torch.nn.Conv2d(in_channels,
+                                 in_channels,
+                                 kernel_size=1,
+                                 stride=1,
+                                 padding=0)
+        self.k = torch.nn.Conv2d(in_channels,
+                                 in_channels,
+                                 kernel_size=1,
+                                 stride=1,
+                                 padding=0)
+        self.v = torch.nn.Conv2d(in_channels,
+                                 in_channels,
+                                 kernel_size=1,
+                                 stride=1,
+                                 padding=0)
+        self.proj_out = torch.nn.Conv2d(in_channels,
+                                        in_channels,
+                                        kernel_size=1,
+                                        stride=1,
+                                        padding=0)
+        self.attention_op = None
+
+    def forward(self, x):
+        h_ = x
+        h_ = self.norm(h_)
+        q = self.q(h_)
+        k = self.k(h_)
+        v = self.v(h_)
+
+        # compute attention
+        B, C, H, W = q.shape
+        q, k, v = map(lambda x: rearrange(x, 'b c h w -> b (h w) c'), (q, k, v))
+
+        q, k, v = map(
+            lambda t: t.unsqueeze(3)
+                .reshape(B, t.shape[1], 1, C)
+                .permute(0, 2, 1, 3)
+                .reshape(B * 1, t.shape[1], C)
+                .contiguous(),
+            (q, k, v),
+        )
+        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=self.attention_op)
+
+        out = (
+            out.unsqueeze(0)
+                .reshape(B, 1, out.shape[1], C)
+                .permute(0, 2, 1, 3)
+                .reshape(B, out.shape[1], C)
+        )
+        out = rearrange(out, 'b (h w) c -> b c h w', b=B, h=H, w=W, c=C)
+        out = self.proj_out(out)
+        return x + out
 
 
 class AttnBlock(nn.Module):
@@ -191,72 +308,71 @@ class AttnBlock(nn.Module):
                                         kernel_size=1,
                                         stride=1,
                                         padding=0)
+        self.efficient_attn = MemoryEfficientAttnBlock(in_channels) if XFORMERS_IS_AVAILBLE else None
 
-    def forward(self, x):
+    def forward(self, x, secondary_device=None):
+        if self.efficient_attn is not None:
+            return self.efficient_attn(x)
+
+        def fused_memory_opt(mem_free_total, b, h, w, c):
+            # s1 = (b * h * w * 2 * h * w) * 2  # 2 bmms
+            # s2 = (b * ((h * w) ** 2) * 2) * 2  # 2 softmaxes
+            # s3 = (b * c * h * w * 3) * 2  # zeros_like, empty_like, empty_strided
+            # s = 2 * (s1 + s2 + s3)  # 2 because of small allocations which don't really matter
+            s = 16 * b * ((h * w) ** 2) + 12 * b * c * h * w
+            s = (s // mem_free_total) + 1 if s > mem_free_total else torch.tensor(1)
+            return s
+
+        @torch.jit.script
+        def fused_t(x, c):
+            return x * (int(c) ** (-0.5))
+
+        dev = x.device
+        precision = x.dtype
         h_ = x
-        h_ = self.norm(h_)
-        q1 = self.q(h_)
-        k1 = self.k(h_)
-        v = self.v(h_)
+        x = x.cpu()
+        h_ = self.norm.to(precision).to(dev)(h_)
+        q = self.q.to(precision).to(dev)(h_)
+        k = self.k.to(precision).to(dev)(h_)
+        v = self.v.to(precision).to(dev)(h_)
+
+        secondary_device = secondary_device if secondary_device is not None else torch.device("cpu")
+        sec_precision = torch.float32 if secondary_device == torch.device("cpu") else torch.float16  # float32 for cpu
 
         # compute attention
-        b, c, h, w = q1.shape
+        b, c, h, w = q.shape
+        q = q.reshape(b, c, h * w).permute(0, 2, 1)
+        # q = q.permute(0, 2, 1)  # b,hw,c
+        k = k.reshape(b, c, h * w)  # b,c,hw
+        h_ = torch.zeros_like(k, device=secondary_device, dtype=sec_precision)
+        v = v.reshape(b, c, h * w)
 
-        q2 = q1.reshape(b, c, h * w)
-        del q1
+        stats = torch.cuda.memory_stats(dev)
+        mem_active = stats['active_bytes.all.current']
+        mem_reserved = stats['reserved_bytes.all.current']
+        mem_free_cuda, _ = torch.cuda.mem_get_info(torch.cuda.current_device())
+        mem_free_torch = mem_reserved - mem_active
+        mem_free_total = (mem_free_cuda + mem_free_torch)
+        mem_free_total = math.ceil(mem_free_total / 10 ** int(math.log10(mem_free_total) - 1)) * (
+                10 ** int(math.log10(mem_free_total) - 1))
 
-        q = q2.permute(0, 2, 1)  # b,hw,c
-        del q2
+        mp = q.shape[1] // fused_memory_opt(mem_free_total, b, h, w, c)
 
-        k = k1.reshape(b, c, h * w)  # b,c,hw
-        del k1
-
-        h_ = torch.zeros_like(k, device=q.device)
-
-        try:
-            stats = torch.cuda.memory_stats(q.device)
-            mem_active = stats['active_bytes.all.current']
-            mem_reserved = stats['reserved_bytes.all.current']
-            mem_free_cuda, _ = torch.cuda.mem_get_info(torch.cuda.current_device())
-            mem_free_torch = mem_reserved - mem_active
-            mem_free_total = mem_free_cuda + mem_free_torch
-
-            tensor_size = q.shape[0] * q.shape[1] * k.shape[2] * q.element_size()
-            mem_required = tensor_size * 2.5
-            steps = 1
-
-            if mem_required > mem_free_total:
-                steps = 2 ** (math.ceil(math.log(mem_required / mem_free_total, 2)))
-        except:
-            steps = 1
-
-        slice_size = q.shape[1] // steps if (q.shape[1] % steps) == 0 else q.shape[1]
-        for i in range(0, q.shape[1], slice_size):
-            end = i + slice_size
-
-            w1 = torch.bmm(q[:, i:end], k)  # b,hw,hw    w[b,i,j]=sum_c q[b,i,c]k[b,c,j]
-            w2 = w1 * (int(c) ** (-0.5))
-            del w1
-            w3 = torch.nn.functional.softmax(w2, dim=2, dtype=q.dtype)
-            del w2
-
+        for i in range(0, q.shape[1], mp):
+            w1 = torch.bmm(q[:, i:i + mp], k)  # b,hw,hw    w[b,i,j]=sum_c q[b,i,c]k[b,c,j]
+            w1 = fused_t(w1, torch.tensor(c))
+            w1 = torch.nn.functional.softmax(w1, dim=2, dtype=precision)
             # attend to values
-            v1 = v.reshape(b, c, h * w)
-            w4 = w3.permute(0, 2, 1)  # b,hw,hw (first hw of k, second of q)
-            del w3
+            w1 = w1.permute(0, 2, 1)  # b,hw,hw (first hw of k, second of q)
 
-            h_[:, :, i:end] = torch.bmm(v1, w4)  # b, c,hw (hw of q) h_[b,c,j] = sum_i v[b,c,i] w_[b,i,j]
-            del v1, w4
+            h_[:, :, i:i + mp] = torch.bmm(v, w1).to(
+                secondary_device).to(sec_precision)  # b, c,hw (hw of q) h_[b,c,j] = sum_i v[b,c,i] w_[b,i,j]
 
-        h2 = h_.reshape(b, c, h, w)
-        del h_
+        h_ = h_.reshape(b, c, h, w)
 
-        h3 = self.proj_out(h2)
-        del h2
+        h_ = self.proj_out.to(secondary_device).to(sec_precision)(h_).to(precision).to(dev)
 
-        h3 += x
-
-        return h3
+        return x.to(dev) + h_
 
 
 def make_attn(in_channels, attn_type="vanilla"):
@@ -615,32 +731,22 @@ class Decoder(nn.Module):
             for i_block in range(self.num_res_blocks + 1):
                 h = self.up[i_level].block[i_block](h, temb)
                 if len(self.up[i_level].attn) > 0:
-                    t = h
-                    h = self.up[i_level].attn[i_block](t)
-                    del t
+                    h = self.up[i_level].attn[i_block](h)
 
             if i_level != 0:
-                t = h
-                h = self.up[i_level].upsample(t)
-                del t
+                h = self.up[i_level].upsample(h)
 
         # end
         if self.give_pre_end:
             return h
 
-        h1 = self.norm_out(h)
-        del h
+        h = self.norm_out(h)
+        h = nonlinearity(h)
 
-        h2 = nonlinearity(h1)
-        del h1
-
-        h = self.conv_out(h2)
-        del h2
+        h = self.conv_out(h)
 
         if self.tanh_out:
-            t = h
-            h = torch.tanh(t)
-            del t
+            h = torch.tanh(h)
 
         return h
 
@@ -759,7 +865,7 @@ class LatentRescaler(nn.Module):
         for block in self.res_block1:
             x = block(x, None)
         x = torch.nn.functional.interpolate(x, size=(
-        int(round(x.shape[2] * self.factor)), int(round(x.shape[3] * self.factor))))
+            int(round(x.shape[2] * self.factor)), int(round(x.shape[3] * self.factor))))
         x = self.attn(x)
         for block in self.res_block2:
             x = block(x, None)
@@ -809,7 +915,6 @@ class Upsampler(nn.Module):
         assert out_size >= in_size
         num_blocks = int(np.log2(out_size // in_size)) + 1
         factor_up = 1. + (out_size % in_size)
-        # print(f"Building {self.__class__.__name__} with in_size: {in_size} --> out_size {out_size} and factor {factor_up}")
         self.rescaler = LatentRescaler(factor=factor_up, in_channels=in_channels, mid_channels=2 * in_channels,
                                        out_channels=in_channels)
         self.decoder = Decoder(out_ch=out_channels, resolution=out_size, z_channels=in_channels, num_res_blocks=2,

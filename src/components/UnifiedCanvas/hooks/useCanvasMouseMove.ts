@@ -12,31 +12,6 @@ import {
 	isStagingSelector,
 } from '../atoms/canvas.atoms';
 
-// import { activeTabNameSelector } from 'options/store/optionsSelectors';
-// import _ from 'lodash';
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-// import {
-// 	addPointToCurrentLine,
-// 	setCursorPosition,
-// } from 'canvas/store/canvasSlice';
-
-// const selector = createSelector(
-// 	[activeTabNameSelector, canvasSelector, isStagingSelector],
-// 	(activeTabName, canvas, isStaging) => {
-// 		const { tool, isDrawing } = canvas;
-// 		return {
-// 			tool,
-// 			isDrawing,
-// 			activeTabName,
-// 			isStaging,
-// 		};
-// 	},
-// 	{ memoizeOptions: { resultEqualityCheck: _.isEqual } },
-// );
-
 export const useCanvasMouseMove = (
 	stageRef: MutableRefObject<Konva.Stage | null>,
 	didMouseMoveRef: MutableRefObject<boolean>,

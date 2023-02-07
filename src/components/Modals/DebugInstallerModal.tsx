@@ -11,12 +11,12 @@ import {
 } from '@chakra-ui/react';
 
 function DebugInstallerModal () {
-    const [secondConfirmationNeeded, setSecondConfirmationNeeded] = useState(false);
+    const [secondConfirmationNeeded, setSecondConfirmationNeeded] = useState(true);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
     const DebugInstaller = () => {
-        window.api.reinstallArtroom();
+        window.api.pythonInstall();
         onClose();
     };
 
@@ -49,15 +49,8 @@ function DebugInstallerModal () {
                             </p>
 
                             <br />
-
                             <p>
-                                BEFORE YOU RUN THIS!!!
-                            </p>
-
-                            <br />
-
-                            <p>
-                                Try running Debug Mode by checking the Debug Mode option and pressing Save Settings.
+                            Before Running: Try running Debug Mode by checking the Debug Mode option and pressing Save Settings.
                             </p>
 
                             <br />
@@ -65,11 +58,9 @@ function DebugInstallerModal () {
                             <p>
                                 Then, reach out on Discord to see if we can resolve this problem.
                             </p>
-
                             <br />
-
                             <p>
-                                IF ALL ELSE FAILS, then go ahead and hopefully this will fix it.
+                                If all else fails, then proceed. NOTE: You will need a stable internet connection. This process could take a while so hang tight.  
                             </p>
 
                         </AlertDialogBody>
@@ -88,7 +79,7 @@ function DebugInstallerModal () {
                                 onClick={() => {
                                     if (!secondConfirmationNeeded) {
                                         setSecondConfirmationNeeded(true);
-                                        alert('This will uninstall and reinstall Artroom. If you have model weights you want to keep that are installed in artroom/model_weights, please move them to a separate folder before moving on.  Are you sure you want to continue?');
+                                        alert('This will uninstall and reinstall Artroom. Are you sure you want to continue?');
                                     } else {
                                         setSecondConfirmationNeeded(false);
                                         DebugInstaller();

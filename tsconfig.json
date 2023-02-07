@@ -9,7 +9,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "suppressImplicitAnyIndexErrors": true,
-    "lib": ["ES2020", "dom"],
+    "lib": ["ESNext", "dom"],
     "moduleResolution": "Node",
     "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,

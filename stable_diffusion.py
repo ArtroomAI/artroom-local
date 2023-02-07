@@ -90,9 +90,6 @@ class StableDiffusion:
         self.running = False
 
         self.artroom_path = None
-        self.latest_images_part1 = []
-        self.latest_images_part2 = []
-        self.latest_images_id = 0
 
         self.model = None
         self.modelCS = None
@@ -144,19 +141,6 @@ class StableDiffusion:
             return self.current_num, self.total_num, self.model.current_step, self.model.total_steps
         else:
             return 0, 0, 0, 0
-
-    def get_latest_images(self):
-        return self.latest_images_part1 + self.latest_images_part2
-
-    def get_latest_image(self):
-        latest_images = self.get_latest_images()
-        if len(latest_images) > 0:
-            return support.image_to_b64(Image.open(latest_images[-1]).convert('RGB'))
-        else:
-            return ''
-
-    def add_to_latest(self, new_image: Image.Image, path=""):
-        self.latest_images_part2.append({"b64": support.image_to_b64(new_image.convert('RGB')), "path": path})
 
     def clean_up(self):
         self.total_num = 0
@@ -513,16 +497,14 @@ class StableDiffusion:
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False,
                  steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, sampler="ddim", C=4, ddim_eta=0.0, f=8,
-                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False):
+                 n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="", speed="High", skip_grid=False, batch_id=0):
 
-
+        if batch_id == 0:
+            batch_id = random.randint(1, 922337203685)
+            
         self.highres_fix = True
-
         self.running = True
         print("Starting generate process...")
-
-        self.latest_images_part1 = self.latest_images_part2
-        self.latest_images_part2 = []
 
         torch.cuda.empty_cache()
         gc.collect()
@@ -601,11 +583,11 @@ class StableDiffusion:
                 starting_image = self.original_starting_image
 
                 if self.long_save_path:
-                    save_name = f"{base_count:05}_seed_{str(seed)}.jpg"
+                    save_name = f"{base_count:05}_seed_{str(seed)}.png"
                 else:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
-                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.jpg"
+                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
 
                 self.current_num = n
                 self.model.current_step = 0
@@ -637,6 +619,7 @@ class StableDiffusion:
                     # out_image.convert("sRGB").save("TEST_FIRST_COLOR_CORRECTION.jpg")
 
                     #Set this up if you haven't done so previously
+
                     if starting_image is None:
                         if self.v1:
                             self.modelFS.to(self.device)
@@ -644,7 +627,7 @@ class StableDiffusion:
                     steps = int(self.highres_fix_strength * ddim_steps)
                     if steps <= 0:
                         steps = 1
-
+                    self.socketio.emit('get_images', {'b64': support.image_to_b64(upscaled_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
                     starting_image = self.Upscaler.upscale(images = ["C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/TEST_FIRST.jpg"], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join("C:/Users/artad/Documents/GitHub/ArtroomAI/artroom-frontend/"))["content"]["output_images"][0].convert("RGB")
                     starting_image.save("TEST_UPSCALE.jpg")
                     
@@ -697,16 +680,9 @@ class StableDiffusion:
                 # 0x9286 Exif Code for UserComment
                 exif_data[0x9286] = json.dumps(settings_data)
                 out_image.save(
-                    os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
-                self.latest_images_part2.append(
-                    {"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
+                    os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
-                self.socketio.emit('message', {'data': 'testInside'})
-                while True:
-                    newrand = random.randint(1, 922337203685)
-                    if newrand != self.latest_images_id:
-                        self.latest_images_id = newrand
-                        break
+                self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
 
                 base_count += 1
                 seed += 1
@@ -719,5 +695,5 @@ class StableDiffusion:
                 cols = int(np.ceil(len(all_samples) / rows))
                 os.makedirs(sample_path + "/grids", exist_ok=True)
                 image_grid(all_samples, rows, cols, path=os.path.join(
-                    sample_path + "/grids", f'grid-{len(os.listdir(sample_path + "/grids")):04}.jpg'))
+                    sample_path + "/grids", f'grid-{len(os.listdir(sample_path + "/grids")):04}.png'))
         self.clean_up()

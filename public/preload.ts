@@ -19,11 +19,15 @@ const api = {
     chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
     runPyTests: async () => {return await ipcRenderer.invoke('runPyTests');},
     restartServer: async (isDebug: boolean) => {return await ipcRenderer.invoke('restartServer',isDebug);},
+    showInExplorer: async (path: string) => {return await ipcRenderer.invoke('showInExplorer', path);},
     minimizeWindow: async () => {return await ipcRenderer.invoke('minimizeWindow');},
     unmaximizeWindow: async () => {return await ipcRenderer.invoke('unmaximizeWindow');},
     maxUnmaxWindow: async () => {return await ipcRenderer.invoke('maxUnmaxWindow');},
     closeWindow: async () => {return await ipcRenderer.invoke('closeWindow');},
     getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
+    pythonInstall: async() => {return await ipcRenderer.invoke('pythonInstall');},
+    pythonInstallDependencies: async() => {return await ipcRenderer.invoke('pythonInstallDependencies');},
+    fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback)}
 }
 
 if (process.env.NODE_ENV !== 'production') {

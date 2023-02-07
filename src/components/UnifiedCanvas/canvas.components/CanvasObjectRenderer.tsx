@@ -43,7 +43,6 @@ export const CanvasObjectRenderer: FC = () => {
 		<Group name="outpainting-objects" listening={false}>
 			{objects.map((obj, i) => {
 				if (isCanvasBaseImage(obj)) {
-					console.log(obj)
 					return (
 						<CanvasImage
 							key={i}

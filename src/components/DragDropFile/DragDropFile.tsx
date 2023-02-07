@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
     Box,
-    Image,
+    Image as ChakraImage,
     IconButton,
     ButtonGroup
 } from '@chakra-ui/react';
@@ -14,31 +14,48 @@ import {
     FaTrashAlt
 } from 'react-icons/fa';
 
+const getImageDimensions = (base64: string) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = reject;
+      img.src = base64;
+    });
+  };
+
 const DragDropFile = () => {
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef(null);
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
-    
+    const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
 
-    function getImageFromPath () {
-        if (initImagePath.length > 0) {
-            console.log(initImagePath);
-            window.api.getImageFromPath(initImagePath).then((result) => {
+    useEffect(() => {
+        if (initImagePath) {
+          console.log(initImagePath);
+          window.api.getImageFromPath(initImagePath).then((result) => {
+            getImageDimensions(result.b64).then((dimensions) => {
+              if (aspectRatioSelection === "Init Image"){
                 setImageSettings({
                     ...imageSettings,
                     init_image: result.b64,
-                });
-            });
-        }
-    }
+                    width: dimensions.width,
+                    height: dimensions.height,
+                  });
+              }
+              else{
+                setImageSettings({
+                    ...imageSettings,
+                    init_image: result.b64,
+                  });
+              }
 
-    useEffect(
-        () => {
-            getImageFromPath();
-        },
-        [initImagePath]
-    );
+            });
+          });
+        }
+        // update only when ImagePath is changed - prevents changing settings infinitely
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [initImagePath]);
 
     // Handle drag events
     const handleDrag: React.DragEventHandler<HTMLElement> = function (e) {
@@ -52,16 +69,16 @@ const DragDropFile = () => {
     };
 
     // Triggers when file is dropped
-    const handleDrop: React.DragEventHandler<HTMLDivElement> = function (e) {
+    const handleDrop: React.DragEventHandler<HTMLDivElement> = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             handleFile(e.dataTransfer.files);
         }
-    };
+    }, []);
 
-    const handleFile = function (e: FileList) {
+    const handleFile = useCallback((e: FileList) => {
         const file = e[0];
         if (file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/heic") {
             console.log(file.path);
@@ -69,7 +86,7 @@ const DragDropFile = () => {
         } else {
             console.log("Invalid file type. Please select an image file (jpg, png or heic).");
         }
-    };
+    }, []);
 
     // Triggers when file is selected with click
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = function (e) {
@@ -108,7 +125,7 @@ const DragDropFile = () => {
                         borderColor: '#FFFFFF20' }}
                     width="140px"
                 >
-                    <Image
+                    <ChakraImage
                         boxSize="140px"
                         fit="contain"
                         rounded="md"
@@ -155,6 +172,7 @@ const DragDropFile = () => {
                     id="label-file-upload"
                 >
                     <ButtonGroup
+                        pt={2}
                         isAttached
                         variant="outline"
                     >
@@ -165,17 +183,25 @@ const DragDropFile = () => {
                             width="100px"
                             aria-label='upload'
                         />
-
                         <IconButton
                             aria-label="Clear Init Image"
                             border="2px"
                             icon={<FaTrashAlt />}
                             onClick={(event) => {
                                 setInitImagePath('');
-                                setImageSettings({
+                                if (aspectRatioSelection === "Init Image") {
+                                    setImageSettings({
                                     ...imageSettings,
                                     init_image: '',
-                                  });
+                                    aspect_ratio: 'None',
+                                    });
+                                    setAspectRatioSelection('None');
+                                } else {
+                                    setImageSettings({
+                                    ...imageSettings,
+                                    init_image: '',
+                                    });
+                                }
                             }}
                         />
                     </ButtonGroup>

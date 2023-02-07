@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useContext, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import axios from 'axios';
@@ -16,6 +16,7 @@ import {
 import {
     FaTrashAlt
 } from 'react-icons/fa';
+import { SocketContext, SocketOnEvents } from '../../socket';
 
 function RemoveFromQueue ({ index } : { index: number }) {
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -23,18 +24,27 @@ function RemoveFromQueue ({ index } : { index: number }) {
 
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
-    const RemoveFromQueue = () => {
+    const socket = useContext(SocketContext);
+
+    const removeFromQueue = useCallback(() => {
         onClose();
-        axios.post(
-            'http://127.0.0.1:5300/remove_from_queue',
-            { id: queue[index - 1].id },
-            { headers: { 'Content-Type': 'application/json' } }
-        ).then((result) => {
-            if (result.data.status === 'Success') {
-                setQueue(result.data.content.queue);
-            }
-        });
-    };
+        socket.emit('remove_from_queue', { id: queue[index - 1].id });
+    }, [onClose, socket, queue, index]);
+
+    const handleRemoveFromQueue: SocketOnEvents['remove_from_queue']  = useCallback((data) => {
+        if (data.status === 'Success') {
+            setQueue(data.queue);
+        }
+    }, [setQueue]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('remove_from_queue', handleRemoveFromQueue);
+    
+        return () => {
+            socket.off('remove_from_queue', handleRemoveFromQueue);
+        };
+    }, [socket, handleRemoveFromQueue]);
 
     return (
         <>
@@ -72,7 +82,7 @@ function RemoveFromQueue ({ index } : { index: number }) {
                             <Button
                                 colorScheme="red"
                                 ml={3}
-                                onClick={RemoveFromQueue}>
+                                onClick={removeFromQueue}>
                                 Remove
                             </Button>
                         </AlertDialogFooter>

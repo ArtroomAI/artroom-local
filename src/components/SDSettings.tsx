@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
@@ -37,7 +37,7 @@ function SDSettings () {
     const [vaes, setVaes] = useState([]);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
 
-    const getCkpts = () => {
+    const getCkpts = useCallback(() => {
         window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
             // console.log(result);
             setCkpts(result);
@@ -46,21 +46,15 @@ function SDSettings () {
             // console.log(result);
             setVaes(result);
         });
-    };
+    }, [imageSettings.ckpt_dir]);
 
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        []
-    );
+    useEffect(() => {
+        getCkpts();
+    }, []);
 
-    useEffect(
-        () => {
-            getCkpts();
-        },
-        [imageSettings.ckpt_dir]
-    );
+    useEffect(() => {
+        getCkpts();
+    }, [getCkpts]);
 
     useEffect(
         () => {
@@ -237,7 +231,23 @@ function SDSettings () {
                                     name="aspect_ratio_selection"
                                     onChange={(event) => {
                                         setAspectRatioSelection(event.target.value);
-                                        if (event.target.value !== 'Custom') {
+
+                                        if (event.target.value === 'Init Image' && !imageSettings.init_image) {
+                                            //Switch to aspect ratio to none and print warning that no init image is set
+                                            setAspectRatioSelection('None');
+                                            setImageSettings({...imageSettings, aspect_ratio: 'None'});
+                                            toast({
+                                                'title': 'Invalid Aspect Ratio Selection',
+                                                'description': 'Must upload Starting Image first to use its resolution',
+                                                'status': 'error',
+                                                'position': 'top',
+                                                'duration': 3000,
+                                                'isClosable': true,
+                                                'containerStyle': {
+                                                    'pointerEvents': 'none'
+                                                }
+                                            });
+                                        } else if (event.target.value !== 'Custom') {
                                             setImageSettings({...imageSettings, aspect_ratio: event.target.value});
                                         }
                                     }}
@@ -251,12 +261,12 @@ function SDSettings () {
                                         None
                                     </option>
 
-                                    <option
+                                    {imageSettings.init_image.length && <option
                                         style={{ 'backgroundColor': '#080B16' }}
                                         value="Init Image"
                                     >
                                         Init Image
-                                    </option>
+                                    </option>}
 
                                     <option
                                         style={{ 'backgroundColor': '#080B16' }}
@@ -319,7 +329,7 @@ function SDSettings () {
                                     ? <Input
                                         id="aspect_ratio"
                                         name="aspect_ratio"
-                                        onChange={(event) =>                                             setImageSettings({...imageSettings, aspect_ratio: event.target.value})}
+                                        onChange={(event) => setImageSettings({...imageSettings, aspect_ratio: event.target.value})}
                                         value={imageSettings.aspect_ratio}
                                         variant="outline"
                                     />
@@ -338,7 +348,7 @@ function SDSettings () {
                                 defaultValue={512}
                                 id="width"
                                 isReadOnly={imageSettings.aspect_ratio === 'Init Image'}
-                                max={1920}
+                                max={2048}
                                 min={256}
                                 name="width"
                                 onChange={(v) => {
@@ -377,7 +387,7 @@ function SDSettings () {
                             <Slider
                                 defaultValue={512}
                                 isReadOnly={imageSettings.aspect_ratio === 'Init Image'}
-                                max={1920}
+                                max={2048}
                                 min={256}
                                 onChange={(v) => {
                                     setImageSettings({...imageSettings, height: v});
@@ -440,53 +450,53 @@ function SDSettings () {
                     </FormControl>
 
                     <FormControl className="strength-input">
-                            <HStack>
-                                <FormLabel htmlFor="Strength">
-                                    Image Variation Strength:
-                                </FormLabel>
-                                <Spacer />
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
-
-                            <Slider
-                                defaultValue={0.75}
-                                id="strength"
-                                max={0.99}
-                                min={0.0}
-                                name="strength"
-                                onChange={(v) => {
-                                    setImageSettings({...imageSettings, strength: v});
-                                }}        
-                                step={0.01}
-                                value={imageSettings.strength}
-                                variant="outline"
+                        <HStack>
+                            <FormLabel htmlFor="Strength">
+                                Image Variation Strength:
+                            </FormLabel>
+                            <Spacer />
+                            <Tooltip
+                                fontSize="md"
+                                label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                                placement="left"
+                                shouldWrapChildren
                             >
-                                <SliderTrack bg="#EEEEEE">
-                                    <Box
-                                        position="relative"
-                                        right={10}
-                                    />
+                                <FaQuestionCircle color="#777" />
+                            </Tooltip>
+                        </HStack>
 
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
+                        <Slider
+                            defaultValue={0.75}
+                            id="strength"
+                            max={0.99}
+                            min={0.0}
+                            name="strength"
+                            onChange={(v) => {
+                                setImageSettings({...imageSettings, strength: v});
+                            }}        
+                            step={0.01}
+                            value={imageSettings.strength}
+                            variant="outline"
+                        >
+                            <SliderTrack bg="#EEEEEE">
+                                <Box
+                                    position="relative"
+                                    right={10}
+                                />
 
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={true}
-                                    label={`${imageSettings.strength}`}
-                                    placement="right"
-                                >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
+                                <SliderFilledTrack bg="#4f8ff8" />
+                            </SliderTrack>
+
+                            <Tooltip
+                                bg="#4f8ff8"
+                                color="white"
+                                isOpen={true}
+                                label={`${imageSettings.strength}`}
+                                placement="right"
+                            >
+                                <SliderThumb />
+                            </Tooltip>
+                        </Slider>
                     </FormControl>
 
                     <FormControl className="samplers-input">

@@ -9,7 +9,7 @@ import {
 	isDrawingAtom,
 	isMovingStageAtom,
 	toolAtom,
-	isStagingSelector,
+	isStagingSelector
 } from '../atoms/canvas.atoms';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 
@@ -55,6 +55,13 @@ export const useCanvasMouseDown = (
 
 			stageRef.current.container().focus();
 
+			e.evt.preventDefault();
+
+			if(e.evt.button === 1) {
+				stageRef.current.startDrag();
+				return;
+			}
+
 			if (tool === 'move' || isStaging) {
 				setIsMovingStage(true);
 				return;
@@ -70,8 +77,6 @@ export const useCanvasMouseDown = (
 			);
 
 			if (!scaledCursorPosition) return;
-
-			e.evt.preventDefault();
 
 			setIsDrawing(true);
 

@@ -1,7 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
     Box,
     Button,
@@ -24,6 +21,8 @@ import {
     FaQuestionCircle,
     FaTrashAlt
 } from 'react-icons/fa';
+import { SocketContext, SocketOnEvents } from '../socket';
+
 function Upscale () {
     const toast = useToast({});
     const [upscale_images, setUpscaleImages] = useState('');
@@ -31,6 +30,8 @@ function Upscale () {
     const [upscaler, setUpscaler] = useState('ESRGAN');
     const [upscale_factor, setUpscaleFactor] = useState(2);
     const [upscale_strength, setUpscaleStrength] = useState(0.5);
+
+    const socket = useContext(SocketContext);
 
     const chooseUploadPath = () => {
         window.api.chooseImages().then((result) => {
@@ -44,9 +45,9 @@ function Upscale () {
         });
     };
 
-    const upscale = () => {
+    const upscale = useCallback(() => {
         toast({
-            title: 'Recieved!',
+            title: 'Received!',
             description: 'You\'ll get a notification 🔔 when your upscale is ready! (First time upscales make take longer while it downloads the models)',
             status: 'success',
             position: 'top',
@@ -63,40 +64,45 @@ function Upscale () {
             upscale_strength,
             upscale_dest
         };
-        axios.post(
-            'http://127.0.0.1:5300/upscale',
-            output,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        ).then((result) => {
-            if (result.data.status === 'Failure') {
-                toast({
-                    title: 'Upscale Failed',
-                    description: result.data.status_message,
-                    status: 'error',
-                    position: 'top',
-                    duration: 5000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            } else {
-                toast({
-                    title: 'Upscale Completed',
-                    status: 'success',
-                    position: 'top',
-                    duration: 2000,
-                    isClosable: false,
-                    containerStyle: {
-                        pointerEvents: 'none'
-                    }
-                });
-            }
-        });
-    };
 
+        socket.emit('upscale', output);
+    }, [socket, toast, upscale_dest, upscale_factor, upscale_images, upscale_strength, upscaler]);
+    
+    const handleUpscale: SocketOnEvents['upscale']  = useCallback((data) => {
+        if (data.status === 'Success') {
+            toast({
+                title: 'Upscale Completed',
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        } else {
+            toast({
+                title: 'Upscale Failed',
+                description: data.status_message,
+                status: 'error',
+                position: 'top',
+                duration: 5000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        }
+    }, [toast]);
+
+    // on socket message
+    useEffect(() => {
+        socket.on('upscale', handleUpscale);
+    
+        return () => {
+            socket.off('upscale', handleUpscale);
+        };
+    }, [socket, handleUpscale]);
 
     return (
         <Box

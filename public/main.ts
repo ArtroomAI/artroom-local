@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions, session } from 'electron';
 import { autoUpdater } from "electron-updater";
 autoUpdater.autoDownload = false;
 import os from 'os';
@@ -8,11 +8,12 @@ import fs from "fs";
 import glob from 'glob';
 import axios from 'axios';
 import kill from 'tree-kill';
-import { spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 const ExifParser = require('exif-parser');
 
 require("dotenv").config();
 import { exposeMenuFunctions } from './menu-functions';
+import { handlers } from './ipcHandles';
 
 let win;
 let hd = os.homedir();
@@ -57,8 +58,7 @@ const loadSDData = () => {
   return sd_data;
 }
 
-//replace placeholders with actual paths
-const sd_data = loadSDData();
+const sddata = loadSDData();
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
@@ -94,7 +94,7 @@ const serverCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" ru
 
 const mergeModelsCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python model_merger.py`;
 
-let server = spawn(serverCommand, { detached: sd_data.debug_mode, shell: true })
+let server: ChildProcessWithoutNullStreams;
 
 const getFiles = (folder_path: string, ext: string) => {
   return new Promise((resolve, reject) => {
@@ -108,33 +108,47 @@ const getFiles = (folder_path: string, ext: string) => {
   });
 }
 
-function createWindow() {
-  //Connect to server
-  axios.get(`${LOCAL_URL}/start`);
-  console.log("Artroom Log: " + artroom_install_log);
+console.log("Artroom Log: " + artroom_install_log);
 
-  ipcMain.handle('login', async(event,data) =>{
-    return new Promise((resolve, reject) => {
-      //axios.post('login')
-      //store jwt token in safe storage
-      //store url
-    });
-  })
+function createWindow() {
+  server = spawn(serverCommand, { detached: sddata.debug_mode, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);
     const dataUrl = json.dataURL;
     const imagePath = json.imagePath;
-  
+
+    let imagePathDirName = path.dirname(imagePath);
+
+    fs.mkdirSync(imagePathDirName, { recursive: true });
+
     // convert dataURL to a buffer
-    const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-  
-    try {
-      // write the buffer to the specified image path
-      fs.writeFileSync(imagePath, buffer);
+    try{
+      const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
+      try {
+        // write the buffer to the specified image path
+        fs.writeFileSync(imagePath, buffer);
+      } catch (err) {
+        console.error(err);
+        return;
+      }
     } catch (err) {
-      console.error(err);
-      return;
+      axios.get(dataUrl, {
+        responseType: "arraybuffer",
+      }).then((raw) => {
+        // create a base64 encoded string
+        try {
+          // write the buffer to the specified image path
+          const buffer = Buffer.from(raw.data, "binary").toString("base64");
+          //fs.writeFileSync(imagePath, buffer);
+          fs.writeFile(imagePath, buffer, 'base64', function(err) {
+            console.log(err);
+          });
+        } catch (err) {
+          console.error(err);
+          return;
+        }
+      });
     }
   });
 
@@ -148,6 +162,11 @@ function createWindow() {
 
   ipcMain.handle('getImages', async (event, data) => {
     return getFiles(data, 'jpg,png,jpeg');
+  });
+
+  ipcMain.handle('showInExplorer', async (event, data) => {
+    const p = path.resolve(data);
+    shell.showItemInFolder(p);
   });
 
   ipcMain.handle('getImageFromPath', async (event, data) => {
@@ -270,7 +289,7 @@ function createWindow() {
           return;
         }
         const json = JSON.parse(data);
-        let imgPath = path.resolve(json['image_save_path'], json['batch_name']);
+        let imgPath = path.join(json['image_save_path'], json['batch_name']);
         if (fs.existsSync(imgPath.split(path.sep).join(path.posix.sep))) {
           shell.openPath(imgPath.split(path.sep).join(path.posix.sep))
         }
@@ -360,18 +379,11 @@ function createWindow() {
   });
 
   ipcMain.handle('restartServer', async (event, isDebug) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(() => {
+      console.log(`debug mode: ${isDebug}`)
       kill(server.pid);
       spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-      if (isDebug) {
-        server = spawn(serverCommand, { detached: true, shell: true });
-      } else {
-        server = spawn(serverCommand, { detached: false, shell: true });
-      }
-      return axios.get(`${LOCAL_URL}/get_progress`,
-        { headers: { 'Content-Type': 'application/json' } }).then((result) => {
-          resolve(result.status);
-        });
+      server = spawn(serverCommand, { detached: isDebug, shell: true });
     });
   });
 
@@ -466,6 +478,7 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
+  handlers(win);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   
@@ -481,6 +494,12 @@ function createWindow() {
 
   win.once('ready-to-show', () => {
     autoUpdater.checkForUpdatesAndNotify();
+    if(isDev) {
+      console.log(path.resolve('scripts/fmkadmapgofadopljbjfkapdkoienihi'))
+      session.defaultSession.loadExtension(path.resolve('scripts/fmkadmapgofadopljbjfkapdkoienihi'))
+        .then(({ name }) => console.log(`Added Extension:  ${name}`))
+        .catch((err) => console.log('An error occurred: ', err));
+    }
   });
 }
 

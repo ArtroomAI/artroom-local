@@ -2,10 +2,6 @@ import React, {useState, useRef, useEffect} from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {Image, Card, Text} from '@chakra-ui/react'
-import ContextMenu from './ContextMenu/ContextMenu';
-import ContextMenuItem from './ContextMenu/ContextMenuItem';
-import ContextMenuList from './ContextMenu/ContextMenuList';
-import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
 import { ImageMetadata } from '../Modals/ImageModal/ImageModal';
 
 export default function ImageObject ({b64, metadata} : { b64: string, metadata: string }) {
@@ -32,12 +28,7 @@ export default function ImageObject ({b64, metadata} : { b64: string, metadata: 
         if(metadata){
             setMetadataJSON(JSON.parse(metadata));
         }
-    },[])
-
-
-    const copyToClipboard = () => {
-        window.api.copyToClipboard(b64);
-    };
+    },[metadata])
   
     return (
         <Card           

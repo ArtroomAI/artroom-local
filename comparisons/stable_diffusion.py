@@ -435,11 +435,11 @@ class StableDiffusion:
                     return
 
                 if self.long_save_path:
-                    save_name = f"{base_count:05}_seed_{str(seed)}.jpg"
+                    save_name = f"{base_count:05}_seed_{str(seed)}.png"
                 else:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
-                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.jpg"
+                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
 
                 self.current_num = n
                 self.model.current_step = 0
@@ -573,7 +573,7 @@ class StableDiffusion:
                         # 0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)
                         out_image.save(
-                            os.path.join(sample_path, save_name), "JPEG", exif=exif_data)
+                            os.path.join(sample_path, save_name), "PNG", exif=exif_data)
                         self.latest_images_part2.append(
                             {"b64": support.image_to_b64(out_image), "path": os.path.join(sample_path, save_name)})
 
@@ -595,5 +595,5 @@ class StableDiffusion:
                 cols = int(np.ceil(len(all_samples) / rows))
                 os.makedirs(sample_path + "/grids", exist_ok=True)
                 image_grid(all_samples, rows, cols, path=os.path.join(
-                    sample_path + "/grids", f'grid-{len(os.listdir(sample_path + "/grids")):04}.jpg'))
+                    sample_path + "/grids", f'grid-{len(os.listdir(sample_path + "/grids")):04}.png'))
         self.clean_up()

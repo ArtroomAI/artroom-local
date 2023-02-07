@@ -1,6 +1,6 @@
 {
-  "name": "artroom-beta",
-  "version": "1.1.1-beta.3",
+  "name": "artroom",
+  "version": "1.1.1",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -16,18 +16,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtroomAI/artroom-beta.git"
+    "url": "https://github.com/artmamedov/artroom-stable-diffusion.git"
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom-beta",
-    "productName": "Artroom-beta",
+    "appId": "com.example.Artroom",
+    "productName": "Artroom",
     "win": {
       "publish": [
         {
           "provider": "github",
-          "owner": "ArtroomAI",
-          "repo": "artroom-beta"
+          "owner": "artmamedov",
+          "repo": "artroom-stable-diffusion"
         }
       ],
       "target": "nsis",
@@ -85,6 +85,7 @@
     "exif-parser": "^0.1.12",
     "framer-motion": "^8.4.0",
     "konva": "^8.4.0",
+    "node-stream-zip": "^1.15.0",
     "qs": "^6.11.0",
     "react": "^18.2.0",
     "react-colorful": "^5.6.1",
@@ -117,9 +118,10 @@
     "@babel/preset-react": "^7.16.7",
     "@babel/preset-typescript": "^7.18.6",
     "@types/react-dom": "^18.0.10",
+    "@types/uuid": "^9.0.0",
     "@types/validator": "^13.7.10",
-    "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "@typescript-eslint/parser": "^5.0.0",
+    "@typescript-eslint/eslint-plugin": "5.48.2",
+    "@typescript-eslint/parser": "5.48.2",
     "babel-loader": "^8.2.3",
     "cross-env": "^7.0.3",
     "css-loader": "^6.6.0",
@@ -127,9 +129,9 @@
     "dotenv-webpack": "^8.0.1",
     "electron": "22.0.0",
     "electron-builder": "^23.6.0",
-    "electron-devtools-installer": "^3.2.0",
-    "eslint": "^8.30.0",
-    "eslint-plugin-react": "^7.31.11",
+    "eslint": "8.32.0",
+    "eslint-plugin-react": "7.32.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
     "sass": "^1.57.1",
