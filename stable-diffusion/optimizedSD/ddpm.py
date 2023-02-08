@@ -669,7 +669,7 @@ class UNet(DDPM):
         # t serves as an index to gather the correct alphas
         try:
             self.make_schedule(ddim_num_steps=ddim_steps, ddim_eta=ddim_eta, verbose=False)
-        except Exception:
+        except:
             self.make_schedule(ddim_num_steps=ddim_steps + 1, ddim_eta=ddim_eta, verbose=False)
 
         sqrt_alphas_cumprod = torch.sqrt(self.ddim_alphas)
@@ -685,8 +685,16 @@ class UNet(DDPM):
                 seed += 1
             noise = torch.cat(tens)
             del tens
-        return (extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape) * x0 +
-                extract_into_tensor(self.ddim_sqrt_one_minus_alphas, t, x0.shape) * noise)
+        if int(sqrt_alphas_cumprod.shape.numel()) != int(t):
+            t = (extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape) * x0 +
+                 extract_into_tensor(self.ddim_sqrt_one_minus_alphas, t, x0.shape) * noise)
+            return t
+        else:
+            self.make_schedule(ddim_num_steps=ddim_steps + 1, ddim_eta=ddim_eta, verbose=False)
+            sqrt_alphas_cumprod = torch.sqrt(self.ddim_alphas)
+            t = (extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape) * x0 +
+                 extract_into_tensor(self.ddim_sqrt_one_minus_alphas, t, x0.shape) * noise)
+            return t
 
     @torch.no_grad()
     def sample(self,
@@ -1162,7 +1170,8 @@ class UNet(DDPM):
 
     @torch.no_grad()
     def ddim_sampling(self, x_latent, cond, t_start, unconditional_guidance_scale=1.0, unconditional_conditioning=None,
-                      mask=None, init_latent=None, use_original_steps=False, callback=None, mode="default", txt_scale=1.5):
+                      mask=None, init_latent=None, use_original_steps=False, callback=None, mode="default",
+                      txt_scale=1.5):
 
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:t_start]
