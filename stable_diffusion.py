@@ -1,21 +1,5 @@
-import matplotlib.pyplot as plt
-from torchvision.utils import make_grid
-
-from safe import load as safe_load
 import warnings
-from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
-from artroom_helpers.gpu_detect import get_gpu_architecture
-from skimage import exposure
-import cv2
 import random
-from transformers import logging
-from torch import autocast
-from pytorch_lightning import seed_everything
-from omegaconf import OmegaConf
-from itertools import islice
-from einops import rearrange, repeat
-from contextlib import nullcontext
-from PIL import Image, ImageOps
 import torch
 import gc
 import re
@@ -25,8 +9,22 @@ import json
 import math
 import os
 import sys
+
+from safe import load as safe_load
+from transformers import logging
+from torch import autocast
+from pytorch_lightning import seed_everything
+from omegaconf import OmegaConf
+from itertools import islice
+from einops import rearrange, repeat
+from contextlib import nullcontext
+from PIL import Image, ImageOps
 from safetensors import safe_open
+
 from artroom_helpers import support, inpainting
+from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
+from artroom_helpers.gpu_detect import get_gpu_architecture
+from artroom_helpers.modules import LoRA, HN
 
 sys.path.append("stable-diffusion/optimizedSD")
 from ldm.util import instantiate_from_config
@@ -104,6 +102,7 @@ def load_img(image, h0, w0, inpainting=False):
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
+        self.config = None
         self.dtype = None
         self.Upscaler = Upscaler
 
@@ -178,7 +177,39 @@ class StableDiffusion:
     def loaded_models(self):
         return self.model is not None
 
-    def load_vae(self, vae_path, safe_load_=True):
+    def load_hypernet(self, path: str, safe_load_=True):
+        hn_sd = load_model_from_config(path, safe_load_)
+        hn = HN(hn_sd)
+        return hn
+
+    def load_lora(self, path: str, safe_load_=True):
+        lora_sd = load_model_from_config(path, safe_load_)
+        lora = LoRA(lora_sd)
+        return lora
+
+    def inject_loras_and_hns(self, loras: list, hns: list):  # has to be called after modelCS is loaded
+        def forward(self, x):
+            if self.hns is not None:
+                for hn in self.hns:
+                    x = x + hn(x)
+            x = self.forward_vanilla(x)
+            if self.loras is not None:
+                for lora in self.loras:
+                    x = x + lora(x)
+            return x
+
+        for i in range(len(self.modelCS.cond_stage_model.transformer.text_model.encoder.layers)):
+            of_mlp = self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward
+            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward = forward
+            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward_vanilla = of_mlp
+            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.loras = loras
+
+            of_at = self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward
+            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward_vanilla = of_at
+            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.hns = hns
+            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward = forward
+
+    def load_vae(self, vae_path: str, safe_load_=True):
         vae = load_model_from_config(vae_path, safe_load_)
         vae = {k: v for k, v in vae.items() if
 
@@ -458,7 +489,7 @@ class StableDiffusion:
 
         print("Starting generate process...")
 
-        #torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         gc.collect()
         seed_everything(seed)
 
@@ -694,8 +725,8 @@ class StableDiffusion:
                             os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
                         self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                            'path': os.path.join(sample_path, save_name),
-                                                            'batch_id': batch_id})
+                                                          'path': os.path.join(sample_path, save_name),
+                                                          'batch_id': batch_id})
 
                         base_count += 1
                         seed += 1
