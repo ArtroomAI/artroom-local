@@ -128,8 +128,5 @@ dependencies:
       - torch==1.13.1
       - torch-directml==0.1.13.1.dev230119
       - torch-fidelity==0.3.0
-      - torchdiffeq==0.2.3
-      - torchmetrics==0.11.1
-      - torchsde==0.2.5
       - torchvision==0.14.1
       - -r requirements.txt
