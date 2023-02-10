@@ -200,7 +200,8 @@ const Body = () => {
 
     useEffect(() => {
         setMainImage(latestImages[state.selectedIndex]);
-    }, [latestImages, setMainImage, state]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.selectedIndex]);
 
     const submitCloud = () => {
         ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
