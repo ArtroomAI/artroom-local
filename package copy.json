@@ -16,18 +16,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtroomAI/artroom-beta.git"
+    "url": "https://github.com/artmamedov/artroom-stable-diffusion.git"
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom-beta",
-    "productName": "Artroom-beta",
+    "appId": "com.example.Artroom",
+    "productName": "Artroom",
     "win": {
       "publish": [
         {
           "provider": "github",
-          "owner": "ArtroomAI",
-          "repo": "artroom-beta"
+          "owner": "artmamedov",
+          "repo": "artroom-stable-diffusion"
         }
       ],
       "target": "nsis",
