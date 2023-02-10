@@ -2,6 +2,10 @@ html{
     user-select: none;
 }
 
+a {
+    -webkit-user-drag: none;
+}
+
 #menu-bar {
     z-index: 999;
     top: 0;
