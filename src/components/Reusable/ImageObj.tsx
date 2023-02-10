@@ -1,7 +1,7 @@
-import React from 'react';
-import { useRecoilState } from 'recoil';
+import React, { useCallback, useState } from 'react';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
-import { Image } from '@chakra-ui/react';
+import { Image, Modal, ModalBody, ModalContent, ModalOverlay } from '@chakra-ui/react';
 import Logo from '../../images/ArtroomLogoTransparent.png';
 import LoadingGif from '../../images/loading.gif';
 
@@ -13,8 +13,19 @@ import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
 export default function ImageObj ({ b64 = '', path = '', active } : { b64: string; path: string; active: boolean }) {
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
-    const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
-    const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
+    const queueRunning = useRecoilValue(atom.queueRunningState);
+    const setInitImagePath = useSetRecoilState(atom.initImagePathState);
+
+    const [showModal, setShowModal] = useState(false);
+    
+    const handleClose = useCallback(() => {
+        setShowModal(false);
+    }, []);
+    const handleOpen = useCallback(() => {
+        if(b64) {
+            setShowModal(true);
+        }
+    }, [b64]);
 
     const copyToClipboard = () => {
         window.api.copyToClipboard(b64);
@@ -37,12 +48,30 @@ export default function ImageObj ({ b64 = '', path = '', active } : { b64: strin
                             : Logo}
                         fit="scale-down"
                         h="55vh"
-                        src={b64} />
+                        src={b64}
+                        onClick={handleOpen} />
                     : <Image
                         alignSelf="center"
                         fit="scale-down"
                         h="55vh"
-                        src={b64} />}
+                        src={b64}
+                        onClick={handleOpen} />}
+                <Modal
+                    size='6xl'
+                    isOpen={showModal}
+                    onClose={handleClose}
+                    scrollBehavior='outside'>
+                        <ModalOverlay bg='blackAlpha.900' />
+                        <ModalContent>
+                            <ModalBody display="flex" justifyContent="center">
+                                <Image
+                                    alignSelf="center"
+                                    fit="scale-down"
+                                    h="100%"
+                                    src={b64}/>
+                            </ModalBody>
+                        </ModalContent>
+                </Modal>
             </ContextMenuTrigger>
 
             <ContextMenuList>
