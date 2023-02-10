@@ -1,9 +1,5 @@
 setuptools
---extra-index-url https://download.pytorch.org/whl/cu116
 safetensors
-numpy==1.23.4
-torch
-torchvision
 flask
 flask_socketio
 flask_cors
@@ -44,4 +40,3 @@ ftfy
 regex
 resize-right
 open-clip-torch
-https://github.com/neonsecret/xformers/releases/download/v0.15w/xformers-0.0.15+3df785c.d20230110-cp310-cp310-win_amd64.whl
