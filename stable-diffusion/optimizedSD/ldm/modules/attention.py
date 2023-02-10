@@ -9,8 +9,12 @@ from torch import nn, einsum
 from typing import Any, Optional
 
 from ldm.modules.diffusionmodules.util import checkpoint
-import xformers
-import xformers.ops
+
+try:
+    import xformers
+    import xformers.ops
+except:
+    pass
 
 
 def exists(val):
@@ -179,10 +183,10 @@ class MemoryEfficientCrossAttention(nn.Module):
         b, _, _ = q.shape
         q, k, v = map(
             lambda t: t.unsqueeze(3)
-                .reshape(b, t.shape[1], self.heads, self.dim_head)
-                .permute(0, 2, 1, 3)
-                .reshape(b * self.heads, t.shape[1], self.dim_head)
-                .contiguous(),
+            .reshape(b, t.shape[1], self.heads, self.dim_head)
+            .permute(0, 2, 1, 3)
+            .reshape(b * self.heads, t.shape[1], self.dim_head)
+            .contiguous(),
             (q, k, v),
         )
 
@@ -194,9 +198,9 @@ class MemoryEfficientCrossAttention(nn.Module):
             raise NotImplementedError
         out = (
             out.unsqueeze(0)
-                .reshape(b, self.heads, out.shape[1], self.dim_head)
-                .permute(0, 2, 1, 3)
-                .reshape(b, out.shape[1], self.heads * self.dim_head)
+            .reshape(b, self.heads, out.shape[1], self.dim_head)
+            .permute(0, 2, 1, 3)
+            .reshape(b, out.shape[1], self.heads * self.dim_head)
         )
         return self.to_out(out)
 
@@ -219,8 +223,13 @@ class CrossAttention(nn.Module):
             nn.Linear(inner_dim, query_dim),
             nn.Dropout(dropout)
         )
-        self.forward = self.fast_forward if superfastmode else self.slow_forward
         # self.forward = self.slow_forward
+
+    def forward(self, x, context=None, mask=None):
+        try:
+            return self.fast_forward(x, context, mask)
+        except:
+            return self.slow_forward(x, context, mask)
 
     def fast_forward(self, x, context=None, mask=None, dtype=None):
         # return self.light_forward(x, context=context, mask=mask, dtype=dtype)

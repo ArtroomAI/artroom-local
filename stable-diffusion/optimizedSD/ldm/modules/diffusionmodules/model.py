@@ -263,19 +263,19 @@ class MemoryEfficientAttnBlock(nn.Module):
 
         q, k, v = map(
             lambda t: t.unsqueeze(3)
-                .reshape(B, t.shape[1], 1, C)
-                .permute(0, 2, 1, 3)
-                .reshape(B * 1, t.shape[1], C)
-                .contiguous(),
+            .reshape(B, t.shape[1], 1, C)
+            .permute(0, 2, 1, 3)
+            .reshape(B * 1, t.shape[1], C)
+            .contiguous(),
             (q, k, v),
         )
         out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=self.attention_op)
 
         out = (
             out.unsqueeze(0)
-                .reshape(B, 1, out.shape[1], C)
-                .permute(0, 2, 1, 3)
-                .reshape(B, out.shape[1], C)
+            .reshape(B, 1, out.shape[1], C)
+            .permute(0, 2, 1, 3)
+            .reshape(B, out.shape[1], C)
         )
         out = rearrange(out, 'b (h w) c -> b c h w', b=B, h=H, w=W, c=C)
         out = self.proj_out(out)
@@ -310,9 +310,37 @@ class AttnBlock(nn.Module):
                                         padding=0)
         self.efficient_attn = MemoryEfficientAttnBlock(in_channels) if XFORMERS_IS_AVAILBLE else None
 
+    def vanilla_forward(self, x):
+        h_ = x
+        h_ = self.norm(h_)
+        q = self.q(h_)
+        k = self.k(h_)
+        v = self.v(h_)
+
+        # compute attention
+        b, c, h, w = q.shape
+        q = q.reshape(b, c, h * w)
+        q = q.permute(0, 2, 1)  # b,hw,c
+        k = k.reshape(b, c, h * w)  # b,c,hw
+        w_ = torch.bmm(q, k)  # b,hw,hw    w[b,i,j]=sum_c q[b,i,c]k[b,c,j]
+        w_ = w_ * (int(c) ** (-0.5))
+        w_ = torch.nn.functional.softmax(w_, dim=2)
+
+        # attend to values
+        v = v.reshape(b, c, h * w)
+        w_ = w_.permute(0, 2, 1)  # b,hw,hw (first hw of k, second of q)
+        h_ = torch.bmm(v, w_)  # b, c,hw (hw of q) h_[b,c,j] = sum_i v[b,c,i] w_[b,i,j]
+        h_ = h_.reshape(b, c, h, w)
+
+        h_ = self.proj_out(h_)
+
+        return x + h_
+
     def forward(self, x, secondary_device=None):
         if self.efficient_attn is not None:
             return self.efficient_attn(x)
+        if not torch.cuda.is_available():
+            return self.vanilla_forward(x)
 
         def fused_memory_opt(mem_free_total, b, h, w, c):
             # s1 = (b * h * w * 2 * h * w) * 2  # 2 bmms

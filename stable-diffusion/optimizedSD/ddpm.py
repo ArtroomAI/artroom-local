@@ -1240,6 +1240,8 @@ class UNet(DDPM):
         alphas_prev = self.ddim_alphas_prev
         sqrt_one_minus_alphas = self.ddim_sqrt_one_minus_alphas
         sigmas = self.ddim_sigmas
+
+        int(alphas[index] + 0)  # fixes a bug where generation gets stuck here for no reason at all
         # select parameters corresponding to the currently considered timestep
         a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
         a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)

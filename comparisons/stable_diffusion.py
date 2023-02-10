@@ -164,7 +164,7 @@ class StableDiffusion:
 
         self.stage = ""
         self.running = False    
-        if self.device != "cpu" and self.v1:
+        if self.device.type == "cuda" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
             while torch.cuda.memory_allocated() / 1e6 >= mem:

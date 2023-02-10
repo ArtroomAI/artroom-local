@@ -23,7 +23,7 @@ from safetensors import safe_open
 
 from artroom_helpers import support, inpainting
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
-from artroom_helpers.gpu_detect import get_gpu_architecture
+from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import LoRA, HN
 
 sys.path.append("stable-diffusion/optimizedSD")
@@ -121,8 +121,8 @@ class StableDiffusion:
         self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
         self.long_save_path = False
         self.highres_fix = False
-        self.is_nvidia = get_gpu_architecture() == 'NVIDIA'
-        self.device = 'cpu' if get_gpu_architecture() == 'None' else "cuda"
+        self.can_use_half = get_gpu_architecture() == 'NVIDIA'
+        self.device = get_device()
         self.speed = "Max"
         self.socketio = socketio
         self.v1 = False
@@ -168,7 +168,7 @@ class StableDiffusion:
             self.model.total_steps = 0
 
         self.running = False
-        if self.device != "cpu" and self.v1:
+        if self.device.type == "cuda" and self.v1:
             mem = torch.cuda.memory_allocated() / 1e6
             self.modelFS.to("cpu")
             while torch.cuda.memory_allocated() / 1e6 >= mem:
@@ -221,7 +221,6 @@ class StableDiffusion:
         self.modelFS.load_state_dict(vae, strict=False)
 
     def load_ckpt(self, ckpt, speed, vae):
-        print(f"Attempting to load {ckpt}, speed: {speed}")
         assert ckpt != '', 'Checkpoint cannot be empty'
         if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
             try:
@@ -237,7 +236,8 @@ class StableDiffusion:
                 return False
 
     def set_up_models(self, ckpt, speed, vae):
-        print("Loading in model...")
+        speed = speed if self.device.type != 'privateuseone' else "High"
+        print(f"Loading {speed}..")
         self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
             del self.model
@@ -251,7 +251,6 @@ class StableDiffusion:
         torch.cuda.empty_cache()
         gc.collect()
 
-        print("Loading model from config")
         sd = load_model_from_config(f"{ckpt}")
         if sd:
             print("Model safety check passed")
@@ -314,7 +313,7 @@ class StableDiffusion:
                     self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
             else:
                 print("Loading ordinary model")
-                if 60 <= self.cc <= 86:
+                if 60 <= self.cc <= 86 and self.device.type == "cuda":
                     print("Congrats, your gpu supports xformers, autoselecting it")
                     self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                 else:
@@ -364,7 +363,7 @@ class StableDiffusion:
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
-        if self.is_nvidia:
+        if self.can_use_half:
             self.model.half()
             self.modelCS.half()
             self.modelFS.half()
@@ -421,7 +420,7 @@ class StableDiffusion:
         init_image = 2. * image - 1.
         init_image = init_image.to(self.device)
         _, _, H, W = image.shape
-        if self.is_nvidia:
+        if self.can_use_half:
             init_image = init_image.half()
 
         return init_image, H, W
@@ -470,7 +469,7 @@ class StableDiffusion:
                  speed="High", skip_grid=False, batch_id=0):
 
         self.running = True
-        self.dtype = torch.float16 if self.is_nvidia else torch.float32
+        self.dtype = torch.float16 if self.can_use_half else torch.float32
 
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
@@ -568,7 +567,7 @@ class StableDiffusion:
 
         self.total_num = n_iter
         all_samples = []
-        precision_scope = autocast if self.is_nvidia else nullcontext
+        precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
                 if not self.running:

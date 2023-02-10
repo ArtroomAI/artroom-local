@@ -10,7 +10,26 @@ def get_gpu_architecture():
             return '16XX'
         return 'NVIDIA'
     else:
-        print("Cuda not available.")
-        print("If you are using NVIDIA GPU please try updating your drivers")
-        print("If you are using AMD, it is not yet supported.")
-        return 'None'
+        try:
+            import torch_directml
+            print("Directml supported")
+            return "DIRECTML"
+        except:
+            print("Cuda not available.")
+            print("If you are using NVIDIA GPU please try updating your drivers")
+            print("If you are using AMD, it is not yet supported.")
+            return 'None'
+
+
+def get_device():
+    try:
+        import torch_directml
+    except:
+        pass
+    match get_gpu_architecture():
+        case 'NVIDIA' | '16XX':
+            return torch.device(0)
+        case "DIRECTML":
+            return torch_directml.device()
+        case _:
+            return torch.device("cpu")
