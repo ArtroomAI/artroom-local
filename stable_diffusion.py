@@ -585,7 +585,7 @@ class StableDiffusion:
                 self.model.current_step = 0
                 self.model.total_steps = steps
                 for prompts in data:
-                    with precision_scope(self.device):
+                    with precision_scope(self.device.type):
                         if self.v1:
                             self.modelCS.to(self.device)
                         uc = None
