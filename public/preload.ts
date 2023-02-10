@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { ProgressInfo } from "electron-updater";
 
 const api = {
     getCkpts: async (data: any) => {return await ipcRenderer.invoke('getCkpts',data);},
@@ -27,7 +28,8 @@ const api = {
     getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
     pythonInstall: async() => {return await ipcRenderer.invoke('pythonInstall');},
     pythonInstallDependencies: async() => {return await ipcRenderer.invoke('pythonInstallDependencies');},
-    fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback)}
+    fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback);},
+    downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);}
 }
 
 if (process.env.NODE_ENV !== 'production') {

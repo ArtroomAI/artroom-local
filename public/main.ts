@@ -15,7 +15,7 @@ require("dotenv").config();
 import { exposeMenuFunctions } from './menu-functions';
 import { handlers } from './ipcHandles';
 
-let win;
+let win: BrowserWindow;
 let hd = os.homedir();
 let LOCAL_URL = process.env.LOCAL_URL;
 //Start with cleanup
@@ -60,6 +60,19 @@ const loadSDData = () => {
 
 const sddata = loadSDData();
 
+const getPNGEXIF = (png: Buffer) => {
+  const png_string = png.toString('utf-8');
+
+  const start = png_string.indexOf(`{"text_prompts"`);
+
+  if(start === -1) return '';
+
+  const end = png_string.indexOf('}', start);
+
+  const exif = png_string.substring(start, end + 1);
+  return exif;
+}
+
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
     let userComment = '';
@@ -68,6 +81,7 @@ async function getImage(image_path: string) {
     let mimeType;
     if (ext === '.png') {
       mimeType = 'image/png';
+      userComment = getPNGEXIF(buffer);
     } else if (ext === '.jpg' || ext === '.jpeg') {
       mimeType = 'image/jpeg';
       try {
@@ -492,6 +506,53 @@ function createWindow() {
       : `file://${path.join(__dirname, '../build/index.html')}`
   )
 
+  
+
+  //TODO: In frontend, map out a button that lets users do an auto update and update the "don't remind me" or "check for auto update", check version number and press "check for updates or update" in the app itself
+  // When an update is available, show a message to the user
+  autoUpdater.on('update-available', () => {
+    const message = 'An update is available. Would you like to download it now?';
+    // const buttons = ['Install', 'Cancel', 'Don\'t ask again'];
+    const buttons = ['Download', 'Cancel'];
+
+    // Show the message to the user
+    dialog.showMessageBox({ message, buttons }).then(({ response }) => {
+      // If the user clicks the "Install" button, install the update
+      if (response === 0) {
+        autoUpdater.downloadUpdate();
+        alert('Artroom is downloading the latest update in the background.')
+      }
+      // if (response === 2) {
+      //   //Set don't ask again to be true in state
+      //   //Save state of don't ask again later in memory
+      // }
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (event) => {
+    const dialogOpts: MessageBoxOptions = {
+      type: 'info',
+      buttons: ['Restart', 'Later'],
+      title: 'Application Update',
+      message: event.releaseName,
+      detail: 'A new version has been downloaded. Restart the application to apply the updates.'
+    };
+    dialog.showMessageBox(dialogOpts).then((returnValue) => {
+      if (returnValue.response === 0) {
+        if (process.platform !== 'darwin') {
+          kill(server.pid);
+          spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+          axios.get(`${LOCAL_URL}/shutdown`)
+        }  
+        autoUpdater.quitAndInstall()
+      }
+    })
+  });
+
+  autoUpdater.on('download-progress', (info) => {
+    win.webContents.send('downloadProgress', info);
+  });
+
   win.once('ready-to-show', () => {
     autoUpdater.checkForUpdatesAndNotify();
     if(isDev) {
@@ -522,46 +583,3 @@ app.on('activate', function () {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
-
-
-//TODO: In frontend, map out a button that lets users do an auto update and update the "don't remind me" or "check for auto update", check version number and press "check for updates or update" in the app itself
-// When an update is available, show a message to the user
-autoUpdater.on('update-available', () => {
-  const message = 'An update is available. Would you like to install it now?';
-  // const buttons = ['Install', 'Cancel', 'Don\'t ask again'];
-  const buttons = ['Install', 'Cancel'];
-
-  // Show the message to the user
-  dialog.showMessageBox({ message, buttons }).then(({ response }) => {
-    // If the user clicks the "Install" button, install the update
-    if (response === 0) {
-      autoUpdater.downloadUpdate();
-      alert('Artroom is downloading the latest update in the background.')
-    }
-    // if (response === 2) {
-    //   //Set don't ask again to be true in state
-    //   //Save state of don't ask again later in memory
-    // }
-  });
-});
-
-autoUpdater.on("update-downloaded", (event) => {
-    
-  const dialogOpts: MessageBoxOptions = {
-    type: 'info',
-    buttons: ['Restart', 'Later'],
-    title: 'Application Update',
-    message: event.releaseName,
-    detail: 'A new version has been downloaded. Restart the application to apply the updates.'
-  };
-  dialog.showMessageBox(dialogOpts).then((returnValue) => {
-    if (returnValue.response === 0) {
-      if (process.platform !== 'darwin') {
-        kill(server.pid);
-        spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-        axios.get(`${LOCAL_URL}/shutdown`)
-      }  
-      autoUpdater.quitAndInstall()
-    }
-  })
-});

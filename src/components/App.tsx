@@ -36,6 +36,7 @@ import path from 'path';
 import { Console } from './Console';
 import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
+import { UpdateProgressBar } from './UpdateProgressBar';
 
 export default function App () {
     // Connect to the server 
@@ -239,115 +240,118 @@ export default function App () {
     );
 
     return (
-        <Grid
-            fontWeight="bold"
-            gap="1"
-            gridTemplateColumns = {
-                navSize === 'large'
-                ? "300px 1fr 250px"
-                : "125px 1fr 250px"
-            }
-            gridTemplateRows="43px 1fr 30px"
-            h="200px"
-            templateAreas={`"nav null header"
-                          "nav main main"
-                          "nav main main"`}
-        >
-            {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
-            <GridItem
-                area="header"
-                justifySelf="center"
-                pt="3">
-                {
-                    loggedIn
-                        ? <HStack align="center">
-                            <ProfileMenu setLoggedIn={setLoggedIn}/>
-
-                            <VStack
-                                alignItems="center"
-                                spacing={0}>
-                                <Icon as={cloudMode
-                                    ? IoMdCloud
-                                    : IoMdCloudOutline} />
-
-                                <Switch
-                                    colorScheme="teal"
-                                    onChange={(e) => setCloudMode(e.target.checked)}
-                                    checked={cloudMode}
-                                />
-                            </VStack>
-                        </HStack>
-                        :  
-                    <Button
-                        aria-label="View"
-                        variant="outline"
-                        onClick={()=>{setShowLoginModal(true)}}
-                        >
-                        Login
-                        {' '}
-                    </Button>
+        <>
+            <Grid
+                fontWeight="bold"
+                gap="1"
+                gridTemplateColumns = {
+                    navSize === 'large'
+                    ? "300px 1fr 250px"
+                    : "125px 1fr 250px"
                 }
-            </GridItem>
+                gridTemplateRows="43px 1fr 30px"
+                h="200px"
+                templateAreas={`"nav null header"
+                            "nav main main"
+                            "nav main main"`}
+            >
+                {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
+                <GridItem
+                    area="header"
+                    justifySelf="center"
+                    pt="3">
+                    {
+                        loggedIn
+                            ? <HStack align="center">
+                                <ProfileMenu setLoggedIn={setLoggedIn}/>
 
-            <GridItem
-                area="nav"
-                pl="2">
-                <Sidebar />
-            </GridItem>
+                                <VStack
+                                    alignItems="center"
+                                    spacing={0}>
+                                    <Icon as={cloudMode
+                                        ? IoMdCloud
+                                        : IoMdCloudOutline} />
 
-            <GridItem
-                area="main"
-                pl="2">
-                <Flex>
-                    <Routes>
-                        <Route
-                            element={<>
-                                <Body />
-                                <Spacer />
-                                <SDSettings />
-                            </>}
-                            path="/" />
+                                    <Switch
+                                        colorScheme="teal"
+                                        onChange={(e) => setCloudMode(e.target.checked)}
+                                        checked={cloudMode}
+                                    />
+                                </VStack>
+                            </HStack>
+                            :  
+                        <Button
+                            aria-label="View"
+                            variant="outline"
+                            onClick={()=>{setShowLoginModal(true)}}
+                            >
+                            Login
+                            {' '}
+                        </Button>
+                    }
+                </GridItem>
 
-                        <Route
-                            element={<>
-                                <Paint />
+                <GridItem
+                    area="nav"
+                    pl="2">
+                    <Sidebar />
+                </GridItem>
 
-                                <Spacer />
+                <GridItem
+                    area="main"
+                    pl="2">
+                    <Flex>
+                        <Routes>
+                            <Route
+                                element={<>
+                                    <Body />
+                                    <Spacer />
+                                    <SDSettings />
+                                </>}
+                                path="/" />
 
-                                <SDSettings />
-                            </>}
-                            path="/paint" />
+                            <Route
+                                element={<>
+                                    <Paint />
 
-                        <Route
-                            element={<Queue />}
-                            path="/queue" />
+                                    <Spacer />
 
-                        <Route
-                            element={<Upscale />}
-                            path="/upscale" />
+                                    <SDSettings />
+                                </>}
+                                path="/paint" />
 
-                        <Route
-                            element={<ModelMerger />}
-                            path="/merge" />
+                            <Route
+                                element={<Queue />}
+                                path="/queue" />
 
-                        <Route
-                            element={<ImageViewer />}
-                            path="/imageviewer" />
+                            <Route
+                                element={<Upscale />}
+                                path="/upscale" />
 
-                        <Route
-                            element={<EquilibriumAI />}
-                            path="/equilibriumai" />
+                            <Route
+                                element={<ModelMerger />}
+                                path="/merge" />
 
-                        <Route
-                            element={<PromptGuide />}
-                            path="/prompt-guide" />
+                            <Route
+                                element={<ImageViewer />}
+                                path="/imageviewer" />
 
-                        <Route
-                            element={<Settings />}
-                            path="/settings" />
-                    </Routes>
-                </Flex>
-            </GridItem>
-        </Grid>
+                            <Route
+                                element={<EquilibriumAI />}
+                                path="/equilibriumai" />
+
+                            <Route
+                                element={<PromptGuide />}
+                                path="/prompt-guide" />
+
+                            <Route
+                                element={<Settings />}
+                                path="/settings" />
+                        </Routes>
+                    </Flex>
+                </GridItem>
+            </Grid>
+            <UpdateProgressBar />
+        </>
     );
 }
