@@ -15,7 +15,7 @@ try:
     import xformers
     import xformers.ops
 
-    XFORMERS_IS_AVAILBLE = True
+    XFORMERS_IS_AVAILBLE = torch.cuda.is_available()
 except:
     XFORMERS_IS_AVAILBLE = False
 
