@@ -15,13 +15,16 @@ import {
     Text,
     Stack,
     Select,
-    useToast
+    useToast,
+    Flex,
+    Icon
 } from '@chakra-ui/react';
 import {
     FaQuestionCircle,
     FaTrashAlt
 } from 'react-icons/fa';
 import { SocketContext, SocketOnEvents } from '../socket';
+import { useDropzone } from 'react-dropzone';
 
 function Upscale () {
     const toast = useToast({});
@@ -44,6 +47,41 @@ function Upscale () {
             setUpscaleDest(result);
         });
     };
+
+    const Dropzone = () => {
+        const toast = useToast();
+        const onDrop = useCallback((acceptedFiles: any) => {
+            const [file] = acceptedFiles;
+            console.log(file.path)
+            setUpscaleImages(file.path)
+            
+            toast({
+                title: "Files added!",
+                status: "success",
+                duration: 5000,
+                isClosable: true,
+            });
+        }, [toast]);
+      
+        const { getRootProps, getInputProps } = useDropzone({ onDrop });
+      
+        return (
+          <Box
+            borderWidth="1px"
+            borderRadius="md"
+            p="5"
+            my="5"
+            backgroundColor="gray.200"
+            {...getRootProps()}
+          >
+            <input {...getInputProps()} />
+            <Flex align="center" justify="center" height="150px">
+              <Icon name="cloud-upload"/>
+              <Text ml="2">Drop your files here or click to browse</Text>
+            </Flex>
+          </Box>
+        );
+      };
 
     const upscale = useCallback(() => {
         toast({
@@ -116,6 +154,7 @@ function Upscale () {
                     align="flex-start"
                     className="upscale"
                     spacing={5}>
+                    <Dropzone></Dropzone>
                     <FormControl
                         className="upscale-images-input"
                         width="full">

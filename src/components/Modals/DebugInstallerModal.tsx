@@ -26,7 +26,7 @@ function DebugInstallerModal () {
                 backgroundColor="red.600"
                 colorScheme="red"
                 onClick={onOpen}>
-                Debug Artroom Install
+                Reinstall Artroom Backend
             </Button>
 
             <AlertDialog

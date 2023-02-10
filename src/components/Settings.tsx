@@ -450,7 +450,7 @@ function Settings () {
                         alignContent="center"
                         className="reinstall-python-dependencies"
                         onClick={window.api.pythonInstallDependencies}>
-                        Reinstall python dependencies
+                        Update Packages
                     </Button>
                 </Flex>
                 

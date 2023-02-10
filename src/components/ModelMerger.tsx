@@ -36,8 +36,6 @@ export const ModelMerger = () => {
     const toast = useToast({});
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
-    const [progress, setProgress] = useState(-1);
-    const [stage, setStage] = useState('');
     const [ckpts, setCkpts] = useState([]);
 
     const [modelA, setModelA] = useState('');
@@ -332,15 +330,13 @@ export const ModelMerger = () => {
                             <Flex>
                             <FormHelperText textAlign="left">
                                 <Text>
-                                    {modelA.slice(0,30)}
+                                    {`${modelA.slice(0,30)} ${alpha}%`}
                                 </Text>
                             </FormHelperText>
                             <Spacer></Spacer>
                             <FormHelperText textAlign="right">
                                 <Text>
-                                    {modelB.slice(0,30)}
-                                    {' '}
-                                    {modelC.slice(0,30)}
+                                    {`${modelB.slice(0,30)} ${modelC.slice(0,30)} ${100-alpha}%`}
                                 </Text>
                             </FormHelperText>
                             </Flex>
