@@ -39,3 +39,6 @@ __pycache__
 artroom_helpers/__pycache__
 *.pth
 artroomlog.txt
+
+__pycache__/
+*.py[cod]
