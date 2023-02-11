@@ -118,49 +118,6 @@ int main(int argc, char** argv) {
         // std::cerr << "Couldn't open config file for reading.\n";
     }
     
-/*     std::string python_path = install_loc +  R"(\bin\src)";
-    std::string python_install = R"(python-3.9.12-amd64.exe InstallAllUsers=0 TargetDir=")" + python_path + R"(" Include_launcher=0 Include_test=0 SimpleInstall=1 SimpleInstallDescription="Installing Python dependencies within ArtRoom generator app")";
-    std::string pip_path = python_path +  R"(\Scripts\pip3)";
-    std::string cu_path = "https://download.pytorch.org/whl/" + torch_cuda_ver;
-    std::string req_path = install_loc + R"(\requirements.txt)";
-    std::string torch_install = pip_path + " install torch torchvision torchaudio --no-warn-script-location --extra-index-url " + cu_path;
-    std::string req_install = pip_path + " install -r " + req_path;
-    std::string cuda_install = install_loc + R"(\cuda_release\)" + cuda_release; */
-    
-    //std::string stable_yaml_path = "conda env create -f " + install_loc +  R"(\stable-diffusion-main\environment.yaml)";
-    
-/*  std::cout << python_install <<'\n';
-    std::cout << torch_install <<'\n';
-    std::cout << req_install <<'\n'; 
-    std::cout << cuda_install <<'\n';*/
-    ////////////////////////////////////
-    //////// python Installation ///////
-    ////////////////////////////////////
-/*  std::cout << "Installing Python" << std::endl;
-    std::cout << "   Follow Install instructions in Python install application and close when done" << std::endl;
-    system(python_install.c_str());
-    std::cout << "   Python Installation Complete" << std::endl;
-    std::cout << "-------------------------" << std::endl;
-    ////////////////////////////////////
-    /////// pytorch Installation ///////
-    ////////////////////////////////////
-    std::cout << "Installing PyTorch" << std::endl;
-    system(torch_install.c_str());
-    std::cout << "   PyTorch Installation Complete" << std::endl;
-    std::cout << "-------------------------" << std::endl;
-    ////////////////////////////////////
-    ///requirements.txt Installation ///
-    ////////////////////////////////////
-    std::cout << "Installing requirements.txt" << std::endl;
-    system(req_install.c_str());
-    std::cout << "   requirements.txt installation complete" << std::endl;
-    std::cout << "-------------------------" << std::endl; */
-    
-/* 	std::string install_ref_file1 = "echo %UserProfile%\\AppData\\Local\\artroom_install.log";
-	std::string install_ref_file;
-	install_ref_file = getCmdOutput(install_ref_file1);
-	//remove \n from end
-	install_ref_file.pop_back(); */
 	
 	std::string install_ref_file1 = "echo %UserProfile%";
 	std::string install_ref_file;

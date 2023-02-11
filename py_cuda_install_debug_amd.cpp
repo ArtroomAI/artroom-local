@@ -10,14 +10,6 @@
 #include<windows.h>
 using namespace std;
 
-// Config file with installation path defaults to %UserProfile%
-// User can select own installation path during nsis --> Updates the config file
-// Program also moves, users have artroom in new folder
-// Install to that directory. If user updates, should check install_dir from config and update that one
-
-// Will include setting in artroom where user can select it (or provide tutorial for moving it)
-// If they do it themselves just by moving it, will throw an alert that says "Hey not found! Please update settings"
-
 bool isInstalled(std::string command, std::string searchTerm) 
 {
     FILE *fpipe;
@@ -252,25 +244,25 @@ int main(int argc, char** argv) {
     if (isInstalled(command, searchTerm))
     {
 		//std::cout << "Updating Existing artroom-ldm  environment" << std::endl;
-		//system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env update --name artroom-ldm --file stable-diffusion/environment.yaml --prune\"");
+		//system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env update --name artroom-ldm --file stable-diffusion/environment_amd.yaml --prune\"");
 		std::cout << "Installing clean Stable Diffusion in environment" << std::endl;
 		temp = "\"" + install_activate + " && " + install_conda + " env remove -n artroom-ldm\"";
 		system(temp.c_str());
         //system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env remove -n artroom-ldm\"");
         std::cout << "Installing Stable Diffusion libraries. Please wait, this takes a while :)" << std::endl;
-		temp = "\"" + install_activate + " && " + install_conda + " env create -f stable-diffusion/environment.yaml\"";
+		temp = "\"" + install_activate + " && " + install_conda + " env create -f stable-diffusion/environment_amd.yaml\"";
 		system(temp.c_str());
-        //system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env create -f stable-diffusion/environment.yaml\"");
+        //system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env create -f stable-diffusion/environment_amd.yaml\"");
     }
     else
     {       
         std::cout << "Installing Stable Diffusion libraries. Please wait, this takes a while :)" << std::endl;
 		temp = "\"" + install_conda + " config --set ssl_verify true\"";
 		system(temp.c_str());
-		temp = "\"" + install_activate + " && " + install_conda + " env create -f stable-diffusion/environment.yaml\"";
+		temp = "\"" + install_activate + " && " + install_conda + " env create -f stable-diffusion/environment_amd.yaml\"";
 		system(temp.c_str());
 		//system("\"\"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" config --set ssl_verify true\"");
-        //system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env create -f stable-diffusion/environment.yaml\"");
+        //system("\"\"%UserProfile%\\artroom\\miniconda3\\condabin\\activate\" && \"%UserProfile%\\artroom\\miniconda3\\Scripts\\conda\" env create -f stable-diffusion/environment_amd.yaml\"");
     }
 	temp = "\"" + install_activate + " && " + install_conda + " clean --all --yes\"";
 	system(temp.c_str());

@@ -469,6 +469,8 @@ class StableDiffusion:
                  speed="High", skip_grid=False, batch_id=0):
 
         self.running = True
+        self.highres_fix = False
+
         self.dtype = torch.float16 if self.can_use_half else torch.float32
 
         if batch_id == 0:
@@ -498,7 +500,8 @@ class StableDiffusion:
             sampler = 'ddim'
 
         self.image_save_path = image_save_path
-        ddim_steps = steps
+        
+        ddim_steps = int(steps/strength)
 
         print("Setting up models...")
         self.load_ckpt(ckpt, speed, vae)
@@ -537,6 +540,7 @@ class StableDiffusion:
 
         if mode == "pix2pix":
             sampler = "ddim"
+            ddim_steps = steps 
 
         if mode != "default":
             highres_fix_steps = 1
@@ -559,11 +563,6 @@ class StableDiffusion:
         if init_image is not None:
             if self.v1:
                 self.modelFS.to(self.device)
-
-            if mode != "pix2pix":
-                steps = int(strength * steps)
-                if steps <= 0:
-                    steps = 1
 
         self.total_num = n_iter
         all_samples = []

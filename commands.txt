@@ -1,4 +1,5 @@
- g++ py_cuda_install.cpp -o py_cuda_install.exe -static
+g++ py_cuda_install_debug.cpp -o py_cuda_install.exe -static
+g++ py_cuda_install_debug_amd.cpp -o py_cuda_install_amd.exe -static
 
 {userprofile}\\artroom\\miniconda3\\condabin\\activate.bat","&&",
                     f"conda", "run", "-p",f"{userprofile}/artroom/miniconda3/envs/ldm",

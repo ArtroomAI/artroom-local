@@ -12,7 +12,7 @@ import {
 } from 'react-icons/fi';
 import {
     FaTrashAlt
-} from 'react-icons/fa';
+} from 'react-icons/fa'; 
 
 const getImageDimensions = (base64: string) => {
     return new Promise((resolve, reject) => {
