@@ -77,11 +77,11 @@ export default function Sidebar () {
                         title="Queue" />
 
                     <NavItem
-                        className="upscale-nav"
+                        className="image-editor-nav"
                         icon={GiResize}
-                        linkTo="#/upscale"
+                        linkTo="#/image-editor"
                         navSize={navSize}
-                        title="Upscale" />
+                        title="Image Editor" />
 
                     <NavItem
                         className="merge-nav"

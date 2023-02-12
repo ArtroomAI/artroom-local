@@ -20,7 +20,6 @@ import PromptGuide from './PromptGuide';
 import Body from './Body';
 import Sidebar from './Sidebar';
 import Settings from './Settings';
-import Upscale from './Upscale';
 import Paint from './Paint';
 import Queue from './Queue';
 import SDSettings from './SDSettings';
@@ -37,6 +36,7 @@ import { Console } from './Console';
 import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
 import { UpdateProgressBar } from './UpdateProgressBar';
+import ImageEditor from './ImageEditor';
 
 export default function App () {
     // Connect to the server 
@@ -325,8 +325,8 @@ export default function App () {
                                 path="/queue" />
 
                             <Route
-                                element={<Upscale />}
-                                path="/upscale" />
+                                element={<ImageEditor />}
+                                path="/image-editor" />
 
                             <Route
                                 element={<ModelMerger />}

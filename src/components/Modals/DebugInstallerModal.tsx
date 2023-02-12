@@ -7,16 +7,31 @@ import {
     AlertDialogHeader,
     AlertDialogBody,
     AlertDialogFooter,
-    Button
+    Button,
+    Text,
+    Flex,
+    Switch,
+    useToast
 } from '@chakra-ui/react';
 
 function DebugInstallerModal () {
-    const [secondConfirmationNeeded, setSecondConfirmationNeeded] = useState(true);
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const cancelRef = React.useRef();
+    const toast = useToast({});
 
+    const cancelRef = React.useRef();
+    const [useAMDInstaller, setUseAMDInstaller] = useState(false);
     const DebugInstaller = () => {
-        window.api.pythonInstall();
+        window.api.pythonInstall(useAMDInstaller);
+        toast({
+            title: 'Reinstalling Artroom Backend',
+            status: 'success',
+            position: 'top',
+            duration: 2000,
+            isClosable: true,
+            containerStyle: {
+                pointerEvents: 'none'
+            }
+        });
         onClose();
     };
 
@@ -44,26 +59,43 @@ function DebugInstallerModal () {
                         </AlertDialogHeader>
 
                         <AlertDialogBody>
+                            <Text fontSize="lg" fontWeight="medium">
+                                WARNING:
+                            </Text>
                             <p>
-                                WARNING: This will reinstall Artroom. ONLY DO THIS IF YOU HAVE A BROKEN INSTALL. A command prompt will open and you will see the installer again, except this one will stay open until you press a button.
+                                This will reinstall Artroom. ONLY DO THIS IF YOU HAVE A BROKEN INSTALL. A command prompt will open and you will see the installer again, except this one will stay open until you press a button.
                             </p>
 
                             <br />
+                            <Text fontSize="lg" fontWeight="medium">
+                                Before Running:
+                            </Text>
                             <p>
-                            Before Running: Try running Debug Mode by checking the Debug Mode option and pressing Save Settings.
+                                Try running Debug Mode by checking the Debug Mode option and pressing Save Settings.
                             </p>
 
                             <br />
-
+                            <Text fontSize="lg" fontWeight="medium">
+                                Next Steps:
+                            </Text>
                             <p>
                                 Then, reach out on Discord to see if we can resolve this problem.
                             </p>
                             <br />
+                            <Text fontSize="lg" fontWeight="medium">
+                                If all else fails:
+                            </Text>
                             <p>
-                                If all else fails, then proceed. NOTE: You will need a stable internet connection. This process could take a while so hang tight.  
+                                If all else fails, then proceed. NOTE: You will need a stable internet connection. This process could take a while so hang tight.
                             </p>
-
+                            <br />
+                            <Flex alignItems="center">
+                                <Text fontSize="lg" fontWeight="medium">Use AMD Installer: </Text>
+                                {' '}
+                                <Switch size="lg" onChange={() => setUseAMDInstaller(!useAMDInstaller)} isChecked={useAMDInstaller} />
+                            </Flex>
                         </AlertDialogBody>
+
 
                         <AlertDialogFooter>
                             <Button
@@ -77,15 +109,9 @@ function DebugInstallerModal () {
                                 colorScheme="red"
                                 ml={3}
                                 onClick={() => {
-                                    if (!secondConfirmationNeeded) {
-                                        setSecondConfirmationNeeded(true);
-                                        alert('This will uninstall and reinstall Artroom. Are you sure you want to continue?');
-                                    } else {
-                                        setSecondConfirmationNeeded(false);
                                         DebugInstaller();
-                                    }
                                 }}>
-                                Reinstall Artroom Backend
+                                Install Artroom {useAMDInstaller ? 'for AMD' : 'for NVIDIA'}
                             </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>

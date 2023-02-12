@@ -40,6 +40,7 @@ import { CanvasRedoButton } from './CanvasRedoButton';
 import { CanvasUndoButton } from './CanvasUndoButton';
 import path from 'path';
 import { CanvasUpscaleButtonPopover } from './CanvasUpscaleButtonPopover';
+import { RemoveBackgroundButtonPopover } from './RemoveBackgroundButtonPopover';
 
 export const CanvasOutpaintingControls: FC = () => {
   const canvasBaseLayer = getCanvasBaseLayer();
@@ -218,6 +219,7 @@ export const CanvasOutpaintingControls: FC = () => {
       </ButtonGroup>
       <ButtonGroup isAttached>
       <CanvasUpscaleButtonPopover />
+      <RemoveBackgroundButtonPopover />
       <IconButton
           aria-label="Save to Gallery (Shift+S)"
           tooltip="Save to Gallery (Shift+S)"

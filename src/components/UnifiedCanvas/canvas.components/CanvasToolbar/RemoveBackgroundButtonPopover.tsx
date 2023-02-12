@@ -2,12 +2,12 @@ import React, { FC, useState } from 'react';
 import { Button, Flex, useToast } from '@chakra-ui/react';
 import { useRecoilValue } from 'recoil';
 import { Popover, IconButton, Slider, Select } from '../../components';
-import { GiResize } from 'react-icons/gi';
+import { MdOutlineFlipToBack } from 'react-icons/md';
 import axios from 'axios';
 import { getCanvasBaseLayer, layerToDataURL } from '../../util';
 import {stageScaleAtom, stageCoordinatesAtom } from '../../atoms/canvas.atoms';
 
-export const CanvasUpscaleButtonPopover: FC = () => {
+export const RemoveBackgroundButtonPopover: FC = () => {
   const toast = useToast({});
   const [upscaler, setUpscaler] = useState('RealESRGAN');
   const [upscale_factor, setUpscaleFactor] = useState(2);
@@ -49,7 +49,7 @@ export const CanvasUpscaleButtonPopover: FC = () => {
     ).then((result) => {
         if (result.data.status === 'Failure') {
             toast({
-                title: 'Upscale Failed',
+                title: 'Background Removal Failed',
                 description: result.data.status_message,
                 status: 'error',
                 position: 'top',
@@ -61,7 +61,7 @@ export const CanvasUpscaleButtonPopover: FC = () => {
             });
         } else {
             toast({
-                title: 'Upscale Completed',
+                title: 'Background Removed Completed',
                 status: 'success',
                 position: 'top',
                 duration: 1000,
@@ -79,9 +79,9 @@ export const CanvasUpscaleButtonPopover: FC = () => {
       trigger="hover"
       triggerComponent={
         <IconButton
-          tooltip="Upscale Canvas"
-          aria-label="Upscale Canvas"
-          icon={<GiResize />}
+          tooltip="Remove Background"
+          aria-label="Remove Background"
+          icon={<MdOutlineFlipToBack />}
         />
       }
     >
@@ -106,7 +106,7 @@ export const CanvasUpscaleButtonPopover: FC = () => {
                 w="300px" 
                 validValues={["RealESRGAN","RealESRGAN-Anime","GFPGANv1.3","GFPGANv1.4","RestoreFormer"]}                  
               />                 
-          <Button onClick={handleUpscale}>Upscale</Button>
+          <Button onClick={handleUpscale}>Remove Background</Button>
         </Flex>
     </Popover>
   );
