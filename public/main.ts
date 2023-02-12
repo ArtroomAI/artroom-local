@@ -267,31 +267,22 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle("chooseImages", () => {
-    return new Promise((resolve, reject) => {
-      let properties: OpenDialogOptions['properties'];
-      if (os.platform() === 'linux' || os.platform() === 'win32') {
-        properties = ['openFile', 'multiSelections'];
-      }
-      else {
-        properties = ['openFile', 'openDirectory', 'multiSelections'];
-      }
-      dialog.showOpenDialog({
-        properties: properties,
-        filters: [
-          { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
-        ]
-      }).then(result => {
-        if (result.filePaths.length > 0) {
-          resolve(result.filePaths);
-        }
-        else {
-          resolve("");
-        }
-      }).catch(err => {
-        resolve("");
-      })
+  ipcMain.handle("chooseImages", async () => {
+    let properties: OpenDialogOptions['properties'];
+    if (os.platform() === 'linux' || os.platform() === 'win32') {
+      properties = ['openFile', 'multiSelections'];
+    } else {
+      properties = ['openFile', 'openDirectory', 'multiSelections'];
+    }
+
+    const results = await dialog.showOpenDialog({
+      properties: properties,
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
+      ]
     });
+
+    return results.filePaths;
   });
 
   //Opens file explorer

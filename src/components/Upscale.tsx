@@ -28,7 +28,7 @@ import { useDropzone } from 'react-dropzone';
 
 function Upscale () {
     const toast = useToast({});
-    const [upscale_images, setUpscaleImages] = useState('');
+    const [upscale_images, setUpscaleImages] = useState<string[]>([]);
     const [upscale_dest, setUpscaleDest] = useState('');
     const [upscaler, setUpscaler] = useState('ESRGAN');
     const [upscale_factor, setUpscaleFactor] = useState(2);
@@ -50,10 +50,8 @@ function Upscale () {
 
     const Dropzone = () => {
         const toast = useToast();
-        const onDrop = useCallback((acceptedFiles: any) => {
-            const [file] = acceptedFiles;
-            console.log(file.path)
-            setUpscaleImages(file.path)
+        const onDrop = useCallback((acceptedFiles: File[]) => {
+            setUpscaleImages(acceptedFiles.map(file => file.path))
             
             toast({
                 title: "Files added!",
@@ -74,7 +72,7 @@ function Upscale () {
             backgroundColor="gray.200"
             {...getRootProps()}
           >
-            <input {...getInputProps()} />
+            <input multiple {...getInputProps()} />
             <Flex align="center" justify="center" height="150px">
               <Icon name="cloud-upload"/>
               <Text ml="2">Drop your files here or click to browse</Text>
@@ -177,7 +175,7 @@ function Upscale () {
                             <Input
                                 id="upscale_images"
                                 name="upscale_images"
-                                onChange={(event) => setUpscaleImages(event.target.value)}
+                                onChange={(event) => setUpscaleImages(event.target.value.split(',').filter(e => e !== ''))}
                                 type="text"
                                 value={upscale_images}
                                 variant="outline"
@@ -194,7 +192,7 @@ function Upscale () {
                                 <IconButton
                                     aria-label="Clear Init Image"
                                     icon={<FaTrashAlt />}
-                                    onClick={(event) => setUpscaleImages('')} />
+                                    onClick={() => setUpscaleImages([])} />
                             </ButtonGroup>
                         </HStack>
                     </FormControl>
