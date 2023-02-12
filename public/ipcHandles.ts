@@ -9,8 +9,6 @@ import os from 'os';
 
 let installationProcess: ChildProcessWithoutNullStreams;
 let hd = os.homedir();
-//Start with cleanup
-// const artroom_install_log = userDataPath + "/artroom_install.log";
 const artroom_install_log = hd + "\\AppData\\Local\\artroom_install.log";
 let artroom_path = hd;
 if (fs.existsSync(artroom_install_log)) {
@@ -34,11 +32,14 @@ async function removeDirectoryIfExists(PATH: fs.PathLike) {
   }
   
 
-const backupPythonInstallation = (mainWindow: Electron.BrowserWindow) => () => {
+const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInstaller: boolean) => () => {
     console.log("REINSTALL BACKING")
     console.log(`VANILLA PATH: ${artroom_path}`)
+    const URL = useAMDInstaller ? 
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
+      : 
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
 
-    const URL = 'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
     const PATH = path.join(artroom_path, "\\artroom\\miniconda3");
     console.log(`ARTROOM PATH: ${PATH}`)
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
@@ -146,6 +147,8 @@ const reinstallPythonDependencies = () => () => {
 }
 
 export const handlers = (mainWindow: Electron.BrowserWindow) => {
-    ipcMain.handle('pythonInstall', backupPythonInstallation(mainWindow));
-    ipcMain.handle('pythonInstallDependencies', reinstallPythonDependencies());
+  ipcMain.handle('pythonInstall', (event, useAMDInstaller) => {
+    backupPythonInstallation(mainWindow, useAMDInstaller)();
+  });    
+  ipcMain.handle('pythonInstallDependencies', reinstallPythonDependencies());
 }
