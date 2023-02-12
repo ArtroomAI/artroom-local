@@ -55,7 +55,7 @@ export interface SocketEmitEvents {
         ckpt_dir: string;
     }) => void;
     upscale: (data: {
-        upscale_images: string;
+        upscale_images: string[];
         upscaler: string;
         upscale_factor: number;
         upscale_strength: number;
