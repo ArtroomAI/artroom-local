@@ -267,31 +267,22 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle("chooseImages", () => {
-    return new Promise((resolve, reject) => {
-      let properties: OpenDialogOptions['properties'];
-      if (os.platform() === 'linux' || os.platform() === 'win32') {
-        properties = ['openFile', 'multiSelections'];
-      }
-      else {
-        properties = ['openFile', 'openDirectory', 'multiSelections'];
-      }
-      dialog.showOpenDialog({
-        properties: properties,
-        filters: [
-          { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
-        ]
-      }).then(result => {
-        if (result.filePaths.length > 0) {
-          resolve(result.filePaths);
-        }
-        else {
-          resolve("");
-        }
-      }).catch(err => {
-        resolve("");
-      })
+  ipcMain.handle("chooseImages", async () => {
+    let properties: OpenDialogOptions['properties'];
+    if (os.platform() === 'linux' || os.platform() === 'win32') {
+      properties = ['openFile', 'multiSelections'];
+    } else {
+      properties = ['openFile', 'openDirectory', 'multiSelections'];
+    }
+
+    const results = await dialog.showOpenDialog({
+      properties: properties,
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
+      ]
     });
+
+    return results.filePaths;
   });
 
   //Opens file explorer
@@ -510,25 +501,23 @@ function createWindow() {
 
   //TODO: In frontend, map out a button that lets users do an auto update and update the "don't remind me" or "check for auto update", check version number and press "check for updates or update" in the app itself
   // When an update is available, show a message to the user
-  autoUpdater.on('update-available', () => {
-    const message = 'An update is available. Would you like to download it now?';
-    // const buttons = ['Install', 'Cancel', 'Don\'t ask again'];
-    const buttons = ['Download', 'Cancel'];
+  let updateAvailable = false;
 
+  autoUpdater.on('update-available', () => {
+    updateAvailable = true;
+    const message = 'An update is available. Would you like to download it now?';
+    const buttons = ['Download', 'Cancel'];
+  
     // Show the message to the user
     dialog.showMessageBox({ message, buttons }).then(({ response }) => {
-      // If the user clicks the "Install" button, install the update
+      // If the user clicks the "Download" button, download the update
       if (response === 0) {
         autoUpdater.downloadUpdate();
         alert('Artroom is downloading the latest update in the background.')
       }
-      // if (response === 2) {
-      //   //Set don't ask again to be true in state
-      //   //Save state of don't ask again later in memory
-      // }
     });
   });
-
+  
   autoUpdater.on("update-downloaded", (event) => {
     const dialogOpts: MessageBoxOptions = {
       type: 'info',
@@ -543,14 +532,22 @@ function createWindow() {
           kill(server.pid);
           spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
           axios.get(`${LOCAL_URL}/shutdown`)
-        }  
-        autoUpdater.quitAndInstall()
+        }
+        autoUpdater.quitAndInstall();
+      } else {
+        updateAvailable = false;
       }
-    })
+    });
   });
 
   autoUpdater.on('download-progress', (info) => {
     win.webContents.send('downloadProgress', info);
+  });
+
+  app.on('before-quit', () => {
+    if (updateAvailable) {
+      autoUpdater.quitAndInstall();
+    }
   });
 
   win.once('ready-to-show', () => {

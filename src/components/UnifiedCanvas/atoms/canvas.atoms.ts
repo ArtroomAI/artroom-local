@@ -76,7 +76,7 @@ export const isDrawingAtom = atom({
 
 export const isMaskEnabledAtom = atom({
   key: 'canvas.isMaskEnabled',
-  default: false,
+  default: true,
 });
 
 export const isMouseOverBoundingBoxAtom = atom({

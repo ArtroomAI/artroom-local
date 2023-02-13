@@ -72,6 +72,11 @@ export const highresFixState = atom({
     default: false
 });
 
+export const paletteFixState = atom({
+    key: 'palette_fix',
+    default: true
+});
+
 export const initImagePathState = atom({
     key: 'initImagePath',
     default: ''
