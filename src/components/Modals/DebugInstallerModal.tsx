@@ -60,10 +60,10 @@ function DebugInstallerModal () {
 
                         <AlertDialogBody>
                             <Text fontSize="lg" fontWeight="medium">
-                                WARNING:
+                                NOTE: To proceed you MUST run Artroom as Admin
                             </Text>
                             <p>
-                                This will reinstall Artroom. ONLY DO THIS IF YOU HAVE A BROKEN INSTALL. A command prompt will open and you will see the installer again, except this one will stay open until you press a button.
+                                If you do not run Artroom as admin, the downloaded backend will not have the permission to unzip and the reinstall will fail. Once you click Install, you will see the progress below. There may be a few seconds of delay before seeing the first tick of progress. 
                             </p>
 
                             <br />

@@ -222,21 +222,57 @@ export const CanvasToolChooserOptions: FC = () => {
           />
         </Flex>
       </Popover>
-      <IconButton
-        aria-label="Eraser Tool (E)"
-        tooltip="Eraser Tool (E)"
-        icon={<FaEraser />}
-        data-selected={tool === 'eraser' && !isStaging}
-        isDisabled={isStaging}
-        onClick={handleSelectEraserTool}
-      />
-      <IconButton
-        aria-label="Fill Bounding Box (Shift+F)"
-        tooltip="Fill Bounding Box (Shift+F)"
-        icon={<FaFillDrip />}
-        isDisabled={isStaging}
-        onClick={handleFillRect}
-      />
+      <Popover
+        trigger="hover"
+        triggerComponent={
+          <IconButton
+          aria-label="Eraser Tool (E)"
+          tooltip="Eraser Tool (E)"
+          icon={<FaEraser />}
+          data-selected={tool === 'eraser' && !isStaging}
+          isDisabled={isStaging}
+          onClick={handleSelectEraserTool}
+        />
+        }
+      >
+        <Flex minWidth="15rem" direction="column" gap="1rem" width="100%">
+          <Flex gap="1rem" justifyContent="space-between">
+            <Slider
+              label="Size"
+              value={brushSize}
+              withInput
+              max={200}
+              onChange={(newSize) => setBrushSize(newSize)}
+              sliderNumberInputProps={{ max: 500 }}
+              inputReadOnly={false}
+            />
+          </Flex>
+        </Flex>
+      </Popover>
+      <Popover
+        trigger="hover"
+        triggerComponent={
+          <IconButton
+          aria-label="Fill Bounding Box (Shift+F)"
+          tooltip="Fill Bounding Box (Shift+F)"
+          icon={<FaFillDrip />}
+          isDisabled={isStaging}
+          onClick={handleFillRect}
+        />
+        }
+      >
+        <Flex minWidth="15rem" direction="column" gap="1rem" width="100%">
+          <ColorPicker
+            style={{
+              width: '100%',
+              paddingTop: '0.5rem',
+              paddingBottom: '0.5rem',
+            }}
+            color={brushColor}
+            onChange={(newColor) => setBrushColor(newColor)}
+          />
+        </Flex>
+      </Popover>
       <IconButton
         aria-label="Erase Bounding Box Area (Delete/Backspace)"
         tooltip="Erase Bounding Box Area (Delete/Backspace)"

@@ -32,6 +32,8 @@ function Settings () {
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
+    const [palette_fix, setPaletteFix] = useRecoilState(atom.paletteFixState);
+
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
     const [downloadMessage, setDownloadMessage] = useState('');
@@ -55,6 +57,7 @@ function Settings () {
 
                 setLongSavePath(settings.long_save_path);
                 setHighresFix(settings.highres_fix);
+                setPaletteFix(settings.palette_fix);
                 setDelay(settings.delay);
                 setDebugMode(settings.debug_mode);
                 setDebugModeOrig(settings.debug_mode);
@@ -125,6 +128,7 @@ function Settings () {
         const output = {
             long_save_path,
             highres_fix,
+            palette_fix,
             debug_mode,
             delay,
             speed: imageSettings.speed,
@@ -134,13 +138,14 @@ function Settings () {
             ckpt_dir: imageSettings.ckpt_dir
         };
         socket.emit('update_settings', output)
-    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
+    }, [debug_mode, delay, highres_fix, palette_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
 
     const saveSettingsWithRestart = useCallback(() => {
         setDebugModeOrig(debug_mode);
         const output = {
             long_save_path,
             highres_fix,
+            palette_fix,
             debug_mode,
             delay,
             speed: imageSettings.speed,
@@ -150,7 +155,7 @@ function Settings () {
             ckpt_dir: imageSettings.ckpt_dir
         };
         socket.emit('update_settings_with_restart', output)
-    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
+    }, [debug_mode, delay, highres_fix, palette_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
 
     useEffect(() => {
         window.api.fixButtonProgress((_, str) => {
@@ -345,6 +350,28 @@ function Settings () {
                         <NumberInputField id="delay" />
                     </NumberInput>
                 </FormControl>
+
+                <HStack className="palette-fix-input">
+                    <Checkbox
+                        id="palette_fix"
+                        isChecked={palette_fix}
+                        name="palette_fix"
+                        onChange={() => {
+                            setPaletteFix(!palette_fix);
+                        }}
+                    >
+                        Use Palette Fix
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Fixes the color palette and enables drawing images on monocolor backgrounds and with raw paint tools"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
 
                 <HStack className="highres-fix-input">
                     <Checkbox

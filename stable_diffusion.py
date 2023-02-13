@@ -60,6 +60,7 @@ def load_mask(mask, newH, newW):
     image = np.array(mask)
     image = Image.fromarray(image).convert("RGB")
     w, h = image.size
+
     # resize to integer multiple of 32
     w, h = map(lambda x: x - x % 64, (w, h))
     image = image.resize((newW, newH), resample=Image.LANCZOS)
@@ -93,6 +94,7 @@ def load_img(image, h0, w0, inpainting=False):
     w, h = map(lambda x: x - x % 64, (w, h))
     print(f"New image size ({w}, {h})")
     image = image.resize((w, h), resample=Image.LANCZOS)
+
 
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
@@ -129,6 +131,7 @@ class StableDiffusion:
         self.cc = self.get_cc()
         self.intermediate_path = ''
 
+        self.palette_fix = True
         # Generation Runtime Parameters
 
     def get_cc(self):
@@ -473,12 +476,20 @@ class StableDiffusion:
 
         self.dtype = torch.float16 if self.can_use_half else torch.float32
 
+        if self.palette_fix:
+            print("Using palette fix")
+            padding = 32
+        else:
+            padding = 0
+
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
 
         print("HIGHRES FIX:", self.highres_fix)
-
+        W += padding*2
+        H += padding*2
         oldW, oldH = W, H
+
         if W * H > 512 * 512 and self.highres_fix:
             highres_fix_steps = math.ceil((W * H) / (512 * 512))
             W, H = W // highres_fix_steps, H // highres_fix_steps
@@ -521,6 +532,15 @@ class StableDiffusion:
             else:
                 print(f"Loading from path {init_image_str}")
                 image = Image.open(init_image_str)
+            
+            if padding > 0:
+                w, h = image.size
+                # Create a white image with the desired padding size
+                padding_img = Image.fromarray((np.random.rand(h + 2 * padding, w + 2 * padding, 3) * 255).astype(np.uint8), "RGB")
+                # Paste the original image onto the white image
+                padding_img.paste(image, (padding, padding))
+                # Update the image variable to be the padded image
+                image = padding_img
 
             if len(mask_b64) > 0:
                 try:
@@ -626,14 +646,24 @@ class StableDiffusion:
                                     ddim_eta,
                                     ddim_steps,
                                 )
-                            if len(mask_b64) > 0 and init_image is not None:
+                            if len(mask_b64) > 0:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
                                     mask_image = support.b64_to_image(mask_b64).convert('L')
                                 else:
-                                    mask_image = Image.open(mask).convert("L")
+                                    mask_image = Image.open(mask_b64).convert("L")
                                 if invert:
                                     mask_image = ImageOps.invert(mask_image)
+
+                                if padding > 0:
+                                    w, h = mask_image.size
+
+                                    # Create a white image with the desired padding size
+                                    padding_img = Image.new("RGB", (w + 2 * padding, h + 2 * padding), (255, 255, 255))
+                                    # Paste the original image onto the white image
+                                    padding_img.paste(mask_image, (padding, padding))
+                                    # Update the image variable to be the padded image
+                                    mask_image = padding_img
 
                                 mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]) \
                                     .to(self.device)
@@ -688,19 +718,20 @@ class StableDiffusion:
                                 x_sample.astype(np.uint8))
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1)).to(self.device).to(self.dtype)
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(self.device).to(self.dtype)
                             elif ij == highres_fix_steps - 1:
-                                init_image = load_img(out_image, oldH, oldW).to(self.device).to(self.dtype)
-
-                            if mask is not None:
+                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(self.device).to(self.dtype)
+                            if padding > 0:
+                                w, h = out_image.size
+                                out_image = out_image.crop((padding, padding, w - padding, h - padding))
+                            elif mask is not None:
                                 if init_image_str[:4] == 'data':
                                     original_init_image = support.b64_to_image(init_image_str).convert('RGB')
                                 else:
                                     original_init_image = Image.open(init_image_str).convert('RGB')
-
                                 out_image = support.repaste_and_color_correct(result=out_image,
-                                                                              init_image=original_init_image,
-                                                                              init_mask=mask_image, mask_blur_radius=8)
+                                                                            init_image=original_init_image,
+                                                                            init_mask=mask_image, mask_blur_radius=8)
 
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now

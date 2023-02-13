@@ -17,6 +17,7 @@
     "image_save_path": "%UserProfile%/Desktop/",
     "long_save_path": false,
     "highres_fix": true,
+    "palette_fix": true,
     "speed": "High",
     "save_grid": false,
     "debug_mode": true,
