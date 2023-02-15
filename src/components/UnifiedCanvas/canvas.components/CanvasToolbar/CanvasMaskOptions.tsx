@@ -2,6 +2,7 @@ import React from 'react';
 import { FC } from 'react';
 import { ButtonGroup, Flex } from '@chakra-ui/react';
 import { FaMask, FaTrash } from 'react-icons/fa';
+import { GiDualityMask } from 'react-icons/gi'
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import {
@@ -20,50 +21,7 @@ import {
   isStagingSelector,
 } from '../../atoms/canvas.atoms';
 
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-// import { rgbaColorToString } from '../util';
-// import {
-// 	clearMask,
-// 	setIsMaskEnabled,
-// 	setLayer,
-// 	setMaskColor,
-// 	setShouldPreserveMaskedArea,
-// } from 'canvas/store/canvasSlice';
-// import _ from 'lodash';
-
-// export const selector = createSelector(
-// 	[canvasSelector, isStagingSelector],
-// 	(canvas, isStaging) => {
-// 		const { maskColor, layer, isMaskEnabled, shouldPreserveMaskedArea } =
-// 			canvas;
-
-// 		return {
-// 			layer,
-// 			maskColor,
-// 			maskColorString: rgbaColorToString(maskColor),
-// 			isMaskEnabled,
-// 			shouldPreserveMaskedArea,
-// 			isStaging,
-// 		};
-// 	},
-// 	{
-// 		memoizeOptions: {
-// 			resultEqualityCheck: _.isEqual,
-// 		},
-// 	},
-// );
-
 export const CanvasMaskOptions: FC = () => {
-  // const {
-  // 	layer,
-  // 	maskColor,
-  // 	isMaskEnabled,
-  // 	shouldPreserveMaskedArea,
-  // 	isStaging,
-  // } = useAppSelector(selector);
 
   const [layer, setLayer] = useRecoilState(layerAtom);
   const [maskColor, setMaskColor] = useRecoilState(maskColorAtom);
@@ -125,25 +83,21 @@ export const CanvasMaskOptions: FC = () => {
       triggerComponent={
         <ButtonGroup>
           <IconButton
-            aria-label="Masking Options"
-            tooltip="Masking Options"
-            icon={<FaMask />}
+            aria-label="Use Mask (H)"
+            tooltip="Use Mask (H)"
+            icon={<GiDualityMask />}
             style={
               layer === 'mask'
                 ? { backgroundColor: 'var(--accent-color)' }
                 : { backgroundColor: 'var(--btn-base-color)' }
             }
             isDisabled={isStaging}
+            onClick={handleToggleEnableMask}
           />
         </ButtonGroup>
       }
     >
-      <Flex direction="column" gap="0.5rem">
-        <Checkbox
-          label="Enable Mask (H)"
-          isChecked={isMaskEnabled}
-          onChange={handleToggleEnableMask}
-        />
+      <Flex direction="column" gap="0.5rem" align="center">
         <Checkbox
           label="Preserve Masked Area"
           isChecked={shouldPreserveMaskedArea}

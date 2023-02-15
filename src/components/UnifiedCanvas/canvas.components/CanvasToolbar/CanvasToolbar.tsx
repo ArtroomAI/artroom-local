@@ -188,20 +188,8 @@ export const CanvasOutpaintingControls: FC = () => {
 
   return (
     <div className="inpainting-settings">
-      <Select
-        tooltip="Layer (Q)"
-        tooltipProps={{ hasArrow: true, placement: 'top' }}
-        value={layer}
-        validValues={LAYER_NAMES_DICT}
-        onChange={handleChangeLayer}
-        isDisabled={isStaging}
-      />
-
       <CanvasMaskOptions />
-      <CanvasSettingsButtonPopover />
-
       <CanvasToolChooserOptions />
-
       <ButtonGroup isAttached>
         <IconButton
           aria-label="Move Tool (V)"
@@ -235,8 +223,8 @@ export const CanvasOutpaintingControls: FC = () => {
           isDisabled={isStaging}
         />
         <IconButton
-          aria-label="Upload"
-          tooltip="Upload"
+          aria-label="Import Image"
+          tooltip="Import Image"
           icon={<FaUpload />}
           onClick={openUploader}
           isDisabled={isStaging}
@@ -250,11 +238,11 @@ export const CanvasOutpaintingControls: FC = () => {
           isDisabled={isStaging}
         />
       </ButtonGroup>
-
       <ButtonGroup isAttached>
         <CanvasUndoButton />
         <CanvasRedoButton />
       </ButtonGroup>
+      <CanvasSettingsButtonPopover />
     </div>
   );
 };

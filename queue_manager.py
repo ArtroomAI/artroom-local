@@ -171,6 +171,7 @@ class QueueManager():
         vae_path = os.path.join(next_gen['ckpt_dir'],next_gen['vae']).replace(os.sep, '/')
         # try:
         print("Starting gen...")
+        print(next_gen)
         self.SD.generate(
             text_prompts=next_gen['text_prompts'],
             negative_prompts=next_gen['negative_prompts'],
@@ -186,6 +187,7 @@ class QueueManager():
             seed=int(next_gen['seed']),
             sampler=next_gen['sampler'],
             cfg_scale=float(next_gen['cfg_scale']),
+            palette_fix = next_gen['palette_fix'],
             ckpt=ckpt_path,
             vae=vae_path,
             image_save_path=next_gen['image_save_path'],

@@ -172,8 +172,6 @@ def update_settings(data):
         SD.long_save_path = data['long_save_path']
     if 'highres_fix' in data:
         SD.highres_fix = data['highres_fix']
-    if 'palette_fix' in data:
-        SD.palette_fix = data['palette_fix']
     sd_settings = json.load(
         open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
     for key in data:
@@ -208,8 +206,6 @@ def update_settings(data):
         SD.long_save_path = data['long_save_path']
     if 'highres_fix' in data:
         SD.highres_fix = data['highres_fix']
-    if 'palette_fix' in data:
-        SD.palette_fix = data['palette_fix']
     sd_settings = json.load(
         open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
     for key in data:
