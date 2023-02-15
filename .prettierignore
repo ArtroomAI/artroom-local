@@ -1,0 +1,15 @@
+# Ignore build artifacts
+build/
+dist/
+out/
+
+# Ignore generated files
+*.log
+*.json
+*.txt
+
+# Ignore dotfiles
+.*
+
+# Ignore files in node_modules
+node_modules/

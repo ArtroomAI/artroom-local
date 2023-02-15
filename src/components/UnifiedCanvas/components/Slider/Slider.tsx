@@ -1,4 +1,4 @@
-import React, { FocusEvent, useEffect, useMemo, useState } from 'react';
+import React, { FocusEvent, useEffect, useMemo, useState } from 'react'
 import {
   FormControl,
   FormControlProps,
@@ -22,49 +22,49 @@ import {
   SliderTrack,
   SliderTrackProps,
   Tooltip,
-  TooltipProps,
-} from '@chakra-ui/react';
-import { BiReset } from 'react-icons/bi';
-import _ from 'lodash';
-import { IconButton, IIconButtonProps } from '../IconButton/IconButton';
+  TooltipProps
+} from '@chakra-ui/react'
+import { BiReset } from 'react-icons/bi'
+import _ from 'lodash'
+import { IconButton, IIconButtonProps } from '../IconButton/IconButton'
 
 export type IFullSliderProps = {
-  label: string;
-  value: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  onChange: (v: number) => void;
-  withSliderMarks?: boolean;
-  sliderMarkLeftOffset?: number;
-  sliderMarkRightOffset?: number;
-  withInput?: boolean;
-  isInteger?: boolean;
-  width?: string | number;
-  inputWidth?: string | number;
-  inputReadOnly?: boolean;
-  withReset?: boolean;
-  handleReset?: () => void;
-  isResetDisabled?: boolean;
-  isSliderDisabled?: boolean;
-  isInputDisabled?: boolean;
-  tooltipSuffix?: string;
-  hideTooltip?: boolean;
-  styleClass?: string;
-  sliderFormControlProps?: FormControlProps;
-  sliderFormLabelProps?: FormLabelProps;
-  sliderMarkProps?: Omit<SliderMarkProps, 'value'>;
-  sliderTrackProps?: SliderTrackProps;
-  sliderThumbProps?: SliderThumbProps;
-  sliderNumberInputProps?: NumberInputProps;
-  sliderNumberInputFieldProps?: NumberInputFieldProps;
-  sliderNumberInputStepperProps?: NumberInputStepperProps;
-  sliderTooltipProps?: Omit<TooltipProps, 'children'>;
-  sliderIconButtonProps?: IIconButtonProps;
-};
+  label: string
+  value: number
+  min?: number
+  max?: number
+  step?: number
+  onChange: (v: number) => void
+  withSliderMarks?: boolean
+  sliderMarkLeftOffset?: number
+  sliderMarkRightOffset?: number
+  withInput?: boolean
+  isInteger?: boolean
+  width?: string | number
+  inputWidth?: string | number
+  inputReadOnly?: boolean
+  withReset?: boolean
+  handleReset?: () => void
+  isResetDisabled?: boolean
+  isSliderDisabled?: boolean
+  isInputDisabled?: boolean
+  tooltipSuffix?: string
+  hideTooltip?: boolean
+  styleClass?: string
+  sliderFormControlProps?: FormControlProps
+  sliderFormLabelProps?: FormLabelProps
+  sliderMarkProps?: Omit<SliderMarkProps, 'value'>
+  sliderTrackProps?: SliderTrackProps
+  sliderThumbProps?: SliderThumbProps
+  sliderNumberInputProps?: NumberInputProps
+  sliderNumberInputFieldProps?: NumberInputFieldProps
+  sliderNumberInputStepperProps?: NumberInputStepperProps
+  sliderTooltipProps?: Omit<TooltipProps, 'children'>
+  sliderIconButtonProps?: IIconButtonProps
+}
 
 export function Slider(props: IFullSliderProps) {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false)
   const {
     label,
     value,
@@ -99,40 +99,40 @@ export function Slider(props: IFullSliderProps) {
     sliderTooltipProps,
     sliderIconButtonProps,
     ...rest
-  } = props;
+  } = props
 
-  const [localInputValue, setLocalInputValue] = useState<string>(String(value));
+  const [localInputValue, setLocalInputValue] = useState<string>(String(value))
 
   const numberInputMax = useMemo(
     () => (sliderNumberInputProps?.max ? sliderNumberInputProps.max : max),
     [max, sliderNumberInputProps?.max]
-  );
+  )
 
   useEffect(() => {
     if (String(value) !== localInputValue && localInputValue !== '') {
-      setLocalInputValue(String(value));
+      setLocalInputValue(String(value))
     }
-  }, [value, localInputValue, setLocalInputValue]);
+  }, [value, localInputValue, setLocalInputValue])
 
   const handleInputBlur = (e: FocusEvent<HTMLInputElement>) => {
     const clamped = _.clamp(
       isInteger ? Math.floor(Number(e.target.value)) : Number(e.target.value),
       min,
       numberInputMax
-    );
-    setLocalInputValue(String(clamped));
-    onChange(clamped);
-  };
+    )
+    setLocalInputValue(String(clamped))
+    onChange(clamped)
+  }
 
   const handleInputChange = (v: number | string) => {
-    setLocalInputValue(String(v));
-    onChange(Number(v));
-  };
+    setLocalInputValue(String(v))
+    onChange(Number(v))
+  }
 
   const handleResetDisable = () => {
-    if (!handleReset) return;
-    handleReset();
-  };
+    if (!handleReset) return
+    handleReset()
+  }
 
   return (
     <FormControl
@@ -245,5 +245,5 @@ export function Slider(props: IFullSliderProps) {
         )}
       </HStack>
     </FormControl>
-  );
+  )
 }

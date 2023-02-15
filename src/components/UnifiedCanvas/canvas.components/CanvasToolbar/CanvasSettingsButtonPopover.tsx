@@ -1,12 +1,12 @@
-import React from 'react';
-import { FC, ChangeEvent } from 'react';
-import { Flex } from '@chakra-ui/react';
-import { FaWrench } from 'react-icons/fa';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useRecoilState } from 'recoil';
-import { Popover, Checkbox, IconButton } from '../../components';
-import { EmptyTempFolderButtonModal } from '../ClearTempFolderButtonModal';
-import { ClearCanvasHistoryButtonModal } from '../ClearCanvasHistoryButtonModal';
+import React from 'react'
+import { FC, ChangeEvent } from 'react'
+import { Flex } from '@chakra-ui/react'
+import { FaWrench } from 'react-icons/fa'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { useRecoilState } from 'recoil'
+import { Popover, Checkbox, IconButton } from '../../components'
+import { EmptyTempFolderButtonModal } from '../ClearTempFolderButtonModal'
+import { ClearCanvasHistoryButtonModal } from '../ClearCanvasHistoryButtonModal'
 import {
   shouldDarkenOutsideBoundingBoxAtom,
   shouldSnapToGridAtom,
@@ -15,9 +15,9 @@ import {
   shouldShowCanvasDebugInfoAtom,
   shouldRestrictStrokesToBoxAtom,
   shouldCropToBoundingBoxOnSaveAtom,
-  shouldShowIntermediatesAtom,
-} from '../../atoms/canvas.atoms';
-import { imageSettingsState } from '../../../../atoms/atoms';
+  shouldShowIntermediatesAtom
+} from '../../atoms/canvas.atoms'
+import { imageSettingsState } from '../../../../atoms/atoms'
 
 export const CanvasSettingsButtonPopover: FC = () => {
   // const {
@@ -32,38 +32,36 @@ export const CanvasSettingsButtonPopover: FC = () => {
   // } = useAppSelector(canvasControlsSelector);
 
   const [shouldDarkenOutsideBoundingBox, setShouldDarkenOutsideBoundingBox] =
-    useRecoilState(shouldDarkenOutsideBoundingBoxAtom);
+    useRecoilState(shouldDarkenOutsideBoundingBoxAtom)
   const [shouldSnapToGrid, setShouldSnapToGrid] =
-    useRecoilState(shouldSnapToGridAtom);
-  const [shouldAutoSave, setShouldAutoSave] =
-    useRecoilState(shouldAutoSaveAtom);
-  const [shouldShowGrid, setShouldShowGrid] =
-    useRecoilState(shouldShowGridAtom);
+    useRecoilState(shouldSnapToGridAtom)
+  const [shouldAutoSave, setShouldAutoSave] = useRecoilState(shouldAutoSaveAtom)
+  const [shouldShowGrid, setShouldShowGrid] = useRecoilState(shouldShowGridAtom)
   const [shouldShowCanvasDebugInfo, setShouldShowCanvasDebugInfo] =
-    useRecoilState(shouldShowCanvasDebugInfoAtom);
+    useRecoilState(shouldShowCanvasDebugInfoAtom)
   const [shouldRestrictStrokesToBox, setShouldRestrictStrokesToBox] =
-    useRecoilState(shouldRestrictStrokesToBoxAtom);
+    useRecoilState(shouldRestrictStrokesToBoxAtom)
   const [shouldCropToBoundingBoxOnSave, setShouldCropToBoundingBoxOnSave] =
-    useRecoilState(shouldCropToBoundingBoxOnSaveAtom);
+    useRecoilState(shouldCropToBoundingBoxOnSaveAtom)
   const [shouldShowIntermediates, setShouldShowIntermediates] = useRecoilState(
     shouldShowIntermediatesAtom
-  );
+  )
   const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
 
   useHotkeys(
     ['n'],
     () => {
-      setShouldSnapToGrid(!shouldSnapToGrid);
+      setShouldSnapToGrid(!shouldSnapToGrid)
     },
     {
       enabled: true,
-      preventDefault: true,
+      preventDefault: true
     },
     [shouldSnapToGrid]
-  );
+  )
 
   const handleChangeShouldSnapToGrid = (e: ChangeEvent<HTMLInputElement>) =>
-    setShouldSnapToGrid(e.target.checked);
+    setShouldSnapToGrid(e.target.checked)
 
   return (
     <Popover
@@ -81,12 +79,12 @@ export const CanvasSettingsButtonPopover: FC = () => {
           isDisabled={true}
           label="Show Intermediates (Coming Soon)"
           isChecked={shouldShowIntermediates}
-          onChange={(e) => setShouldShowIntermediates(e.target.checked)}
-        />              
+          onChange={e => setShouldShowIntermediates(e.target.checked)}
+        />
         <Checkbox
           label="Show Grid"
           isChecked={shouldShowGrid}
-          onChange={(e) => setShouldShowGrid(e.target.checked)}
+          onChange={e => setShouldShowGrid(e.target.checked)}
         />
         <Checkbox
           label="Snap to Grid"
@@ -96,31 +94,36 @@ export const CanvasSettingsButtonPopover: FC = () => {
         <Checkbox
           label="Darken Outside Selection"
           isChecked={shouldDarkenOutsideBoundingBox}
-          onChange={(e) => setShouldDarkenOutsideBoundingBox(e.target.checked)}
+          onChange={e => setShouldDarkenOutsideBoundingBox(e.target.checked)}
         />
         <Checkbox
           label="Save Box Region Only"
           isChecked={shouldCropToBoundingBoxOnSave}
-          onChange={(e) => setShouldCropToBoundingBoxOnSave(e.target.checked)}
+          onChange={e => setShouldCropToBoundingBoxOnSave(e.target.checked)}
         />
         <Checkbox
           label="Limit Strokes to Box"
           isChecked={shouldRestrictStrokesToBox}
-          onChange={(e) => setShouldRestrictStrokesToBox(e.target.checked)}
+          onChange={e => setShouldRestrictStrokesToBox(e.target.checked)}
         />
         <Checkbox
           label="Use Palette Fix"
           isChecked={imageSettings.palette_fix}
-          onChange={(e) => setImageSettings({...imageSettings, palette_fix: e.target.checked})}
-        />     
+          onChange={e =>
+            setImageSettings({
+              ...imageSettings,
+              palette_fix: e.target.checked
+            })
+          }
+        />
         <Checkbox
           label="Show Canvas Debug Info"
           isChecked={shouldShowCanvasDebugInfo}
-          onChange={(e) => setShouldShowCanvasDebugInfo(e.target.checked)}
+          onChange={e => setShouldShowCanvasDebugInfo(e.target.checked)}
         />
         <ClearCanvasHistoryButtonModal />
         <EmptyTempFolderButtonModal />
       </Flex>
     </Popover>
-  );
-};
+  )
+}

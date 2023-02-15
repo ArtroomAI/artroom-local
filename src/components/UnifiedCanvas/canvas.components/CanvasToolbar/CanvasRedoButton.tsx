@@ -1,10 +1,10 @@
-import React, { useCallback } from 'react';
-import { FC } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { FaRedo } from 'react-icons/fa';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { IconButton } from '../../components';
-import { redoAction, canRedoSelector } from '../../atoms/canvas.atoms';
+import React, { useCallback } from 'react'
+import { FC } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { FaRedo } from 'react-icons/fa'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import { IconButton } from '../../components'
+import { redoAction, canRedoSelector } from '../../atoms/canvas.atoms'
 
 // import _ from 'lodash';
 // import { activeTabNameSelector } from 'options/store/optionsSelectors';
@@ -32,24 +32,24 @@ import { redoAction, canRedoSelector } from '../../atoms/canvas.atoms';
 export const CanvasRedoButton: FC = () => {
   // const { canRedo, activeTabName } = useAppSelector(canvasRedoSelector);
 
-  const redo = useSetRecoilState(redoAction);
-  const canRedo = useRecoilValue(canRedoSelector);
+  const redo = useSetRecoilState(redoAction)
+  const canRedo = useRecoilValue(canRedoSelector)
 
   const handleRedo = useCallback(() => {
-    redo();
-  }, []);
+    redo()
+  }, [])
 
   useHotkeys(
     ['meta+shift+z', 'ctrl+shift+z', 'control+y', 'meta+y'],
     () => {
-      handleRedo();
+      handleRedo()
     },
     {
       enabled: () => canRedo,
-      preventDefault: true,
+      preventDefault: true
     },
     [canRedo]
-  );
+  )
 
   return (
     <IconButton
@@ -59,5 +59,5 @@ export const CanvasRedoButton: FC = () => {
       onClick={handleRedo}
       isDisabled={!canRedo}
     />
-  );
-};
+  )
+}

@@ -1,16 +1,16 @@
 module.exports = {
   presets: [
     [
-      "@babel/preset-typescript",
+      '@babel/preset-typescript',
       {
-        development: process.env.NODE_ENV === "development",
-      },
+        development: process.env.NODE_ENV === 'development'
+      }
     ],
     [
-      "@babel/preset-react",
+      '@babel/preset-react',
       {
-        development: process.env.NODE_ENV === "development",
-      },
-    ],
-  ],
-};
+        development: process.env.NODE_ENV === 'development'
+      }
+    ]
+  ]
+}

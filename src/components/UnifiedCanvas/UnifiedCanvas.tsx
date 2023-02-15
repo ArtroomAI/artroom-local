@@ -1,14 +1,14 @@
-import React from 'react';
-import { FC, useLayoutEffect } from 'react';
-import _ from 'lodash';
-import { useRecoilState } from 'recoil';
-import { ImageUploader } from './components';
+import React from 'react'
+import { FC, useLayoutEffect } from 'react'
+import _ from 'lodash'
+import { useRecoilState } from 'recoil'
+import { ImageUploader } from './components'
 import {
   CanvasResizer,
   Canvas,
-  CanvasOutpaintingControls,
-} from './canvas.components';
-import { doesCanvasNeedScalingAtom } from './atoms/canvas.atoms';
+  CanvasOutpaintingControls
+} from './canvas.components'
+import { doesCanvasNeedScalingAtom } from './atoms/canvas.atoms'
 
 // import { canvasSelector } from 'canvas/store/canvasSelectors';
 // import { setDoesCanvasNeedScaling } from 'canvas/store/canvasSlice';
@@ -33,19 +33,19 @@ export const UnifiedCanvas: FC = () => {
 
   const [doesCanvasNeedScaling, setDoesCanvasNeedScaling] = useRecoilState(
     doesCanvasNeedScalingAtom
-  );
+  )
 
   useLayoutEffect(() => {
-    setDoesCanvasNeedScaling(true);
+    setDoesCanvasNeedScaling(true)
 
     const resizeCallback = _.debounce(() => {
-      setDoesCanvasNeedScaling(true);
-    }, 250);
+      setDoesCanvasNeedScaling(true)
+    }, 250)
 
-    window.addEventListener('resize', resizeCallback);
+    window.addEventListener('resize', resizeCallback)
 
-    return () => window.removeEventListener('resize', resizeCallback);
-  }, []);
+    return () => window.removeEventListener('resize', resizeCallback)
+  }, [])
 
   return (
     <div>
@@ -71,5 +71,5 @@ export const UnifiedCanvas: FC = () => {
         </div>
       </ImageUploader>
     </div>
-  );
-};
+  )
+}

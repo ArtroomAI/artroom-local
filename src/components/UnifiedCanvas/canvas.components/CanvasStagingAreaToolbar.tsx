@@ -1,17 +1,17 @@
-import React from 'react';
-import { ButtonGroup, Flex } from '@chakra-ui/react';
-import { useCallback, FC } from 'react';
+import React from 'react'
+import { ButtonGroup, Flex } from '@chakra-ui/react'
+import { useCallback, FC } from 'react'
 import {
   FaArrowLeft,
   FaArrowRight,
   FaCheck,
   FaEye,
   FaEyeSlash,
-  FaPlus,
+  FaPlus
   // FaSave,
-} from 'react-icons/fa';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useSetRecoilState, useRecoilState, useRecoilValue } from 'recoil';
+} from 'react-icons/fa'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { useSetRecoilState, useRecoilState, useRecoilValue } from 'recoil'
 import {
   discardStagedImagesAction,
   shouldShowStagingImageAtom,
@@ -19,9 +19,9 @@ import {
   commitStagingAreaImageAction,
   nextStagingAreaImageAction,
   prevStagingAreaImageAction,
-  layerStateAtom,
-} from '../atoms/canvas.atoms';
-import { IconButton } from '../components';
+  layerStateAtom
+} from '../atoms/canvas.atoms'
+import { IconButton } from '../components'
 
 // import _ from 'lodash';
 // import { canvasSelector } from 'canvas/store/canvasSelectors';
@@ -70,74 +70,72 @@ export const CanvasStagingAreaToolbar: FC = () => {
   // 	shouldShowStagingImage,
   // } = useAppSelector(selector);
 
-  const discardStagedImages = useSetRecoilState(discardStagedImagesAction);
+  const discardStagedImages = useSetRecoilState(discardStagedImagesAction)
   const setShouldShowStagingOutline = useSetRecoilState(
     shouldShowStagingOutlineAtom
-  );
+  )
   const [shouldShowStagingImage, setShouldShowStagingImage] = useRecoilState(
     shouldShowStagingImageAtom
-  );
-  const commitStagingAreaImage = useSetRecoilState(
-    commitStagingAreaImageAction
-  );
-  const nextStagingAreaImage = useSetRecoilState(nextStagingAreaImageAction);
-  const prevStagingAreaImage = useSetRecoilState(prevStagingAreaImageAction);
-  const layerState = useRecoilValue(layerStateAtom);
+  )
+  const commitStagingAreaImage = useSetRecoilState(commitStagingAreaImageAction)
+  const nextStagingAreaImage = useSetRecoilState(nextStagingAreaImageAction)
+  const prevStagingAreaImage = useSetRecoilState(prevStagingAreaImageAction)
+  const layerState = useRecoilValue(layerStateAtom)
   const {
-    stagingArea: { images, selectedImageIndex },
-  } = layerState;
+    stagingArea: { images, selectedImageIndex }
+  } = layerState
 
   const currentStagingAreaImage =
-    images.length > 0 ? images[selectedImageIndex] : undefined;
-  const isOnFirstImage = selectedImageIndex === 0;
-  const isOnLastImage = selectedImageIndex === images.length - 1;
+    images.length > 0 ? images[selectedImageIndex] : undefined
+  const isOnFirstImage = selectedImageIndex === 0
+  const isOnLastImage = selectedImageIndex === images.length - 1
 
   const handleMouseOver = useCallback(() => {
-    setShouldShowStagingOutline(true);
-  }, []);
+    setShouldShowStagingOutline(true)
+  }, [])
 
   const handleMouseOut = useCallback(() => {
-    setShouldShowStagingOutline(false);
-  }, []);
+    setShouldShowStagingOutline(false)
+  }, [])
 
   useHotkeys(
     ['left'],
     () => {
-      handlePrevImage();
+      handlePrevImage()
     },
     {
       enabled: () => true,
-      preventDefault: true,
+      preventDefault: true
     }
-  );
+  )
 
   useHotkeys(
     ['right'],
     () => {
-      handleNextImage();
+      handleNextImage()
     },
     {
       enabled: () => true,
-      preventDefault: true,
+      preventDefault: true
     }
-  );
+  )
 
   useHotkeys(
     ['enter'],
     () => {
-      handleAccept();
+      handleAccept()
     },
     {
       enabled: () => true,
-      preventDefault: true,
+      preventDefault: true
     }
-  );
+  )
 
-  const handlePrevImage = () => prevStagingAreaImage();
-  const handleNextImage = () => nextStagingAreaImage();
-  const handleAccept = () => commitStagingAreaImage();
+  const handlePrevImage = () => prevStagingAreaImage()
+  const handleNextImage = () => nextStagingAreaImage()
+  const handleAccept = () => commitStagingAreaImage()
 
-  if (!currentStagingAreaImage) return null;
+  if (!currentStagingAreaImage) return null
 
   return (
     <Flex
@@ -193,5 +191,5 @@ export const CanvasStagingAreaToolbar: FC = () => {
         />
       </ButtonGroup>
     </Flex>
-  );
-};
+  )
+}

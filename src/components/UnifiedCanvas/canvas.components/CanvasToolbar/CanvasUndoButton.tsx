@@ -1,10 +1,10 @@
-import React, { useCallback } from 'react';
-import { FC } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { FaUndo } from 'react-icons/fa';
-import { useSetRecoilState, useRecoilValue } from 'recoil';
-import { IconButton } from '../../components';
-import { undoAction, canUndoSelector } from '../../atoms/canvas.atoms';
+import React, { useCallback } from 'react'
+import { FC } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { FaUndo } from 'react-icons/fa'
+import { useSetRecoilState, useRecoilValue } from 'recoil'
+import { IconButton } from '../../components'
+import { undoAction, canUndoSelector } from '../../atoms/canvas.atoms'
 
 // import { canvasSelector } from 'canvas/store/canvasSelectors';
 // import _ from 'lodash';
@@ -31,24 +31,24 @@ import { undoAction, canUndoSelector } from '../../atoms/canvas.atoms';
 
 export const CanvasUndoButton: FC = () => {
   // const { canUndo, activeTabName } = useAppSelector(canvasUndoSelector);
-  const undo = useSetRecoilState(undoAction);
-  const canUndo = useRecoilValue(canUndoSelector);
+  const undo = useSetRecoilState(undoAction)
+  const canUndo = useRecoilValue(canUndoSelector)
 
   const handleUndo = useCallback(() => {
-    undo();
-  }, []);
+    undo()
+  }, [])
 
   useHotkeys(
     ['meta+z', 'ctrl+z'],
     () => {
-      handleUndo();
+      handleUndo()
     },
     {
       enabled: () => canUndo,
-      preventDefault: true,
+      preventDefault: true
     },
     [canUndo]
-  );
+  )
 
   return (
     <IconButton
@@ -58,5 +58,5 @@ export const CanvasUndoButton: FC = () => {
       onClick={handleUndo}
       isDisabled={!canUndo}
     />
-  );
-};
+  )
+}

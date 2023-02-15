@@ -13,7 +13,7 @@
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
     "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
     "electron:start": "electron ./build/main.js"
-  },
+    },
   "repository": {
     "type": "git",
     "url": "https://github.com/ArtroomAI/artroom-beta.git"
@@ -86,6 +86,7 @@
     "framer-motion": "^8.4.0",
     "konva": "^8.4.0",
     "node-stream-zip": "^1.15.0",
+    "prettier": "^2.8.4",
     "qs": "^6.11.0",
     "react": "^18.2.0",
     "react-colorful": "^5.6.1",

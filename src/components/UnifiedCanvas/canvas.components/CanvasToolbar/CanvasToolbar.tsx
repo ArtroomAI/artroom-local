@@ -1,5 +1,5 @@
-import React from 'react';
-import { ButtonGroup, useToast } from '@chakra-ui/react';
+import React from 'react'
+import { ButtonGroup, useToast } from '@chakra-ui/react'
 import {
   FaArrowsAlt,
   FaCopy,
@@ -7,12 +7,12 @@ import {
   FaPlay,
   FaSave,
   FaTrash,
-  FaUpload,
-} from 'react-icons/fa';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { FC, ChangeEvent } from 'react';
-import { useRecoilState, useSetRecoilState, useRecoilValue } from 'recoil';
-import { useImageUploader } from '../../hooks';
+  FaUpload
+} from 'react-icons/fa'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { FC, ChangeEvent } from 'react'
+import { useRecoilState, useSetRecoilState, useRecoilValue } from 'recoil'
+import { useImageUploader } from '../../hooks'
 import {
   toolSelector,
   layerAtom,
@@ -26,165 +26,173 @@ import {
   boundingBoxCoordinatesAtom,
   boundingBoxDimensionsAtom,
   layerStateAtom,
-  stageCoordinatesAtom,
-} from '../../atoms/canvas.atoms';
-import { imageSettingsState } from '../../../../atoms/atoms';
-import { isProcessingAtom } from '../../atoms/system.atoms';
-import { Select, IconButton } from '../../components';
-import { CanvasLayer, isCanvasMaskLine, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
-import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
-import {getCanvasBaseLayer, layerToDataURL } from '../../util';
-import { CanvasMaskOptions } from './CanvasMaskOptions';
-import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover';
-import { CanvasRedoButton } from './CanvasRedoButton';
-import { CanvasUndoButton } from './CanvasUndoButton';
-import path from 'path';
-import { CanvasUpscaleButtonPopover } from './CanvasUpscaleButtonPopover';
-import { RemoveBackgroundButtonPopover } from './RemoveBackgroundButtonPopover';
+  stageCoordinatesAtom
+} from '../../atoms/canvas.atoms'
+import { imageSettingsState } from '../../../../atoms/atoms'
+import { isProcessingAtom } from '../../atoms/system.atoms'
+import { Select, IconButton } from '../../components'
+import {
+  CanvasLayer,
+  isCanvasMaskLine,
+  LAYER_NAMES_DICT
+} from '../../atoms/canvasTypes'
+import { CanvasToolChooserOptions } from './CanvasToolChooserOptions'
+import { getCanvasBaseLayer, layerToDataURL } from '../../util'
+import { CanvasMaskOptions } from './CanvasMaskOptions'
+import { CanvasSettingsButtonPopover } from './CanvasSettingsButtonPopover'
+import { CanvasRedoButton } from './CanvasRedoButton'
+import { CanvasUndoButton } from './CanvasUndoButton'
+import path from 'path'
+import { CanvasUpscaleButtonPopover } from './CanvasUpscaleButtonPopover'
+import { RemoveBackgroundButtonPopover } from './RemoveBackgroundButtonPopover'
 
 export const CanvasOutpaintingControls: FC = () => {
-  const canvasBaseLayer = getCanvasBaseLayer();
+  const canvasBaseLayer = getCanvasBaseLayer()
 
-  const [tool, setTool] = useRecoilState(toolSelector);
-  const [layer, setLayer] = useRecoilState(layerAtom);
+  const [tool, setTool] = useRecoilState(toolSelector)
+  const [layer, setLayer] = useRecoilState(layerAtom)
   const [isMaskEnabled, setIsMaskEnabled] = useRecoilState(
     setIsMaskEnabledAction
-  );
-  const resetCanvas = useSetRecoilState(resetCanvasAction);
-  const resetCanvasView = useSetRecoilState(resetCanvasViewAction);
-  const resizeAndScaleCanvas = useSetRecoilState(resizeAndScaleCanvasAction);
+  )
+  const resetCanvas = useSetRecoilState(resetCanvasAction)
+  const resetCanvasView = useSetRecoilState(resetCanvasViewAction)
+  const resizeAndScaleCanvas = useSetRecoilState(resizeAndScaleCanvasAction)
   const shouldCropToBoundingBoxOnSave = useRecoilValue(
     shouldCropToBoundingBoxOnSaveAtom
-  );
-  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
-  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
-  const isProcessing = useRecoilValue(isProcessingAtom);
-  const isStaging = useRecoilValue(isStagingSelector);
+  )
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom)
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom)
+  const isProcessing = useRecoilValue(isProcessingAtom)
+  const isStaging = useRecoilValue(isStagingSelector)
 
-  const { openUploader } = useImageUploader();
+  const { openUploader } = useImageUploader()
 
   //For Generation
-  const stageScale = useRecoilValue(stageScaleAtom);   
-  const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
+  const stageScale = useRecoilValue(stageScaleAtom)
+  const stageCoordinates = useRecoilValue(stageCoordinatesAtom)
   const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
-  const toast = useToast({});
+  const toast = useToast({})
 
   useHotkeys(
     ['v'],
     () => {
-      handleSelectMoveTool();
+      handleSelectMoveTool()
     },
     {
       enabled: () => !isStaging,
-      preventDefault: true,
+      preventDefault: true
     },
     []
-  );
+  )
 
   useHotkeys(
     ['r'],
     () => {
-      handleResetCanvasView();
+      handleResetCanvasView()
     },
     {
       enabled: () => true,
-      preventDefault: true,
+      preventDefault: true
     },
     [canvasBaseLayer]
-  );
+  )
 
   useHotkeys(
     ['shift+s'],
     () => {
-      handleSaveToGallery();
+      handleSaveToGallery()
     },
     {
       enabled: () => !isStaging,
-      preventDefault: true,
+      preventDefault: true
     },
     [canvasBaseLayer, isProcessing]
-  );
+  )
 
   useHotkeys(
     ['meta+c', 'ctrl+c'],
     () => {
-      handleCopyImageToClipboard();
+      handleCopyImageToClipboard()
     },
     {
       enabled: () => !isStaging,
-      preventDefault: true,
+      preventDefault: true
     },
     [canvasBaseLayer, isProcessing]
-  );
+  )
 
-  const handleSelectMoveTool = () => setTool('move');
-  
+  const handleSelectMoveTool = () => setTool('move')
+
   const handleResetCanvasView = () => {
-    const canvasBaseLayer = getCanvasBaseLayer();
-    if (!canvasBaseLayer) return;
+    const canvasBaseLayer = getCanvasBaseLayer()
+    if (!canvasBaseLayer) return
     const clientRect = canvasBaseLayer.getClientRect({
-      skipTransform: true,
-    });
-    console.log(clientRect, 'clientRect');
+      skipTransform: true
+    })
+    console.log(clientRect, 'clientRect')
     resetCanvasView({
-      contentRect: clientRect,
-    });
-  };
+      contentRect: clientRect
+    })
+  }
 
   const handleResetCanvas = () => {
-    resetCanvas();
-    resizeAndScaleCanvas();
-  };
+    resetCanvas()
+    resizeAndScaleCanvas()
+  }
 
   const handleSaveToGallery = () => {
-    const canvasBaseLayer = getCanvasBaseLayer();
+    const canvasBaseLayer = getCanvasBaseLayer()
 
     const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
       canvasBaseLayer,
       stageScale,
       stageCoordinates,
       shouldCropToBoundingBoxOnSave
-      ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
-      : undefined
-    );
-    const timestamp = new Date().getTime();
-    const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".png");
-    console.log(imagePath);
-    window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
+        ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
+        : undefined
+    )
+    const timestamp = new Date().getTime()
+    const imagePath = path.join(
+      imageSettings.image_save_path,
+      imageSettings.batch_name,
+      timestamp + '.png'
+    )
+    console.log(imagePath)
+    window.api.saveFromDataURL(JSON.stringify({ dataURL, imagePath }))
     toast({
       title: 'Image Saved',
       status: 'success',
       duration: 1500,
-      isClosable: true,
+      isClosable: true
     })
-  };
+  }
 
   const handleCopyImageToClipboard = () => {
-    const canvasBaseLayer = getCanvasBaseLayer();
+    const canvasBaseLayer = getCanvasBaseLayer()
     const { dataURL, boundingBox: originalBoundingBox } = layerToDataURL(
       canvasBaseLayer,
       stageScale,
       stageCoordinates,
       shouldCropToBoundingBoxOnSave
-      ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
-      : undefined
-    );
-    window.api.copyToClipboard(dataURL);
+        ? { ...boundingBoxCoordinates, ...boundingBoxDimensions }
+        : undefined
+    )
+    window.api.copyToClipboard(dataURL)
     toast({
       title: 'Image Copied',
       status: 'success',
       duration: 1500,
-      isClosable: true,
+      isClosable: true
     })
-  };
+  }
 
   const handleChangeLayer = (e: ChangeEvent<HTMLSelectElement>) => {
-    const newLayer = e.target.value as CanvasLayer;
-    setLayer(newLayer);
+    const newLayer = e.target.value as CanvasLayer
+    setLayer(newLayer)
     if (newLayer === 'mask' && !isMaskEnabled) {
-      setIsMaskEnabled(true);
+      setIsMaskEnabled(true)
     }
-  };
+  }
 
   return (
     <div className="inpainting-settings">
@@ -206,9 +214,9 @@ export const CanvasOutpaintingControls: FC = () => {
         />
       </ButtonGroup>
       <ButtonGroup isAttached>
-      <CanvasUpscaleButtonPopover />
-      <RemoveBackgroundButtonPopover />
-      <IconButton
+        <CanvasUpscaleButtonPopover />
+        <RemoveBackgroundButtonPopover />
+        <IconButton
           aria-label="Save to Gallery (Shift+S)"
           tooltip="Save to Gallery (Shift+S)"
           icon={<FaSave />}
@@ -244,5 +252,5 @@ export const CanvasOutpaintingControls: FC = () => {
       </ButtonGroup>
       <CanvasSettingsButtonPopover />
     </div>
-  );
-};
+  )
+}
