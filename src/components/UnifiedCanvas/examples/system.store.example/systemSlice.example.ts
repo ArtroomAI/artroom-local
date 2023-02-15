@@ -1,5 +1,5 @@
-import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react';
-import { SystemStatus, SystemConfig, ModelList } from 'painter';
+import { UseToastOptions } from '@chakra-ui/react';
+import { SystemStatus, SystemConfig, ModelList } from '../../painter';
 // import { createSlice } from '@reduxjs/toolkit';
 // import type { PayloadAction } from '@reduxjs/toolkit';
 
@@ -24,7 +24,7 @@ export interface SystemState extends SystemStatus, SystemConfig {
 	isESRGANAvailable: boolean;
 	isConnected: boolean;
 	socketId: string;
-	openAccordions: ExpandedIndex;
+	openAccordions: any;
 	currentStep: number;
 	totalSteps: number;
 	currentIteration: number;

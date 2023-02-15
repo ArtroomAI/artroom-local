@@ -3,11 +3,11 @@ import { IRect, Vector2d } from 'konva/lib/types';
 import { RgbaColor } from 'react-colorful';
 
 export const LAYER_NAMES_DICT = [
+	{ key: 'Base', value: 'base' },
 	{ key: 'Mask', value: 'mask' },
-	{ key: 'Sketch', value: 'base' },
 ];
 
-export const LAYER_NAMES = ['mask', 'base'] as const;
+export const LAYER_NAMES = ['base', 'mask'] as const;
 
 export type CanvasLayer = typeof LAYER_NAMES[number];
 
@@ -17,7 +17,12 @@ export type BoundingBoxScale = typeof BOUNDING_BOX_SCALES[number];
 
 export type CanvasDrawingTool = 'brush' | 'eraser';
 
-export type CanvasTool = CanvasDrawingTool | 'move' | 'colorPicker';
+export type CanvasTool =
+	| CanvasDrawingTool
+	| 'move'
+	| 'colorPicker'
+	| 'moveBoundingBox'
+	| 'transform';
 
 export type Dimensions = {
 	width: number;
@@ -26,12 +31,14 @@ export type Dimensions = {
 
 export type CanvasImage = {
 	kind: 'image';
-	layer: 'base';
+	layer?: 'base';
 	x: number;
 	y: number;
 	width: number;
 	height: number;
-	image: Image;
+	// image: Image;
+	uuid: string;
+	url: string;
 };
 
 export type CanvasMaskLine = {
@@ -79,12 +86,21 @@ export type CanvasObject =
 	| CanvasFillRect
 	| CanvasEraseRect;
 
+export type ImageLayer = {
+	id: string;
+	name: string;
+	picture: CanvasImage;
+	isVisible: boolean;
+	opacity: number;
+};
+
 export type CanvasLayerState = {
 	objects: CanvasObject[];
 	stagingArea: {
 		images: CanvasImage[];
 		selectedImageIndex: number;
 	};
+	images: ImageLayer[];
 };
 
 // type guards
@@ -93,6 +109,22 @@ export const isCanvasMaskLine = (obj: CanvasObject): obj is CanvasMaskLine =>
 
 export const isCanvasBaseLine = (obj: CanvasObject): obj is CanvasBaseLine =>
 	obj.kind === 'line' && obj.layer === 'base';
+
+export const isCanvasImageLayerLine = (
+	obj: CanvasObject,
+	layerName: string,
+): obj is CanvasBaseLine => obj.kind === 'line' && obj.layer === layerName;
+
+export const isCanvasImageLayerFillRect = (
+	obj: CanvasObject,
+	layerName: string,
+): obj is CanvasFillRect => obj.kind === 'fillRect' && obj.layer === layerName;
+
+export const isCanvasImageLayerEraseRect = (
+	obj: CanvasObject,
+	layerName: string,
+): obj is CanvasEraseRect =>
+	obj.kind === 'eraseRect' && obj.layer === layerName;
 
 export const isCanvasBaseImage = (obj: CanvasObject): obj is CanvasImage =>
 	obj.kind === 'image' && obj.layer === 'base';

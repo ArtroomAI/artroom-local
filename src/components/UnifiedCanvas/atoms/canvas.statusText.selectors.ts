@@ -10,12 +10,13 @@ import {
 	stageDimensionsAtom,
 	stageScaleAtom,
 } from './canvas.atoms';
+import { selectedImageLayerSelector } from './canvas.selectors';
 
 export const activeLayerColorSelector = selector({
 	key: 'activeLayerColor.selector',
 	get: ({ get }) => {
 		const layer = get(layerAtom);
-		return layer === 'mask' ? 'var(--status-working-color)' : 'inherit';
+		return layer === 'mask' ? '#eb8d00' : 'inherit';
 	},
 });
 
@@ -23,7 +24,12 @@ export const activeLayerStringSelector = selector({
 	key: 'activeLayerString.selector',
 	get: ({ get }) => {
 		const layer = get(layerAtom);
-		return layer.charAt(0).toUpperCase() + layer.slice(1);
+		const selectedLayer = get(selectedImageLayerSelector);
+		if (selectedLayer) {
+			return selectedLayer.name;
+		} else {
+			return layer.charAt(0).toUpperCase() + layer.slice(1);
+		}
 	},
 });
 

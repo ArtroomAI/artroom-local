@@ -1,6 +1,6 @@
 // import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Image } from 'painter';
-import { FACETOOL_TYPES } from 'constants';
+import { Image } from '../../painter';
+import { FACETOOL_TYPES } from '../../constants';
 
 export type UpscalingLevel = 2 | 4;
 

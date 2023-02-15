@@ -1,6 +1,5 @@
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import _ from 'lodash';
 import { MutableRefObject, useCallback } from 'react';
 import { getScaledCursorPosition } from '../util';
 import { useColorPicker } from './useColorUnderCursor';
@@ -9,38 +8,15 @@ import {
 	isDrawingAtom,
 	isMovingStageAtom,
 	toolAtom,
-	isStagingSelector
+	isStagingSelector,
+	layerAtom,
+	layerStateAtom,
 } from '../atoms/canvas.atoms';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-
-// import { activeTabNameSelector } from 'options/store/optionsSelectors';
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-// import {
-// 	addLine,
-// 	setIsDrawing,
-// 	setIsMovingStage,
-// } from 'canvas/store/canvasSlice';
-
-// const selector = createSelector(
-// 	[activeTabNameSelector, canvasSelector, isStagingSelector],
-// 	(activeTabName, canvas, isStaging) => {
-// 		const { tool } = canvas;
-// 		return {
-// 			tool,
-// 			activeTabName,
-// 			isStaging,
-// 		};
-// 	},
-// 	{ memoizeOptions: { resultEqualityCheck: _.isEqual } },
-// );
 
 export const useCanvasMouseDown = (
 	stageRef: MutableRefObject<Konva.Stage | null>,
 ) => {
-	// const { tool, isStaging } = useAppSelector(selector);
 	const { commitColorUnderCursor } = useColorPicker();
 
 	const addLine = useSetRecoilState(addLineAction);
@@ -48,6 +24,8 @@ export const useCanvasMouseDown = (
 	const setIsMovingStage = useSetRecoilState(isMovingStageAtom);
 	const tool = useRecoilValue(toolAtom);
 	const isStaging = useRecoilValue(isStagingSelector);
+	const layer = useRecoilValue(layerAtom);
+	const layerState = useRecoilValue(layerStateAtom);
 
 	return useCallback(
 		(e: KonvaEventObject<MouseEvent | TouchEvent>) => {
@@ -55,15 +33,12 @@ export const useCanvasMouseDown = (
 
 			stageRef.current.container().focus();
 
-			e.evt.preventDefault();
-
-			if(e.evt.button === 1) {
-				stageRef.current.startDrag();
+			if (tool === 'moveBoundingBox' || isStaging) {
+				setIsMovingStage(true);
 				return;
 			}
 
-			if (tool === 'move' || isStaging) {
-				setIsMovingStage(true);
+			if (tool === 'move' || tool === 'transform') {
 				return;
 			}
 
@@ -78,10 +53,26 @@ export const useCanvasMouseDown = (
 
 			if (!scaledCursorPosition) return;
 
+			e.evt.preventDefault();
+
 			setIsDrawing(true);
+			// Possible room for performance improvement
+			const targetImageLayer = layerState.images.find(
+				elem => elem.id === layer,
+			);
+
+			const imageLayerOffset =
+				layer !== 'base' && layer !== 'mask' && targetImageLayer
+					? targetImageLayer.picture
+					: { x: 0, y: 0 };
 
 			// Add a new line starting from the current cursor position.
-			addLine([scaledCursorPosition.x, scaledCursorPosition.y]);
+			// addLine([scaledCursorPosition.x, scaledCursorPosition.y]);
+
+			addLine([
+				scaledCursorPosition.x - imageLayerOffset.x,
+				scaledCursorPosition.y - imageLayerOffset.y,
+			]);
 		},
 		[stageRef, tool, isStaging, commitColorUnderCursor],
 	);

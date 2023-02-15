@@ -1,6 +1,6 @@
 import Konva from 'konva';
 import { IRect } from 'konva/lib/types';
-import { CanvasMaskLine } from 'atoms/canvasTypes';
+import { CanvasMaskLine } from '../atoms/canvasTypes';
 
 /**
  * Generating a mask image from InpaintingCanvas.tsx is not as simple

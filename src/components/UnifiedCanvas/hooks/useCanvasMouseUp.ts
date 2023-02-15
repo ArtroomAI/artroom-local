@@ -1,5 +1,4 @@
 import Konva from 'konva';
-import _ from 'lodash';
 import { MutableRefObject, useCallback } from 'react';
 import { getScaledCursorPosition } from '../util';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -9,41 +8,14 @@ import {
 	addPointToCurrentLineAction,
 	toolAtom,
 	isStagingSelector,
+	layerAtom,
+	layerStateAtom,
 } from '../atoms/canvas.atoms';
-import { KonvaEventObject } from 'konva/lib/Node';
-
-// import { activeTabNameSelector } from 'options/store/optionsSelectors';
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-// import {
-// 	addPointToCurrentEraserLine,
-// 	addPointToCurrentLine,
-// 	setIsDrawing,
-// 	setIsMovingStage,
-// } from 'canvas/store/canvasSlice';
-
-// const selector = createSelector(
-// 	[activeTabNameSelector, canvasSelector, isStagingSelector],
-// 	(activeTabName, canvas, isStaging) => {
-// 		const { tool, isDrawing } = canvas;
-// 		return {
-// 			tool,
-// 			isDrawing,
-// 			activeTabName,
-// 			isStaging,
-// 		};
-// 	},
-// 	{ memoizeOptions: { resultEqualityCheck: _.isEqual } },
-// );
 
 export const useCanvasMouseUp = (
 	stageRef: MutableRefObject<Konva.Stage | null>,
 	didMouseMoveRef: MutableRefObject<boolean>,
 ) => {
-	// const { tool, isDrawing, isStaging } = useAppSelector(selector);
-
 	const [isDrawing, setIsDrawing] = useRecoilState(isDrawingAtom);
 	const setIsMovingStage = useSetRecoilState(isMovingStageAtom);
 	const addPointToCurrentLine = useSetRecoilState(
@@ -51,11 +23,12 @@ export const useCanvasMouseUp = (
 	);
 	const tool = useRecoilValue(toolAtom);
 	const isStaging = useRecoilValue(isStagingSelector);
+	const layer = useRecoilValue(layerAtom);
+	const layerState = useRecoilValue(layerStateAtom);
 
-	return useCallback((e: KonvaEventObject<MouseEvent | TouchEvent>) => {
-		if (tool === 'move' || isStaging || (e.evt as MouseEvent).button === 1) {
+	return useCallback(() => {
+		if (tool === 'moveBoundingBox' || isStaging) {
 			setIsMovingStage(false);
-			stageRef.current.stopDrag();
 			return;
 		}
 
@@ -66,6 +39,15 @@ export const useCanvasMouseUp = (
 
 			if (!scaledCursorPosition) return;
 
+			// Possible room for performance improvement
+			const targetImageLayer = layerState.images.find(
+				elem => elem.id === layer,
+			);
+
+			const imageLayerOffset =
+				layer !== 'base' && layer !== 'mask' && targetImageLayer
+					? targetImageLayer.picture
+					: { x: 0, y: 0 };
 			/**
 			 * Extend the current line.
 			 * In this case, the mouse didn't move, so we append the same point to
@@ -74,8 +56,10 @@ export const useCanvasMouseUp = (
 			 */
 
 			addPointToCurrentLine([
-				scaledCursorPosition.x,
-				scaledCursorPosition.y,
+				// scaledCursorPosition.x,
+				// scaledCursorPosition.y,
+				scaledCursorPosition.x - imageLayerOffset.x,
+				scaledCursorPosition.y - imageLayerOffset.y,
 			]);
 		} else {
 			didMouseMoveRef.current = false;

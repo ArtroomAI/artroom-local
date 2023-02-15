@@ -1,38 +1,20 @@
-import React from 'react'
-import { RectConfig } from 'konva/lib/shapes/Rect'
-import { Rect } from 'react-konva'
-import { FC, useCallback, useEffect, useRef, useState } from 'react'
-import Konva from 'konva'
-import { isNumber } from 'lodash'
-import { useRecoilValue } from 'recoil'
+import { RectConfig } from 'konva/lib/shapes/Rect';
+import { Rect } from 'react-konva';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
+import Konva from 'konva';
+import { isNumber } from 'lodash';
+import { useRecoilValue } from 'recoil';
 import {
-  stageCoordinatesAtom,
-  stageDimensionsAtom,
-  stageScaleAtom,
-  maskColorStringSelector
-} from '../atoms/canvas.atoms'
+	stageCoordinatesAtom,
+	stageDimensionsAtom,
+	stageScaleAtom,
+	maskColorStringSelector,
+} from '../atoms/canvas.atoms';
 
-// import {canvasSelector} from 'canvas/store/canvasSelectors';
-// import {rgbaColorToString} from 'canvas/util';
-
-// export const canvasMaskCompositerSelector = createSelector(
-// 	canvasSelector,
-// 	(canvas) => {
-// 		const {maskColor, stageCoordinates, stageDimensions, stageScale} = canvas;
-//
-// 		return {
-// 			stageCoordinates,
-// 			stageDimensions,
-// 			stageScale,
-// 			maskColorString: rgbaColorToString(maskColor),
-// 		};
-// 	}
-// );
-
-type ICanvasMaskCompositerProps = RectConfig
+type ICanvasMaskCompositerProps = RectConfig;
 
 const getColoredSVG = (color: string) => {
-  return `data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+	return `data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
   <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
   <svg width="60px" height="60px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
   <g transform="matrix(0.5,0,0,0.5,0,0)">
@@ -110,74 +92,72 @@ const getColoredSVG = (color: string) => {
   <g transform="matrix(0.5,0,0,0.5,0,-30)">
       <path d="M-3.5,63.5L64,-4" style="fill:none;stroke:black;stroke-width:1px;"/>
   </g>
-</svg>`.replaceAll('black', color)
-}
+</svg>`.replaceAll('black', color);
+};
 
 export const CanvasMaskCompositer: FC<ICanvasMaskCompositerProps> = props => {
-  const { ...rest } = props
+	const { ...rest } = props;
 
-  // const { maskColorString, stageCoordinates, stageDimensions, stageScale } =
-  // 	useAppSelector(canvasMaskCompositerSelector);
+	const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
+	const stageDimensions = useRecoilValue(stageDimensionsAtom);
+	const stageScale = useRecoilValue(stageScaleAtom);
+	const maskColorString = useRecoilValue(maskColorStringSelector);
 
-  const stageCoordinates = useRecoilValue(stageCoordinatesAtom)
-  const stageDimensions = useRecoilValue(stageDimensionsAtom)
-  const stageScale = useRecoilValue(stageScaleAtom)
-  const maskColorString = useRecoilValue(maskColorStringSelector)
+	const [fillPatternImage, setFillPatternImage] =
+		useState<HTMLImageElement | null>(null);
 
-  const [fillPatternImage, setFillPatternImage] =
-    useState<HTMLImageElement | null>(null)
+	const [offset, setOffset] = useState<number>(0);
 
-  const [offset, setOffset] = useState<number>(0)
+	const rectRef = useRef<Konva.Rect>(null);
+	const incrementOffset = useCallback(() => {
+		setOffset(offset + 1);
+		setTimeout(incrementOffset, 500);
+	}, [offset]);
 
-  const rectRef = useRef<Konva.Rect>(null)
-  const incrementOffset = useCallback(() => {
-    setOffset(offset + 1)
-    setTimeout(incrementOffset, 500)
-  }, [offset])
+	useEffect(() => {
+		if (fillPatternImage) return;
+		const image = new Image();
 
-  useEffect(() => {
-    if (fillPatternImage) {
-      fillPatternImage.src = getColoredSVG(maskColorString)
-      return
-    } else {
-      const image = new Image()
+		image.onload = () => {
+			setFillPatternImage(image);
+		};
+		image.src = getColoredSVG(maskColorString);
+	}, [fillPatternImage, maskColorString]);
 
-      image.onload = () => {
-        setFillPatternImage(image)
-      }
-      image.src = getColoredSVG(maskColorString)
-    }
-  }, [fillPatternImage, maskColorString])
+	useEffect(() => {
+		if (!fillPatternImage) return;
+		fillPatternImage.src = getColoredSVG(maskColorString);
+	}, [fillPatternImage, maskColorString]);
 
-  useEffect(() => {
-    const timer = setInterval(() => setOffset(i => (i + 1) % 5), 100)
-    return () => clearInterval(timer)
-  }, [])
+	useEffect(() => {
+		const timer = setInterval(() => setOffset(i => (i + 1) % 5), 50);
+		return () => clearInterval(timer);
+	}, []);
 
-  if (
-    !fillPatternImage ||
-    !isNumber(stageCoordinates.x) ||
-    !isNumber(stageCoordinates.y) ||
-    !isNumber(stageScale) ||
-    !isNumber(stageDimensions.width) ||
-    !isNumber(stageDimensions.height)
-  )
-    return null
+	if (
+		!fillPatternImage ||
+		!isNumber(stageCoordinates.x) ||
+		!isNumber(stageCoordinates.y) ||
+		!isNumber(stageScale) ||
+		!isNumber(stageDimensions.width) ||
+		!isNumber(stageDimensions.height)
+	)
+		return null;
 
-  return (
-    <Rect
-      ref={rectRef}
-      offsetX={stageCoordinates.x / stageScale}
-      offsetY={stageCoordinates.y / stageScale}
-      height={stageDimensions.height / stageScale}
-      width={stageDimensions.width / stageScale}
-      fillPatternImage={fillPatternImage}
-      fillPatternOffsetY={!isNumber(offset) ? 0 : offset}
-      fillPatternRepeat={'repeat'}
-      fillPatternScale={{ x: 1 / stageScale, y: 1 / stageScale }}
-      listening={true}
-      globalCompositeOperation={'source-in'}
-      {...rest}
-    />
-  )
-}
+	return (
+		<Rect
+			ref={rectRef}
+			offsetX={stageCoordinates.x / stageScale}
+			offsetY={stageCoordinates.y / stageScale}
+			height={stageDimensions.height / stageScale}
+			width={stageDimensions.width / stageScale}
+			fillPatternImage={fillPatternImage}
+			fillPatternOffsetY={!isNumber(offset) ? 0 : offset}
+			fillPatternRepeat={'repeat'}
+			fillPatternScale={{ x: 1 / stageScale, y: 1 / stageScale }}
+			listening={true}
+			globalCompositeOperation={'source-in'}
+			{...rest}
+		/>
+	);
+};

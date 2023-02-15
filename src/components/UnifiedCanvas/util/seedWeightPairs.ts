@@ -1,5 +1,5 @@
 /* eslint-disable no-mixed-spaces-and-tabs */
-import { SeedWeights, SeedWeightPair } from 'painter';
+import { SeedWeights, SeedWeightPair } from '../painter';
 
 export const stringToSeedWeights = (string: string): SeedWeights | boolean => {
 	const stringPairs = string.split(',');

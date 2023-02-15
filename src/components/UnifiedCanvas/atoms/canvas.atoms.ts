@@ -1,232 +1,246 @@
-/* eslint-disable no-mixed-spaces-and-tabs */
 import { atom } from 'recoil';
-import { CanvasLayerState, CanvasTool } from './canvasTypes';
-import _ from 'lodash';
+import { CanvasLayerState, CanvasTool, ImageLayer } from './canvasTypes';
 
 export const initialLayerState: CanvasLayerState = {
-  objects: [],
-  stagingArea: {
-    images: [],
-    selectedImageIndex: -1,
-  },
+	objects: [],
+	stagingArea: {
+		images: [],
+		selectedImageIndex: -1,
+	},
+	images: [],
 };
 
 // Not used states from redux that not present here:
 // boundingBoxPreviewFill, inpaintReplace, shouldLockBoundingBox, shouldShowBrushPreview, shouldShowCheckboardTransparency, shouldUseInpaintReplace
 
 export const boundingBoxCoordinatesAtom = atom({
-  key: 'canvas.boundingBoxCoordinates',
-  default: { x: 0, y: 0 },
+	key: 'canvas.boundingBoxCoordinates',
+	default: { x: 0, y: 0 },
 });
 
 export const boundingBoxDimensionsAtom = atom({
-  key: 'canvas.boundingBoxDimensions',
-  default: { width: 512, height: 512 },
+	key: 'canvas.boundingBoxDimensions',
+	default: { width: 512, height: 512 },
 });
 
 export const boundingBoxScaleMethodAtom = atom({
-  key: 'canvas.boundingBoxScaleMethod',
-  default: 'auto',
+	key: 'canvas.boundingBoxScaleMethod',
+	default: 'auto',
 });
 
 export const brushColorAtom = atom({
-  key: 'canvas.brushColor',
-  default: { r: 90, g: 90, b: 255, a: 1 },
+	key: 'canvas.brushColor',
+	default: { r: 90, g: 90, b: 255, a: 1 },
 });
 
 export const brushSizeAtom = atom({
-  key: 'canvas.brushSize',
-  default: 100,
+	key: 'canvas.brushSize',
+	default: 50,
 });
 
 export const canvasContainerDimensionsAtom = atom({
-  key: 'canvas.canvasContainerDimensions',
-  default: { width: 0, height: 0 },
+	key: 'canvas.canvasContainerDimensions',
+	default: { width: 0, height: 0 },
 });
 
 export const colorPickerColorAtom = atom({
-  key: 'canvas.colorPickerColor',
-  default: { r: 90, g: 90, b: 255, a: 1 },
+	key: 'canvas.colorPickerColor',
+	default: { r: 90, g: 90, b: 255, a: 1 },
 });
 
 export const cursorPositionAtom = atom<null | { x: number; y: number }>({
-  key: 'canvas.cursorPosition',
-  default: null,
+	key: 'canvas.cursorPosition',
+	default: null,
 });
 
 export const doesCanvasNeedScalingAtom = atom({
-  key: 'canvas.doesCanvasNeedScaling',
-  default: false,
-});
-
-export const futureLayerStatesAtom = atom({
-  key: 'canvas.futureLayerStates',
-  default: [] as CanvasLayerState[],
+	key: 'canvas.doesCanvasNeedScaling',
+	default: false,
 });
 
 export const isCanvasInitializedAtom = atom({
-  key: 'canvas.isCanvasInitialized',
-  default: false,
+	key: 'canvas.isCanvasInitialized',
+	default: false,
 });
 
 export const isDrawingAtom = atom({
-  key: 'canvas.isDrawing',
-  default: false,
+	key: 'canvas.isDrawing',
+	default: false,
 });
 
 export const isMaskEnabledAtom = atom({
-  key: 'canvas.isMaskEnabled',
-  default: true,
+	key: 'canvas.isMaskEnabled',
+	default: false,
 });
 
 export const isMouseOverBoundingBoxAtom = atom({
-  key: 'canvas.isMouseOverBoundingBox',
-  default: false,
+	key: 'canvas.isMouseOverBoundingBox',
+	default: false,
 });
 
 export const isMoveBoundingBoxKeyHeldAtom = atom({
-  key: 'canvas.isMoveBoundingBoxKeyHeld',
-  default: false,
+	key: 'canvas.isMoveBoundingBoxKeyHeld',
+	default: false,
 });
 
 export const isMoveStageKeyHeldAtom = atom({
-  key: 'canvas.isMoveStageKeyHeld',
-  default: false,
+	key: 'canvas.isMoveStageKeyHeld',
+	default: false,
 });
 
 export const isMovingBoundingBoxAtom = atom({
-  key: 'canvas.isMovingBoundingBox',
-  default: false,
+	key: 'canvas.isMovingBoundingBox',
+	default: false,
 });
 
 export const isMovingStageAtom = atom({
-  key: 'canvas.isMovingStage',
-  default: false,
+	key: 'canvas.isMovingStage',
+	default: false,
 });
 
 export const isTransformingBoundingBoxAtom = atom({
-  key: 'canvas.isTransformingBoundingBox',
-  default: false,
+	key: 'canvas.isTransformingBoundingBox',
+	default: false,
 });
 
 export const layerAtom = atom({
-  key: 'canvas.layer',
-  default: 'mask',
+	key: 'canvas.layer',
+	default: 'base',
 });
 
 export const layerStateAtom = atom({
-  key: 'canvas.layerState',
-  default: initialLayerState,
+	key: 'canvas.layerState',
+	default: initialLayerState,
 });
 
 export const maskColorAtom = atom({
-  key: 'canvas.maskColor',
-  default: { r: 255, g: 90, b: 90, a: 1 },
+	key: 'canvas.maskColor',
+	default: { r: 255, g: 90, b: 90, a: 1 },
 });
 
 export const maxHistoryAtom = atom({
-  key: 'canvas.maxHistory',
-  default: 128,
+	key: 'canvas.maxHistory',
+	default: 128,
 });
 
 export const minimumStageScaleAtom = atom({
-  key: 'canvas.minimumStageScale',
-  default: 1,
+	key: 'canvas.minimumStageScale',
+	default: 1,
+});
+
+export const pastLayerAtom = atom({
+	key: 'pastLayer',
+	default: '',
+});
+
+export const futureLayerAtom = atom({
+	key: 'futureLayer',
+	default: '',
 });
 
 export const pastLayerStatesAtom = atom({
-  key: 'canvas.pastLayerStates',
-  default: [] as CanvasLayerState[],
+	key: 'canvas.pastLayerStates',
+	default: [] as CanvasLayerState[],
+});
+
+export const futureLayerStatesAtom = atom({
+	key: 'canvas.futureLayerStates',
+	default: [] as CanvasLayerState[],
 });
 
 export const scaledBoundingBoxDimensionsAtom = atom({
-  key: 'canvas.scaledBoundingBoxDimensions',
-  default: { width: 512, height: 512 },
+	key: 'canvas.scaledBoundingBoxDimensions',
+	default: { width: 512, height: 512 },
 });
 
 export const shouldAutoSaveAtom = atom({
-  key: 'canvas.shouldAutoSave',
-  default: false,
+	key: 'canvas.shouldAutoSave',
+	default: false,
 });
 
 export const shouldCropToBoundingBoxOnSaveAtom = atom({
-  key: 'canvas.shouldCropToBoundingBoxOnSave',
-  default: false,
+	key: 'canvas.shouldCropToBoundingBoxOnSave',
+	default: false,
 });
 
 export const shouldDarkenOutsideBoundingBoxAtom = atom({
-  key: 'canvas.shouldDarkenOutsideBoundingBox',
-  default: false,
+	key: 'canvas.shouldDarkenOutsideBoundingBox',
+	default: false,
 });
 
 export const shouldPreserveMaskedAreaAtom = atom({
-  key: 'canvas.shouldPreserveMaskedArea',
-  default: false,
+	key: 'canvas.shouldPreserveMaskedArea',
+	default: false,
 });
 
 export const shouldRestrictStrokesToBoxAtom = atom({
-  key: 'canvas.shouldRestrictStrokesToBox',
-  default: true,
+	key: 'canvas.shouldRestrictStrokesToBox',
+	default: false,
 });
 
 export const shouldShowBoundingBoxAtom = atom({
-  key: 'canvas.shouldShowBoundingBox',
-  default: true,
+	key: 'canvas.shouldShowBoundingBox',
+	default: true,
 });
 
 export const shouldShowBrushAtom = atom({
-  key: 'canvas.shouldShowBrush',
-  default: true,
+	key: 'canvas.shouldShowBrush',
+	default: true,
 });
 
 export const shouldShowCanvasDebugInfoAtom = atom({
-  key: 'canvas.shouldShowCanvasDebugInfo',
-  default: false,
+	key: 'canvas.shouldShowCanvasDebugInfo',
+	default: false,
 });
 
 export const shouldShowGridAtom = atom({
-  key: 'canvas.shouldShowGrid',
-  default: true,
+	key: 'canvas.shouldShowGrid',
+	default: true,
 });
 
 export const shouldShowIntermediatesAtom = atom({
-  key: 'canvas.shouldShowIntermediates',
-  default: true,
+	key: 'canvas.shouldShowIntermediates',
+	default: true,
 });
 
 export const shouldShowStagingImageAtom = atom({
-  key: 'canvas.shouldShowStagingImage',
-  default: true,
+	key: 'canvas.shouldShowStagingImage',
+	default: true,
 });
 
 export const shouldShowStagingOutlineAtom = atom({
-  key: 'canvas.shouldShowStagingOutline',
-  default: true,
+	key: 'canvas.shouldShowStagingOutline',
+	default: true,
 });
 
 export const shouldSnapToGridAtom = atom({
-  key: 'canvas.shouldSnapToGrid',
-  default: true,
+	key: 'canvas.shouldSnapToGrid',
+	default: true,
 });
 
 export const stageCoordinatesAtom = atom({
-  key: 'canvas.stageCoordinates',
-  default: { x: 0, y: 0 },
+	key: 'canvas.stageCoordinates',
+	default: { x: 0, y: 0 },
 });
 
 export const stageDimensionsAtom = atom({
-  key: 'canvas.stageDimensions',
-  default: { width: 0, height: 0 },
+	key: 'canvas.stageDimensions',
+	default: { width: 0, height: 0 },
 });
 
 export const stageScaleAtom = atom({
-  key: 'canvas.stageScale',
-  default: 1,
+	key: 'canvas.stageScale',
+	default: 1,
 });
 
 export const toolAtom = atom({
-  key: 'canvas.tool',
-  default: 'brush' as CanvasTool,
+	key: 'canvas.tool',
+	default: 'brush' as CanvasTool,
+});
+
+export const selectedMultipleImageLayersAtom = atom<ImageLayer[]>({
+	key: 'selectedImageNodes',
+	default: [],
 });
 
 export * from './canvas.toolPreview.selectors';

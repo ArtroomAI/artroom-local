@@ -12,13 +12,13 @@
  * 'gfpgan'.
  */
 
-import { IRect } from "konva/lib/types";
-import { ExpandedIndex, UseToastOptions } from "@chakra-ui/react";
+import { IRect } from 'konva/lib/types';
+import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react';
 import {
 	InProgressImageType,
 	LogEntry,
-} from "./examples/system.store.example/systemSlice.example";
-import { FACETOOL_TYPES } from "./constants";
+} from './examples/system.store.example/systemSlice.example';
+import { FACETOOL_TYPES } from './constants';
 
 /**
  * TODO:
@@ -54,13 +54,13 @@ export declare type CommonPostProcessedImageMetadata = {
 
 // esrgan and gfpgan images have some unique attributes.
 export declare type ESRGANMetadata = CommonPostProcessedImageMetadata & {
-	type: "esrgan";
+	type: 'esrgan';
 	scale: 2 | 4;
 	strength: number;
 };
 
 export declare type FacetoolMetadata = CommonPostProcessedImageMetadata & {
-	type: "gfpgan" | "codeformer";
+	type: 'gfpgan' | 'codeformer';
 	strength: number;
 	fidelity?: number;
 };
@@ -85,7 +85,7 @@ export declare type Image = {
 	height: number;
 	category: GalleryCategory;
 	isBase64?: boolean;
-	dreamPrompt?: "string";
+	dreamPrompt?: 'string';
 };
 
 /**
@@ -118,7 +118,7 @@ export declare type SystemConfig = SystemGenerationMetadata & {
 	infill_methods: string[];
 };
 
-export declare type ModelStatus = "active" | "cached" | "not loaded";
+export declare type ModelStatus = 'active' | 'cached' | 'not loaded';
 
 export declare type Model = {
 	status: ModelStatus;
@@ -136,9 +136,9 @@ export declare type ModelChangeResponse = {
 	model_list: ModelList;
 };
 
-export declare type ImageResultResponse = Omit<Image, "uuid"> & {
+export declare type ImageResultResponse = Omit<Image, 'uuid'> & {
 	boundingBox?: IRect;
-	generationMode: "unifiedCanvas";
+	generationMode: 'unifiedCanvas';
 };
 
 export declare type ImageUploadResponse = {
@@ -156,7 +156,7 @@ export declare type ErrorResponse = {
 };
 
 export declare type GalleryImagesResponse = {
-	images: Array<Omit<Image, "uuid">>;
+	images: Array<Omit<Image, 'uuid'>>;
 	areMoreImagesAvailable: boolean;
 	category: GalleryCategory;
 };

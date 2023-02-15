@@ -10,6 +10,8 @@ import {
 	toolAtom,
 	isDrawingAtom,
 	isStagingSelector,
+	layerAtom,
+	layerStateAtom,
 } from '../atoms/canvas.atoms';
 
 export const useCanvasMouseMove = (
@@ -17,7 +19,6 @@ export const useCanvasMouseMove = (
 	didMouseMoveRef: MutableRefObject<boolean>,
 	lastCursorPositionRef: MutableRefObject<Vector2d>,
 ) => {
-	// const { isDrawing, tool, isStaging } = useAppSelector(selector);
 	const { updateColorUnderCursor } = useColorPicker();
 	const tool = useRecoilValue(toolAtom);
 	const isDrawing = useRecoilValue(isDrawingAtom);
@@ -27,6 +28,8 @@ export const useCanvasMouseMove = (
 	const addPointToCurrentLine = useSetRecoilState(
 		addPointToCurrentLineAction,
 	);
+	const layer = useRecoilValue(layerAtom);
+	const layerState = useRecoilValue(layerStateAtom);
 
 	return useCallback(() => {
 		if (!stageRef.current) return;
@@ -34,7 +37,6 @@ export const useCanvasMouseMove = (
 		const scaledCursorPosition = getScaledCursorPosition(stageRef.current);
 
 		if (!scaledCursorPosition) return;
-
 		setCursorPosition(scaledCursorPosition);
 
 		lastCursorPositionRef.current = scaledCursorPosition;
@@ -44,10 +46,25 @@ export const useCanvasMouseMove = (
 			return;
 		}
 
-		if (!isDrawing || tool === 'move' || isStaging) return;
+		if (!isDrawing || tool === 'moveBoundingBox' || isStaging) return;
 
 		didMouseMoveRef.current = true;
-		addPointToCurrentLine([scaledCursorPosition.x, scaledCursorPosition.y]);
+		// Possible room for performance improvement
+		const targetImageLayer = layerState.images.find(
+			elem => elem.id === layer,
+		);
+
+		const imageLayerOffset =
+			layer !== 'base' && layer !== 'mask' && targetImageLayer
+				? targetImageLayer.picture
+				: { x: 0, y: 0 };
+
+		addPointToCurrentLine([
+			// scaledCursorPosition.x,
+			// scaledCursorPosition.y,
+			scaledCursorPosition.x - imageLayerOffset.x,
+			scaledCursorPosition.y - imageLayerOffset.y,
+		]);
 	}, [
 		didMouseMoveRef,
 		isDrawing,

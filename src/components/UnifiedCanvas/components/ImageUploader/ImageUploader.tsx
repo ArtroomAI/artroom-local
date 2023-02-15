@@ -1,199 +1,211 @@
-import React, {
-  useCallback,
-  ReactNode,
-  useState,
-  useEffect,
-  KeyboardEvent,
-  FC
-} from 'react'
-import { FileRejection, useDropzone } from 'react-dropzone'
-import { useToast } from '@chakra-ui/react'
-import { useImageUploader } from '../../hooks'
-import { ImageUploaderTriggerContext } from './ImageUploaderTriggerContext'
-import { ImageUploadOverlay } from './ImageUploadOverlay'
-import { uploadImage } from '../../helpers/uploadImage'
-import { useSetRecoilState, useRecoilState, useRecoilValue } from 'recoil'
 import {
-  boundingBoxCoordinatesAtom,
-  boundingBoxDimensionsAtom,
-  futureLayerStatesAtom,
-  layerStateAtom,
-  maxHistoryAtom,
-  pastLayerStatesAtom,
-  setInitialCanvasImageAction
-} from '../../atoms/canvas.atoms'
-import _ from 'lodash'
+	useCallback,
+	ReactNode,
+	useState,
+	useEffect,
+	KeyboardEvent,
+	FC,
+} from 'react';
+import { FileRejection, useDropzone } from 'react-dropzone';
+import { useSetRecoilState, useRecoilState, useRecoilValue } from 'recoil';
+import { useToast, Box } from '@chakra-ui/react';
+import { useImageUploader } from '../../hooks';
+import { ImageUploaderTriggerContext } from './ImageUploaderTriggerContext';
+import { ImageUploadOverlay } from './ImageUploadOverlay';
+import { uploadImage } from '../../helpers/uploadImage';
+import {
+	boundingBoxCoordinatesAtom,
+	boundingBoxDimensionsAtom,
+	futureLayerStatesAtom,
+	layerStateAtom,
+	maxHistoryAtom,
+	pastLayerStatesAtom,
+	// setInitialCanvasImageAction,
+	layerAtom,
+	pastLayerAtom,
+	futureLayerAtom,
+} from '../../atoms/canvas.atoms';
 
 type ImageUploaderProps = {
-  children: ReactNode
-}
+	children: ReactNode;
+};
 
 export const ImageUploader: FC<ImageUploaderProps> = props => {
-  const { children } = props
-  const toast = useToast({})
-  const [isHandlingUpload, setIsHandlingUpload] = useState<boolean>(false)
+	const { children } = props;
+	const toast = useToast({});
+	const [isHandlingUpload, setIsHandlingUpload] = useState<boolean>(false);
 
-  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom)
-  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom)
-  const maxHistory = useRecoilValue(maxHistoryAtom)
-  const [layerState, setLayerState] = useRecoilState(layerStateAtom)
-  const [pastLayerStates, setPastLayerStates] =
-    useRecoilState(pastLayerStatesAtom)
-  const setFutureLayerStates = useSetRecoilState(futureLayerStatesAtom)
-  const setInitialCanvasImage = useSetRecoilState(setInitialCanvasImageAction)
+	const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);
+	const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);
+	const maxHistory = useRecoilValue(maxHistoryAtom);
+	const [layerState, setLayerState] = useRecoilState(layerStateAtom);
+	const [layer, setLayer] = useRecoilState(layerAtom);
+	const [pastLayerStates, setPastLayerStates] =
+		useRecoilState(pastLayerStatesAtom);
+	const setFutureLayerStates = useSetRecoilState(futureLayerStatesAtom);
+	// const setInitialCanvasImage = useSetRecoilState(
+	// 	setInitialCanvasImageAction,
+	// );
+	const setPastLayer = useSetRecoilState(pastLayerAtom);
+	const setFutureLayer = useSetRecoilState(futureLayerAtom);
 
-  const { setOpenUploader } = useImageUploader()
+	const { setOpenUploader } = useImageUploader();
 
-  const fileRejectionCallback = useCallback(
-    (rejection: FileRejection) => {
-      setIsHandlingUpload(true)
-      const msg = rejection.errors.reduce(
-        (acc: string, cur: { message: string }) => `${acc}\n${cur.message}`,
-        ''
-      )
-      toast({
-        title: 'Upload failed',
-        description: msg,
-        status: 'error',
-        isClosable: true
-      })
-    },
-    [toast]
-  )
+	const fileRejectionCallback = useCallback(
+		(rejection: FileRejection) => {
+			setIsHandlingUpload(true);
+			const msg = rejection.errors.reduce(
+				(acc: string, cur: { message: string }) =>
+					`${acc}\n${cur.message}`,
+				'',
+			);
+			toast({
+				title: 'Upload failed',
+				description: msg,
+				status: 'error',
+				isClosable: true,
+			});
+		},
+		[toast],
+	);
 
-  const fileAcceptedCallback = async (file: File) => {
-    uploadImage({
-      imageFile: file,
-      setInitialCanvasImage,
-      boundingBoxCoordinates,
-      boundingBoxDimensions,
-      setPastLayerStates,
-      pastLayerStates,
-      layerState,
-      maxHistory,
-      setLayerState,
-      setFutureLayerStates
-    })
-  }
+	const fileAcceptedCallback = async (file: File) => {
+		uploadImage({
+			imageFile: file,
+			// setInitialCanvasImage,
+			boundingBoxCoordinates: boundingBoxCoordinates,
+			boundingBoxDimensions: boundingBoxDimensions,
+			setPastLayerStates,
+			pastLayerStates,
+			layerState,
+			maxHistory,
+			setLayerState,
+			setFutureLayerStates,
+			setLayer,
+			setPastLayer,
+			setFutureLayer,
+			layer,
+		});
+	};
 
-  const onDrop = useCallback(
-    (acceptedFiles: Array<File>, fileRejections: Array<FileRejection>) => {
-      fileRejections.forEach((rejection: FileRejection) => {
-        fileRejectionCallback(rejection)
-      })
-      acceptedFiles.forEach((file: File) => {
-        const reader = new FileReader()
-        reader.readAsDataURL(file)
-        reader.onloadend = () => {
-          const b64 = reader.result
-          file['b64'] = b64
-          fileAcceptedCallback(file)
-        }
-      })
-    },
-    [fileAcceptedCallback, fileRejectionCallback]
-  )
+	const onDrop = useCallback(
+		(acceptedFiles: Array<File>, fileRejections: Array<FileRejection>) => {
+			fileRejections.forEach((rejection: FileRejection) => {
+				fileRejectionCallback(rejection);
+			});
 
-  const {
-    getRootProps,
-    getInputProps,
-    isDragAccept,
-    isDragReject,
-    isDragActive,
-    open
-  } = useDropzone({
-    accept: {
-      'image/png': ['.png'],
-      'image/jpeg': ['.jpg', '.jpeg', '.png']
-    },
-    noClick: true,
-    onDrop,
-    onDragOver: () => setIsHandlingUpload(true),
-    maxFiles: 1
-  })
+			acceptedFiles.forEach((file: File) => {
+				fileAcceptedCallback(file);
+			});
+		},
+		[fileAcceptedCallback, fileRejectionCallback],
+	);
 
-  setOpenUploader(open)
+	const {
+		getRootProps,
+		getInputProps,
+		isDragAccept,
+		isDragReject,
+		isDragActive,
+		open,
+	} = useDropzone({
+		accept: {
+			'image/png': ['.png'],
+			'image/jpeg': ['.jpg', '.jpeg', '.png'],
+		},
+		noClick: true,
+		onDrop,
+		onDragOver: () => setIsHandlingUpload(true),
+		maxFiles: 1,
+	});
 
-  useEffect(() => {
-    const pasteImageListener = (e: ClipboardEvent) => {
-      const dataTransferItemList = e.clipboardData?.items
-      if (!dataTransferItemList) return
+	setOpenUploader(open);
 
-      const imageItems: Array<DataTransferItem> = []
+	useEffect(() => {
+		const pasteImageListener = (e: ClipboardEvent) => {
+			const dataTransferItemList = e.clipboardData?.items;
+			if (!dataTransferItemList) return;
 
-      for (const item of dataTransferItemList) {
-        if (
-          item.kind === 'file' &&
-          ['image/png', 'image/jpg'].includes(item.type)
-        ) {
-          imageItems.push(item)
-        }
-      }
+			const imageItems: Array<DataTransferItem> = [];
 
-      if (!imageItems.length) return
+			for (const item of dataTransferItemList) {
+				if (
+					item.kind === 'file' &&
+					['image/png', 'image/jpg'].includes(item.type)
+				) {
+					imageItems.push(item);
+				}
+			}
 
-      e.stopImmediatePropagation()
+			if (!imageItems.length) return;
 
-      if (imageItems.length > 1) {
-        toast({
-          description:
-            'Multiple images pasted, may only upload one image at a time',
-          status: 'error',
-          isClosable: true
-        })
-        return
-      }
-      const file = imageItems[0].getAsFile()
+			e.stopImmediatePropagation();
 
-      if (!file) {
-        toast({
-          description: 'Unable to load file',
-          status: 'error',
-          isClosable: true
-        })
-        return
-      }
-      uploadImage({
-        imageFile: file,
-        setInitialCanvasImage,
-        boundingBoxCoordinates,
-        boundingBoxDimensions,
-        setPastLayerStates,
-        pastLayerStates,
-        layerState,
-        maxHistory,
-        setLayerState,
-        setFutureLayerStates
-      })
-    }
-    document.addEventListener('paste', pasteImageListener)
-    return () => {
-      document.removeEventListener('paste', pasteImageListener)
-    }
-  }, [toast])
+			if (imageItems.length > 1) {
+				toast({
+					description:
+						'Multiple images pasted, may only upload one image at a time',
+					status: 'error',
+					isClosable: true,
+				});
+				return;
+			}
 
-  const overlaySecondaryText = ' to Unified Canvas'
+			const file = imageItems[0].getAsFile();
 
-  return (
-    <ImageUploaderTriggerContext.Provider value={open}>
-      <div
-        {...getRootProps({ style: {} })}
-        onKeyDown={(e: KeyboardEvent) => {
-          // Bail out if user hits spacebar - do not open the uploader
-          if (e.key === ' ') return
-        }}
-      >
-        <input {...getInputProps()} />
-        {children}
-        {isDragActive && isHandlingUpload && (
-          <ImageUploadOverlay
-            isDragAccept={isDragAccept}
-            isDragReject={isDragReject}
-            overlaySecondaryText={overlaySecondaryText}
-            setIsHandlingUpload={setIsHandlingUpload}
-          />
-        )}
-      </div>
-    </ImageUploaderTriggerContext.Provider>
-  )
-}
+			if (!file) {
+				toast({
+					description: 'Unable to load file',
+					status: 'error',
+					isClosable: true,
+				});
+				return;
+			}
+
+			uploadImage({
+				imageFile: file,
+				// setInitialCanvasImage,
+				boundingBoxCoordinates,
+				boundingBoxDimensions,
+				setPastLayerStates,
+				pastLayerStates,
+				layerState,
+				maxHistory,
+				setLayerState,
+				setFutureLayerStates,
+				setFutureLayer,
+				setLayer,
+				layer,
+				setPastLayer,
+			});
+		};
+		document.addEventListener('paste', pasteImageListener);
+		return () => {
+			document.removeEventListener('paste', pasteImageListener);
+		};
+	}, [toast]);
+
+	const overlaySecondaryText = ' to Unified Canvas';
+
+	return (
+		<ImageUploaderTriggerContext.Provider value={open}>
+			<Box
+				{...getRootProps({ style: {} })}
+				onKeyDown={(e: KeyboardEvent) => {
+					// Bail out if user hits spacebar - do not open the uploader
+					if (e.key === ' ') return;
+				}}>
+				<input {...getInputProps()} />
+				{children}
+				{isDragActive && isHandlingUpload && (
+					<ImageUploadOverlay
+						isDragAccept={isDragAccept}
+						isDragReject={isDragReject}
+						overlaySecondaryText={overlaySecondaryText}
+						setIsHandlingUpload={setIsHandlingUpload}
+					/>
+				)}
+			</Box>
+		</ImageUploaderTriggerContext.Provider>
+	);
+};

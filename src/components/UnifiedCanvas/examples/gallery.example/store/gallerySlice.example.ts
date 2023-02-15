@@ -1,4 +1,4 @@
-import { Image } from 'painter';
+import { Image } from '../../../painter';
 import { IRect } from 'konva/lib/types';
 
 // import { createSlice, PayloadAction } from '@reduxjs/toolkit';

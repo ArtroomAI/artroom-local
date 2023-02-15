@@ -1,19 +1,19 @@
 type Base64AndCaption = {
-  base64: string;
-  caption: string;
+	base64: string;
+	caption: string;
 };
 
 export const openBase64ImageInTab = (images: Base64AndCaption[]) => {
-  const w = window.open('');
-  if (!w) return;
+	const w = window.open('');
+	if (!w) return;
 
-  images.forEach((i) => {
-    const image = new Image();
-    image.src = i.base64;
+	images.forEach(i => {
+		const image = new Image();
+		image.src = i.base64;
 
-    w.document.write(i.caption);
-    w.document.write('</br>');
-    w.document.write(image.outerHTML);
-    w.document.write('</br></br>');
-  });
+		w.document.write(i.caption);
+		w.document.write('</br>');
+		w.document.write(image.outerHTML);
+		w.document.write('</br></br>');
+	});
 };
