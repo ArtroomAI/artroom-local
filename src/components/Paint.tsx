@@ -41,7 +41,6 @@ function Paint () {
     const shouldPreserveMaskedArea = useRecoilValue(shouldPreserveMaskedAreaAtom)
     const stageScale = useRecoilValue(stageScaleAtom);   
 
-
     const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width?: number, height?: number) => {
         // Create a new canvas element
         var canvas = document.createElement('canvas');

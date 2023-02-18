@@ -1,14 +1,13 @@
 import React from 'react';
 import { FC } from 'react';
-import { ButtonGroup, Flex } from '@chakra-ui/react';
+import { Button, ButtonGroup, Flex } from '@chakra-ui/react';
 import _ from 'lodash';
 import {
   FaEraser,
   FaEyeDropper,
   FaFillDrip,
   FaPaintBrush,
-  FaPlus,
-  FaSlidersH,
+  FaPlus
 } from 'react-icons/fa';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -247,6 +246,12 @@ export const CanvasToolChooserOptions: FC = () => {
               inputReadOnly={false}
             />
           </Flex>
+          <Button 
+            size="sm"
+            leftIcon={<FaPlus style={{ transform: 'rotate(45deg)' }} />}
+            onClick={handleEraseBoundingBox}>
+            Erase Bounding Box (Delete|Backspace)
+          </Button>
         </Flex>
       </Popover>
       <Popover
@@ -273,13 +278,7 @@ export const CanvasToolChooserOptions: FC = () => {
           />
         </Flex>
       </Popover>
-      <IconButton
-        aria-label="Erase Bounding Box Area (Delete/Backspace)"
-        tooltip="Erase Bounding Box Area (Delete/Backspace)"
-        icon={<FaPlus style={{ transform: 'rotate(45deg)' }} />}
-        isDisabled={isStaging}
-        onClick={handleEraseBoundingBox}
-      />
+
       <IconButton
         aria-label="Color Picker (C)"
         tooltip="Color Picker (C)"

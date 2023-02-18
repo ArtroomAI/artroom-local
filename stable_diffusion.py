@@ -130,8 +130,6 @@ class StableDiffusion:
         self.v1 = False
         self.cc = self.get_cc()
         self.intermediate_path = ''
-
-        self.palette_fix = True
         # Generation Runtime Parameters
 
     def get_cc(self):
@@ -469,14 +467,14 @@ class StableDiffusion:
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
                  sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
-                 speed="High", skip_grid=False, batch_id=0):
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0):
 
         self.running = True
         self.highres_fix = False
 
         self.dtype = torch.float16 if self.can_use_half else torch.float32
 
-        if self.palette_fix:
+        if palette_fix:
             print("Using palette fix")
             padding = 32
         else:

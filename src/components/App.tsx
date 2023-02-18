@@ -48,7 +48,6 @@ export default function App () {
 
     const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
     const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
-    const [palette_fix, setPaletteFix] = useRecoilState(atom.paletteFixState);
     const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
     const [delay, setDelay] = useRecoilState(atom.delayState);
 
@@ -202,12 +201,12 @@ export default function App () {
                     image_save_path: settings.image_save_path,
                     ckpt_dir: settings.ckpt_dir,
                     vae: settings.vae,
+                    palette_fix: settings.palette_fix,
                 }
                 setImageSettings(imageSettingsData)
 
                 setLongSavePath(settings.long_save_path);
                 setHighresFix(settings.highres_fix);
-                setPaletteFix(settings.palette_fix);
                 setDebugMode(settings.debug_mode);
                 setDelay(settings.delay);
 

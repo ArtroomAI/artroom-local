@@ -17,51 +17,7 @@ import {
   shouldCropToBoundingBoxOnSaveAtom,
   shouldShowIntermediatesAtom,
 } from '../../atoms/canvas.atoms';
-
-// import { canvasSelector } from 'canvas/store/canvasSelectors';
-// import {
-// 	setShouldAutoSave,
-// 	setShouldCropToBoundingBoxOnSave,
-// 	setShouldDarkenOutsideBoundingBox,
-// 	setShouldRestrictStrokesToBox,
-// 	setShouldShowCanvasDebugInfo,
-// 	setShouldShowGrid,
-// 	setShouldShowIntermediates,
-// 	setShouldSnapToGrid,
-// } from 'canvas/store/canvasSlice';
-// import _ from 'lodash';
-
-// export const canvasControlsSelector = createSelector(
-// 	[canvasSelector],
-// 	canvas => {
-// 		const {
-// 			shouldAutoSave,
-// 			shouldCropToBoundingBoxOnSave,
-// 			shouldDarkenOutsideBoundingBox,
-// 			shouldShowCanvasDebugInfo,
-// 			shouldShowGrid,
-// 			shouldShowIntermediates,
-// 			shouldSnapToGrid,
-// 			shouldRestrictStrokesToBox,
-// 		} = canvas;
-
-// 		return {
-// 			shouldAutoSave,
-// 			shouldCropToBoundingBoxOnSave,
-// 			shouldDarkenOutsideBoundingBox,
-// 			shouldShowCanvasDebugInfo,
-// 			shouldShowGrid,
-// 			shouldShowIntermediates,
-// 			shouldSnapToGrid,
-// 			shouldRestrictStrokesToBox,
-// 		};
-// 	},
-// 	{
-// 		memoizeOptions: {
-// 			resultEqualityCheck: _.isEqual,
-// 		},
-// 	},
-// );
+import { imageSettingsState } from '../../../../atoms/atoms';
 
 export const CanvasSettingsButtonPopover: FC = () => {
   // const {
@@ -92,6 +48,7 @@ export const CanvasSettingsButtonPopover: FC = () => {
   const [shouldShowIntermediates, setShouldShowIntermediates] = useRecoilState(
     shouldShowIntermediatesAtom
   );
+  const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
 
   useHotkeys(
     ['n'],
@@ -121,10 +78,11 @@ export const CanvasSettingsButtonPopover: FC = () => {
     >
       <Flex direction="column" gap="0.5rem">
         <Checkbox
-          label="Show Intermediates"
+          isDisabled={true}
+          label="Show Intermediates (Coming Soon)"
           isChecked={shouldShowIntermediates}
           onChange={(e) => setShouldShowIntermediates(e.target.checked)}
-        />
+        />              
         <Checkbox
           label="Show Grid"
           isChecked={shouldShowGrid}
@@ -141,11 +99,6 @@ export const CanvasSettingsButtonPopover: FC = () => {
           onChange={(e) => setShouldDarkenOutsideBoundingBox(e.target.checked)}
         />
         <Checkbox
-          label="Auto Save to Gallery"
-          isChecked={shouldAutoSave}
-          onChange={(e) => setShouldAutoSave(e.target.checked)}
-        />
-        <Checkbox
           label="Save Box Region Only"
           isChecked={shouldCropToBoundingBoxOnSave}
           onChange={(e) => setShouldCropToBoundingBoxOnSave(e.target.checked)}
@@ -155,6 +108,11 @@ export const CanvasSettingsButtonPopover: FC = () => {
           isChecked={shouldRestrictStrokesToBox}
           onChange={(e) => setShouldRestrictStrokesToBox(e.target.checked)}
         />
+        <Checkbox
+          label="Use Palette Fix"
+          isChecked={imageSettings.palette_fix}
+          onChange={(e) => setImageSettings({...imageSettings, palette_fix: e.target.checked})}
+        />     
         <Checkbox
           label="Show Canvas Debug Info"
           isChecked={shouldShowCanvasDebugInfo}

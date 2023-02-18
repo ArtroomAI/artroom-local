@@ -21,6 +21,7 @@ export type ImageSettings = {
     invert: boolean;
     image_save_path: string;
     ckpt_dir: string;
+    palette_fix: boolean;
 };
 
 export type AppSettings = {

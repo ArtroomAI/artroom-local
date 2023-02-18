@@ -26,6 +26,7 @@ export const imageSettingsState = atom<ImageSettings>({
         invert: false,
         image_save_path: '',
         ckpt_dir: '',
+        palette_fix: false
     }
 })
 
@@ -70,11 +71,6 @@ export const longSavePathState = atom({
 export const highresFixState = atom({
     key: 'highres_fix',
     default: false
-});
-
-export const paletteFixState = atom({
-    key: 'palette_fix',
-    default: true
 });
 
 export const initImagePathState = atom({

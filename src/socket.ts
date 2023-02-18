@@ -35,7 +35,6 @@ export interface SocketEmitEvents {
     update_settings: (data: {
         long_save_path: boolean;
         highres_fix: boolean;
-        palette_fix: boolean;
         debug_mode: boolean;
         delay: number;
         speed: string;
@@ -47,7 +46,6 @@ export interface SocketEmitEvents {
     update_settings_with_restart: (data: {
         long_save_path: boolean;
         highres_fix: boolean;
-        palette_fix: boolean;
         debug_mode: boolean;
         delay: number;
         speed: string;

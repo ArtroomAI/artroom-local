@@ -36,7 +36,7 @@ export const brushColorAtom = atom({
 
 export const brushSizeAtom = atom({
   key: 'canvas.brushSize',
-  default: 50,
+  default: 100,
 });
 
 export const canvasContainerDimensionsAtom = atom({
@@ -166,7 +166,7 @@ export const shouldPreserveMaskedAreaAtom = atom({
 
 export const shouldRestrictStrokesToBoxAtom = atom({
   key: 'canvas.shouldRestrictStrokesToBox',
-  default: false,
+  default: true,
 });
 
 export const shouldShowBoundingBoxAtom = atom({

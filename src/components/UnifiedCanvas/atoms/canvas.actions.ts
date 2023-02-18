@@ -283,7 +283,7 @@ export const setIsMaskEnabledAction = selector<boolean>({
   },
   set: ({ set }, newValue) => {
     set(atoms.isMaskEnabledAtom, newValue);
-    set(atoms.layerAtom, newValue ? 'mask' : 'base');
+    set(atoms.layerAtom, newValue ? 'mask' : 'sketch');
   },
 });
 
