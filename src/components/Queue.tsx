@@ -1,12 +1,9 @@
 import React, { useCallback, useContext } from 'react';
-import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
-import axios from 'axios';
 import {
     Box,
     Flex,
-    Button,
     Text,
     Grid,
     Table,
@@ -25,112 +22,64 @@ import {
 } from 'react-icons/fa';
 import Card from '../helpers/Card';
 import CardHeader from '../helpers/CardHeader';
-import QueueRow from './QueueHelpers/QueueRow';
+import { SortableItem } from './QueueHelpers/QueueRow';
 import ClearQueue from './QueueHelpers/ClearQueue';
-import { SocketContext, SocketOnEvents } from '../socket';
+import { SocketContext } from '../socket';
+import {
+    DndContext, 
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy
+} from '@dnd-kit/sortable';
 
 function Queue () {
     const toast = useToast({});
     const [queue, setQueue] = useRecoilState(atom.queueState);
-    const [serverRunning, setServerRunning] = useState(false);
+    const [isQueuePaused, setIsQueuePaused] = useRecoilState(atom.queuePausedState);
     const socket = useContext(SocketContext);
-
-    const getQueue = useCallback(() => {
-        socket.emit('get_queue');
-    }, [socket]);
     
     const startQueue = useCallback(() => {
-        socket.emit('start_queue');
-    }, [socket]);
+        setIsQueuePaused(false);
+    }, []);
     
     const pauseQueue = useCallback(() => {
-        socket.emit('pause_queue');
-    }, [socket]);
+        setIsQueuePaused(true);
+    }, []);
 
     const stopQueue = useCallback(() => {
         socket.emit('stop_queue');
     }, [socket]);
 
-    // handles
-    const handleGetServerStatus: SocketOnEvents['get_server_status']  = useCallback((data) => {
-        setServerRunning(data.server_running);
-    }, []);
-
-    const handleGetQueue: SocketOnEvents['get_queue'] = useCallback((data) => {
-        setQueue(data.queue);
-    }, [setQueue]);
-    
-    const handleStartQueue: SocketOnEvents['start_queue'] = useCallback((data) => {
-        if(data.status === 'Success') {
-            setServerRunning(true);
-            toast({
-                title: 'Started queue',
-                description: 'Queue will pick up from where it left off',
-                status: 'success',
-                position: 'top',
-                duration: 4000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, [toast]);
-    
-    const handlePauseQueue: SocketOnEvents['pause_queue'] = useCallback((data) => {
-        if(data.status === 'Success') {
-            setServerRunning(false);
-            toast({
-                title: 'Paused queue',
-                description: 'Will stop after current batch',
-                status: 'success',
-                position: 'top',
-                duration: 4000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, [toast]);
-
-    
-    const handleStopQueue: SocketOnEvents['stop_queue'] = useCallback((data) => {
-        if(data.status === 'Success') {
-            setServerRunning(false);
-            toast({
-                title: 'Stopped queue',
-                description: 'Current batch has been interrupted and queue has been stopped',
-                status: 'success',
-                position: 'top',
-                duration: 4000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, [toast]);
-
-    // on socket message
-    useEffect(() => {
-        socket.on('get_server_status', handleGetServerStatus);
-        socket.on('get_queue', handleGetQueue);
-        socket.on('start_queue', handleStartQueue);
-        socket.on('pause_queue', handlePauseQueue);
-        socket.on('stop_queue', handleStopQueue);
+    function handleDragEnd(event: DragEndEvent) {
+        const {active, over} = event;
         
-        socket.emit('get_server_status');
-        getQueue();
+        if (active.id !== over.id) {
+            setQueue((items) => {
+                const oldIndex = items.findIndex(el => el.id === active.id);
+                const newIndex = items.findIndex(el => el.id === over.id);
+                console.log(oldIndex, newIndex)
+                console.log(JSON.stringify(items.map(e => e.id)));
+                console.log(JSON.stringify(arrayMove(items, oldIndex, newIndex).map(e => e.id)));
+                return [...arrayMove(items, oldIndex, newIndex)];
+            });
+        }
+    }
 
-        return () => {
-          socket.off('get_server_status', handleGetServerStatus);
-          socket.off('get_queue', handleGetQueue);
-          socket.off('start_queue', handleStartQueue);
-          socket.off('pause_queue', handlePauseQueue);
-          socket.off('stop_queue', handleStopQueue);
-        };
-    }, [socket, handleGetServerStatus, handleGetQueue, handleStartQueue, handlePauseQueue, handleStopQueue, getQueue]);
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+          coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     return (
         <Box
@@ -149,7 +98,7 @@ function Queue () {
                     <CardHeader p="12px 0px 28px 0px">
                         <Flex direction="column">
                             <HStack pt={5}>
-                                {serverRunning
+                                {!isQueuePaused
                                     ? <IconButton
                                         aria-label="Pause Queue"
                                         colorScheme="yellow"
@@ -166,13 +115,6 @@ function Queue () {
                                     colorScheme="red"
                                     icon={<FaStop />}
                                     onClick={stopQueue} />
-
-                                <Button
-                                    className="refresh-queue-button"
-                                    colorScheme="purple"
-                                    onClick={getQueue}>
-                                    Refresh
-                                </Button>
 
                                 <Box className="clear-queue-button">
                                     <ClearQueue />
@@ -193,65 +135,73 @@ function Queue () {
                         </Flex>
                     </CardHeader>
 
-                    <Table
-                        className="queue-table"
-                        color="#fff"
-                        variant="simple">
-                        <Thead>
-                            <Tr
-                                my=".8rem"
-                                ps="0px">
-                                <Th
-                                    borderBottomColor="#56577A"
-                                    color="gray.400">
-                                    #
-                                </Th>
-
-                                <Th
-                                    borderBottomColor="#56577A"
-                                    color="gray.400"
-                                    fontFamily="Plus Jakarta Display"
+                    <DndContext 
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <Table
+                            className="queue-table"
+                            color="#fff"
+                            variant="simple">
+                            <Thead>
+                                <Tr
+                                    my=".8rem"
                                     ps="0px">
-                                    Prompt
-                                </Th>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400">
+                                    </Th>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400">
+                                        #
+                                    </Th>
 
-                                <Th
-                                    borderBottomColor="#56577A"
-                                    color="gray.400">
-                                    Model
-                                </Th>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400"
+                                        fontFamily="Plus Jakarta Display"
+                                        ps="0px">
+                                        Prompt
+                                    </Th>
 
-                                <Th
-                                    borderBottomColor="#56577A"
-                                    color="gray.400">
-                                    Dimensions
-                                </Th>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400">
+                                        Model
+                                    </Th>
 
-                                <Th
-                                    borderBottomColor="#56577A"
-                                    color="gray.400">
-                                    Num
-                                </Th>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400">
+                                        Dimensions
+                                    </Th>
 
-                                <Th
-                                    borderBottomColor="#56577A"
-                                    color="gray.400">
-                                    Actions
-                                </Th>
-                            </Tr>
-                        </Thead>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400">
+                                        Num
+                                    </Th>
 
-                        <Tbody>
-                            {queue.map((row, index, arr) => (
-                                <QueueRow
-                                    index={index + 1}
-                                    key={index}
-                                    lastItem={index === arr.length - 1}
-                                    { ...row }
-                                />
-                            ))}
-                        </Tbody>
-                    </Table>
+                                    <Th
+                                        borderBottomColor="#56577A"
+                                        color="gray.400">
+                                        Actions
+                                    </Th>
+                                </Tr>
+                            </Thead>
+
+                            <Tbody>
+                                <SortableContext 
+                                    items={queue}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    {queue.map((elem, index, arr) => <SortableItem key={elem.id} id={elem.id} index={index} row={elem} arr={arr} />)}
+                                </SortableContext>
+                            </Tbody>
+                        </Table>
+                    </DndContext>
                 </Card>
             </Grid>
         </Box>

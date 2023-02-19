@@ -1,17 +1,69 @@
+import React from 'react';
 import {
     Flex,
     Td,
     Text,
     Tr,
-    HStack
+    HStack,
+    IconButton
 } from '@chakra-ui/react';
-import React from 'react';
 import RemoveFromQueue from './RemoveFromQueue';
 import QueueModal from './QueueModal';
 
+import { useSortable } from '@dnd-kit/sortable';
+
+import { CSS } from '@dnd-kit/utilities';
+import { BsArrowsExpand } from 'react-icons/bs';
+
+export function SortableItem({ id, index, arr, row}: { id: string, index: number, arr: QueueType[], row: QueueType}) {
+    const {
+        listeners,
+        setNodeRef,
+        setActivatorNodeRef,
+        transform,
+        transition,
+    } = useSortable({id: id});
+  
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    if(index === 0) {
+        return (
+            <Tr key={index}>
+                <Td border={index === arr.length - 1 ? 'none' : null}
+                    borderBottomColor="#56577A" 
+                    maxWidth="100px" px={0}>
+                </Td>
+                <QueueRow
+                    index={index + 1}
+                    lastItem={index === arr.length - 1}
+                    { ...row }
+                />
+            </Tr>
+        );
+    }
+  
+    return (
+        <Tr ref={setNodeRef} style={style} key={index}>
+            <Td border={index === arr.length - 1 ? 'none' : null}
+                borderBottomColor="#56577A" 
+                maxWidth="100px" px={0}>
+                <IconButton aria-label='drag' icon={<BsArrowsExpand />} ref={setActivatorNodeRef} {...listeners} />
+            </Td>
+            <QueueRow
+                index={index + 1}
+                lastItem={index === arr.length - 1}
+                { ...row }
+            />
+        </Tr>
+    );
+}
+
 function QueueRow (props: QueueTypeWithIndex) {
     return (
-        <Tr>
+        <>
             <Td
                 border={props.lastItem
                     ? 'none'
@@ -133,7 +185,7 @@ function QueueRow (props: QueueTypeWithIndex) {
                     <RemoveFromQueue index={props.index} />
                 </HStack>
             </Td>
-        </Tr>
+        </>
     );
 }
 

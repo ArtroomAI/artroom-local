@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
@@ -11,41 +11,26 @@ import {
     AlertDialogFooter,
     Button
 } from '@chakra-ui/react';
-import { SocketContext, SocketOnEvents } from '../../socket';
 
 function ClearQueue () {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
-    const socket = useContext(SocketContext);
-
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
-    const handleClearQueue: SocketOnEvents['clear_queue'] = useCallback((data) => {
-        if(data.status === 'Success') {
-            setQueue([]);
+    const clearQueue = useCallback(() => {
+        if(queue[0]) {
+            setQueue([queue[0]]);
         }
         onClose();
-    }, [onClose, setQueue]);
-
-    const clearQueue = useCallback(() => {
-        socket.emit('clear_queue');
-    }, [socket]);
-
-    useEffect(() => {
-        socket.on('clear_queue', handleClearQueue);
-
-        return () => {
-          socket.off('clear_queue', handleClearQueue);
-        };
-    }, [socket, handleClearQueue]);
+    }, [onClose, queue]);
 
     return (
         <>
             <Button
                 colorScheme="yellow"
                 onClick={onOpen}>
-                Clear Queue
+                Delete Queue
             </Button>
 
             <AlertDialog
@@ -59,7 +44,7 @@ function ClearQueue () {
                         <AlertDialogHeader
                             fontSize="lg"
                             fontWeight="bold">
-                            Clear Queue
+                            Delete Queue
                         </AlertDialogHeader>
 
                         <AlertDialogBody>

@@ -565,6 +565,8 @@ class UNet(DDPM):
             self.init_from_ckpt(ckpt_path, ignore_keys)
             self.restarted_from_ckpt = True
 
+        self.interrupt = False
+
     def make_cond_schedule(self, ):
         self.cond_ids = torch.full(size=(self.num_timesteps,), fill_value=self.num_timesteps - 1, dtype=torch.long)
         ids = torch.round(torch.linspace(0, self.num_timesteps - 1, self.num_timesteps_cond)).long()
@@ -722,7 +724,7 @@ class UNet(DDPM):
                batch_size=None,
                mode="default"
                ):
-
+        self.interrupt = False
         if self.turbo and self.v1:
             self.model1.to(self.cdevice)
             self.model2.to(self.cdevice)
@@ -850,6 +852,8 @@ class UNet(DDPM):
                 old_eps.pop(0)
             if callback:
                 callback(pred_x0)
+            if self.interrupt:
+                break
         return img
 
     @torch.no_grad()
@@ -1196,6 +1200,8 @@ class UNet(DDPM):
                                        text_cfg_scale=txt_scale, unconditional_conditioning=unconditional_conditioning)
             if callback:
                 callback(x_dec)
+            if self.interrupt:
+                break
 
         if mask is not None:
             return x0 * mask + (1. - mask) * x_dec
@@ -1316,6 +1322,8 @@ class UNet(DDPM):
                                        model_wrap_sigmas=model_wrap_sigmas, ds=ds)
             if callback:
                 callback(x_latent)
+            if self.interrupt:
+                break
         if mode == "pix2pix":
             x_latent = x_latent[:, :4, :, :]
         return x_latent

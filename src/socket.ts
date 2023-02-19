@@ -21,6 +21,7 @@ export interface SocketOnEvents {
     update_settings: (res: WithStatus) => void;
     update_settings_with_restart: (res: WithStatus) => void;
     upscale: (res: WithStatus) => void;
+    job_done: () => void;
     remove_from_queue: (res: WithStatus & { queue: QueueType[] }) => void;
 }
 
@@ -42,6 +43,9 @@ export interface SocketEmitEvents {
         save_grid: boolean;
         vae: string;
         ckpt_dir: string;
+    }) => void;
+    generate: (data: {
+
     }) => void;
     update_settings_with_restart: (data: {
         long_save_path: boolean;

@@ -464,6 +464,11 @@ class StableDiffusion:
         #             x = x.resize((x.width * 8, x.height * 8))
         #         x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
 
+    def interrupt(self):
+        if self.running and self.model:
+            self.model.interrupt = True
+            self.running = False
+
     def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
                  sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
@@ -730,6 +735,8 @@ class StableDiffusion:
                                 out_image = support.repaste_and_color_correct(result=out_image,
                                                                             init_image=original_init_image,
                                                                             init_mask=mask_image, mask_blur_radius=8)
+                            if not self.running:
+                                break
 
                         exif_data = out_image.getexif()
                         # Does not include Mask, ImageB64, or if Inverted. Only settings for now

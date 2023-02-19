@@ -1,7 +1,6 @@
-import React, { useCallback, useContext, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
+import React, { useCallback } from 'react';
+import { useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
-import axios from 'axios';
 import {
     useDisclosure,
     AlertDialog,
@@ -16,35 +15,18 @@ import {
 import {
     FaTrashAlt
 } from 'react-icons/fa';
-import { SocketContext, SocketOnEvents } from '../../socket';
 
 function RemoveFromQueue ({ index } : { index: number }) {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
-    const [queue, setQueue] = useRecoilState(atom.queueState);
-
-    const socket = useContext(SocketContext);
-
+    const setQueue = useSetRecoilState(atom.queueState);
     const removeFromQueue = useCallback(() => {
+        setQueue((queue) => {
+            return queue.filter((_, i) => i !== index - 1);
+        });
         onClose();
-        socket.emit('remove_from_queue', { id: queue[index - 1].id });
-    }, [onClose, socket, queue, index]);
-
-    const handleRemoveFromQueue: SocketOnEvents['remove_from_queue']  = useCallback((data) => {
-        if (data.status === 'Success') {
-            setQueue(data.queue);
-        }
-    }, [setQueue]);
-
-    // on socket message
-    useEffect(() => {
-        socket.on('remove_from_queue', handleRemoveFromQueue);
-    
-        return () => {
-            socket.off('remove_from_queue', handleRemoveFromQueue);
-        };
-    }, [socket, handleRemoveFromQueue]);
+    }, [onClose, index]);
 
     return (
         <>
