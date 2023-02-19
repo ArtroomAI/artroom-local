@@ -3,7 +3,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { queuePausedState, queueState } from './atoms/atoms';
 import { SocketContext } from './socket';
 
-const parseQueue = (queue: string | undefined) => {
+const parseQueue = (queue: string | undefined): any[] => {
     if(!queue) { // undefined | "" case
         return [];
     }
@@ -22,7 +22,7 @@ const parseQueue = (queue: string | undefined) => {
 export const QueueManager = () => {
     const socket = useContext(SocketContext);
     const [queue, setQueue] = useRecoilState(queueState);
-    const isQueuePaused = useRecoilValue(queuePausedState);
+    const [isQueuePaused, setQueuePaused] = useRecoilState(queuePausedState);
     
     const emit = useCallback(() => {
         const __queue = [...queue];
@@ -60,7 +60,11 @@ export const QueueManager = () => {
 
     useEffect(() => {
         window.api.readQueue().then(queue => {
-            setQueue(parseQueue(queue));
+            const __queue = parseQueue(queue);
+            if(__queue.length) {
+                setQueuePaused(true);
+            }
+            setQueue(__queue);
         });
     }, []);
 

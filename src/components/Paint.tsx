@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useReducer, useRef, useContext, useCallback} from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import { boundingBoxCoordinatesAtom, boundingBoxDimensionsAtom, layerStateAtom, maxHistoryAtom, pastLayerStatesAtom, futureLayerStatesAtom, stageScaleAtom, shouldPreserveMaskedAreaAtom } from './UnifiedCanvas/atoms/canvas.atoms';
 import { UnifiedCanvas } from './UnifiedCanvas/UnifiedCanvas';
@@ -30,6 +30,7 @@ function Paint () {
     const [batchProgress, setBatchProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const setQueue = useSetRecoilState(atom.queueState);
 
     const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
     const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
@@ -116,7 +117,10 @@ function Paint () {
                 mask_image: combinedMask,
                 invert: shouldPreserveMaskedArea
               }
-            socket.emit('add_to_queue', body);
+
+            setQueue((queue) => {
+                return [...queue, {...body, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`}];
+            });
         }).catch(err =>{
            console.log(err);
         })        

@@ -8,35 +8,12 @@ type MessageType<K extends keyof SocketOnEvents> = Parameters<SocketOnEvents[K]>
 function parseSocketMessage<T extends keyof SocketOnEvents>(type: T, message: MessageType<T>) {
     return JSON.stringify(message);
     // TODO: Custom messages for each event
-    if(type === 'add_to_queue') {
-        const typed = message as MessageType<'add_to_queue'>;
-    }
-    if(type === 'clear_queue') {
-        const typed = message as MessageType<'clear_queue'>;
-        return;
-    }
     if(type === 'get_images') {
         const typed = message as MessageType<'get_images'>;
         return;
     }
-    if(type === 'get_queue') {
-        const typed = message as MessageType<'get_queue'>;
-        return;
-    }
     if(type === 'get_server_status') {
         const typed = message as MessageType<'get_server_status'>;
-        return;
-    }
-    if(type === 'pause_queue') {
-        const typed = message as MessageType<'pause_queue'>;
-        return;
-    }
-    if(type === 'remove_from_queue') {
-        const typed = message as MessageType<'remove_from_queue'>;
-        return;
-    }
-    if(type === 'start_queue') {
-        const typed = message as MessageType<'start_queue'>;
         return;
     }
     if(type === 'stop_queue') {

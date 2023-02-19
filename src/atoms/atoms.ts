@@ -101,7 +101,7 @@ export const queueState = atom<QueueType[]>({
 
 export const queuePausedState = atom({
     key: 'queue_paused',
-    default: true
+    default: false
 });
 
 export const runningState = atom({

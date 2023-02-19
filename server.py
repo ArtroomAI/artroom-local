@@ -3,7 +3,6 @@ from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
 
 from upscale import Upscaler
-from queue_manager import QueueManager
 from stable_diffusion import StableDiffusion
 from artroom_helpers import support
 import logging
@@ -47,7 +46,6 @@ UP = Upscaler()
 SD = StableDiffusion(socketio = socketio, Upscaler = UP)
 
 def set_artroom_paths(artroom_path):
-    QM.set_artroom_path(artroom_path)
     UP.set_artroom_path(artroom_path)
     SD.set_artroom_path(artroom_path)
 
@@ -62,7 +60,6 @@ if os.path.exists(artroom_install_log):
 else:
     artroom_path = os.environ['USERPROFILE']
 
-QM = QueueManager(SD, artroom_path)
 threading.Thread(target=set_artroom_paths, args=[
     artroom_path], daemon=True).start()
 
@@ -212,72 +209,12 @@ def generate(data):
 def get_server_status():
     socketio.emit("get_server_status", {'server_running': SD.running }, broadcast=True)
 
-@socketio.on('get_queue')
-def get_queue():
-    socketio.emit("get_queue", {'queue': QM.queue }, broadcast=True)
-
-@socketio.on('start_queue')
-def start_queue():
-    print('Starting Queue...')
-    if not QM.running:
-        run_sd()
-        socketio.emit("start_queue", {'status': 'Success' }, broadcast=True)
-    else:
-        print('Queue already running')
-        socketio.emit("start_queue", {'status': 'Failure' }, broadcast=True)   
-
-@socketio.on('pause_queue')
-def pause_queue():
-    print('Pausing queue...')
-    if QM.running:
-        QM.running = False
-        print('Queue paused')
-        socketio.emit("pause_queue", {'status': 'Success' }, broadcast=True)
-    else:
-        print('Failed to pause queue')
-        socketio.emit("pause_queue", {'status': 'Failure' }, broadcast=True)
-
 @socketio.on('stop_queue')
 def stop_queue():
     print('Stopping queue...')
     SD.interrupt()
     print('Queue stopped')
     socketio.emit("stop_queue", {'status': 'Success'}, broadcast=True)
-
-@socketio.on('remove_from_queue')
-def remove_from_queue(data):
-    print('Removing from queue...')
-    QM.remove_from_queue(data['id'])
-    print(f"{data['id']} removed from queue")
-    socketio.emit("remove_from_queue", { 'status': 'Success', 'queue': QM.queue }, broadcast=True)
-
-@socketio.on('add_to_queue')
-def add_to_queue(data):
-    print('Adding to queue...')
-    if data['ckpt'] == '':
-        print('Failure, model checkpoint cannot be blank')
-        socketio.emit('add_to_queue', { 'status': 'Failure', 'status_message': 'Model Checkpoint cannot be blank. Please go to Settings and set a model ckpt.'})
-        return
-
-    QM.add_to_queue(data)
-
-    # Cleans up printout so you don't print out the whole b64
-    data_copy = dict(data)
-    if len(data_copy['init_image']):
-        data_copy['init_image'] = data_copy['init_image'][:100]+"..."
-    if len(data_copy['mask_image']):
-        data_copy['mask_image'] = data_copy['mask_image'][:100]+"..."
-    print(f'Added to queue: {data_copy}')
-    if not QM.running:
-        run_sd()
-    socketio.emit('add_to_queue', { 'status': 'Success', 'queue_size': len(QM.queue) })
-
-@socketio.on('clear_queue')
-def clear_queue():
-    print('Clearing queue...')
-    QM.clear_queue()
-    print('Queue cleared')
-    socketio.emit('clear_queue', { 'status': 'Success' })
 
 @socketio.on('update_settings')
 def update_settings(data):
@@ -290,8 +227,6 @@ def update_settings(data):
         reset_settings_to_default()
         socketio.emit('update_settings', { 'status': 'Failure', 'status_message': 'sd_settings.json not found' })
         return
-    if 'delay' in data:
-        QM.update_delay = data['delay']
     if 'long_save_path' in data:
         SD.long_save_path = data['long_save_path']
     if 'highres_fix' in data:
@@ -324,8 +259,6 @@ def update_settings(data):
         reset_settings_to_default()
         socketio.emit('update_settings_with_restart', { 'status': 'Failure', 'status_message': 'sd_settings.json not found' })
         return
-    if 'delay' in data:
-        QM.update_delay = data['delay']
     if 'long_save_path' in data:
         SD.long_save_path = data['long_save_path']
     if 'highres_fix' in data:
@@ -346,30 +279,6 @@ def update_settings(data):
     # SD.load_from_settings_json()
     print('Settings updated')
     socketio.emit('update_settings_with_restart', { 'status': 'Success' })
-
-@app.route('/get_settings', methods=['GET'])
-def get_settings():
-    if not SD.artroom_path:
-        print('Failed to get settings, artroom path not found')
-        return return_output('Failure', 'Artroom Path not found')
-    if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
-        reset_settings_to_default()
-        return return_output('Failure', 'sd_settings.json not found')
-    sd_settings = json.load(
-        open(f'{SD.artroom_path}/artroom/settings/sd_settings.json'))
-    return return_output('Success', content={'status': QM.queue, 'settings': sd_settings})
-
-
-def run_sd():
-    if not QM.running:
-        print('Queue started!')
-        QM.read_queue_json()
-        QM.thread = threading.Thread(target=QM.run_queue, daemon=True)
-        QM.thread.start()
-        return return_output('Success', 'Starting Artroom')
-    else:
-        print('Queue already running')
-        return return_output('Failure', 'Already running')
 
 @app.route('/shutdown', methods=['GET'])
 def shutdown():
