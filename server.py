@@ -24,10 +24,12 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 print('Running in Debug Mode. Please keep CMD window open')
 
+
 def return_output(status, status_message='', content=''):
     if not status_message and status == 'Failure':
         status_message = 'Unknown Error'
     return jsonify({'status': status, 'status_message': status_message, 'content': content})
+
 
 def reset_settings_to_default(self):
     print('Failure, sd_settings not found. Resetting to default')
@@ -37,17 +39,21 @@ def reset_settings_to_default(self):
     else:
         print('Resetting failed')
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-max_ws_http_buffer_size = 50_000_000 # 50MB
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False, max_http_buffer_size=max_ws_http_buffer_size)
+max_ws_http_buffer_size = 50_000_000  # 50MB
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading', logger=False, engineio_logger=False,
+                    max_http_buffer_size=max_ws_http_buffer_size)
 
 UP = Upscaler()
-SD = StableDiffusion(socketio = socketio, Upscaler = UP)
+SD = StableDiffusion(socketio=socketio, Upscaler=UP)
+
 
 def set_artroom_paths(artroom_path):
     UP.set_artroom_path(artroom_path)
     SD.set_artroom_path(artroom_path)
+
 
 user_profile = os.environ['USERPROFILE']
 artroom_install_log = f'{user_profile}/AppData/Local/artroom_install.log'
@@ -63,46 +69,50 @@ else:
 threading.Thread(target=set_artroom_paths, args=[
     artroom_path], daemon=True).start()
 
+
 @socketio.on('upscale')
 def upscale(data):
     print('Running upscale...')
     if UP.running:
         print('Failure to upscale, upscale is already running')
-        socketio.emit('upscale', { 'status': 'Failure', 'status_message': 'Upscale is already running' })
+        socketio.emit('upscale', {'status': 'Failure', 'status_message': 'Upscale is already running'})
         return
     if len(data['upscale_images']) == 0:
         print('Failure to upscale, please select an image')
-        socketio.emit('upscale', { 'status': 'Failure', 'status_message': 'Please select an image' })
+        socketio.emit('upscale', {'status': 'Failure', 'status_message': 'Please select an image'})
         return
 
     if data['upscale_dest'] == '':
-        data['upscale_dest'] = SD.image_save_path+'/upscale_outputs'
+        data['upscale_dest'] = SD.image_save_path + '/upscale_outputs'
 
     UP.upscale(data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
-    socketio.emit('upscale', { 'status': 'Success', 'status_message': 'Your upscale has completed' })
-    return 
+    socketio.emit('upscale', {'status': 'Success', 'status_message': 'Your upscale has completed'})
+    return
+
 
 def save_to_settings_folder(data):
     print("Saving settings...")
     if SD.long_save_path:
-        image_folder = os.path.join(data['image_save_path'],data['batch_name'], re.sub(
+        image_folder = os.path.join(data['image_save_path'], data['batch_name'], re.sub(
             r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
         os.makedirs(image_folder, exist_ok=True)
-        os.makedirs(image_folder+'/settings', exist_ok=True)
-        sd_settings_count = len(glob(image_folder+'/settings/*.json'))
+        os.makedirs(image_folder + '/settings', exist_ok=True)
+        sd_settings_count = len(glob(image_folder + '/settings/*.json'))
         with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
             json.dump(data, outfile, indent=4)
     else:
         image_folder = os.path.join(
-            data['image_save_path'],data['batch_name'])
+            data['image_save_path'], data['batch_name'])
         os.makedirs(image_folder, exist_ok=True)
-        os.makedirs(image_folder+'/settings', exist_ok=True)
-        sd_settings_count = len(glob(image_folder+'/settings/*.json'))
+        os.makedirs(image_folder + '/settings', exist_ok=True)
+        sd_settings_count = len(glob(image_folder + '/settings/*.json'))
         prompt_name = re.sub(
             r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
-        with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
+        with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
+                  'w') as outfile:
             json.dump(data, outfile, indent=4)
     print("Settings saved")
+
 
 def save_settings_cache(data):
     with open(f'{artroom_path}/artroom/settings/sd_settings.json', 'r') as infile:
@@ -110,6 +120,7 @@ def save_settings_cache(data):
     existing_data.update(data)
     with open(f'{artroom_path}/artroom/settings/sd_settings.json', 'w') as outfile:
         json.dump(existing_data, outfile, indent=4)
+
 
 @socketio.on('generate')
 def generate(data):
@@ -176,8 +187,8 @@ def generate(data):
         init_image_str = data['init_image']
         print("Saving settings to folder...")
         save_to_settings_folder(data)
-        ckpt_path = os.path.join(data['ckpt_dir'],data['ckpt']).replace(os.sep, '/')
-        vae_path = os.path.join(data['ckpt_dir'],data['vae']).replace(os.sep, '/')
+        ckpt_path = os.path.join(data['ckpt_dir'], data['ckpt']).replace(os.sep, '/')
+        vae_path = os.path.join(data['ckpt_dir'], data['vae']).replace(os.sep, '/')
         # try:
         print("Starting gen...")
         print(data)
@@ -196,7 +207,7 @@ def generate(data):
             seed=int(data['seed']),
             sampler=data['sampler'],
             cfg_scale=float(data['cfg_scale']),
-            palette_fix = data['palette_fix'],
+            palette_fix=data['palette_fix'],
             ckpt=ckpt_path,
             vae=vae_path,
             image_save_path=data['image_save_path'],
@@ -205,27 +216,28 @@ def generate(data):
         )
         socketio.emit('job_done')
 
+
 @socketio.on('/get_server_status')
 def get_server_status():
-    socketio.emit("get_server_status", {'server_running': SD.running }, broadcast=True)
+    socketio.emit("get_server_status", {'server_running': SD.running}, broadcast=True)
+
 
 @socketio.on('stop_queue')
 def stop_queue():
-    print('Stopping queue...')
     SD.interrupt()
-    print('Queue stopped')
     socketio.emit("stop_queue", {'status': 'Success'}, broadcast=True)
+
 
 @socketio.on('update_settings')
 def update_settings(data):
     print('Updating Settings...')
     if not SD.artroom_path:
         print('Failure, artroom path not found')
-        socketio.emit('update_settings', { 'status': 'Failure', 'status_message': 'Artroom Path not found' })
+        socketio.emit('update_settings', {'status': 'Failure', 'status_message': 'Artroom Path not found'})
         return
     if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
         reset_settings_to_default()
-        socketio.emit('update_settings', { 'status': 'Failure', 'status_message': 'sd_settings.json not found' })
+        socketio.emit('update_settings', {'status': 'Failure', 'status_message': 'sd_settings.json not found'})
         return
     if 'long_save_path' in data:
         SD.long_save_path = data['long_save_path']
@@ -248,16 +260,18 @@ def update_settings(data):
     print('Settings updated')
     return return_output('Success')
 
+
 @socketio.on('update_settings_with_restart')
 def update_settings(data):
     print('Updating Settings...')
     if not SD.artroom_path:
         print('Failure, artroom path not found')
-        socketio.emit('update_settings_with_restart', { 'status': 'Failure', 'status_message': 'Artroom Path not found' })
+        socketio.emit('update_settings_with_restart', {'status': 'Failure', 'status_message': 'Artroom Path not found'})
         return
     if not os.path.exists(f'{SD.artroom_path}/artroom/settings/sd_settings.json'):
         reset_settings_to_default()
-        socketio.emit('update_settings_with_restart', { 'status': 'Failure', 'status_message': 'sd_settings.json not found' })
+        socketio.emit('update_settings_with_restart',
+                      {'status': 'Failure', 'status_message': 'sd_settings.json not found'})
         return
     if 'long_save_path' in data:
         SD.long_save_path = data['long_save_path']
@@ -278,32 +292,36 @@ def update_settings(data):
         json.dump(sd_settings, outfile, indent=4)
     # SD.load_from_settings_json()
     print('Settings updated')
-    socketio.emit('update_settings_with_restart', { 'status': 'Success' })
+    socketio.emit('update_settings_with_restart', {'status': 'Success'})
+
 
 @app.route('/shutdown', methods=['GET'])
 def shutdown():
     stop_queue()
     os._exit(0)
 
+
 @socketio.on('connect')
 def connected():
     '''event listener when client connects to the server'''
     print(request.sid)
     print('client has connected')
-    socketio.emit('connect',{'data':f'id: {request.sid} is connected'})
+    socketio.emit('connect', {'data': f'id: {request.sid} is connected'})
+
 
 @socketio.on('message')
 def handle_message(data):
     '''event listener when client types a message'''
-    print('data from the front end: ',str(data))
-    socketio.emit('message',{'data':data,'id':request.sid},broadcast=True)
+    print('data from the front end: ', str(data))
+    socketio.emit('message', {'data': data, 'id': request.sid}, broadcast=True)
+
 
 @socketio.on('disconnect')
 def disconnected():
     '''event listener when client disconnects to the server'''
     print('user disconnected')
-    socketio.emit('disconnect',f'user {request.sid} disconnected',broadcast=True)
-    
+    socketio.emit('disconnect', f'user {request.sid} disconnected', broadcast=True)
+
+
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
-
