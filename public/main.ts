@@ -14,6 +14,7 @@ const ExifParser = require('exif-parser');
 require("dotenv").config();
 import { exposeMenuFunctions } from './menu-functions';
 import { handlers } from './ipcHandles';
+import { setupQueueHandles } from './ipcFileHandles';
 
 let win: BrowserWindow;
 let hd = os.homedir();
@@ -483,6 +484,7 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
+  setupQueueHandles(ipcMain, artroom_path);
   handlers(win);
 
   win.setTitle("ArtroomAI v" + app.getVersion());

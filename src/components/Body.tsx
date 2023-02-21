@@ -22,7 +22,8 @@ const Body = () => {
 
     const toast = useToast({});
 
-    const imageSettings = useRecoilValue(atom.imageSettingsState)
+    const imageSettings = useRecoilValue(atom.imageSettingsState);
+    const [queue, setQueue] = useRecoilState(atom.queueState);
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const latestImages = useRecoilValue(atom.latestImageState);
@@ -39,8 +40,21 @@ const Body = () => {
     const socket = useContext(SocketContext);
 
     const addToQueue = useCallback(() => {
-        socket.emit('add_to_queue', imageSettings);
-    }, [socket, imageSettings]);
+        toast({
+            title: 'Added to Queue!',
+            description: `Currently ${queue.length + 1} elements in queue`,
+            status: 'success',
+            position: 'top',
+            duration: 2000,
+            isClosable: false,
+            containerStyle: {
+                pointerEvents: 'none'
+            }
+        });
+        setQueue((queue) => {
+            return [...queue, {...imageSettings, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`}];
+        });
+    }, [imageSettings, queue, toast]);
 
     const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
         setProgress((100 * data.current_step / data.total_steps));
@@ -64,46 +78,16 @@ const Body = () => {
         }
     }, [toast]);
 
-    const handleAddToQueue: SocketOnEvents['add_to_queue'] = useCallback((data) => {
-        if (data.status === 'Success') {
-            toast({
-                title: 'Added to Queue!',
-                description: `Currently ${data.queue_size} elements in queue`,
-                status: 'success',
-                position: 'top',
-                duration: 2000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        } else {
-            toast({
-                title: 'Error',
-                status: 'error',
-                description: data.status_message,
-                position: 'top',
-                duration: 5000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, [toast]);
-
     // on socket message
     useEffect(() => {
-        socket.on('add_to_queue', handleAddToQueue);
         socket.on('get_progress', handleGetProgress);
         socket.on('get_status', handleGetStatus);
     
         return () => {
             socket.off('get_progress', handleGetProgress);
-            socket.off('add_to_queue', handleAddToQueue);
             socket.off('get_status', handleGetStatus);
         };
-    }, [socket, handleAddToQueue, handleGetProgress, handleGetStatus]);
+    }, [socket, handleGetProgress, handleGetStatus]);
     
     const mainImageIndex = { selectedIndex: 0 };
     const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {

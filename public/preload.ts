@@ -29,7 +29,9 @@ const api = {
     pythonInstall: async(useAMDInstaller: boolean) => {return await ipcRenderer.invoke('pythonInstall', useAMDInstaller);},
     pythonInstallDependencies: async() => {return await ipcRenderer.invoke('pythonInstallDependencies');},
     fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback);},
-    downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);}
+    downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);},
+    saveQueue: async (queue: string) => { ipcRenderer.invoke('saveQueue', queue) },
+    readQueue: async (): Promise<string | undefined> => { return await ipcRenderer.invoke('readQueue') }
 }
 
 if (process.env.NODE_ENV !== 'production') {

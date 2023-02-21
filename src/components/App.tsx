@@ -37,6 +37,7 @@ import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
 import { UpdateProgressBar } from './UpdateProgressBar';
 import ImageEditor from './ImageEditor';
+import { QueueManager } from '../QueueManager';
 
 export default function App () {
     // Connect to the server 
@@ -353,6 +354,7 @@ export default function App () {
                 </GridItem>
             </Grid>
             <UpdateProgressBar />
+            <QueueManager />
         </>
     );
 }

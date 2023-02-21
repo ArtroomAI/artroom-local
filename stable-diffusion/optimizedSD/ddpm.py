@@ -522,6 +522,7 @@ class UNet(DDPM):
 
         self.parameterization = "eps"
         self.v1 = True
+        self.interrupted_state = False
 
         # the ugly comfy params
         self.x_spare_part = None
@@ -722,7 +723,6 @@ class UNet(DDPM):
                batch_size=None,
                mode="default"
                ):
-
         if self.turbo and self.v1:
             self.model1.to(self.cdevice)
             self.model2.to(self.cdevice)
@@ -799,6 +799,8 @@ class UNet(DDPM):
             self.model1.to("cpu")
             self.model2.to("cpu")
 
+        self.interrupted_state = False
+
         return samples
 
     def q_sample(self, x_start, t, noise=None):
@@ -850,6 +852,9 @@ class UNet(DDPM):
                 old_eps.pop(0)
             if callback:
                 callback(pred_x0)
+            if self.interrupted_state:
+                iterator.set_description("Suspended")
+                break
         return img
 
     @torch.no_grad()
@@ -919,38 +924,6 @@ class UNet(DDPM):
         x_prev, pred_x0 = get_x_prev_and_pred_x0(e_t_prime, index)
 
         return x_prev, pred_x0, e_t
-
-    @torch.no_grad()
-    def sample_dpmpp_2s_ancestral(self, model, x, sigmas, extra_args=None, callback=None, disable=None, eta=1.,
-                                  s_noise=1.):
-        """Ancestral sampling with DPM-Solver++(2S) second-order steps."""
-        extra_args = {} if extra_args is None else extra_args
-        s_in = x.new_ones([x.shape[0]])
-        sigma_fn = lambda t: t.neg().exp()
-        t_fn = lambda sigma: sigma.log().neg()
-
-        for i in trange(len(sigmas) - 1, disable=disable):
-            denoised = model(x, sigmas[i] * s_in, **extra_args)
-            sigma_down, sigma_up = self.get_ancestral_step(sigmas[i], sigmas[i + 1], eta=eta)
-            if callback is not None:
-                callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
-            if sigma_down == 0:
-                # Euler method
-                d = self.to_d(x, sigmas[i], denoised)
-                dt = sigma_down - sigmas[i]
-                x = x + d * dt
-            else:
-                # DPM-Solver-2++(2S)
-                t, t_next = t_fn(sigmas[i]), t_fn(sigma_down)
-                r = 1 / 2
-                h = t_next - t
-                s = t + r * h
-                x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
-                denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
-                x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
-            # Noise addition
-            x = x + torch.randn_like(x) * s_noise * sigma_up
-        return x
 
     def get_model_output_k(self, x, t, unconditional_conditioning, c, cond_scale, model_wrap_sigmas,
                            text_cfg_scale=1.5, mode="default"):
@@ -1197,6 +1170,10 @@ class UNet(DDPM):
             if callback:
                 callback(x_dec)
 
+            if self.interrupted_state:
+                iterator.set_description("Suspended")
+                break
+
         if mask is not None:
             return x0 * mask + (1. - mask) * x_dec
         if mode == "pix2pix":
@@ -1305,7 +1282,8 @@ class UNet(DDPM):
 
         s_in = x_latent.new_ones([x_latent.shape[0]]).to(x_latent.dtype).to(x_latent.device)
         ds = []
-        for i in trange(total_steps, desc='Decoding image', total=total_steps):
+        iterator = trange(total_steps, desc='Decoding image', total=total_steps)
+        for i in iterator:
             self.current_step = i
             if mask is not None and x_latent.shape[1] != 9:
                 x_latent = init_latent * mask + (1. - mask) * x_latent
@@ -1316,6 +1294,9 @@ class UNet(DDPM):
                                        model_wrap_sigmas=model_wrap_sigmas, ds=ds)
             if callback:
                 callback(x_latent)
+            if self.interrupted_state:
+                iterator.set_description("Suspended")
+                break
         if mode == "pix2pix":
             x_latent = x_latent[:, :4, :, :]
         return x_latent
