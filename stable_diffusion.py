@@ -235,7 +235,58 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
 
-    def set_up_models(self, ckpt, speed, vae):
+    def inject_controlnet(self, input_state_dict, path_sd15, path_sd15_with_control):
+        print("Injecting controlnet..")
+
+        def get_state_dict(d):
+            return d.get('state_dict', d)
+
+        def load_state_dict(ckpt_path, location='cpu'):
+            _, extension = os.path.splitext(ckpt_path)
+            if extension.lower() == ".safetensors":
+                import safetensors.torch
+                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
+            else:
+                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
+            state_dict = get_state_dict(state_dict)
+            print(f'Loaded state_dict from [{ckpt_path}]')
+            return state_dict
+
+        def get_node_name(name, parent_name):
+            if len(name) <= len(parent_name):
+                return False, ''
+            p = name[:len(parent_name)]
+            if p != parent_name:
+                return False, ''
+            return True, name[len(parent_name):]
+
+        sd15_state_dict = load_state_dict(path_sd15)
+        sd15_with_control_state_dict = load_state_dict(path_sd15_with_control)
+        keys = sd15_with_control_state_dict.keys()
+
+        final_state_dict = {}
+        for key in keys:
+            is_first_stage, _ = get_node_name(key, 'first_stage_model')
+            is_cond_stage, _ = get_node_name(key, 'cond_stage_model')
+            if is_first_stage or is_cond_stage:
+                final_state_dict[key] = input_state_dict[key]
+                continue
+            p = sd15_with_control_state_dict[key]
+            is_control, node_name = get_node_name(key, 'control_')
+            if is_control:
+                sd15_key_name = 'model.diffusion_' + node_name
+            else:
+                sd15_key_name = key
+            if sd15_key_name in input_state_dict:
+                p_new = p + input_state_dict[sd15_key_name] - sd15_state_dict[sd15_key_name]
+                # print(f'Offset clone from [{sd15_key_name}] to [{key}]')
+            else:
+                p_new = p
+                # print(f'Direct clone to [{key}]')
+            final_state_dict[key] = p_new
+        return final_state_dict
+
+    def set_up_models(self, ckpt, speed, vae, control_net_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
         print(f"Loading {speed}..")
         self.socketio.emit('get_status', {'status': "Loading Model"})
@@ -257,6 +308,13 @@ class StableDiffusion:
         else:
             print("Model safety check died midways")
             return
+
+        # if control_net_path is None: Remove this
+        #     control_net_path = os.path.dirname(ckpt) + "/control_sd15_normal.pth"
+
+        if control_net_path is not None:
+            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", control_net_path)
+
         print("Setting up config...")
         parameterization = "eps"
         if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
