@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
     Flex,
@@ -47,18 +47,18 @@ export default function App () {
 
     const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
 
-    const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
-    const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
-    const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
-    const [delay, setDelay] = useRecoilState(atom.delayState);
+    const setLongSavePath = useSetRecoilState(atom.longSavePathState);
+    const setHighresFix = useSetRecoilState(atom.highresFixState);
+    const setDebugMode = useSetRecoilState(atom.debugMode);
+    const setDelay = useSetRecoilState(atom.delayState);
 
     const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-    const [shard, setShard] = useRecoilState(atom.shardState);
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+    const setShard = useSetRecoilState(atom.shardState);
+    const navSize = useRecoilValue(atom.navSizeState);
     const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
+    const setMainImage = useSetRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
 
     const socket = useContext(SocketContext);
@@ -81,9 +81,11 @@ export default function App () {
     }, [socket, handleGetImages]);
 
     //make sure cloudmode is off, while not signed in
-    if (!loggedIn) {
-        setCloudMode(false);
-    }
+    useEffect(() => {
+        if (!loggedIn) {
+            setCloudMode(false);
+        }
+    }, [loggedIn]);
 
     ProtectedReqManager.setCloudMode = setCloudMode;
     ProtectedReqManager.setLoggedIn = setLoggedIn;
