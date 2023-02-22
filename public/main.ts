@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions, session } from 'electron';
 import { autoUpdater } from "electron-updater";
 autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 import os from 'os';
 import path from 'path';
 import isDev from 'electron-is-dev';
@@ -537,7 +538,11 @@ function createWindow() {
           spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
           axios.get(`${LOCAL_URL}/shutdown`)
         }  
-        autoUpdater.quitAndInstall()
+        autoUpdater.quitAndInstall();
+        setImmediate(() => {
+          app.relaunch();
+          app.quit();
+        });
       }
     })
   });
