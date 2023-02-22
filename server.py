@@ -185,6 +185,8 @@ def generate(data):
         mask_b64 = data['mask_image']
         data['mask_image'] = ''
         init_image_str = data['init_image']
+        data['init_image'] = data['init_image'][:100]+"..."
+
         print("Saving settings to folder...")
         save_to_settings_folder(data)
         ckpt_path = os.path.join(data['ckpt_dir'], data['ckpt']).replace(os.sep, '/')
