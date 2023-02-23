@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.1.1",
+  "version": "1.1.2-beta.8",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -16,18 +16,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/artmamedov/artroom-stable-diffusion.git"
+    "url": "https://github.com/ArtroomAI/artroom-beta.git"
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom",
-    "productName": "Artroom",
+    "appId": "com.example.Artroom-beta",
+    "productName": "Artroom-beta",
     "win": {
       "publish": [
         {
           "provider": "github",
-          "owner": "artmamedov",
-          "repo": "artroom-stable-diffusion"
+          "owner": "ArtroomAI",
+          "repo": "artroom-beta"
         }
       ],
       "target": "nsis",
@@ -74,6 +74,8 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^2.4.4",
+    "@dnd-kit/core": "^6.0.7",
+    "@dnd-kit/sortable": "^7.0.2",
     "@emotion/styled": "^11.10.5",
     "@reduxjs/toolkit": "^1.9.1",
     "@toast-ui/react-image-editor": "^3.15.2",
@@ -143,3 +145,4 @@
     "webpack-dev-server": "4.7.4"
   }
 }
+
