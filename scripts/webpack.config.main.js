@@ -5,7 +5,7 @@ const config = {
     mode: 'development',
     target: 'electron-main',
     devtool: 'source-map',
-    entry: './public/main.ts',
+    entry: './src/main/main.ts',
     output: {
         globalObject: 'this',
         filename: 'main.js',

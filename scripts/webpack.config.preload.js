@@ -5,7 +5,7 @@ const config = {
     mode: 'development',
     target: 'electron-preload',
     devtool: 'source-map',
-    entry: './public/preload.ts',
+    entry: './src/preload/preload.ts',
     module: {
         rules: [
             {
