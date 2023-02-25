@@ -615,7 +615,7 @@ class StableDiffusion:
         else:
             init_image = None
 
-        mode = "default" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4 else (
+        mode = "default" if not self.v1 or (self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
             "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
         )
 
