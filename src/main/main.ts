@@ -33,34 +33,6 @@ if (fs.existsSync(artroom_install_log)) {
   artroom_path = lines[0];
 }
 
-const loadSDData = () => {
-  const settingsPath = path.join(artroom_path, 'artroom\\settings');
-  const settingsFile = path.join(settingsPath, 'sd_settings.json');
-  fs.mkdirSync(settingsPath, { recursive: true });
-  const original = JSON.parse(fs.readFileSync("sd_settings.json", 'utf-8'));
-  let sd_data: Record<string, any>;
-  try {
-    sd_data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8')) as Record<string, any>;
-  } catch(err) {
-    sd_data = original;
-  }
-
-  for(const key in original) {
-    if(!(key in sd_data)) {
-      sd_data[key] = original[key];
-    }
-  }
-  sd_data['image_save_path'] = path.normalize(sd_data.image_save_path.replace('%UserProfile%', hd));
-  sd_data['ckpt'] = path.normalize(sd_data.ckpt.replace('%InstallPath%', artroom_path));
-  sd_data['ckpt_dir'] = path.normalize(sd_data.ckpt_dir.replace('%InstallPath%', artroom_path));
-
-  fs.writeFileSync(settingsFile, JSON.stringify(sd_data, null, 2));
-
-  return sd_data;
-}
-
-const sddata = loadSDData();
-
 const getPNGEXIF = (png: Buffer) => {
   const png_string = png.toString('utf-8');
 
@@ -126,7 +98,7 @@ const getFiles = (folder_path: string, ext: string) => {
 console.log("Artroom Log: " + artroom_install_log);
 
 function createWindow() {
-  server = spawn(serverCommand, { detached: sddata.debug_mode, shell: true });
+  server = spawn(serverCommand, { detached: true, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);

@@ -4,7 +4,6 @@ import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { ipcMain } from "electron";
 import StreamZip from 'node-stream-zip';
-import { deleteSync } from 'del';
 import os from 'os';
 
 let installationProcess: ChildProcessWithoutNullStreams;
