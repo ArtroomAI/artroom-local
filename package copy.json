@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.1.2-beta.8",
+  "version": "1.1.2",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -16,18 +16,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtroomAI/artroom-beta.git"
+    "url": "https://github.com/artmamedov/artroom-stable-diffusion.git"
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom-beta",
-    "productName": "Artroom-beta",
+    "appId": "com.example.Artroom",
+    "productName": "Artroom",
     "win": {
       "publish": [
         {
           "provider": "github",
-          "owner": "ArtroomAI",
-          "repo": "artroom-beta"
+          "owner": "artmamedov",
+          "repo": "artroom-stable-diffusion"
         }
       ],
       "target": "nsis",
@@ -62,7 +62,6 @@
       "!stable-diffusion/src/**/*",
       "py_cuda_install.exe",
       "py_cuda_install_debug.exe",
-      "sd_settings.json",
       "model_downloader.json",
       "model_merger.py",
       "server.py",
@@ -103,6 +102,7 @@
     "react-select": "^5.4.0",
     "react-textarea-autosize": "^8.3.4",
     "recoil": "^0.7.5",
+    "recoil-persist": "^4.2.0",
     "socket.io-client": "^4.5.4",
     "styled-components": "^5.3.6",
     "tree-kill": "^1.2.2",
@@ -145,4 +145,3 @@
     "webpack-dev-server": "4.7.4"
   }
 }
-
