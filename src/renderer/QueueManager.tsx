@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
-import { queuePausedState, queueState } from './atoms/atoms';
+import { addToQueueState, queuePausedState, queueState } from './atoms/atoms';
 import { SocketContext } from './socket';
 
 const parseQueue = (queue: string | undefined): any[] => {
@@ -23,6 +23,7 @@ export const QueueManager = () => {
     const socket = useContext(SocketContext);
     const [queue, setQueue] = useRecoilState(queueState);
     const [isQueuePaused, setQueuePaused] = useRecoilState(queuePausedState);
+    const [addToQueue, setAddToQueue] = useRecoilState(addToQueueState);
     
     const emit = useCallback(() => {
         const __queue = [...queue];
@@ -38,6 +39,13 @@ export const QueueManager = () => {
             socket.emit('generate', queue[0]);
         }
     }, [socket, queue, isQueuePaused]);
+
+    useEffect(() => {
+        if(addToQueue) {
+            setAddToQueue(false);
+            setQueuePaused(false);
+        }
+    }, [addToQueue]);
 
     useEffect(() => {
         socket.on('job_done', emit);

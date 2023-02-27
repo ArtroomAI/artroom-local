@@ -17,6 +17,7 @@ import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { SocketContext, SocketOnEvents } from '../socket';
 import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
+import { addToQueueState } from '../atoms/atoms';
 
 function randomIntFromInterval(min: number, max: number) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
@@ -48,6 +49,7 @@ const Body = () => {
     const imageSettings = useRecoilValue(queueSettingsSelector);
     const useRandomSeed = useRecoilValue(randomSeedState);
     const [queue, setQueue] = useRecoilState(atom.queueState);
+    const setAddToQueue = useSetRecoilState(addToQueueState);
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const latestImages = useRecoilValue(atom.latestImageState);
@@ -75,6 +77,7 @@ const Body = () => {
                 pointerEvents: 'none'
             }
         });
+        setAddToQueue(true);
         setQueue((queue) => {
             return [
                 ...queue,

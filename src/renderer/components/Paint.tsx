@@ -21,6 +21,7 @@ import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 import { SocketContext, SocketOnEvents } from '../socket';
 import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
+import { addToQueueState } from '../atoms/atoms';
 
 function randomIntFromInterval(min: number, max: number) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
@@ -54,6 +55,7 @@ function Paint () {
     const [focused, setFocused] = useState(false);
     const cloudMode = useRecoilValue(atom.cloudModeState);
     const setQueue = useSetRecoilState(atom.queueState);
+    const setAddToQueue = useSetRecoilState(addToQueueState);
 
     const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
     const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
@@ -142,6 +144,7 @@ function Paint () {
                 invert: shouldPreserveMaskedArea
             }
 
+            setAddToQueue(true);
             setQueue((queue) => {
                 return [
                     ...queue,

@@ -64,6 +64,11 @@ export const initImageThumbnailState = atom({
         'b64': '' }
 });
 
+export const addToQueueState = atom({
+    key: 'addToQueue',
+    default: false
+});
+
 export const mainImageState = atom<Partial<ImageState>>({
     key: 'mainImage',
     default: { 'b64': '', 'path': '', 'batch_id': 0 }
