@@ -79,7 +79,7 @@ const Body = () => {
             return [
                 ...queue,
                 parseSettings(
-                    {...imageSettings, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`},
+                    {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
                     useRandomSeed
                 )
             ];

@@ -20,7 +20,29 @@ import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 import { SocketContext, SocketOnEvents } from '../socket';
-import { queueSettingsSelector } from '../SettingsManager';
+import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
+
+function randomIntFromInterval(min: number, max: number) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
+
+function parseSettings(settings: QueueType, useRandom: boolean) {
+    settings.seed = useRandom ? randomIntFromInterval(1, 4294967295) : settings.seed;
+
+    const sampler_format_mapping = {
+        'k_euler': 'euler',
+        'k_euler_ancestral': 'euler_a',
+        'k_dpm_2': 'dpm',
+        'k_dpm_2_ancestral': 'dpm_a',
+        'k_lms': 'lms',
+        'k_heun': 'heun'
+    }
+    if (settings.sampler in sampler_format_mapping) {
+        settings.sampler = sampler_format_mapping[settings.sampler]
+    }
+
+    return settings;
+}
 
 function Paint () {
     const toast = useToast({});
@@ -42,6 +64,7 @@ function Paint () {
     const imageSettings = useRecoilValue(queueSettingsSelector);
     const shouldPreserveMaskedArea = useRecoilValue(shouldPreserveMaskedAreaAtom)
     const stageScale = useRecoilValue(stageScaleAtom);   
+    const useRandomSeed = useRecoilValue(randomSeedState);
 
     const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width?: number, height?: number) => {
         // Create a new canvas element
@@ -120,7 +143,13 @@ function Paint () {
             }
 
             setQueue((queue) => {
-                return [...queue, {...body, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`}];
+                return [
+                    ...queue,
+                    parseSettings(
+                        {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
+                        useRandomSeed
+                    )
+                ];
             });
         }).catch(err =>{
            console.log(err);
