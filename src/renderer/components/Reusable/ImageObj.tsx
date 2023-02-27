@@ -9,12 +9,13 @@ import ContextMenu from '../ContextMenu/ContextMenu';
 import ContextMenuItem from '../ContextMenu/ContextMenuItem';
 import ContextMenuList from '../ContextMenu/ContextMenuList';
 import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
+import { initImageState } from '../../SettingsManager';
 
 export default function ImageObj ({ b64 = '', path = '', active } : { b64: string; path: string; active: boolean }) {
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
-
     const queueRunning = useRecoilValue(atom.queueRunningState);
     const setInitImagePath = useSetRecoilState(atom.initImagePathState);
+
+    const setInitImage = useSetRecoilState(initImageState);
 
     const [showModal, setShowModal] = useState(false);
     
@@ -76,8 +77,7 @@ export default function ImageObj ({ b64 = '', path = '', active } : { b64: strin
 
             <ContextMenuList>
                 <ContextMenuItem onClick={() => {
-                    setInitImagePath('');
-                    setImageSettings({...imageSettings, init_image: b64});
+                    setInitImage(b64);
                 } } colorScheme={undefined} disabled={false}>
                     Set As Starting Image
                 </ContextMenuItem>

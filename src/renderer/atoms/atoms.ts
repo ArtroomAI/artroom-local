@@ -1,57 +1,5 @@
 import { atom } from 'recoil';
-import { ImageSettings, AppSettings, ImageState } from './atoms.types';
-
-export const imageSettingsState = atom<ImageSettings>({
-    key: 'imageSettings',
-    default: {
-        text_prompts: '',
-        negative_prompts: '',
-        batch_name: '',
-        n_iter: 3,
-        steps: 50,
-        strength: 0.75,
-        cfg_scale: 12,
-        sampler: '',
-        width: 512,
-        height: 512,
-        aspect_ratio : '1:1',
-        ckpt: '',
-        vae: '',
-        seed: 5,
-        speed: 'High',
-        save_grid: false,
-        use_random_seed: false,
-        init_image: '',
-        mask_image: '',
-        invert: false,
-        image_save_path: '',
-        ckpt_dir: '',
-        palette_fix: false
-    }
-})
-
-export const appSettingsState = atom<AppSettings>({
-    key: 'appSettings',
-    default: {
-        text_prompts: '',
-        negative_prompts: '',
-        batch_name: '',
-        n_iter: 3,
-        steps: 50,
-        strength: 0.75,
-        cfg_scale: 12,
-        sampler: '',
-        width: 512,
-        height: 512,
-        ckpt: '',
-        vae: '',
-        seed: 5,
-        save_grid: false,
-        use_random_seed: false,
-        init_image: '',
-        mask_image: '',
-    }
-})
+import { ImageState } from './atoms.types';
 
 export const serverStatusState = atom({
     key: 'serverStatus',
@@ -61,16 +9,6 @@ export const serverStatusState = atom({
 export const aspectRatioSelectionState = atom({
     key: 'aspectRatioSelection',
     default: 'None'
-});
-
-export const longSavePathState = atom({
-    key: 'long_save_path',
-    default: false
-});
-
-export const highresFixState = atom({
-    key: 'highres_fix',
-    default: false
 });
 
 export const initImagePathState = atom({
@@ -139,11 +77,6 @@ export const latestImageState = atom<Array<Partial<ImageState>>>({
 export const imageViewPathState = atom({
     key: 'imageViewPath',
     default: ''
-});
-
-export const delayState = atom({
-    key: 'delay',
-    default: 1
 });
 
 export * from './atoms.modals'

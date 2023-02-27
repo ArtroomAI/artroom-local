@@ -10,7 +10,6 @@ interface QueueType {
 	height: number;
     
     // models
-    models_dir: string;
     ckpt: string; // absolute path
     vae: string; // absolute path
 
@@ -32,14 +31,4 @@ interface QueueType {
     n_iter: number;
     save_grid: boolean;
     speed: string;
-    device?: string; // ? CPU / GPU
-    long_save_path: boolean;
-    highres_fix: boolean;
-    id: string;
-}
-
-interface QueueTypeWithIndex extends QueueType {
-    key: number;
-    index: number;
-    lastItem: boolean;
 }

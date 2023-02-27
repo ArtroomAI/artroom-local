@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState } from 'recoil';
 import { queuePausedState, queueState } from './atoms/atoms';
 import { SocketContext } from './socket';
 

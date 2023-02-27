@@ -368,13 +368,10 @@ function createWindow() {
     }
   }
 
-  ipcMain.handle('runPyTests', (event) => {
-    let sd_path = artroom_path + "\\artroom\\settings\\sd_settings.json";
+  ipcMain.handle('runPyTests', () => {
     let python_path = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe";
     if (!(fs.existsSync(artroom_install_log))) {
       return "cannot find artroom_install_log in " + artroom_install_log;
-    } else if (!(fs.existsSync(sd_path))) {
-      return "cannot find sd_settings.json in " + sd_path;
     } else if (!(fs.existsSync(python_path))) {
       return "cannot find python in " + python_path;
     } else {

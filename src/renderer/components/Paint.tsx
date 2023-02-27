@@ -20,25 +20,26 @@ import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 import { SocketContext, SocketOnEvents } from '../socket';
+import { queueSettingsSelector } from '../SettingsManager';
 
 function Paint () {
     const toast = useToast({});
 
-    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
+    const latestImages = useRecoilValue(atom.latestImageState);
 
     const [progress, setProgress] = useState(-1);
     const [batchProgress, setBatchProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
-    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
+    const cloudMode = useRecoilValue(atom.cloudModeState);
     const setQueue = useSetRecoilState(atom.queueState);
 
     const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
     const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
     const [layerState, setLayerState] = useRecoilState(layerStateAtom);  
-    const [maxHistory, setMaxHistory] = useRecoilState(maxHistoryAtom);  
+    const maxHistory = useRecoilValue(maxHistoryAtom);  
     const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
-    const [futureLayerStates, setFutureLayerStates] = useRecoilState(futureLayerStatesAtom);  
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+    const setFutureLayerStates = useSetRecoilState(futureLayerStatesAtom);
+    const imageSettings = useRecoilValue(queueSettingsSelector);
     const shouldPreserveMaskedArea = useRecoilValue(shouldPreserveMaskedAreaAtom)
     const stageScale = useRecoilValue(stageScaleAtom);   
 
@@ -53,7 +54,7 @@ function Paint () {
         var mask = new Image();
         mask.src = maskDataURL;
     
-        return new Promise((resolve, reject) => {
+        return new Promise<string>((resolve) => {
             regular.onload = function() {
                 mask.onload = function() {
                     // Draw the image on the canvas
@@ -110,13 +111,13 @@ function Paint () {
         });
     
         canvasBaseLayer.scale(tempScale);
-        addOutpaintingLayer(imageDataURL, maskDataURL, boundingBox.width, boundingBox.height).then(combinedMask =>{
+        addOutpaintingLayer(imageDataURL, maskDataURL, boundingBox.width, boundingBox.height).then(combinedMask => {
             const body = {
                 ...imageSettings,
                 init_image: imageDataURL,
                 mask_image: combinedMask,
                 invert: shouldPreserveMaskedArea
-              }
+            }
 
             setQueue((queue) => {
                 return [...queue, {...body, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`}];
@@ -125,7 +126,7 @@ function Paint () {
            console.log(err);
         })        
 
-    }, [boundingBoxCoordinates, boundingBoxDimensions, layerState.objects, stageScale, imageSettings, socket]);
+    }, [boundingBoxCoordinates, boundingBoxDimensions, layerState.objects, stageScale, imageSettings, socket, shouldPreserveMaskedArea]);
 
     const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
         setProgress((100 * data.current_step / data.total_steps));

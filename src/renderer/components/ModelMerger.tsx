@@ -1,7 +1,5 @@
-import React, { useCallback } from 'react';
-import { useState, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
+import React, { useCallback, useState, useEffect } from 'react';
+import { useRecoilValue } from 'recoil';
 import {
     Box,
     Button,
@@ -31,10 +29,11 @@ import {
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import path from 'path';
+import { modelsDirState } from '../SettingsManager';
 
 export const ModelMerger = () => {
     const toast = useToast({});
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+    const modelsDir = useRecoilValue(modelsDirState);
 
     const [ckpts, setCkpts] = useState([]);
 
@@ -79,9 +78,9 @@ export const ModelMerger = () => {
         }
         else{
             const data = JSON.stringify({
-                modelA: path.join(imageSettings.ckpt_dir,modelA),
-                modelB: path.join(imageSettings.ckpt_dir,modelB),
-                modelC: interpolation === 'add_difference' ? path.join(imageSettings.ckpt_dir,modelC) : '',
+                modelA: path.join(modelsDir, modelA),
+                modelB: path.join(modelsDir, modelB),
+                modelC: interpolation === 'add_difference' ? path.join(modelsDir, modelC) : '',
                 method: interpolation,
                 alpha,
                 filename,
@@ -125,11 +124,8 @@ export const ModelMerger = () => {
     };
 
     const getCkpts = useCallback(() => {
-        window.api.getCkpts(imageSettings.ckpt_dir).then((result) => {
-            // console.log(result);
-            setCkpts(result);
-        });
-    }, [imageSettings.ckpt_dir]);
+        window.api.getCkpts(modelsDir).then(setCkpts);
+    }, [modelsDir]);
 
     useEffect(() => {
         getCkpts();

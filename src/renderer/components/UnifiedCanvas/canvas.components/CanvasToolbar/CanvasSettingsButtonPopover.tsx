@@ -17,7 +17,7 @@ import {
   shouldCropToBoundingBoxOnSaveAtom,
   shouldShowIntermediatesAtom,
 } from '../../atoms/canvas.atoms';
-import { imageSettingsState } from '../../../../atoms/atoms';
+import { paletteFixState } from '../../../../SettingsManager';
 
 export const CanvasSettingsButtonPopover: FC = () => {
   // const {
@@ -48,7 +48,7 @@ export const CanvasSettingsButtonPopover: FC = () => {
   const [shouldShowIntermediates, setShouldShowIntermediates] = useRecoilState(
     shouldShowIntermediatesAtom
   );
-  const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
+  const [paletteFix, setPaletteFix] = useRecoilState(paletteFixState);
 
   useHotkeys(
     ['n'],
@@ -110,8 +110,8 @@ export const CanvasSettingsButtonPopover: FC = () => {
         />
         <Checkbox
           label="Use Palette Fix"
-          isChecked={imageSettings.palette_fix}
-          onChange={(e) => setImageSettings({...imageSettings, palette_fix: e.target.checked})}
+          isChecked={paletteFix}
+          onChange={(e) => setPaletteFix(e.target.checked)}
         />     
         <Checkbox
           label="Show Canvas Debug Info"

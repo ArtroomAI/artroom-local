@@ -97,7 +97,6 @@ const Tour = () => {
         reducer,
         INITIAL_STATE
     );
-    const navigate = useNavigate();
     const location = useLocation();
     useEffect(
         () => {

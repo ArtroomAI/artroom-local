@@ -1,6 +1,6 @@
 import React from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { queueRunningState, initImagePathState } from '../atoms/atoms';
 import { Image } from '@chakra-ui/react';
 import Logo from '../images/ArtroomLogoTransparent.png';
 import LoadingGif from '../images/loading.gif';
@@ -9,11 +9,12 @@ import ContextMenu from './ContextMenu/ContextMenu';
 import ContextMenuItem from './ContextMenu/ContextMenuItem';
 import ContextMenuList from './ContextMenu/ContextMenuList';
 import ContextMenuTrigger from './ContextMenu/ContextMenuTrigger';
+import { initImageState } from '../SettingsManager';
 
 export default function ImageObj ({ B64, active } : { B64: string, active: boolean}) {
-    const [queueRunning, setQueueRunning] = useRecoilState(atom.queueRunningState);
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
-    const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
+    const queueRunning = useRecoilValue(queueRunningState);
+    const setInitImagePath = useSetRecoilState(initImagePathState);
+    const setInitImage = useSetRecoilState(initImageState);
 
     const copyToClipboard = () => {
         window.api.copyToClipboard(B64);
@@ -39,7 +40,7 @@ export default function ImageObj ({ B64, active } : { B64: string, active: boole
             <ContextMenuList>
                 <ContextMenuItem onClick={() => {
                     setInitImagePath('');
-                    setImageSettings({...imageSettings, init_image: B64});
+                    setInitImage(B64);
                 } } colorScheme={undefined} disabled={false}>
                     Set As Starting Image
                 </ContextMenuItem>

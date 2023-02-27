@@ -4,7 +4,6 @@ import {
   FaArrowsAlt,
   FaCopy,
   FaCrosshairs,
-  FaPlay,
   FaSave,
   FaTrash,
   FaUpload,
@@ -25,13 +24,11 @@ import {
   stageScaleAtom,
   boundingBoxCoordinatesAtom,
   boundingBoxDimensionsAtom,
-  layerStateAtom,
   stageCoordinatesAtom,
 } from '../../atoms/canvas.atoms';
-import { imageSettingsState } from '../../../../atoms/atoms';
 import { isProcessingAtom } from '../../atoms/system.atoms';
-import { Select, IconButton } from '../../components';
-import { CanvasLayer, isCanvasMaskLine, LAYER_NAMES_DICT } from '../../atoms/canvasTypes';
+import { IconButton } from '../../components';
+import { CanvasLayer } from '../../atoms/canvasTypes';
 import { CanvasToolChooserOptions } from './CanvasToolChooserOptions';
 import {getCanvasBaseLayer, layerToDataURL } from '../../util';
 import { CanvasMaskOptions } from './CanvasMaskOptions';
@@ -41,6 +38,7 @@ import { CanvasUndoButton } from './CanvasUndoButton';
 import path from 'path';
 import { CanvasUpscaleButtonPopover } from './CanvasUpscaleButtonPopover';
 import { RemoveBackgroundButtonPopover } from './RemoveBackgroundButtonPopover';
+import { batchNameState, imageSavePathState } from '../../../../SettingsManager';
 
 export const CanvasOutpaintingControls: FC = () => {
   const canvasBaseLayer = getCanvasBaseLayer();
@@ -66,7 +64,8 @@ export const CanvasOutpaintingControls: FC = () => {
   //For Generation
   const stageScale = useRecoilValue(stageScaleAtom);   
   const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
-  const [imageSettings, setImageSettings] = useRecoilState(imageSettingsState)
+  const batchName = useRecoilValue(batchNameState);
+  const imageSavePath = useRecoilValue(imageSavePathState);
   const toast = useToast({});
 
   useHotkeys(
@@ -148,7 +147,7 @@ export const CanvasOutpaintingControls: FC = () => {
       : undefined
     );
     const timestamp = new Date().getTime();
-    const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, timestamp + ".png");
+    const imagePath = path.join(imageSavePath, batchName, timestamp + ".png");
     console.log(imagePath);
     window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
     toast({

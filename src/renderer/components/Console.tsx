@@ -20,10 +20,6 @@ function parseSocketMessage<T extends keyof SocketOnEvents>(type: T, message: Me
         const typed = message as MessageType<'stop_queue'>;
         return;
     }
-    if(type === 'update_settings') {
-        const typed = message as MessageType<'update_settings'>;
-        return;
-    }
     if(type === 'upscale') {
         const typed = message as MessageType<'upscale'>;
         return;

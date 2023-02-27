@@ -133,12 +133,6 @@ export const TOUR_STEPS_SETTINGS = [{
     target: '.speed-input',
     content: 'You can also choose how fast your want your images. Increasing speed takes more VRAM though, so how much you can handle would depend on your GPU\'s GB'
 }, {
-    target: '.vram-saver-input',
-    content: 'You can give yourself a boost to generate bigger images at the cost of some speed'
-}, {
-    target: '.queue-delay-input',
-    content: 'Here you can adjust how much delay is in between consecutive runs (in second). This is helpful if you want to run a bunch of gens overnight without overloading your computer.'
-}, {
     target: '.highres-fix-input',
     content: 'If you turn on highres fix, once you get past 1024x1024, Artroom will generate a smaller image, upscale, and then img2img to improve quality and avoid weirdness that comes from bigger generations'
 }, {

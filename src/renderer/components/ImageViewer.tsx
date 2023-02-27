@@ -9,6 +9,7 @@ import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
 import ImageModal from './Modals/ImageModal/ImageModal';
 import path from 'path';
+import { batchNameState, imageSavePathState } from '../SettingsManager';
 
 interface ImageData {
     imagePath: string;
@@ -17,7 +18,8 @@ interface ImageData {
 }
 
 function ImageViewer () {
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+    const imageSavePath = useRecoilValue(imageSavePathState);
+    const batchName = useRecoilValue(batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
     const [imagePreviews, setImagePreviews] = useState<ImageData[]>([]);
 
@@ -25,10 +27,9 @@ function ImageViewer () {
 
     useEffect(() => {
         if(imageViewPath.length <= 1){
-            setImageViewPath(path.join(imageSettings.image_save_path,imageSettings.batch_name));
+            setImageViewPath(path.join(imageSavePath, batchName));
         }
-
-    },[]);
+    }, []);
 
     useEffect(() => {
         if (imageViewPath.length > 1) {

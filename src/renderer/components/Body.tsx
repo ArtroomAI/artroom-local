@@ -16,13 +16,37 @@ import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { SocketContext, SocketOnEvents } from '../socket';
+import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
+
+function randomIntFromInterval(min: number, max: number) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
+
+function parseSettings(settings: QueueType, useRandom: boolean) {
+    settings.seed = useRandom ? randomIntFromInterval(1, 4294967295) : settings.seed;
+
+    const sampler_format_mapping = {
+        'k_euler': 'euler',
+        'k_euler_ancestral': 'euler_a',
+        'k_dpm_2': 'dpm',
+        'k_dpm_2_ancestral': 'dpm_a',
+        'k_lms': 'lms',
+        'k_heun': 'heun'
+    }
+    if (settings.sampler in sampler_format_mapping) {
+        settings.sampler = sampler_format_mapping[settings.sampler]
+    }
+
+    return settings;
+}
 
 const Body = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
 
     const toast = useToast({});
 
-    const imageSettings = useRecoilValue(atom.imageSettingsState);
+    const imageSettings = useRecoilValue(queueSettingsSelector);
+    const useRandomSeed = useRecoilValue(randomSeedState);
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
@@ -52,7 +76,13 @@ const Body = () => {
             }
         });
         setQueue((queue) => {
-            return [...queue, {...imageSettings, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`}];
+            return [
+                ...queue,
+                parseSettings(
+                    {...imageSettings, id: `${Math.random() * Number.MAX_SAFE_INTEGER}`},
+                    useRandomSeed
+                )
+            ];
         });
     }, [imageSettings, queue, toast]);
 
@@ -118,11 +148,11 @@ const Body = () => {
 
     const [state, dispatch] = useReducer(reducer, mainImageIndex);
 
-    const computeShardCost = () => {
+    const computeShardCost = useCallback(() => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
         let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
         return estimated_price;
-    }
+    }, [imageSettings]);
 
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);

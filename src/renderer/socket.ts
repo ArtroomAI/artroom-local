@@ -1,6 +1,6 @@
 import React from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ImageSettings, ImageState } from './atoms/atoms.types';
+import { ImageState } from './atoms/atoms.types';
 
 interface WithStatus {
     status: 'Success' | 'Failure';
@@ -13,8 +13,6 @@ export interface SocketOnEvents {
     get_progress: (res: { current_step: number; total_steps: number; current_num: number; total_num: number }) => void;
     get_status: (res: { status: 'Loading Model' | 'Finished Loading Model' | 'Generating' }) => void;
     stop_queue: (res: WithStatus) => void;
-    update_settings: (res: WithStatus) => void;
-    update_settings_with_restart: (res: WithStatus) => void;
     upscale: (res: WithStatus) => void;
     job_done: () => void;
 }
@@ -22,31 +20,7 @@ export interface SocketOnEvents {
 export interface SocketEmitEvents {
     get_server_status: () => void;
     stop_queue: () => void;
-    update_settings: (data: {
-        long_save_path: boolean;
-        highres_fix: boolean;
-        debug_mode: boolean;
-        delay: number;
-        speed: string;
-        image_save_path: string;
-        save_grid: boolean;
-        vae: string;
-        ckpt_dir: string;
-    }) => void;
-    generate: (data: {
-
-    }) => void;
-    update_settings_with_restart: (data: {
-        long_save_path: boolean;
-        highres_fix: boolean;
-        debug_mode: boolean;
-        delay: number;
-        speed: string;
-        image_save_path: string;
-        save_grid: boolean;
-        vae: string;
-        ckpt_dir: string;
-    }) => void;
+    generate: (data: QueueType) => void;
     upscale: (data: {
         upscale_images: string[];
         upscaler: string;

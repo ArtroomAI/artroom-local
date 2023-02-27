@@ -39,18 +39,18 @@ import { UpdateProgressBar } from './UpdateProgressBar';
 import ImageEditor from './ImageEditor';
 import { QueueManager } from '../QueueManager';
 
+import { batchNameState, imageSavePathState } from '../SettingsManager';
+
 export default function App () {
     // Connect to the server 
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
 
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
+    const image_save_path = useRecoilValue(imageSavePathState);
+    const batch_name = useRecoilValue(batchNameState);
 
-    const setLongSavePath = useSetRecoilState(atom.longSavePathState);
-    const setHighresFix = useSetRecoilState(atom.highresFixState);
     const setDebugMode = useSetRecoilState(atom.debugMode);
-    const setDelay = useSetRecoilState(atom.delayState);
 
     const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
@@ -133,7 +133,7 @@ export default function App () {
                             } else if (job_list[i].images[j].status == 'SUCCESS') {
                                 //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
                                 let img_name = job_list[i].id + '_' + job_list[i].images[j].id;
-                                const imagePath = path.join(imageSettings.image_save_path, imageSettings.batch_name, img_name + "_cloud.png");
+                                const imagePath = path.join(image_save_path, batch_name, img_name + "_cloud.png");
                                 toast({
                                     title: "Image completed: " + imagePath,
                                     status: 'info',
@@ -174,44 +174,10 @@ export default function App () {
         cloudRunning ? 5000 : null
     );
 
-
-
     useEffect(
         () => {
             window.api.getSettings().then((result) => {
-                const settings = JSON.parse(result);
-
-                const imageSettingsData = {
-                    text_prompts: settings.text_prompts,
-                    negative_prompts: settings.negative_prompts,
-                    batch_name: settings.batch_name,
-                    n_iter: settings.n_iter,
-                    steps: settings.steps,
-                    seed: settings.seed,
-                    strength: settings.strength,
-                    cfg_scale: settings.cfg_scale,
-                    sampler: settings.sampler,
-                    width: settings.width,
-                    height: settings.height,
-                    aspect_ratio: settings.aspect_ratio,
-                    ckpt: settings.ckpt,
-                    speed: settings.speed,
-                    save_grid: settings.save_grid,
-                    use_random_seed: settings.use_random_seed,
-                    init_image: settings.init_image,
-                    mask_image: '',
-                    invert: false,
-                    image_save_path: settings.image_save_path,
-                    ckpt_dir: settings.ckpt_dir,
-                    vae: settings.vae,
-                    palette_fix: settings.palette_fix,
-                }
-                setImageSettings(imageSettingsData)
-
-                setLongSavePath(settings.long_save_path);
-                setHighresFix(settings.highres_fix);
-                setDebugMode(settings.debug_mode);
-                setDelay(settings.delay);
+                setDebugMode(result);
 
                 window.api.runPyTests().then((result) => {
                     if (result === 'success\r\n') {

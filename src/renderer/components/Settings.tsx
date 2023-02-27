@@ -15,9 +15,6 @@ import {
     Radio,
     RadioGroup,
     Stack,
-    Select,
-    NumberInput,
-    NumberInputField,
     Spacer,
     useToast
 } from '@chakra-ui/react';
@@ -25,133 +22,82 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { SocketContext, SocketOnEvents } from '../socket';
+import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState } from '../SettingsManager';
 
 function Settings () {
     const toast = useToast({});
-    const [imageSettings, setImageSettings] = useRecoilState(atom.imageSettingsState)
-    const [long_save_path, setLongSavePath] = useRecoilState(atom.longSavePathState);
-    const [highres_fix, setHighresFix] = useRecoilState(atom.highresFixState);
 
-    const [debug_mode, setDebugMode] = useRecoilState(atom.debugMode);
-    const [delay, setDelay] = useRecoilState(atom.delayState);
+    const [debugMode, setDebugMode] = useRecoilState(atom.debugMode);
+    const [longSavePath, setLongSavePath] = useRecoilState(longSavePathState);
+    const [highresFix, setHighresFix] = useRecoilState(highresFixState);
+    const [speed, setSpeed] = useRecoilState(speedState);
+    const [imageSavePath, setImageSavePath] = useRecoilState(imageSavePathState);
+    const [saveGrid, setSaveGrid] = useRecoilState(saveGridState);
+    const [modelsDir, setModelsDir] = useRecoilState(modelsDirState);
+
+    const [debugModeTemp, setDebugModeTemp] = useState(debugMode);
+    const [longSavePathTemp, setLongSavePathTemp] = useState(longSavePath);
+    const [highresFixTemp, setHighresFixTemp] = useState(highresFix);
+    const [speedTemp, setSpeedTemp] = useState(speed);
+    const [imageSavePathTemp, setImageSavePathTemp] = useState(imageSavePath);
+    const [saveGridTemp, setSaveGridTemp] = useState(saveGrid);
+    const [modelsDirTemp, setModelsDirTemp] = useState(modelsDir);
+    
     const [downloadMessage, setDownloadMessage] = useState('');
 
-    const [debug_mode_orig, setDebugModeOrig] = useState(true);
-    
-    const socket = useContext(SocketContext);
+    // load defaults
+    useEffect(() => {
+        console.log(modelsDir);
+        setDebugModeTemp(debugMode);
+        setLongSavePathTemp(longSavePath);
+        setHighresFixTemp(highresFix);
+        setSpeedTemp(speed);
+        setImageSavePathTemp(imageSavePath);
+        setSaveGridTemp(saveGrid);
+        setModelsDirTemp(modelsDir);
+    }, []);
 
-    useEffect(
-        () => {
-            window.api.getSettings().then((result) => {
-                const settings = JSON.parse(result);
-                setImageSettings({
-                    ...imageSettings,
-                    speed: settings.speed,
-                    ckpt_dir: settings.ckpt_dir,
-                    save_grid: settings.save_grid,
-                    vae: settings.vae,
-                    image_save_path: settings.image_save_path
-                })
-
-                setLongSavePath(settings.long_save_path);
-                setHighresFix(settings.highres_fix);
-                setDelay(settings.delay);
-                setDebugMode(settings.debug_mode);
-                setDebugModeOrig(settings.debug_mode);
-            });
-        },
-        // run only once
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        []
-    );
-
-    const handleSaveSettingsAndRestart: SocketOnEvents['update_settings_with_restart'] = useCallback((data) => {
-        if(data.status === 'Success') {
-            toast({
-                title: 'Settings have been updated',
-                status: 'success',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        } else {
-            toast({
-                title: 'Error during updating settings',
-                description: data.status_message,
-                status: 'error',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
+    const save = useCallback(() => {
+        if(debugModeTemp !== debugMode) {  
+            if(debugModeTemp) {
+                toast({
+                    id: 'restart-server-debug-on',
+                    title: 'Resetting Artroom with Debug Mode on',
+                    status: 'info',
+                    position: 'top',
+                    duration: 7000,
+                    isClosable: true
+                });
+            } else {
+                toast({
+                    id: 'restart-server-debug-off',
+                    title: 'Resetting Artroom with Debug Mode off',
+                    status: 'info',
+                    position: 'top',
+                    duration: 7000,
+                    isClosable: true
+                });
+            }
+            window.api.restartServer(debugModeTemp);
         }
-        window.api.restartServer(debug_mode);
-    }, [debug_mode, toast]);
-
-    const handleSaveSettings: SocketOnEvents['update_settings'] = useCallback((data) => {
-        if(data.status === 'Success') {
-            toast({
-                title: 'Settings have been updated',
-                status: 'success',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        } else {
-            toast({
-                title: 'Error during updating settings',
-                description: data.status_message,
-                status: 'error',
-                position: 'top',
-                duration: 1500,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, [toast]);
-
-    const saveSettings = useCallback(() => {
-        setDebugModeOrig(debug_mode);
-        const output = {
-            long_save_path,
-            highres_fix,
-            debug_mode,
-            delay,
-            speed: imageSettings.speed,
-            image_save_path: imageSettings.image_save_path,
-            save_grid: imageSettings.save_grid,
-            vae: imageSettings.vae,
-            ckpt_dir: imageSettings.ckpt_dir
-        };
-        socket.emit('update_settings', output)
-    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
-
-    const saveSettingsWithRestart = useCallback(() => {
-        setDebugModeOrig(debug_mode);
-        const output = {
-            long_save_path,
-            highres_fix,
-            debug_mode,
-            delay,
-            speed: imageSettings.speed,
-            image_save_path: imageSettings.image_save_path,
-            save_grid: imageSettings.save_grid,
-            vae: imageSettings.vae,
-            ckpt_dir: imageSettings.ckpt_dir
-        };
-        socket.emit('update_settings_with_restart', output)
-    }, [debug_mode, delay, highres_fix, imageSettings.ckpt_dir, imageSettings.image_save_path, imageSettings.save_grid, imageSettings.speed, imageSettings.vae, long_save_path, socket]);
+        setDebugMode(debugModeTemp);
+        setLongSavePath(longSavePathTemp);
+        setHighresFix(highresFixTemp);
+        setSpeed(speedTemp);
+        setImageSavePath(imageSavePathTemp);
+        setSaveGrid(saveGridTemp);
+        setModelsDir(modelsDirTemp);
+        toast({
+            title: 'Settings have been updated',
+            status: 'success',
+            position: 'top',
+            duration: 1500,
+            isClosable: false,
+            containerStyle: {
+                pointerEvents: 'none'
+            }
+        });
+    }, [toast, debugModeTemp, highresFixTemp, imageSavePathTemp, longSavePathTemp, modelsDirTemp, saveGridTemp, speedTemp]);
 
     useEffect(() => {
         window.api.fixButtonProgress((_, str) => {
@@ -160,53 +106,12 @@ function Settings () {
         });
     }, []);
 
-    // on socket message
-    useEffect(() => {
-        socket.on('update_settings', handleSaveSettings);
-        socket.on('update_settings_with_restart', handleSaveSettingsAndRestart);
-    
-        return () => {
-            socket.off('update_settings', handleSaveSettings);
-            socket.off('update_settings_with_restart', handleSaveSettingsAndRestart);
-        };
-    }, [socket, handleSaveSettings, handleSaveSettingsAndRestart]);
-
-    const submitEvent = () => {
-        console.log(debug_mode, debug_mode_orig);
-        if (debug_mode === true && debug_mode_orig === false) {
-            // Restart server and turn debug mode on
-            toast({
-                id: 'restart-server-debug-on',
-                title: 'Resetting Artroom with Debug Mode on',
-                status: 'info',
-                position: 'top',
-                duration: 7000,
-                isClosable: true
-            });
-            saveSettingsWithRestart(); // Restarts flask server first, then save settings
-        } else if (debug_mode === false && debug_mode_orig === true) {
-            // Restart server and turn debug mode off
-            toast({
-                id: 'restart-server-debug-off',
-                title: 'Resetting Artroom with Debug Mode off',
-                status: 'info',
-                position: 'top',
-                duration: 7000,
-                isClosable: true
-            });
-            saveSettingsWithRestart(); // Restarts flask server first, then save settings
-        } else {
-            // Just save settings as normal
-            saveSettings();
-        }
-    };
-
     const chooseUploadPath = () => {
-        window.api.chooseUploadPath().then((result)=>{setImageSettings({...imageSettings,image_save_path: result})});
+        window.api.chooseUploadPath().then(setImageSavePathTemp);
     };
 
     const chooseCkptDir = () => {
-        window.api.chooseUploadPath().then((result)=>{setImageSettings({...imageSettings,ckpt_dir: result})});
+        window.api.chooseUploadPath().then(setModelsDirTemp);
     };
 
     return (
@@ -231,9 +136,9 @@ function Settings () {
                         <Input
                             id="image_save_path"
                             name="image_save_path"
-                            onChange={(event) => setImageSettings({...imageSettings, image_save_path: event.target.value})}
+                            onChange={(event) => setImageSavePathTemp(event.target.value)}
                             type="text"
-                            value={imageSettings.image_save_path}
+                            value={imageSavePathTemp}
                             variant="outline"
                         />
 
@@ -264,9 +169,9 @@ function Settings () {
                         <Input
                             id="ckpt_dir"
                             name="ckpt_dir"
-                            onChange={(event) => setImageSettings({...imageSettings, ckpt_dir: event.target.value})}
+                            onChange={(event) => setModelsDirTemp(event.target.value)}
                             type="text"
-                            value={imageSettings.ckpt_dir}
+                            value={modelsDirTemp}
                             variant="outline"
                         />
 
@@ -295,8 +200,8 @@ function Settings () {
                     <RadioGroup
                         id="speed"
                         name="speed"
-                        onChange={(value) => setImageSettings({...imageSettings, speed: value})}
-                        value={imageSettings.speed}>
+                        onChange={setSpeedTemp}
+                        value={speedTemp}>
                         <Stack
                             direction="row"
                             spacing="20">
@@ -316,44 +221,13 @@ function Settings () {
                     </RadioGroup>
                 </FormControl>
 
-                <FormControl className="queue-delay-input">
-                    <HStack>
-                        <Tooltip
-                            fontSize="md"
-                            label="Add a delay between runs. Mostly to prevent GPU from getting too hot if it's nonstop. Runs on next Queue start (need to Stop and Start queue again)."
-                            placement="top"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-
-                        <FormLabel htmlFor="delay">
-                            Queue Delay
-                        </FormLabel>
-                    </HStack>
-
-                    <NumberInput
-                        id="delay"
-                        min={1}
-                        name="delay"
-                        onChange={(v, n) => {
-                            setDelay(n);
-                        }}
-                        step={1}
-                        value={delay}
-                        variant="outline"
-                        w="150px"
-                    >
-                        <NumberInputField id="delay" />
-                    </NumberInput>
-                </FormControl>
-
                 <HStack className="highres-fix-input">
                     <Checkbox
                         id="highres_fix"
-                        isChecked={highres_fix}
+                        isChecked={highresFixTemp}
                         name="highres_fix"
                         onChange={() => {
-                            setHighresFix(!highres_fix);
+                            setHighresFixTemp((hf) => !hf);
                         }}
                     >
                         Use Highres Fix
@@ -372,10 +246,10 @@ function Settings () {
                 <HStack className="long-save-path-input">
                     <Checkbox
                         id="long_save_path"
-                        isChecked={long_save_path}
+                        isChecked={longSavePathTemp}
                         name="long_save_path"
                         onChange={() => {
-                            setLongSavePath(!long_save_path);
+                            setLongSavePathTemp((lsp) => !lsp);
                         }}
                     >
                         Use Long Save Path
@@ -394,10 +268,10 @@ function Settings () {
                 <HStack className="save-grid-input">
                     <Checkbox
                         id="save_grid"
-                        isChecked={imageSettings.save_grid}
+                        isChecked={saveGridTemp}
                         name="save_grid"
                         onChange={() => {
-                            setImageSettings({...imageSettings, save_grid: !imageSettings.save_grid});
+                            setSaveGridTemp((sg) => !sg);
                         }}
                     >
                         Save Grid
@@ -416,10 +290,10 @@ function Settings () {
                 <HStack className="debug-mode-input">
                     <Checkbox
                         id="debug_mode"
-                        isChecked={debug_mode}
+                        isChecked={debugModeTemp}
                         name="debug_mode"
                         onChange={() => {
-                            setDebugMode(!debug_mode);
+                            setDebugModeTemp((dm) => !dm);
                         }}
                     >
                         Debug Mode
@@ -439,7 +313,7 @@ function Settings () {
                     <Button
                         alignContent="center"
                         className="save-settings-button"
-                        onClick={submitEvent}>
+                        onClick={save}>
                         Save Settings
                     </Button>
                     <Spacer/>
