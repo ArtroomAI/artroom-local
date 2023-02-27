@@ -4,7 +4,7 @@ const Dotenv = require('dotenv-webpack');
 
 const config = {
     mode: 'development',
-    entry: './public/renderer.ts',
+    entry: './src/renderer/renderer.ts',
     target: 'electron-renderer',
     devtool: 'source-map',
     module: {

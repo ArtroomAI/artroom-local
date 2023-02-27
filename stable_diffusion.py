@@ -119,9 +119,6 @@ class StableDiffusion:
 
         self.ckpt = ''
         self.vae = ''
-        self.image_save_path = os.environ['USERPROFILE'] + '/Desktop/'
-        self.long_save_path = False
-        self.highres_fix = False
         self.can_use_half = get_gpu_architecture() == 'NVIDIA'
         self.device = get_device()
         self.speed = "Max"
@@ -139,20 +136,6 @@ class StableDiffusion:
         except:
             # probably no cuda gpus
             return 0
-
-    def set_artroom_path(self, path):
-        print("Setting up artroom path")
-        self.artroom_path = path
-        # loaded = False
-        if os.path.exists(f"{self.artroom_path}/artroom/settings/sd_settings.json"):
-            print("Loading model from sd_settings.json")
-            sd_settings = json.load(
-                open(f"{self.artroom_path}/artroom/settings/sd_settings.json"))
-            self.image_save_path = sd_settings['image_save_path']
-            self.long_save_path = sd_settings['long_save_path']
-            self.highres_fix = sd_settings['highres_fix']
-
-            print("Welcome to Artroom!")
 
     def get_steps(self):
         if self.model:
@@ -526,13 +509,13 @@ class StableDiffusion:
             self.model.interrupted_state = True
             self.running = False
 
-    def generate(self, text_prompts="", negative_prompts="", batch_name="", init_image_str="", mask_b64="",
+    def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
                  sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0):
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False):
 
         self.running = True
-        self.highres_fix = False
+        highres_fix = False
 
         self.dtype = torch.float16 if self.can_use_half else torch.float32
 
@@ -545,12 +528,12 @@ class StableDiffusion:
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
 
-        print("HIGHRES FIX:", self.highres_fix)
+        print("HIGHRES FIX:", highres_fix)
         W += padding * 2
         H += padding * 2
         oldW, oldH = W, H
 
-        if W * H > 512 * 512 and self.highres_fix:
+        if W * H > 512 * 512 and highres_fix:
             highres_fix_steps = math.ceil((W * H) / (512 * 512))
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
@@ -570,8 +553,6 @@ class StableDiffusion:
                 print("Currently, only DDIM works with masks. Switching samplers to DDIM")
             sampler = 'ddim'
 
-        self.image_save_path = image_save_path
-
         ddim_steps = int(steps / strength)
 
         print("Setting up models...")
@@ -582,8 +563,7 @@ class StableDiffusion:
 
         print("Generating...")
         self.socketio.emit('get_status', {'status': "Generating"})
-        outdir = os.path.join(self.image_save_path, batch_name)
-        os.makedirs(outdir, exist_ok=True)
+        os.makedirs(image_save_path, exist_ok=True)
 
         if len(init_image_str) > 0:
             if init_image_str[:4] == 'data':
@@ -631,11 +611,11 @@ class StableDiffusion:
         print("Negative Prompt:", negative_prompts)
         negative_prompts_data = [batch_size * negative_prompts]
 
-        if self.long_save_path:
-            sample_path = os.path.join(outdir, re.sub(
+        if long_save_path:
+            sample_path = os.path.join(image_save_path, re.sub(
                 r'\W+', '', "_".join(text_prompts.split())))[:150]
         else:
-            sample_path = outdir
+            sample_path = image_save_path
 
         self.intermediate_path = os.path.join(sample_path, 'intermediates/', f'{batch_id}/')
         os.makedirs(self.intermediate_path, exist_ok=True)
@@ -654,7 +634,7 @@ class StableDiffusion:
                     self.clean_up()
                     return
 
-                if self.long_save_path:
+                if long_save_path:
                     save_name = f"{base_count:05}_seed_{str(seed)}.png"
                 else:
                     prompt_name = re.sub(
