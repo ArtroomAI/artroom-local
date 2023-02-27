@@ -412,9 +412,7 @@ function SDSettings () {
                             id="cfg_scale"
                             min={0}
                             name="cfg_scale"
-                            onChange={(v, n) => {
-                                setCfg(isNaN(n) ? 0 : n);
-                            }}         
+                            onChange={setCfg}         
                             value={cfg}
                             variant="outline"
                         >

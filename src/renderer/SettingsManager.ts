@@ -65,9 +65,9 @@ export const iterationsState = atom<number>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const cfgState = atom<number>({
+export const cfgState = atom<string>({
     key: "cfg_scale",
-    default: 7.5,
+    default: "7.5",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -177,7 +177,7 @@ export const queueSettingsSelector = selector<QueueType>({
             // sampler options
             sampler: get(samplerState),
             steps: get(stepsState),
-            cfg_scale: get(cfgState),
+            cfg_scale: isNaN(parseFloat(get(cfgState))) ? 7.5 : parseFloat(get(cfgState)),
             seed: get(seedState),
 
             // inpainting options
