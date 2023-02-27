@@ -19,9 +19,7 @@ function ClearQueue () {
     const [queue, setQueue] = useRecoilState(atom.queueState);
 
     const clearQueue = useCallback(() => {
-        if(queue[0]) {
-            setQueue([queue[0]]);
-        }
+        setQueue([]);
         onClose();
     }, [onClose, queue]);
 
