@@ -26,7 +26,7 @@ const getImageDimensions = (base64: string) => {
 
 const DragDropFile = () => {
     const [dragActive, setDragActive] = useState(false);
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
     const [initImage, setInitImage] = useRecoilState(initImageState);
@@ -68,12 +68,11 @@ const DragDropFile = () => {
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFile(e.dataTransfer.files);
+            handleFile(e.dataTransfer.files[0]);
         }
     }, []);
 
-    const handleFile = useCallback((e: FileList) => {
-        const file = e[0];
+    const handleFile = useCallback((file: File) => {
         if (file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/heic") {
             console.log(file.path);
             setInitImagePath(file.path);
@@ -86,7 +85,7 @@ const DragDropFile = () => {
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = function (e) {
         e.preventDefault();
         if (e.target.files && e.target.files[0]) {
-            handleFile(e.target.files);
+            handleFile(e.target.files[0]);
         }
     };
 
@@ -182,6 +181,7 @@ const DragDropFile = () => {
                             border="2px"
                             icon={<FaTrashAlt />}
                             onClick={() => {
+                                inputRef.current.value = null;
                                 setInitImagePath('');
                                 setInitImage('');
                                 if (aspectRatioSelection === "Init Image") {
