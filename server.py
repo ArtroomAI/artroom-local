@@ -63,9 +63,9 @@ def upscale(data):
         return
 
     if data['upscale_dest'] == '':
-        data['upscale_dest'] = data.image_save_path + '/upscale_outputs'
+        data['upscale_dest'] = data['image_save_path'] + '/upscale_outputs'
 
-    UP.upscale(data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
+    UP.upscale(data['models_dir'], data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
     socketio.emit('upscale', {'status': 'Success', 'status_message': 'Your upscale has completed'})
     return
 

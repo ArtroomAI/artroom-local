@@ -25,6 +25,8 @@ import {
 } from 'react-icons/fa';
 import { SocketContext, SocketOnEvents } from '../socket';
 import { useDropzone } from 'react-dropzone';
+import { useRecoilValue } from 'recoil';
+import { imageSavePathState, modelsDirState } from '../SettingsManager';
 
 function Upscale () {
     const toast = useToast({});
@@ -33,19 +35,17 @@ function Upscale () {
     const [upscaler, setUpscaler] = useState('ESRGAN');
     const [upscale_factor, setUpscaleFactor] = useState(2);
     const [upscale_strength, setUpscaleStrength] = useState(0.5);
+    const imageSavePath = useRecoilValue(imageSavePathState);
+    const modelsDir = useRecoilValue(modelsDirState);
 
     const socket = useContext(SocketContext);
 
     const chooseUploadPath = () => {
-        window.api.chooseImages().then((result) => {
-            setUpscaleImages(result);
-        });
+        window.api.chooseImages().then(setUpscaleImages);
     };
 
     const chooseDestPath = () => {
-        window.api.chooseUploadPath().then((result) => {
-            setUpscaleDest(result);
-        });
+        window.api.chooseUploadPath().then(setUpscaleDest);
     };
 
     const Dropzone = () => {
@@ -98,11 +98,13 @@ function Upscale () {
             upscaler,
             upscale_factor,
             upscale_strength,
-            upscale_dest
+            upscale_dest,
+            save_image_path: imageSavePath,
+            models_dir: modelsDir
         };
 
         socket.emit('upscale', output);
-    }, [socket, toast, upscale_dest, upscale_factor, upscale_images, upscale_strength, upscaler]);
+    }, [socket, toast, upscale_dest, upscale_factor, upscale_images, upscale_strength, upscaler, imageSavePath, modelsDir]);
     
     const handleUpscale: SocketOnEvents['upscale']  = useCallback((data) => {
         if (data.status === 'Success') {
