@@ -5,151 +5,151 @@ import { recoilPersist } from 'recoil-persist';
 
 const { persistAtom } = recoilPersist();
 
-export const textPromptsState = atom({
+export const textPromptsState = atom<string>({
     key: "text_prompts",
     default: "",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const negativePromptsState = atom({
+export const negativePromptsState = atom<string>({
     key: "negative_prompts",
     default: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const batchNameState = atom({
+export const batchNameState = atom<string>({
     key: "batch_name",
     default: "ArtroomOutputs",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const stepsState = atom({
+export const stepsState = atom<number>({
     key: "steps",
     default: 30,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const widthState = atom({
+export const widthState = atom<number>({
     key: "width",
     default: 512,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const heightState = atom({
+export const heightState = atom<number>({
     key: "height",
     default: 512,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const aspectRatioState = atom({
+export const aspectRatioState = atom<string>({
     key: "aspect_ratio",
     default: "None",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const seedState = atom({
+export const seedState = atom<number>({
     key: "seed",
     default: 5,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const randomSeedState = atom({
+export const randomSeedState = atom<boolean>({
     key: "use_random_seed",
     default: true,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const iterationsState = atom({
+export const iterationsState = atom<number>({
     key: "n_iter",
     default: 3,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const cfgState = atom({
+export const cfgState = atom<number>({
     key: "cfg_scale",
     default: 7.5,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const samplerState = atom({
+export const samplerState = atom<string>({
     key: "sampler",
     default: "ddim",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const initImageState = atom({
+export const initImageState = atom<string>({
     key: "init_image",
     default: "",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const strengthState = atom({
+export const strengthState = atom<number>({
     key: "strength",
     default: 0.75,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const invertState = atom({
+export const invertState = atom<boolean>({
     key: "invert",
     default: false,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const paletteFixState = atom({
+export const paletteFixState = atom<boolean>({
     key: "palette_fix",
     default: false,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const imageSavePathState = atom({
+export const imageSavePathState = atom<string>({
     key: "image_save_path",
     default: path.join(os.homedir(), 'Desktop'),
     effects_UNSTABLE: [persistAtom]
 });
 
-export const longSavePathState = atom({
+export const longSavePathState = atom<boolean>({
     key: "long_save_path",
     default: false,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const highresFixState = atom({
+export const highresFixState = atom<boolean>({
     key: "highres_fix",
     default: false,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const speedState = atom({
+export const speedState = atom<string>({
     key: "speed",
     default: "High",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const saveGridState = atom({
+export const saveGridState = atom<boolean>({
     key: "save_grid",
     default: false,
     effects_UNSTABLE: [persistAtom]
 });
 
-export const ckptState = atom({
+export const ckptState = atom<string>({
     key: "ckpt",
     default: "model.ckpt",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const vaeState = atom({
+export const vaeState = atom<string>({
     key: "vae",
     default: "vae.ckpt",
     effects_UNSTABLE: [persistAtom]
 });
 
-export const modelsDirState = atom({
+export const modelsDirState = atom<string>({
     key: "models_dir",
     default: path.resolve('/'),
     effects_UNSTABLE: [persistAtom]
 });
 
-export const runTypeState = atom({
+export const runTypeState = atom<string>({
     key: "run_type",
     default: "regular",
     effects_UNSTABLE: [persistAtom]

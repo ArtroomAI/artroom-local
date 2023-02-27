@@ -63,7 +63,7 @@ def upscale(data):
         return
 
     if data['upscale_dest'] == '':
-        data['upscale_dest'] = SD.image_save_path + '/upscale_outputs'
+        data['upscale_dest'] = data.image_save_path + '/upscale_outputs'
 
     UP.upscale(data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
     socketio.emit('upscale', {'status': 'Success', 'status_message': 'Your upscale has completed'})
@@ -72,7 +72,7 @@ def upscale(data):
 
 def save_to_settings_folder(data):
     print("Saving settings...")
-    if SD.long_save_path:
+    if data['long_save_path']:
         image_folder = os.path.join(data['image_save_path'], re.sub(
             r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
         os.makedirs(image_folder, exist_ok=True)
