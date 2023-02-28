@@ -27,7 +27,7 @@ import {
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
-import { aspectRatioState, batchNameState, cfgState, ckptState, heightState, initImageState, iterationsState, loadSettingsFromFile, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, vaeState, widthState } from '../SettingsManager';
+import { aspectRatioState, batchNameState, cfgState, ckptState, controlnetState, heightState, initImageState, iterationsState, loadSettingsFromFile, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, vaeState, widthState } from '../SettingsManager';
 
 function SDSettings () {
     const toast = useToast({});
@@ -48,6 +48,7 @@ function SDSettings () {
     const [steps, setSteps] = useRecoilState(stepsState);
     const [cfg, setCfg] = useRecoilState(cfgState);
     const [sampler, setSampler] = useRecoilState(samplerState);
+    const [controlnet, setControlnet] = useRecoilState(controlnetState);
     const [strength, setStrength] = useRecoilState(strengthState);
     const [seed, setSeed] = useRecoilState(seedState);
     const initImage = useRecoilValue(initImageState);
@@ -467,104 +468,173 @@ function SDSettings () {
                             </Tooltip>
                         </Slider>
                     </FormControl>
+                    <HStack>
+                        <FormControl className="samplers-input">
+                            <HStack>
+                                <FormLabel htmlFor="Sampler">
+                                    Sampler
+                                </FormLabel>
 
-                    <FormControl className="samplers-input">
-                        <HStack>
-                            <FormLabel htmlFor="Sampler">
-                                Sampler
-                            </FormLabel>
+                                <Spacer />
 
-                            <Spacer />
+                                <Tooltip
+                                    fontSize="md"
+                                    label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
+                                    placement="left"
+                                    shouldWrapChildren
+                                >
+                                    <FaQuestionCircle color="#777" />
+                                </Tooltip>
 
-                            <Tooltip
-                                fontSize="md"
-                                label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
-                                placement="left"
-                                shouldWrapChildren
+                            </HStack>
+
+                            <Select
+                                id="sampler"
+                                name="sampler"
+                                onChange={(event) => setSampler(event.target.value)}
+                                value={sampler}
+                                variant="outline"
                             >
-                                <FaQuestionCircle color="#777" />
-                            </Tooltip>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="ddim"
+                                >
+                                    DDIM
+                                </option>
 
-                        </HStack>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="dpmpp_2m"
+                                >
+                                    DPM++ 2M Karras
+                                </option>
 
-                        <Select
-                            id="sampler"
-                            name="sampler"
-                            onChange={(event) => setSampler(event.target.value)}
-                            value={sampler}
-                            variant="outline"
-                        >
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="ddim"
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="dpmpp_2s_ancestral"
+                                >
+                                    DPM++ 2S Ancestral Karras
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="euler"
+                                >
+                                    Euler
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="euler_a"
+                                >
+                                    Euler Ancestral
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="dpm_2"
+                                >
+                                    DPM 2
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="dpm_a"
+                                >
+                                    DPM 2 Ancestral
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="lms"
+                                >
+                                    LMS
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="heun"
+                                >
+                                    Heun
+                                </option>
+
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="plms"
+                                >
+                                    PLMS
+                                </option>
+                            </Select>
+                        </FormControl>
+                        <FormControl className="controlnet-input">
+                            <HStack>
+                                <FormLabel htmlFor="Controlnet">
+                                    Controlnet
+                                </FormLabel>
+
+                                <Spacer />
+
+                                <Tooltip
+                                    fontSize="md"
+                                    label=""
+                                    placement="left"
+                                    shouldWrapChildren
+                                >
+                                    <FaQuestionCircle color="#777" />
+                                </Tooltip>
+
+                            </HStack>
+
+                            <Select
+                                id="controlnet"
+                                name="controlnet"
+                                onChange={(event) => setControlnet(event.target.value)}
+                                value={controlnet}
+                                variant="outline"
                             >
-                                DDIM
-                            </option>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="none"
+                                >
+                                    None
+                                </option>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="canny"
+                                >
+                                    Canny
+                                </option>
 
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="dpmpp_2m"
-                            >
-                                DPM++ 2M Karras
-                            </option>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="pose"
+                                >
+                                    Pose
+                                </option>
 
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="dpmpp_2s_ancestral"
-                            >
-                                DPM++ 2S Ancestral Karras
-                            </option>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="depth"
+                                >
+                                    Depth
+                                </option>
 
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="euler"
-                            >
-                                Euler
-                            </option>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="normal"
+                                >
+                                    Normal
+                                </option>
 
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="euler_a"
-                            >
-                                Euler Ancestral
-                            </option>
-
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="dpm_2"
-                            >
-                                DPM 2
-                            </option>
-
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="dpm_a"
-                            >
-                                DPM 2 Ancestral
-                            </option>
-
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="lms"
-                            >
-                                LMS
-                            </option>
-
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="heun"
-                            >
-                                Heun
-                            </option>
-
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value="plms"
-                            >
-                                PLMS
-                            </option>
-                        </Select>
-                    </FormControl>
+                                <option
+                                    style={{ 'backgroundColor': '#080B16' }}
+                                    value="scribble"
+                                >
+                                    Scribble
+                                </option>
+                            </Select>
+                        </FormControl>
+                    </HStack>
 
                     <FormControl className="model-ckpt-input">
                         <FormLabel htmlFor="Ckpt">

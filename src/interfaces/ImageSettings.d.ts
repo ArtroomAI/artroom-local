@@ -12,6 +12,7 @@ interface QueueType {
     // models
     ckpt: string; // absolute path
     vae: string; // absolute path
+    controlnet: string;
 
     // sampler options
     sampler: string;

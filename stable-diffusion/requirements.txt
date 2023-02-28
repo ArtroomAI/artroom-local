@@ -40,3 +40,4 @@ ftfy
 regex
 resize-right
 open-clip-torch
+timm

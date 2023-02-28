@@ -149,6 +149,12 @@ export const vaeState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const controlnetState = atom<string>({
+    key: "controlnet",
+    default: "None",
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const modelsDirState = atom<string>({
     key: "models_dir",
     default: path.resolve('/'),
@@ -179,6 +185,7 @@ export const queueSettingsSelector = selector<QueueType>({
             models_dir: get(modelsDirState),
             ckpt: get(ckptState),
             vae: get(vaeState),
+            controlnet: get(controlnetState),
 
             // sampler options
             sampler: get(samplerState),
