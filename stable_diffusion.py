@@ -10,6 +10,8 @@ import math
 import os
 import sys
 
+from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
+    apply_scribble, HWC3
 from safe import load as safe_load
 from transformers import logging
 from torch import autocast
@@ -85,7 +87,7 @@ def image_grid(imgs, rows, cols, path):
     print("Grid finished")
 
 
-def load_img(image, h0, w0, inpainting=False):
+def load_img(image, h0, w0, inpainting=False, mode=None):
     w, h = image.size
     if not inpainting and h0 != 0 and w0 != 0:
         h, w = h0, w0
@@ -94,6 +96,20 @@ def load_img(image, h0, w0, inpainting=False):
     w, h = map(lambda x: x - x % 64, (w, h))
     print(f"New image size ({w}, {h})")
     image = image.resize((w, h), resample=Image.LANCZOS)
+
+    if mode is not None:
+        image = HWC3(np.array(image))
+        match mode:
+            case "canny":
+                image = apply_canny(image)
+            case "pose":
+                image = apply_pose(image)
+            case "depth":
+                image = apply_depth(image)
+            case "normal":
+                image = apply_normal(image)
+            case "scribble":
+                image = apply_scribble(image)
 
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
@@ -292,7 +308,7 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
 
-        # if control_net_path is None: Remove this
+        # if control_net_path is None:  # remove this when you have proper handlers
         #     control_net_path = os.path.dirname(ckpt) + "/control_sd15_normal.pth"
 
         if control_net_path is not None:
@@ -595,7 +611,8 @@ class StableDiffusion:
         else:
             init_image = None
 
-        mode = "default" if not self.v1 or (self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
+        mode = "default" if not self.v1 or (
+                self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
             "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
         )
 
@@ -691,8 +708,9 @@ class StableDiffusion:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
                                     mask_image = support.b64_to_image(mask_b64).convert('L')
-                                else:
+                                elif os.path.exists(mask_b64):
                                     mask_image = Image.open(mask_b64).convert("L")
+
                                 if invert:
                                     mask_image = ImageOps.invert(mask_image)
 

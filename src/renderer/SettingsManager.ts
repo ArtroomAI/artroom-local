@@ -83,6 +83,12 @@ export const initImageState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const maskImageState = atom<string>({
+    key: "mask_image",
+    default: "",
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const strengthState = atom<number>({
     key: "strength",
     default: 0.75,
@@ -181,7 +187,7 @@ export const queueSettingsSelector = selector<QueueType>({
             seed: get(seedState),
 
             // inpainting options
-            mask_image: get(textPromptsState),
+            mask_image: get(maskImageState),
             invert: get(invertState),
             palette_fix: get(paletteFixState),
 
