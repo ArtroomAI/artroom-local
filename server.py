@@ -127,6 +127,7 @@ def generate(data):
             image_save_path=data['image_save_path'],
             speed=data['speed'],
             skip_grid=not data['save_grid'],
+            long_save_path=data['long_save_path'],
             controlnet = data['controlnet']
         )
         socketio.emit('job_done')
