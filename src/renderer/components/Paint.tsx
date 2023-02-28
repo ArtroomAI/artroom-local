@@ -149,7 +149,7 @@ function Paint () {
                 return [
                     ...queue,
                     parseSettings(
-                        {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
+                        {...body, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
                         useRandomSeed
                     )
                 ];
