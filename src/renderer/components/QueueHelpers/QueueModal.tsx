@@ -90,10 +90,10 @@ function QueueModal (props: QueueTypeWithIndex) {
                                     value={props.strength} />
                                 : <></>}
 
-                            {props.mask?.length > 0
+                            {props.mask_image?.length > 0
                                 ? <QueueModalRow
                                     name="Mask:"
-                                    value={props.mask} />
+                                    value={props.mask_image} />
                                 : <></>}
 
                             <QueueModalRow
