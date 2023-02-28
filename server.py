@@ -96,7 +96,7 @@ def save_to_settings_folder(data):
 def generate(data):
     if not SD.running:
         mask_b64 = data['mask_image']
-        data['mask_image'] = ''
+        data['mask_image'] = data['mask_image'][:100]+"..."
         init_image_str = data['init_image']
         data['init_image'] = data['init_image'][:100]+"..."
 
@@ -127,6 +127,7 @@ def generate(data):
             image_save_path=data['image_save_path'],
             speed=data['speed'],
             skip_grid=not data['save_grid'],
+            controlnet = data['controlnet']
         )
         socketio.emit('job_done')
 

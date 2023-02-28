@@ -87,7 +87,7 @@ def image_grid(imgs, rows, cols, path):
     print("Grid finished")
 
 
-def load_img(image, h0, w0, inpainting=False, mode=None):
+def load_img(image, h0, w0, inpainting=False, controlnet=None):
     w, h = image.size
     if not inpainting and h0 != 0 and w0 != 0:
         h, w = h0, w0
@@ -97,9 +97,9 @@ def load_img(image, h0, w0, inpainting=False, mode=None):
     print(f"New image size ({w}, {h})")
     image = image.resize((w, h), resample=Image.LANCZOS)
 
-    if mode is not None:
+    if controlnet is not None:
         image = HWC3(np.array(image))
-        match mode:
+        match controlnet:
             case "canny":
                 image = apply_canny(image)
             case "pose":
@@ -110,7 +110,7 @@ def load_img(image, h0, w0, inpainting=False, mode=None):
                 image = apply_normal(image)
             case "scribble":
                 image = apply_scribble(image)
-
+        Image.fromarray(image).save("controlnet_image.png")
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -135,6 +135,8 @@ class StableDiffusion:
 
         self.ckpt = ''
         self.vae = ''
+        self.controlnet_path = None
+
         self.can_use_half = get_gpu_architecture() == 'NVIDIA'
         self.device = get_device()
         self.speed = "Max"
@@ -219,12 +221,12 @@ class StableDiffusion:
                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
-    def load_ckpt(self, ckpt, speed, vae):
+    def load_ckpt(self, ckpt, speed, vae, controlnet_path=None):
         assert ckpt != '', 'Checkpoint cannot be empty'
-        if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
+        if self.ckpt != ckpt or self.speed != speed or self.vae != vae or self.controlnet_path != controlnet_path:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae)
+                self.set_up_models(ckpt, speed, vae, controlnet_path)
                 print("Successfully set up model")
                 return True
             except Exception as e:
@@ -285,7 +287,7 @@ class StableDiffusion:
             final_state_dict[key] = p_new
         return final_state_dict
 
-    def set_up_models(self, ckpt, speed, vae, control_net_path=None):
+    def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
         print(f"Loading {speed}..")
         self.socketio.emit('get_status', {'status': "Loading Model"})
@@ -308,11 +310,8 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
 
-        # if control_net_path is None:  # remove this when you have proper handlers
-        #     control_net_path = os.path.dirname(ckpt) + "/control_sd15_normal.pth"
-
-        if control_net_path is not None:
-            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", control_net_path)
+        if controlnet_path is not None:
+            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
 
         print("Setting up config...")
         parameterization = "eps"
@@ -433,6 +432,7 @@ class StableDiffusion:
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
         self.vae = vae
+        self.controlnet_path = controlnet_path
         print("Model loading finished")
         print("Loading vae")
         if '.vae' in vae:
@@ -528,7 +528,21 @@ class StableDiffusion:
     def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
                  sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False):
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
+                 controlnet = "None"
+                 ):
+        
+        controlnet_ckpts = {
+            "canny":    os.path.join(os.path.dirname(ckpt),"control_sd15_canny.pth"),
+            "depth":    os.path.join(os.path.dirname(ckpt),"control_sd15_depth.pth"),
+            "normal":   os.path.join(os.path.dirname(ckpt),"control_sd15_normal.pth"),
+            "pose":     os.path.join(os.path.dirname(ckpt),"control_sd15_openpose.pth"),
+            "scribble": os.path.join(os.path.dirname(ckpt),"control_sd15_scribble.pth"),
+            "None":     None
+        }
+        
+        print(f"Using contorlnet {controlnet}")
+        controlnet_path = controlnet_ckpts[controlnet]
 
         self.running = True
         highres_fix = False
@@ -572,7 +586,7 @@ class StableDiffusion:
         ddim_steps = int(steps / strength)
 
         print("Setting up models...")
-        self.load_ckpt(ckpt, speed, vae)
+        self.load_ckpt(ckpt, speed, vae, controlnet_path)
         if not self.model:
             print("Setting up model failed")
             return 'Failure'
@@ -605,7 +619,7 @@ class StableDiffusion:
                 except Exception as e:
                     print(f"Failed to outpaint the alpha layer {e}")
 
-            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0)).to(self.device)
+            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0), controlnet=controlnet).to(self.device)
             _, _, H, W = init_image.shape
             init_image = init_image.to(self.dtype)
         else:
@@ -779,10 +793,10 @@ class StableDiffusion:
                                 x_sample.astype(np.uint8))
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0), controlnet=controlnet).to(
                                     self.device).to(self.dtype)
                             elif ij == highres_fix_steps - 1:
-                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
+                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0), controlnet=controlnet).to(
                                     self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size
