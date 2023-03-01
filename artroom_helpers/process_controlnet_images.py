@@ -7,7 +7,7 @@ from artroom_helpers.annotator.openpose import OpenposeDetector
 
 apply_openpose = OpenposeDetector()
 apply_midas = MidasDetector()
-apply_hed = HEDdetector()
+apply_hed_d = HEDdetector()
 
 
 def apply_canny(img, low_thr=100, high_thr=200):
@@ -36,14 +36,20 @@ def apply_normal(img):
     return img
 
 
-def apply_scribble(img):
-    img = apply_hed(img)
+def apply_hed(img):
+    img = apply_hed_d(img)
     img = HWC3(img)
     img = nms(img, 127, 3.0)
     img = cv2.GaussianBlur(img, (0, 0), 3.0)
     img[img > 4] = 255
     img[img < 255] = 0
     return img
+
+
+def apply_scribble(img):
+    detected_map = np.zeros_like(img, dtype=np.uint8)
+    detected_map[np.min(img, axis=2) < 127] = 255
+    return detected_map
 
 
 def HWC3(x):

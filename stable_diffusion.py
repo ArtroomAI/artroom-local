@@ -11,7 +11,7 @@ import os
 import sys
 
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-    apply_scribble, HWC3
+    apply_scribble, HWC3, apply_hed
 from safe import load as safe_load
 from transformers import logging
 from torch import autocast
@@ -87,7 +87,7 @@ def image_grid(imgs, rows, cols, path):
     print("Grid finished")
 
 
-def load_img(image, h0, w0, inpainting=False, controlnet=None):
+def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
     w, h = image.size
     if not inpainting and h0 != 0 and w0 != 0:
         h, w = h0, w0
@@ -97,9 +97,9 @@ def load_img(image, h0, w0, inpainting=False, controlnet=None):
     print(f"New image size ({w}, {h})")
     image = image.resize((w, h), resample=Image.LANCZOS)
 
-    if controlnet is not None:
+    if controlnet_mode is not None:
         image = HWC3(np.array(image))
-        match controlnet:
+        match controlnet_mode:
             case "canny":
                 image = apply_canny(image)
             case "pose":
@@ -110,6 +110,8 @@ def load_img(image, h0, w0, inpainting=False, controlnet=None):
                 image = apply_normal(image)
             case "scribble":
                 image = apply_scribble(image)
+            case "hed":
+                image = apply_hed(image)
         Image.fromarray(image).save("controlnet_image.png")
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
@@ -235,6 +237,50 @@ class StableDiffusion:
                 self.modelCS = None
                 self.modelFS = None
                 return False
+
+    def hack_everything(self, clip_skip=0):
+        def _hacked_clip_forward(self, text):
+            PAD = self.tokenizer.pad_token_id
+            EOS = self.tokenizer.eos_token_id
+            BOS = self.tokenizer.bos_token_id
+
+            def tokenize(t):
+                return self.tokenizer(t, truncation=False, add_special_tokens=False)["input_ids"]
+
+            def transformer_encode(t):
+                if self.clip_skip > 1:
+                    rt = self.transformer(input_ids=t, output_hidden_states=True)
+                    return self.transformer.text_model.final_layer_norm(rt.hidden_states[-self.clip_skip])
+                else:
+                    return self.transformer(input_ids=t, output_hidden_states=False).last_hidden_state
+
+            def split(x):
+                return x[75 * 0: 75 * 1], x[75 * 1: 75 * 2], x[75 * 2: 75 * 3]
+
+            def pad(x, p, i):
+                return x[:i] if len(x) >= i else x + [p] * (i - len(x))
+
+            raw_tokens_list = tokenize(text)
+            tokens_list = []
+
+            for raw_tokens in raw_tokens_list:
+                raw_tokens_123 = split(raw_tokens)
+                raw_tokens_123 = [[BOS] + raw_tokens_i + [EOS] for raw_tokens_i in raw_tokens_123]
+                raw_tokens_123 = [pad(raw_tokens_i, PAD, 77) for raw_tokens_i in raw_tokens_123]
+                tokens_list.append(raw_tokens_123)
+
+            tokens_list = torch.IntTensor(tokens_list).to(self.device)
+
+            feed = rearrange(tokens_list, 'b f i -> (b f) i')
+            y = transformer_encode(feed)
+            z = rearrange(y, '(b f) i c -> b (f i) c', f=3)
+
+            return z
+
+        self.modelCS.cond_stage_model.forward = _hacked_clip_forward
+        self.modelCS.cond_stage_model.clip_skip = clip_skip
+        print('Enabled clip hacks.')
+        return
 
     def inject_controlnet(self, input_state_dict, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
@@ -433,6 +479,10 @@ class StableDiffusion:
         self.speed = speed
         self.vae = vae
         self.controlnet_path = controlnet_path
+
+        # if self.controlnet_path is not None:
+        #     self.hack_everything(clip_skip=2)
+
         print("Model loading finished")
         print("Loading vae")
         if '.vae' in vae:
@@ -529,18 +579,19 @@ class StableDiffusion:
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
                  sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
                  speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
-                 controlnet = "None"
+                 controlnet="None"
                  ):
-        
+
         controlnet_ckpts = {
-            "canny":    os.path.join(os.path.dirname(ckpt),"control_sd15_canny.pth"),
-            "depth":    os.path.join(os.path.dirname(ckpt),"control_sd15_depth.pth"),
-            "normal":   os.path.join(os.path.dirname(ckpt),"control_sd15_normal.pth"),
-            "pose":     os.path.join(os.path.dirname(ckpt),"control_sd15_openpose.pth"),
-            "scribble": os.path.join(os.path.dirname(ckpt),"control_sd15_scribble.pth"),
-            "None":     None
+            "canny": os.path.join(os.path.dirname(ckpt), "control_sd15_canny.pth"),
+            "depth": os.path.join(os.path.dirname(ckpt), "control_sd15_depth.pth"),
+            "normal": os.path.join(os.path.dirname(ckpt), "control_sd15_normal.pth"),
+            "pose": os.path.join(os.path.dirname(ckpt), "control_sd15_openpose.pth"),
+            "scribble": os.path.join(os.path.dirname(ckpt), "control_sd15_scribble.pth"),
+            "hed": os.path.join(os.path.dirname(ckpt), "control_sd15_hed.pth"),
+            "None": None
         }
-        
+
         print(f"Using contorlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
 
@@ -619,7 +670,8 @@ class StableDiffusion:
                 except Exception as e:
                     print(f"Failed to outpaint the alpha layer {e}")
 
-            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0), controlnet=controlnet).to(self.device)
+            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
+                                  controlnet_mode=controlnet).to(self.device)
             _, _, H, W = init_image.shape
             init_image = init_image.to(self.dtype)
         else:
@@ -793,11 +845,11 @@ class StableDiffusion:
                                 x_sample.astype(np.uint8))
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0), controlnet=controlnet).to(
-                                    self.device).to(self.dtype)
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0),
+                                    controlnet_mode=None).to(self.device).to(self.dtype)  # we only encode cnet 1 time
                             elif ij == highres_fix_steps - 1:
-                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0), controlnet=controlnet).to(
-                                    self.device).to(self.dtype)
+                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0),
+                                                      controlnet_mode=None).to(self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size
                                 out_image = out_image.crop((padding, padding, w - padding, h - padding))
