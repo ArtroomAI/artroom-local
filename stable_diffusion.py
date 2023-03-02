@@ -10,6 +10,7 @@ import math
 import os
 import sys
 
+from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
     apply_scribble, HWC3, apply_hed
 from safe import load as safe_load
@@ -22,6 +23,7 @@ from einops import rearrange, repeat
 from contextlib import nullcontext
 from PIL import Image, ImageOps
 from safetensors import safe_open
+from safetensors.torch import load_file
 
 from artroom_helpers import support, inpainting
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
@@ -121,6 +123,7 @@ def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
+        self.network = None
         self.config = None
         self.dtype = None
         self.Upscaler = Upscaler
@@ -185,32 +188,28 @@ class StableDiffusion:
         hn = HN(hn_sd)
         return hn
 
-    def load_lora(self, path: str, safe_load_=True):
-        lora_sd = load_model_from_config(path, safe_load_)
-        lora = LoRA(lora_sd)
-        return lora
+    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=8):
+        print(f'Loading Lora file :{path}')
+        du_state_dict = load_file(path)
+        text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
+        # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
+        # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
+        print(f'Using LoRA text_encoder')
 
-    def inject_loras_and_hns(self, loras: list, hns: list):  # has to be called after modelCS is loaded
-        def forward(self, x):
-            if self.hns is not None:
-                for hn in self.hns:
-                    x = x + hn(x)
-            x = self.forward_vanilla(x)
-            if self.loras is not None:
-                for lora in self.loras:
-                    x = x + lora(x)
-            return x
+        assert text_encoder is not None, "Text encoder is Null"
 
-        for i in range(len(self.modelCS.cond_stage_model.transformer.text_model.encoder.layers)):
-            of_mlp = self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward = forward
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward_vanilla = of_mlp
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.loras = loras
+        network, info, state_dict = create_network_and_apply_compvis(
+            du_state_dict, weight_tenc, weight_unet, text_encoder, unet=self.model)
+        self.network = network.to(self.device, dtype=self.dtype)
+        self.network.enable_loras(True)
 
-            of_at = self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward_vanilla = of_at
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.hns = hns
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward = forward
+    def deinject_lora(self, delete=True):
+        self.network.enable_loras(False)
+        self.network.restore(text_encoder=self.modelCS.cond_stage_model, unet=self.model)
+        if delete:
+            del self.network
+            self.network = None
+            torch.cuda.empty_cache()
 
     def load_vae(self, vae_path: str, safe_load_=True):
         vae = load_model_from_config(vae_path, safe_load_)
@@ -480,6 +479,8 @@ class StableDiffusion:
         self.vae = vae
         self.controlnet_path = controlnet_path
 
+        # self.inject_lora(path-to-lora)
+
         # if self.controlnet_path is not None:
         #     self.hack_everything(clip_skip=2)
 
@@ -589,7 +590,8 @@ class StableDiffusion:
             "pose": os.path.join(os.path.dirname(ckpt), "control_sd15_openpose.pth"),
             "scribble": os.path.join(os.path.dirname(ckpt), "control_sd15_scribble.pth"),
             "hed": os.path.join(os.path.dirname(ckpt), "control_sd15_hed.pth"),
-            "None": None
+            "None": None,
+            "none": None
         }
 
         print(f"Using contorlnet {controlnet}")
