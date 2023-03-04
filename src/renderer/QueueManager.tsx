@@ -60,7 +60,6 @@ export const QueueManager = () => {
             window.api.saveQueue(JSON.stringify(queue));
         }
         window.addEventListener('beforeunload', saveQueue);
-
         return () => {
             window.removeEventListener('beforeunload', saveQueue);
         }

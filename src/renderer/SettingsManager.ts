@@ -143,6 +143,18 @@ export const vaeState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const loraState = atom<{ name: string, weight: number }[]>({
+    key: "lora",
+    default: [],
+    effects_UNSTABLE: [persistAtom]
+});
+
+export const controlnetState = atom<string>({
+    key: "controlnet",
+    default: "None",
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const modelsDirState = atom<string>({
     key: "models_dir",
     default: path.resolve('/'),
@@ -164,7 +176,7 @@ export const queueSettingsSelector = selector<QueueType>({
 
             // image to image options
             strength: get(strengthState),
-            init_image: get(initImageState),
+            init_image: get(initImageState), // replaced in Paint.tsx
 
             width: get(widthState),
             height: get(heightState),
@@ -173,6 +185,8 @@ export const queueSettingsSelector = selector<QueueType>({
             models_dir: get(modelsDirState),
             ckpt: get(ckptState),
             vae: get(vaeState),
+            lora: get(loraState),
+            controlnet: get(controlnetState),
 
             // sampler options
             sampler: get(samplerState),
@@ -181,8 +195,8 @@ export const queueSettingsSelector = selector<QueueType>({
             seed: get(seedState),
 
             // inpainting options
-            mask_image: get(textPromptsState),
-            invert: get(invertState),
+            mask_image: '', // handled in Paint.tsx
+            invert: get(invertState), // handled in Paint.tsx
             palette_fix: get(paletteFixState),
 
             //

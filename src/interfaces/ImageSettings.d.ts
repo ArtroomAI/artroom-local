@@ -12,6 +12,8 @@ interface QueueType {
     // models
     ckpt: string; // absolute path
     vae: string; // absolute path
+    lora: array; // array of {path: string, weight: float}
+    controlnet: string;
 
     // sampler options
     sampler: string;

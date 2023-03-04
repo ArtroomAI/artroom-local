@@ -42,3 +42,4 @@ artroomlog.txt
 
 __pycache__/
 *.py[cod]
+/controlnet_image.png

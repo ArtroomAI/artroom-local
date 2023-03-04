@@ -89,9 +89,6 @@ function Queue () {
             p={4}
             rounded="md"
             width="100%">
-            <Grid
-                gap="24px"
-                templateColumns="4fr 1fr">
                 <Card
                     overflowX="hidden"
                     p="16px">
@@ -203,7 +200,6 @@ function Queue () {
                         </Table>
                     </DndContext>
                 </Card>
-            </Grid>
         </Box>
     );
 }

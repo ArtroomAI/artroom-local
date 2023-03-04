@@ -6,7 +6,7 @@ import {
 } from '@chakra-ui/react';
 import React from 'react';
 
-function QueueModalRow (props: { name: string, value: string }) {
+function QueueModalRow (props: { name: string, value: string | number }) {
     return (
         <Tr>
             <Td

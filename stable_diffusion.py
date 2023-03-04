@@ -9,7 +9,12 @@ import json
 import math
 import os
 import sys
+sys.path.append("stable-diffusion/optimizedSD")
+sys.path.append("artroom_helpers/modules")
 
+from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
+from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
+    apply_scribble, HWC3, apply_hed
 from safe import load as safe_load
 from transformers import logging
 from torch import autocast
@@ -20,13 +25,13 @@ from einops import rearrange, repeat
 from contextlib import nullcontext
 from PIL import Image, ImageOps
 from safetensors import safe_open
+from safetensors.torch import load_file
 
 from artroom_helpers import support, inpainting
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
 from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
-from artroom_helpers.modules import LoRA, HN
+from artroom_helpers.modules import HN
 
-sys.path.append("stable-diffusion/optimizedSD")
 from ldm.util import instantiate_from_config
 
 logging.set_verbosity_error()
@@ -85,7 +90,7 @@ def image_grid(imgs, rows, cols, path):
     print("Grid finished")
 
 
-def load_img(image, h0, w0, inpainting=False):
+def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
     w, h = image.size
     if not inpainting and h0 != 0 and w0 != 0:
         h, w = h0, w0
@@ -95,6 +100,22 @@ def load_img(image, h0, w0, inpainting=False):
     print(f"New image size ({w}, {h})")
     image = image.resize((w, h), resample=Image.LANCZOS)
 
+    if controlnet_mode is not None:
+        image = HWC3(np.array(image))
+        match controlnet_mode:
+            case "canny":
+                image = apply_canny(image)
+            case "pose":
+                image = apply_pose(image)
+            case "depth":
+                image = apply_depth(image)
+            case "normal":
+                image = apply_normal(image)
+            case "scribble":
+                image = apply_scribble(image)
+            case "hed":
+                image = apply_hed(image)
+        Image.fromarray(image).save("controlnet_image.png")
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -103,6 +124,7 @@ def load_img(image, h0, w0, inpainting=False):
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
+        self.network = None
         self.config = None
         self.dtype = None
         self.Upscaler = Upscaler
@@ -119,6 +141,9 @@ class StableDiffusion:
 
         self.ckpt = ''
         self.vae = ''
+        self.loras = []
+        self.controlnet_path = None
+
         self.can_use_half = get_gpu_architecture() == 'NVIDIA'
         self.device = get_device()
         self.speed = "Max"
@@ -165,32 +190,28 @@ class StableDiffusion:
         hn = HN(hn_sd)
         return hn
 
-    def load_lora(self, path: str, safe_load_=True):
-        lora_sd = load_model_from_config(path, safe_load_)
-        lora = LoRA(lora_sd)
-        return lora
+    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=8):
+        print(f'Loading Lora file :{path} with weight {weight_tenc}')
+        du_state_dict = load_file(path)
+        text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
+        # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
+        # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
+        print(f'Using LoRA text_encoder')
 
-    def inject_loras_and_hns(self, loras: list, hns: list):  # has to be called after modelCS is loaded
-        def forward(self, x):
-            if self.hns is not None:
-                for hn in self.hns:
-                    x = x + hn(x)
-            x = self.forward_vanilla(x)
-            if self.loras is not None:
-                for lora in self.loras:
-                    x = x + lora(x)
-            return x
+        assert text_encoder is not None, "Text encoder is Null"
 
-        for i in range(len(self.modelCS.cond_stage_model.transformer.text_model.encoder.layers)):
-            of_mlp = self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward = forward
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.forward_vanilla = of_mlp
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].mlp.loras = loras
+        network, info, state_dict = create_network_and_apply_compvis(
+            du_state_dict, weight_tenc, weight_unet, text_encoder, unet=self.model)
+        self.network = network.to(self.device, dtype=self.dtype)
+        self.network.enable_loras(True)
 
-            of_at = self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward_vanilla = of_at
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.hns = hns
-            self.modelCS.cond_stage_model.transformer.text_model.encoder.layers[i].self_attn.forward = forward
+    def deinject_lora(self, delete=True):
+        self.network.enable_loras(False)
+        self.network.restore(text_encoder=self.modelCS.cond_stage_model, unet=self.model)
+        if delete:
+            del self.network
+            self.network = None
+            torch.cuda.empty_cache()
 
     def load_vae(self, vae_path: str, safe_load_=True):
         vae = load_model_from_config(vae_path, safe_load_)
@@ -203,12 +224,12 @@ class StableDiffusion:
                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
-    def load_ckpt(self, ckpt, speed, vae):
+    def load_ckpt(self, ckpt, speed, vae, loras=[], controlnet_path=None):
         assert ckpt != '', 'Checkpoint cannot be empty'
-        if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
+        if self.ckpt != ckpt or self.speed != speed or self.vae != vae or self.controlnet_path != controlnet_path:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae)
+                self.set_up_models(ckpt, speed, vae, controlnet_path)
                 print("Successfully set up model")
                 return True
             except Exception as e:
@@ -217,6 +238,60 @@ class StableDiffusion:
                 self.modelCS = None
                 self.modelFS = None
                 return False
+        try:
+            if sorted(self.loras) != sorted(loras):
+                if self.network:
+                    self.deinject_lora()
+                if len(loras) > 0:
+                    for lora in loras:
+                        self.inject_lora(path = lora['path'], weight_tenc = lora['weight'])
+                self.loras = loras
+        except Exception as e:
+            print(f"Failed to load in Lora! {e}")
+            
+    def hack_everything(self, clip_skip=0):
+        def _hacked_clip_forward(self, text):
+            PAD = self.tokenizer.pad_token_id
+            EOS = self.tokenizer.eos_token_id
+            BOS = self.tokenizer.bos_token_id
+
+            def tokenize(t):
+                return self.tokenizer(t, truncation=False, add_special_tokens=False)["input_ids"]
+
+            def transformer_encode(t):
+                if self.clip_skip > 1:
+                    rt = self.transformer(input_ids=t, output_hidden_states=True)
+                    return self.transformer.text_model.final_layer_norm(rt.hidden_states[-self.clip_skip])
+                else:
+                    return self.transformer(input_ids=t, output_hidden_states=False).last_hidden_state
+
+            def split(x):
+                return x[75 * 0: 75 * 1], x[75 * 1: 75 * 2], x[75 * 2: 75 * 3]
+
+            def pad(x, p, i):
+                return x[:i] if len(x) >= i else x + [p] * (i - len(x))
+
+            raw_tokens_list = tokenize(text)
+            tokens_list = []
+
+            for raw_tokens in raw_tokens_list:
+                raw_tokens_123 = split(raw_tokens)
+                raw_tokens_123 = [[BOS] + raw_tokens_i + [EOS] for raw_tokens_i in raw_tokens_123]
+                raw_tokens_123 = [pad(raw_tokens_i, PAD, 77) for raw_tokens_i in raw_tokens_123]
+                tokens_list.append(raw_tokens_123)
+
+            tokens_list = torch.IntTensor(tokens_list).to(self.device)
+
+            feed = rearrange(tokens_list, 'b f i -> (b f) i')
+            y = transformer_encode(feed)
+            z = rearrange(y, '(b f) i c -> b (f i) c', f=3)
+
+            return z
+
+        self.modelCS.cond_stage_model.forward = _hacked_clip_forward
+        self.modelCS.cond_stage_model.clip_skip = clip_skip
+        print('Enabled clip hacks.')
+        return
 
     def inject_controlnet(self, input_state_dict, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
@@ -269,7 +344,7 @@ class StableDiffusion:
             final_state_dict[key] = p_new
         return final_state_dict
 
-    def set_up_models(self, ckpt, speed, vae, control_net_path=None):
+    def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
         print(f"Loading {speed}..")
         self.socketio.emit('get_status', {'status': "Loading Model"})
@@ -292,11 +367,8 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
 
-        # if control_net_path is None: Remove this
-        #     control_net_path = os.path.dirname(ckpt) + "/control_sd15_normal.pth"
-
-        if control_net_path is not None:
-            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", control_net_path)
+        if controlnet_path is not None:
+            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
 
         print("Setting up config...")
         parameterization = "eps"
@@ -414,9 +486,15 @@ class StableDiffusion:
             self.modelCS.to(torch.float32)
             self.modelFS.to(torch.float32)
         del sd
+
+        # if self.controlnet_path is not None:
+        #     self.hack_everything(clip_skip=2)
+
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
         self.vae = vae
+        self.controlnet_path = controlnet_path
+
         print("Model loading finished")
         print("Loading vae")
         if '.vae' in vae:
@@ -511,8 +589,24 @@ class StableDiffusion:
 
     def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
-                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False):
+                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[], image_save_path="",
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
+                 controlnet="None"
+                 ):
+
+        controlnet_ckpts = {
+            "canny": os.path.join(os.path.dirname(ckpt), "control_sd15_canny.pth"),
+            "depth": os.path.join(os.path.dirname(ckpt), "control_sd15_depth.pth"),
+            "normal": os.path.join(os.path.dirname(ckpt), "control_sd15_normal.pth"),
+            "pose": os.path.join(os.path.dirname(ckpt), "control_sd15_openpose.pth"),
+            "scribble": os.path.join(os.path.dirname(ckpt), "control_sd15_scribble.pth"),
+            "hed": os.path.join(os.path.dirname(ckpt), "control_sd15_hed.pth"),
+            "None": None,
+            "none": None
+        }
+
+        print(f"Using contorlnet {controlnet}")
+        controlnet_path = controlnet_ckpts[controlnet]
 
         self.running = True
         highres_fix = False
@@ -556,7 +650,7 @@ class StableDiffusion:
         ddim_steps = int(steps / strength)
 
         print("Setting up models...")
-        self.load_ckpt(ckpt, speed, vae)
+        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path)
         if not self.model:
             print("Setting up model failed")
             return 'Failure'
@@ -589,13 +683,15 @@ class StableDiffusion:
                 except Exception as e:
                     print(f"Failed to outpaint the alpha layer {e}")
 
-            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0)).to(self.device)
+            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
+                                  controlnet_mode=controlnet).to(self.device)
             _, _, H, W = init_image.shape
             init_image = init_image.to(self.dtype)
         else:
             init_image = None
 
-        mode = "default" if not self.v1 or (self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
+        mode = "default" if not self.v1 or (
+                self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
             "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
         )
 
@@ -691,8 +787,9 @@ class StableDiffusion:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
                                     mask_image = support.b64_to_image(mask_b64).convert('L')
-                                else:
+                                elif os.path.exists(mask_b64):
                                     mask_image = Image.open(mask_b64).convert("L")
+
                                 if invert:
                                     mask_image = ImageOps.invert(mask_image)
 
@@ -761,11 +858,11 @@ class StableDiffusion:
                                 x_sample.astype(np.uint8))
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(
-                                    self.device).to(self.dtype)
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0),
+                                    controlnet_mode=None).to(self.device).to(self.dtype)  # we only encode cnet 1 time
                             elif ij == highres_fix_steps - 1:
-                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
-                                    self.device).to(self.dtype)
+                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0),
+                                                      controlnet_mode=None).to(self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size
                                 out_image = out_image.crop((padding, padding, w - padding, h - padding))
