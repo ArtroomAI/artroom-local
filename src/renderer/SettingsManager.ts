@@ -143,6 +143,12 @@ export const vaeState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const loraState = atom<{ name: string, weight: number }[]>({
+    key: "lora",
+    default: [],
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const controlnetState = atom<string>({
     key: "controlnet",
     default: "None",
@@ -179,6 +185,7 @@ export const queueSettingsSelector = selector<QueueType>({
             models_dir: get(modelsDirState),
             ckpt: get(ckptState),
             vae: get(vaeState),
+            lora: get(loraState),
             controlnet: get(controlnetState),
 
             // sampler options

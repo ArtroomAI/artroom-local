@@ -24,7 +24,6 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 print('Running in Debug Mode. Please keep CMD window open')
 
-
 def return_output(status, status_message='', content=''):
     if not status_message and status == 'Failure':
         status_message = 'Unknown Error'
@@ -49,6 +48,9 @@ if os.path.exists(artroom_install_log):
     artroom_path = artroom_path_raw[:-1]
 else:
     artroom_path = os.environ['USERPROFILE']
+
+os.makedirs(os.path.join(artroom_path, "model_weights/Loras"), exist_ok=True)
+os.makedirs(os.path.join(artroom_path, "model_weights/Vaes"), exist_ok=True)
 
 @socketio.on('upscale')
 def upscale(data):
@@ -103,7 +105,14 @@ def generate(data):
         print("Saving settings to folder...")
         save_to_settings_folder(data)
         ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-        vae_path = os.path.join(data['models_dir'], data['vae']).replace(os.sep, '/')
+        vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
+        lora_paths = []
+        if len(data['lora']) > 0:
+            for lora in data['lora']:
+                lora_paths.append({
+                    'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                    'weight': lora['weight']
+                })
         # try:
         print("Starting gen...")
         print(data)
@@ -124,6 +133,7 @@ def generate(data):
             palette_fix=data['palette_fix'],
             ckpt=ckpt_path,
             vae=vae_path,
+            loras=lora_paths,
             image_save_path=data['image_save_path'],
             speed=data['speed'],
             skip_grid=not data['save_grid'],

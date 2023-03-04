@@ -28,6 +28,7 @@ import {
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 import { aspectRatioState, batchNameState, cfgState, ckptState, controlnetState, heightState, initImageState, iterationsState, loadSettingsFromFile, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, vaeState, widthState } from '../SettingsManager';
+import LoraSelector from './LoraSelector';
 
 function SDSettings () {
     const toast = useToast({});
@@ -37,6 +38,7 @@ function SDSettings () {
     const modelDirs = useRecoilValue(modelsDirState);
     const [ckpts, setCkpts] = useState([]);
     const [vaes, setVaes] = useState([]);
+    const [loras, setLoras] = useState([]);
 
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
 
@@ -54,11 +56,14 @@ function SDSettings () {
     const initImage = useRecoilValue(initImageState);
     const [ckpt, setCkpt] = useRecoilState(ckptState);
     const [vae, setVae] = useRecoilState(vaeState);
+
     const [randomSeed, setRandomSeed] = useRecoilState(randomSeedState);
 
     const getCkpts = useCallback(() => {
         window.api.getCkpts(modelDirs).then(setCkpts);
         window.api.getVaes(modelDirs).then(setVaes);
+        window.api.getLoras(modelDirs).then(setLoras);
+
     }, [modelDirs]);
 
     useEffect(() => {
@@ -675,6 +680,8 @@ function SDSettings () {
                             </option>))}
                         </Select>
                     </FormControl>
+                                
+                    <LoraSelector cloudMode={cloudMode} options={loras}></LoraSelector>
 
                     <FormControl className="vae-ckpt-input">
                         <FormLabel htmlFor="Vae">

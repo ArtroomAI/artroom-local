@@ -143,8 +143,12 @@ function createWindow() {
     return getFiles(data, 'ckpt,safetensors');
   });
 
+  ipcMain.handle('getLoras', async (event, data) => {
+    return getFiles(path.join(data, 'Loras'), 'ckpt,safetensors');
+  });
+
   ipcMain.handle('getVaes', async (event, data) => {
-    return getFiles(data, 'vae.pt,vae.ckpt,vae.safetensors');
+    return getFiles(path.join(data, 'Vaes'), 'vae.pt,vae.ckpt,vae.safetensors');
   });
 
   ipcMain.handle('getImages', async (event, data) => {

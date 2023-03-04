@@ -3,6 +3,7 @@ import { ProgressInfo } from "electron-updater";
 
 const api = {
     getCkpts: async (data: any) => {return await ipcRenderer.invoke('getCkpts',data);},
+    getLoras: async (data: any) => {return await ipcRenderer.invoke('getLoras',data);},
     getVaes: async (data: any) => {return await ipcRenderer.invoke('getVaes',data);},
     getImages: async (data: any): Promise<string[]> => {return await ipcRenderer.invoke('getImages',data);},
     mergeModels: async (data: any) => {return await ipcRenderer.invoke('mergeModels',data);},

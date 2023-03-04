@@ -9,6 +9,8 @@ import json
 import math
 import os
 import sys
+sys.path.append("stable-diffusion/optimizedSD")
+sys.path.append("artroom_helpers/modules")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
@@ -28,9 +30,8 @@ from safetensors.torch import load_file
 from artroom_helpers import support, inpainting
 from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
 from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
-from artroom_helpers.modules import LoRA, HN
+from artroom_helpers.modules import HN
 
-sys.path.append("stable-diffusion/optimizedSD")
 from ldm.util import instantiate_from_config
 
 logging.set_verbosity_error()
@@ -140,6 +141,7 @@ class StableDiffusion:
 
         self.ckpt = ''
         self.vae = ''
+        self.loras = []
         self.controlnet_path = None
 
         self.can_use_half = get_gpu_architecture() == 'NVIDIA'
@@ -189,7 +191,7 @@ class StableDiffusion:
         return hn
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=8):
-        print(f'Loading Lora file :{path}')
+        print(f'Loading Lora file :{path} with weight {weight_tenc}')
         du_state_dict = load_file(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
         # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
@@ -222,7 +224,7 @@ class StableDiffusion:
                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
-    def load_ckpt(self, ckpt, speed, vae, controlnet_path=None):
+    def load_ckpt(self, ckpt, speed, vae, loras=[], controlnet_path=None):
         assert ckpt != '', 'Checkpoint cannot be empty'
         if self.ckpt != ckpt or self.speed != speed or self.vae != vae or self.controlnet_path != controlnet_path:
             try:
@@ -236,7 +238,17 @@ class StableDiffusion:
                 self.modelCS = None
                 self.modelFS = None
                 return False
-
+        try:
+            if sorted(self.loras) != sorted(loras):
+                if self.network:
+                    self.deinject_lora()
+                if len(loras) > 0:
+                    for lora in loras:
+                        self.inject_lora(path = lora['path'], weight_tenc = lora['weight'])
+                self.loras = loras
+        except Exception as e:
+            print(f"Failed to load in Lora! {e}")
+            
     def hack_everything(self, clip_skip=0):
         def _hacked_clip_forward(self, text):
             PAD = self.tokenizer.pad_token_id
@@ -474,15 +486,14 @@ class StableDiffusion:
             self.modelCS.to(torch.float32)
             self.modelFS.to(torch.float32)
         del sd
+
+        # if self.controlnet_path is not None:
+        #     self.hack_everything(clip_skip=2)
+
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
         self.vae = vae
         self.controlnet_path = controlnet_path
-
-        # self.inject_lora(path-to-lora)
-
-        # if self.controlnet_path is not None:
-        #     self.hack_everything(clip_skip=2)
 
         print("Model loading finished")
         print("Loading vae")
@@ -578,7 +589,7 @@ class StableDiffusion:
 
     def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
-                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", image_save_path="",
+                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[], image_save_path="",
                  speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
                  controlnet="None"
                  ):
@@ -639,7 +650,7 @@ class StableDiffusion:
         ddim_steps = int(steps / strength)
 
         print("Setting up models...")
-        self.load_ckpt(ckpt, speed, vae, controlnet_path)
+        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path)
         if not self.model:
             print("Setting up model failed")
             return 'Failure'
