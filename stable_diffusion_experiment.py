@@ -598,7 +598,7 @@ class StableDiffusion:
                     temp_path = os.path.join(self.artroom_path, "intermediates")
                     os.makedirs(temp_path, exist_ok=True)
                     print(os.path.join(self.artroom_path,"highres.png"))
-                    out_image.save(os.path.join(temp_path,"highres.png"))
+                    # out_image.save(os.path.join(temp_path,"highres.png"))
                     self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image), 'path': os.path.join(sample_path, save_name), 'batch_id': batch_id })
 
                     upscaled_image = self.Upscaler.upscale(images = [os.path.join(temp_path,"highres.png")], upscaler="RealESRGAN", upscale_factor=scale, upscale_dest=os.path.join(temp_path))["content"]["output_images"][0].convert("RGB")

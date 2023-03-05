@@ -14,7 +14,7 @@ sys.path.append("artroom_helpers/modules")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-    apply_scribble, HWC3, apply_hed
+    apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
 from safe import load as safe_load
 from transformers import logging
 from torch import autocast
@@ -115,7 +115,7 @@ def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
                 image = apply_scribble(image)
             case "hed":
                 image = apply_hed(image)
-        Image.fromarray(image).save("controlnet_image.png")
+        # Image.fromarray(image).save("controlnet_image.png")
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -607,6 +607,10 @@ class StableDiffusion:
 
         print(f"Using contorlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
+        if controlnet_path is None:
+            deinit_cnet_stuff()
+        else:
+            init_cnet_stuff(controlnet)
 
         self.running = True
         highres_fix = False
