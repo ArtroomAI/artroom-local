@@ -115,7 +115,6 @@ def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
                 image = apply_scribble(image)
             case "hed":
                 image = apply_hed(image)
-        # Image.fromarray(image).save("controlnet_image.png")
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -190,7 +189,7 @@ class StableDiffusion:
         hn = HN(hn_sd)
         return hn
 
-    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=8):
+    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
         du_state_dict = load_file(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
@@ -231,7 +230,6 @@ class StableDiffusion:
                 print("Setting up model...")
                 self.set_up_models(ckpt, speed, vae, controlnet_path)
                 print("Successfully set up model")
-                return True
             except Exception as e:
                 print(f"Setting up model failed: {e}")
                 self.model = None
@@ -239,16 +237,15 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
         try:
-            if sorted(self.loras) != sorted(loras):
-                if self.network:
-                    self.deinject_lora()
-                if len(loras) > 0:
-                    for lora in loras:
-                        self.inject_lora(path = lora['path'], weight_tenc = lora['weight'])
-                self.loras = loras
+            if self.network:
+                self.deinject_lora()
+            if len(loras) > 0:
+                for lora in loras:
+                    self.inject_lora(path = lora['path'], weight_tenc = lora['weight'], weight_unet = lora['weight'])
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
-            
+        return True
+
     def hack_everything(self, clip_skip=0):
         def _hacked_clip_forward(self, text):
             PAD = self.tokenizer.pad_token_id
