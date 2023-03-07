@@ -113,6 +113,13 @@ export const longSavePathState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
+
+export const showIntermediatesState = atom<boolean>({
+    key: "show_intermediates",
+    default: true,
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const highresFixState = atom<boolean>({
     key: "highres_fix",
     default: false,
@@ -209,6 +216,7 @@ export const queueSettingsSelector = selector<QueueType>({
             device: undefined, // ? CPU / GPU
             long_save_path: get(longSavePathState),
             highres_fix: get(highresFixState),
+            show_intermediates: get(showIntermediatesState),
             id: ""
         }
         return settings;

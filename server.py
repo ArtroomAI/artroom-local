@@ -99,22 +99,29 @@ try:
     @socketio.on('generate')
     def generate(data):
         if not SD.running:
-            mask_b64 = data['mask_image']
-            data['mask_image'] = data['mask_image'][:100]+"..."
-            init_image_str = data['init_image']
-            data['init_image'] = data['init_image'][:100]+"..."
+            try:
+                SD.running = True
+                mask_b64 = data['mask_image']
+                data['mask_image'] = data['mask_image'][:100]+"..."
+                init_image_str = data['init_image']
+                data['init_image'] = data['init_image'][:100]+"..."
 
-            print("Saving settings to folder...")
-            save_to_settings_folder(data)
-            ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-            vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
-            lora_paths = []
-            if len(data['lora']) > 0:
-                for lora in data['lora']:
-                    lora_paths.append({
-                        'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
-                        'weight': lora['weight']
-                    })
+                print("Saving settings to folder...")
+                save_to_settings_folder(data)
+                ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
+                vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
+                lora_paths = []
+                if len(data['lora']) > 0:
+                    for lora in data['lora']:
+                        lora_paths.append({
+                            'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                            'weight': lora['weight']
+                        })
+            except:
+                print("Failed to add to queue")
+                SD.running = False
+                socketio.emit('job_done')
+                return
             # try:
             print("Starting gen...")
             print(data)
@@ -140,6 +147,8 @@ try:
                 speed=data['speed'],
                 skip_grid=not data['save_grid'],
                 long_save_path=data['long_save_path'],
+                highres_fix=data['highres_fix'],
+                show_intermediates=data['show_intermediates'],
                 controlnet = data['controlnet']
             )
             socketio.emit('job_done')

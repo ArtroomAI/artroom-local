@@ -83,14 +83,13 @@ const mergeModelsCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\cond
 
 let server: ChildProcessWithoutNullStreams;
 
-const getFiles = (folder_path: string, ext: string) => {
-  return new Promise((resolve, reject) => {
+const getFiles = async (folder_path: string, ext: string, excludeFolder?: string) => {  return new Promise((resolve, reject) => {
     glob(`${folder_path}/**/*.{${ext}}`, {}, (err, files) => {
       if (err) {
         console.log("ERROR");
         resolve([]);
       }
-      resolve(files?.map((match) => path.relative(folder_path, match)) ?? []);
+      resolve(files.filter((match) => !match.includes(`${excludeFolder}`))?.map((match) => path.relative(folder_path, match)) ?? []);
     })
   });
 }
@@ -140,7 +139,7 @@ function createWindow() {
   });
 
   ipcMain.handle('getCkpts', async (event, data) => {
-    return getFiles(data, 'ckpt,safetensors');
+    return getFiles(data, 'ckpt,safetensors', 'Loras');
   });
 
   ipcMain.handle('getLoras', async (event, data) => {

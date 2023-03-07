@@ -35,6 +35,7 @@ interface QueueType {
     device?: string; // ? CPU / GPU
     long_save_path: boolean;
     highres_fix: boolean;
+    show_intermediates: boolean;
     id: string;
 }
 
