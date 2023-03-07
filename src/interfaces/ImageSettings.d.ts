@@ -36,6 +36,7 @@ interface QueueType {
     image_save_path: string; // absolute path
 
     // generation options
+    show_intermediates: boolean;
     n_iter: number;
     save_grid: boolean;
     speed: string;
