@@ -11,7 +11,9 @@ import {
     Image as ChakraImage,
     Button,
     useToast,
-    Progress
+    Progress,
+    HStack,
+    IconButton
 } from '@chakra-ui/react';
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
@@ -22,6 +24,7 @@ import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes
 import { SocketContext, SocketOnEvents } from '../socket';
 import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
+import { FaStop } from 'react-icons/fa';
 
 function randomIntFromInterval(min: number, max: number) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
@@ -54,7 +57,7 @@ function Paint () {
     const [batchProgress, setBatchProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
     const cloudMode = useRecoilValue(atom.cloudModeState);
-    const setQueue = useSetRecoilState(atom.queueState);
+    const [queue, setQueue] = useRecoilState(atom.queueState);
     const setAddToQueue = useSetRecoilState(addToQueueState);
 
     const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
@@ -108,6 +111,9 @@ function Paint () {
     }
 
     const socket = useContext(SocketContext);
+    const stopQueue = useCallback(() => {
+        socket.emit('stop_queue');
+    }, [socket]);
 
     const handleRunInpainting = useCallback(() => {
         const canvasBaseLayer = getCanvasBaseLayer();
@@ -143,7 +149,17 @@ function Paint () {
                 mask_image: combinedMask,
                 invert: shouldPreserveMaskedArea
             }
-
+            toast({
+                title: 'Added to Queue!',
+                description: `Currently ${queue.length + 1} elements in queue`,
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: false,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
             setAddToQueue(true);
             setQueue((queue) => {
                 return [
@@ -420,13 +436,22 @@ function Paint () {
                             {computeShardCost()}
                         </Text>
                     </Button>
-                    : <Button
-                        className="run-button"
-                        ml={2}
-                        onClick={handleRunInpainting}
-                        width="200px"> 
-                        Run
-                    </Button>}
+                    : 
+                    <HStack>
+                        <Button
+                            className="run-button"
+                            ml={2}
+                            onClick={handleRunInpainting}
+                            width="200px"> 
+                            Run
+                        </Button>
+                        <IconButton
+                            aria-label="Stop Queue"
+                            colorScheme="red"
+                            icon={<FaStop />}
+                            onClick={stopQueue} />
+                        </HStack>
+                    }
                 <Box width="80%">
                     <Prompt setFocused={setFocused} />
                 </Box>

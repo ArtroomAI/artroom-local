@@ -22,7 +22,7 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState } from '../SettingsManager';
+import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState } from '../SettingsManager';
 
 function Settings () {
     const toast = useToast({});
@@ -30,6 +30,7 @@ function Settings () {
     const [debugMode, setDebugMode] = useRecoilState(atom.debugMode);
     const [longSavePath, setLongSavePath] = useRecoilState(longSavePathState);
     const [highresFix, setHighresFix] = useRecoilState(highresFixState);
+    const [showIntermediates, setShowIntermediates] = useRecoilState(showIntermediatesState);
     const [speed, setSpeed] = useRecoilState(speedState);
     const [imageSavePath, setImageSavePath] = useRecoilState(imageSavePathState);
     const [saveGrid, setSaveGrid] = useRecoilState(saveGridState);
@@ -38,6 +39,7 @@ function Settings () {
     const [debugModeTemp, setDebugModeTemp] = useState(debugMode);
     const [longSavePathTemp, setLongSavePathTemp] = useState(longSavePath);
     const [highresFixTemp, setHighresFixTemp] = useState(highresFix);
+    const [showIntermediatesTemp, setShowIntermediatesTemp] = useState(showIntermediates);
     const [speedTemp, setSpeedTemp] = useState(speed);
     const [imageSavePathTemp, setImageSavePathTemp] = useState(imageSavePath);
     const [saveGridTemp, setSaveGridTemp] = useState(saveGrid);
@@ -51,6 +53,7 @@ function Settings () {
         setDebugModeTemp(debugMode);
         setLongSavePathTemp(longSavePath);
         setHighresFixTemp(highresFix);
+        setShowIntermediatesTemp(showIntermediates);
         setSpeedTemp(speed);
         setImageSavePathTemp(imageSavePath);
         setSaveGridTemp(saveGrid);
@@ -83,6 +86,7 @@ function Settings () {
         setDebugMode(debugModeTemp);
         setLongSavePath(longSavePathTemp);
         setHighresFix(highresFixTemp);
+        setShowIntermediates(showIntermediatesTemp);
         setSpeed(speedTemp);
         setImageSavePath(imageSavePathTemp);
         setSaveGrid(saveGridTemp);
@@ -220,6 +224,28 @@ function Settings () {
                         </Stack>
                     </RadioGroup>
                 </FormControl>
+
+                <HStack className="show-intermediates-input">
+                    <Checkbox
+                        id="show_intermediates"
+                        isChecked={showIntermediatesTemp}
+                        name="show_intermediates"
+                        onChange={() => {
+                            setShowIntermediatesTemp((si) => !si);
+                        }}
+                    >
+                        Show Intermediates
+                    </Checkbox>
+
+                    <Tooltip
+                        fontSize="md"
+                        label="Show intermediate images while generating"
+                        mt="3"
+                        placement="right"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
+                </HStack>
 
                 <HStack className="highres-fix-input">
                     <Checkbox

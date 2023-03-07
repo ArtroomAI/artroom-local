@@ -60,7 +60,7 @@ class Upscaler():
         from PIL import Image
 
         # Potentially problematic
-        torch.set_default_tensor_type(torch.FloatTensor)
+        #torch.set_default_tensor_type(torch.FloatTensor)
         input = self.upscale_queue_path
         upscale = upscale_factor
         if "1.3" in upscaler:
@@ -213,7 +213,7 @@ class Upscaler():
                 output_images.append(Image.fromarray(cv2.cvtColor(restored_img, cv2.COLOR_BGRA2RGB)))
                 save_paths.append(save_restore_path)
         tensor = torch.HalfTensor if get_gpu_architecture() == 'NVIDIA' else torch.FloatTensor
-        torch.set_default_tensor_type(tensor)
+        #torch.set_default_tensor_type(tensor)
         return output_images, save_paths
         
     def RealESRGAN(self, upscaler, upscale_factor, upscale_dest):

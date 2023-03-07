@@ -7,11 +7,46 @@
 
 import copy
 import logging
+import math
 import re
 from typing import NamedTuple
 
 import torch
 import torch.nn as nn
+
+
+re_digits = re.compile(r"\d+")
+re_unet_down_blocks = re.compile(r"lora_unet_down_blocks_(\d+)_attentions_(\d+)_(.+)")
+re_unet_mid_blocks = re.compile(r"lora_unet_mid_block_attentions_(\d+)_(.+)")
+re_unet_up_blocks = re.compile(r"lora_unet_up_blocks_(\d+)_attentions_(\d+)_(.+)")
+re_text_block = re.compile(r"lora_te_text_model_encoder_layers_(\d+)_(.+)")
+
+
+def convert_diffusers_name_to_compvis(key):
+    def match(match_list, regex):
+        r = re.match(regex, key)
+        if not r:
+            return False
+
+        match_list.clear()
+        match_list.extend([int(x) if re.match(re_digits, x) else x for x in r.groups()])
+        return True
+
+    m = []
+
+    if match(m, re_unet_down_blocks):
+        return f"diffusion_model_input_blocks_{1 + m[0] * 3 + m[1]}_1_{m[2]}"
+
+    if match(m, re_unet_mid_blocks):
+        return f"diffusion_model_middle_block_1_{m[1]}"
+
+    if match(m, re_unet_up_blocks):
+        return f"diffusion_model_output_blocks_{m[0] * 3 + m[1]}_1_{m[2]}"
+
+    if match(m, re_text_block):
+        return f"transformer_text_model_encoder_layers_{m[0]}_{m[1]}"
+
+    return key
 
 class LoRAInfo(NamedTuple):
     lora_name: str
@@ -61,9 +96,6 @@ class LoRAModule(torch.nn.Module):
         torch.nn.init.normal_(self.lora_down.weight, std=1 / lora_dim)
         torch.nn.init.zeros_(self.lora_up.weight)
 
-        self.dropout = torch.nn.Dropout(0.1)
-        self.selector = torch.nn.Identity()
-
         self.multiplier = multiplier
         self.org_forward = org_module.forward
         self.org_module = org_module  # remove in applying
@@ -76,11 +108,7 @@ class LoRAModule(torch.nn.Module):
     def forward(self, input):
         res = self.org_forward(input)
         if self.enabled:
-            res = res + (
-                    self.dropout(self.lora_up(self.selector(
-                        self.lora_down(input))))  # cloneofsimo
-                    * self.scale * self.multiplier
-            )
+            res = res + self.lora_up(self.lora_down(input))* self.scale * self.multiplier
         return res
 
 
@@ -297,6 +325,7 @@ class LoRANetworkCompvis(torch.nn.Module):
             tokens = key.split('.')
             compvis_name = LoRANetworkCompvis.convert_diffusers_name_to_compvis(
                 v2, tokens[0])
+            # compvis_name = convert_diffusers_name_to_compvis(tokens[0])
             new_key = f'{compvis_name}.' + '.'.join(tokens[1:])
             new_sd[new_key] = value
             # Make both old and new key availables for quick access
@@ -306,7 +335,6 @@ class LoRANetworkCompvis(torch.nn.Module):
 
     def apply_lora_modules(self, lora_modules):
 
-        added = 0
         # conversion 1st step: convert names in state_dict(lora)
         state_dict, convis_dict = LoRANetworkCompvis.convert_state_dict_name_to_compvis(
             self.v2, lora_modules)
@@ -340,7 +368,6 @@ class LoRANetworkCompvis(torch.nn.Module):
         for lora in self.text_encoder_loras + self.unet_loras:
             t = type(lora)
             if t == LoRAModule:
-                added += 1
                 # ensure remove reference to original Linear: reference makes key of state_dict
                 lora.apply_to()
                 self.add_module(lora.lora_name, lora)
@@ -432,8 +459,8 @@ class LoRANetworkCompvis(torch.nn.Module):
 
             value: torch.Tensor = state_dict[key]
             if value.size() != current_sd[key].size():
-                print(
-                    f"convert weights shape: {key}, from: {value.size()}, {len(value.size())}")
+                # print(
+                #     f"convert weights shape: {key}, from: {value.size()}, {len(value.size())}")
                 count += 1
                 if len(value.size()) == 4:
                     value = value.squeeze(3).squeeze(2)
@@ -444,11 +471,11 @@ class LoRANetworkCompvis(torch.nn.Module):
                 print(
                     f"weight's shape is different: {key} expected {current_sd[key].size()} found {value.size()}. SD version may be different")
                 del state_dict[key]
-        print(f"shapes for {count} weights are converted.")
+        # print(f"shapes for {count} weights are converted.")
 
         # convert wrapped
         if not wrapped:
-            print("remove 'wrapped' from keys")
+            # print("remove 'wrapped' from keys")
             for key in list(state_dict.keys()):
                 if "_wrapped_" in key:
                     new_key = key.replace("_wrapped_", "_")
@@ -457,56 +484,9 @@ class LoRANetworkCompvis(torch.nn.Module):
 
         return state_dict
 
-    def lora_forward(module, input, res):
-        if not hasattr(LoRANetworkCompvis, 'current_network'):
-            return res
-        # print('lora_forward>>')
-
-        current_network = LoRANetworkCompvis.current_network
-        for lora in current_network.text_encoder_loras + current_network.unet_loras:
-            t = type(lora)
-            if t == LoRAModule:
-                # if len(input.size()) == 4:
-                #     input = input.squeeze(3).squeeze(2)
-                # else:
-                #     input = input.unsqueeze(2).unsqueeze(3)
-
-                if res.size() == input.size():
-                    # print(f'Lora Found: { lora.lora_down(input) }')
-                    # res = res + lora.lora_up(lora.lora_down(input)) * lora.multiplier * lora.scale
-                    pass
-
-        return res
-
-    def lora_setup(self):
-        if not hasattr(torch.nn, 'Linear_forward_before_lora'):
-            torch.nn.Linear_forward_before_lora = torch.nn.Linear.forward
-
-        if not hasattr(torch.nn, 'Conv2d_forward_before_lora'):
-            torch.nn.Conv2d_forward_before_lora = torch.nn.Conv2d.forward
-
-    def lora_activate(self):
-        torch.nn.Linear.forward = lora_Linear_forward
-        torch.nn.Conv2d.forward = lora_Conv2d_forward
-
     def enable_loras(self, e: bool):
         for lora in self.text_encoder_loras + self.unet_loras:
             t = type(lora)
             if t == LoRAModule:
                 # ensure remove reference to original Linear: reference makes key of state_dict
                 lora.enabled = e
-
-    # Linear model hijcking
-    def lora_deactivate(self):
-        if hasattr(torch.nn, 'Linear_forward_before_lora'):
-            torch.nn.Linear.forward = torch.nn.Linear_forward_before_lora
-        if hasattr(torch.nn, 'Conv2d_forward_before_lora'):
-            torch.nn.Conv2d.forward = torch.nn.Conv2d_forward_before_lora
-
-
-def lora_Linear_forward(self, input):
-    return LoRANetworkCompvis.lora_forward(self, input, torch.nn.Linear_forward_before_lora(self, input))
-
-
-def lora_Conv2d_forward(self, input):
-    return LoRANetworkCompvis.lora_forward(self, input, torch.nn.Conv2d_forward_before_lora(self, input))

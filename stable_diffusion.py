@@ -1,3 +1,4 @@
+import threading
 import warnings
 import random
 import torch
@@ -14,8 +15,9 @@ sys.path.append("artroom_helpers/modules")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-    apply_scribble, HWC3, apply_hed
+    apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
 from safe import load as safe_load
+from torchvision.utils import make_grid
 from transformers import logging
 from torch import autocast
 from pytorch_lightning import seed_everything
@@ -115,7 +117,6 @@ def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
                 image = apply_scribble(image)
             case "hed":
                 image = apply_hed(image)
-        Image.fromarray(image).save("controlnet_image.png")
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -190,14 +191,12 @@ class StableDiffusion:
         hn = HN(hn_sd)
         return hn
 
-    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=8):
+    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
         du_state_dict = load_file(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
         # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
         # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
-        print(f'Using LoRA text_encoder')
-
         assert text_encoder is not None, "Text encoder is Null"
 
         network, info, state_dict = create_network_and_apply_compvis(
@@ -214,6 +213,7 @@ class StableDiffusion:
             torch.cuda.empty_cache()
 
     def load_vae(self, vae_path: str, safe_load_=True):
+        self.modelFS.to(torch.float32)
         vae = load_model_from_config(vae_path, safe_load_)
         vae = {k: v for k, v in vae.items() if
 
@@ -231,7 +231,6 @@ class StableDiffusion:
                 print("Setting up model...")
                 self.set_up_models(ckpt, speed, vae, controlnet_path)
                 print("Successfully set up model")
-                return True
             except Exception as e:
                 print(f"Setting up model failed: {e}")
                 self.model = None
@@ -239,16 +238,15 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
         try:
-            if sorted(self.loras) != sorted(loras):
-                if self.network:
-                    self.deinject_lora()
-                if len(loras) > 0:
-                    for lora in loras:
-                        self.inject_lora(path = lora['path'], weight_tenc = lora['weight'])
-                self.loras = loras
+            if self.network:
+                self.deinject_lora()
+            if len(loras) > 0:
+                for lora in loras:
+                    self.inject_lora(path = lora['path'], weight_tenc = lora['weight'], weight_unet = lora['weight'])
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
-            
+        return True
+
     def hack_everything(self, clip_skip=0):
         def _hacked_clip_forward(self, text):
             PAD = self.tokenizer.pad_token_id
@@ -476,6 +474,7 @@ class StableDiffusion:
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
+
         if self.can_use_half:
             self.model.half()
             self.modelCS.half()
@@ -547,41 +546,40 @@ class StableDiffusion:
     def callback_fn(self, x, enabled=True):
         if not enabled:
             return
+        
         current_num, total_num, current_step, total_steps = self.get_steps()
+        
+        self.socketio.emit('get_progress', {'current_step': current_step + 1, 'total_steps': total_steps,'current_num': current_num, 'total_num': total_num})
+        
+        def send_intermediates(x):
+            def float_tensor_to_pil(tensor: torch.Tensor):
+                """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
+                (Reproduced here to save a torchvision dependency in this demo.)
+                """
+                tensor = (((tensor + 1) / 2)
+                        .clamp(0, 1)  # change scale from -1..1 to 0..1
+                        .mul(0xFF)  # to 0..255
+                        .byte())
+                tensor = rearrange(tensor, 'c h w -> h w c')
+                return Image.fromarray(tensor.cpu().numpy())
 
-        self.socketio.emit('get_progress', {'current_step': current_step + 1, 'total_steps': total_steps,
-                                            'current_num': current_num, 'total_num': total_num})
+            x = x.detach().cpu()
+            x = make_grid(x, nrow=x.shape[0]).to(torch.float32)
+            x = float_tensor_to_pil(torch.einsum('...lhw,lr -> ...rhw', x, torch.tensor([
+                #   R        G        B
+                [0.298, 0.207, 0.208],  # L1
+                [0.187, 0.286, 0.173],  # L2
+                [-0.158, 0.189, 0.264],  # L3
+                [-0.184, -0.271, -0.473],  # L4
+            ], dtype=torch.float32)))
 
-        # TODO front-end support and settings for it
-        # if current_step % 5 == 0:  # every 5 gens
-        #     def float_tensor_to_pil(tensor: torch.Tensor):
-        #         """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
-        #         (Reproduced here to save a torchvision dependency in this demo.)
-        #         """
-        #         tensor = (((tensor + 1) / 2)
-        #                   .clamp(0, 1)  # change scale from -1..1 to 0..1
-        #                   .mul(0xFF)  # to 0..255
-        #                   .byte())
-        #         tensor = rearrange(tensor, 'c h w -> h w c')
-        #         return Image.fromarray(tensor.cpu().numpy())
-
-        #     x = x.detach().cpu()
-        #     x = make_grid(x, nrow=x.shape[0]).to(torch.float32)
-        #     x = float_tensor_to_pil(torch.einsum('...lhw,lr -> ...rhw', x, torch.tensor([
-        #         #   R        G        B
-        #         [0.298, 0.207, 0.208],  # L1
-        #         [0.187, 0.286, 0.173],  # L2
-        #         [-0.158, 0.189, 0.264],  # L3
-        #         [-0.184, -0.271, -0.473],  # L4
-        #     ], dtype=torch.float32)))
-
-        #     self.socketio.emit('intermediate_image', { 'b64': support.image_to_b64(x) })
-
-        #     if settings_save_intermediates >= 1: # save intermediates
-        #         if settings_save_intermediates == 2: # upscale intermediates
-        #             x = x.resize((x.width * 8, x.height * 8))
-        #         x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
-
+            x = x.resize((x.width * 8, x.height * 8))
+            #x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
+            self.socketio.emit('intermediate_image', { 'b64': support.image_to_b64(x)})
+    
+        if self.show_intermediates and current_step % 5 == 0:  # every 5 steps
+            threading.Thread(target=send_intermediates, args=(x,)).start()
+        
     def interrupt(self):
         if self.running and self.model:
             self.model.interrupted_state = True
@@ -590,9 +588,11 @@ class StableDiffusion:
     def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
                  sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[], image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False, show_intermediates = False,
                  controlnet="None"
                  ):
+
+        self.show_intermediates = show_intermediates        
 
         controlnet_ckpts = {
             "canny": os.path.join(os.path.dirname(ckpt), "control_sd15_canny.pth"),
@@ -607,9 +607,12 @@ class StableDiffusion:
 
         print(f"Using contorlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
+        if controlnet_path is None:
+            deinit_cnet_stuff()
+        else:
+            init_cnet_stuff(controlnet)
 
         self.running = True
-        highres_fix = False
 
         self.dtype = torch.float16 if self.can_use_half else torch.float32
 
@@ -622,23 +625,21 @@ class StableDiffusion:
         if batch_id == 0:
             batch_id = random.randint(1, 922337203685)
 
-        print("HIGHRES FIX:", highres_fix)
         W += padding * 2
         H += padding * 2
         oldW, oldH = W, H
 
-        if W * H > 512 * 512 and highres_fix:
-            highres_fix_steps = math.ceil((W * H) / (512 * 512))
+        if W * H >= 1024 * 1024 and highres_fix:
+            highres_fix_steps = math.ceil((W * H) / (512 * 512)/4)
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
             H = math.floor(H / 64) * 64
-            print(f"Using a highres fix of {highres_fix_steps}")
         else:
             highres_fix_steps = 1
 
         print("Starting generate process...")
 
-        # torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
         gc.collect()
         seed_everything(seed)
 
@@ -649,7 +650,6 @@ class StableDiffusion:
 
         ddim_steps = int(steps / strength)
 
-        print("Setting up models...")
         self.load_ckpt(ckpt, speed, vae, loras, controlnet_path)
         if not self.model:
             print("Setting up model failed")
@@ -713,15 +713,15 @@ class StableDiffusion:
         else:
             sample_path = image_save_path
 
-        self.intermediate_path = os.path.join(sample_path, 'intermediates/', f'{batch_id}/')
-        os.makedirs(self.intermediate_path, exist_ok=True)
+        # self.intermediate_path = os.path.join(sample_path, 'intermediates/', f'{batch_id}/')
+        # os.makedirs(self.intermediate_path, exist_ok=True)
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
             if self.v1:
                 self.modelFS.to(self.device)
 
-        self.total_num = n_iter
+        self.total_num = n_iter * highres_fix_steps
         all_samples = []
         precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
@@ -737,9 +737,6 @@ class StableDiffusion:
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
 
-                self.current_num = n
-                self.model.current_step = 0
-                self.model.total_steps = steps
                 for prompts in data:
                     with precision_scope(self.device.type):
                         if self.v1:
@@ -751,7 +748,7 @@ class StableDiffusion:
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
                         weighted_prompt = weights_handling([prompts])
-                        print(f"Weighted prompts: {weighted_prompt}")
+                        # print(f"Weighted prompts: {weighted_prompt}")
                         if len(weighted_prompt) > 1:
                             c = torch.zeros_like(uc)
                             # normalize each "sub prompt" and add it
@@ -764,9 +761,15 @@ class StableDiffusion:
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
 
-                        print("Sampler", sampler)
                         x0 = None
                         for ij in range(1, highres_fix_steps + 1):
+                            self.current_num = n*highres_fix_steps + ij - 1
+                            self.model.current_step = 0
+                            self.model.total_steps = steps*highres_fix_steps
+                            
+                            if ij > 1:
+                                strength = 0.1
+                                ddim_steps = int(steps / strength)
                             if init_image is not None:
                                 init_image = init_image.to(self.device)
                                 init_image = repeat(
@@ -815,7 +818,6 @@ class StableDiffusion:
                             x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                             x0 = init_latent_1stage if mode == "pix2pix" else x0
 
-                            print("Sampling")
                             x0 = self.model.sample(
                                 S=steps,
                                 conditioning=c,
@@ -834,28 +836,31 @@ class StableDiffusion:
                                 callback=self.callback_fn,
                                 mode=mode
                             )
-
                             if self.v1:
                                 self.modelFS.to(self.device)
 
+                            self.model.to(torch.float32)
+                            self.modelCS.to(torch.float32)
+                            self.modelFS.to(torch.float32)
+                            torch.set_default_tensor_type(torch.FloatTensor)
+
                             x_samples_ddim = self.modelFS.decode_first_stage(
-                                x0[0].unsqueeze(0))
+                                x0[0].to(torch.float32).unsqueeze(0))
+
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
-                            # print(x_sample.shape)  # 1, 3, 768, 768
-                            if abs(float(x_sample.flatten().sum())) <= 1.0:  # black square
-                                print("Fixing a black square")
-                                self.modelFS.to(torch.float32)
-                                x_samples_ddim = self.modelFS.decode_first_stage(
-                                    x0[0].to(torch.float32).unsqueeze(0))
-                                x_sample = torch.clamp(
-                                    (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0).half()
-                                self.modelFS.half()
                             x_sample = 255. * \
-                                       rearrange(
-                                           x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                                    rearrange(
+                                        x_sample[0].cpu().numpy(), 'c h w -> h w c')
                             out_image = Image.fromarray(
                                 x_sample.astype(np.uint8))
+                        
+                            if self.can_use_half:
+                                self.model.half()
+                                self.modelCS.half()
+                                self.modelFS.half()
+                                torch.set_default_tensor_type(torch.HalfTensor)
+
                             if ij < highres_fix_steps - 1:
                                 init_image = load_img(
                                     out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0),
@@ -894,15 +899,18 @@ class StableDiffusion:
                         }
                         # 0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)
-                        out_image.save(
-                            os.path.join(sample_path, save_name), "PNG", exif=exif_data)
+                        if not self.model.interrupted_state:
+                            out_image.save(
+                                os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
-                        self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                          'path': os.path.join(sample_path, save_name),
-                                                          'batch_id': batch_id})
+                            self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
+                                                            'path': os.path.join(sample_path, save_name),
+                                                            'batch_id': batch_id})
 
                         base_count += 1
                         seed += 1
+                        if len(init_image_str) == 0: #Resets highres_fix starting image
+                            init_image = None
                         if not skip_grid and n_iter > 1:
                             all_samples.append(out_image)
 

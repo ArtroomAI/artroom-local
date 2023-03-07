@@ -1,19 +1,41 @@
+import gc
+
 import cv2
 import numpy as np
+import torch.cuda
 
 from artroom_helpers.annotator.hed import HEDdetector, nms
 from artroom_helpers.annotator.midas import MidasDetector
 from artroom_helpers.annotator.openpose import OpenposeDetector
 
-apply_openpose = OpenposeDetector()
-apply_midas = MidasDetector()
-apply_hed_d = HEDdetector()
+apply_openpose, apply_midas, apply_hed_d = None, None, None
+
+
+def init_cnet_stuff(controlnet_mode):
+    global apply_openpose, apply_midas, apply_hed_d
+    match controlnet_mode:
+        case "pose":
+            if apply_openpose is None:
+                apply_openpose = OpenposeDetector()
+        case "depth" | "normal":
+            if apply_midas is None:
+                apply_midas = MidasDetector()
+        case "hed":
+            if apply_hed_d is None:
+                apply_hed_d = HEDdetector()
+
+
+def deinit_cnet_stuff():
+    global apply_openpose, apply_midas, apply_hed_d
+    del apply_openpose, apply_midas, apply_hed_d
+    apply_openpose, apply_midas, apply_hed_d = None, None, None
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 def apply_canny(img, low_thr=100, high_thr=200):
     img = cv2.Canny(img, low_thr, high_thr)
     img = HWC3(img)
-
     return img
 
 

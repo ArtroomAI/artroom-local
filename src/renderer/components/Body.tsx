@@ -9,7 +9,9 @@ import {
     SimpleGrid,
     Image,
     Text,
-    useToast
+    useToast,
+    HStack,
+    IconButton
 } from '@chakra-ui/react';
 import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
@@ -18,6 +20,7 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { SocketContext, SocketOnEvents } from '../socket';
 import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
+import { FaStop } from 'react-icons/fa';
 
 function randomIntFromInterval(min: number, max: number) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
@@ -41,9 +44,10 @@ function parseSettings(settings: QueueType, useRandom: boolean) {
     return settings;
 }
 
+
+
 const Body = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
-
     const toast = useToast({});
 
     const imageSettings = useRecoilValue(queueSettingsSelector);
@@ -64,6 +68,10 @@ const Body = () => {
     const setShard = useSetRecoilState(atom.shardState);
     
     const socket = useContext(SocketContext);
+    
+    const stopQueue = useCallback(() => {
+        socket.emit('stop_queue');
+    }, [socket]);
 
     const addToQueue = useCallback(() => {
         toast({
@@ -343,13 +351,21 @@ const Body = () => {
                             {computeShardCost()}
                         </Text>
                     </Button>
-                    : <Button
-                        className="run-button"
-                        ml={2}
-                        onClick={addToQueue}
-                        width="200px"> 
-                        Run
-                    </Button>}
+                    : 
+                    <HStack>
+                        <Button
+                            className="run-button"
+                            ml={2}
+                            onClick={addToQueue}
+                            width="200px"> 
+                            Run
+                        </Button>
+                    <IconButton
+                        aria-label="Stop Queue"
+                        colorScheme="red"
+                        icon={<FaStop />}
+                        onClick={stopQueue} />
+                    </HStack>}
 
                 <Box width="80%">
                     <Prompt setFocused={setFocused} />

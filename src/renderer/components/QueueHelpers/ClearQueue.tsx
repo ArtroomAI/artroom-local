@@ -20,6 +20,7 @@ function ClearQueue () {
 
     const clearQueue = useCallback(() => {
         setQueue([]);
+        window.api.saveQueue(JSON.stringify([]))
         onClose();
     }, [onClose, queue]);
 
