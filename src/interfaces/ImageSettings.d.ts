@@ -1,3 +1,8 @@
+interface Lora {
+    name: string;
+    weight: number; // float
+}
+
 interface QueueType {
     text_prompts: string;
     negative_prompts: string;
@@ -10,9 +15,10 @@ interface QueueType {
 	height: number;
     
     // models
+    models_dir: string;
     ckpt: string; // absolute path
     vae: string; // absolute path
-    lora: array; // array of {path: string, weight: float}
+    lora: Lora[];
     controlnet: string;
 
     // sampler options
@@ -33,4 +39,14 @@ interface QueueType {
     n_iter: number;
     save_grid: boolean;
     speed: string;
+    device?: string; // ? CPU / GPU
+    long_save_path: boolean;
+    highres_fix: boolean;
+    id: string;
+}
+
+interface QueueTypeWithIndex extends QueueType {
+    key: number;
+    index: number;
+    lastItem: boolean;
 }
