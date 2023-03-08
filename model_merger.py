@@ -55,139 +55,118 @@ def load_model_from_config(ckpt, use_safe_load=True):
         return pl_sd["state_dict"]
     return pl_sd
 
+class ModelMerger:
+    def __init__(self, data):
+        print(data)
+        self.data = data
+        self.output_path = os.path.dirname(data["model_0"])
+        self.output_ext = os.path.splitext(data["model_0"])[1]
 
-def merge_models(model_0, model_1, alpha, output=None):
-    """Consolidate merging models into a helpful function for the purpose of generating a range of merges"""
+        self.modelName_0 = os.path.basename(data["model_0"]).split('.')[0]
+        self.modelName_1 = os.path.basename(data["model_1"]).split('.')[0]
+        self.modelName_2 = ""
 
-    model_0 = load_model_from_config(model_0)
-    model_1 = load_model_from_config(model_1)
+        self.model_0 = load_model_from_config(data["model_0"])
+        self.model_1 = load_model_from_config(data["model_1"])
+        self.model_2 = None
 
-    if not os.path.exists(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}"):
-        os.makedirs(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}")
+        if data["model_2"]:
+            self.modelName_2 = os.path.basename(data["model_2"]).split('.')[0]
+            self.model_2 = load_model_from_config(data["model_2"])
 
-    theta_func = theta_funcs[args.method]
+    def merge_models(self, alpha):
+        """Consolidate merging models into a helpful function for the purpose of generating a range of merges"""
 
-    if output is None:
-        output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha * 100)}%--{modelName_1}-{round(100 - alpha * 100)}%.ckpt'
-    else:
-        output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{round(alpha * 100)}%.{model_ext_0}'
+        output_dir = f"{self.output_path}/merge-{self.modelName_0}_{self.modelName_1}-{self.data['method']}"
 
-    for key in tqdm(model_0.keys()):
-        if 'model' in key and key in model_1:
-            model_0[key] = theta_func(model_0[key], model_1[key], (float(1.0) - alpha))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
-    for key in model_1.keys():
-        if 'model' in key and key not in model_0:
-            model_0[key] = model_1[key]
+        theta_funcs = {
+            "weighted_sum": weighted_sum,
+            "sigmoid": sigmoid,
+            "inverse_sigmoid": inv_sigmoid,
+        }
+        theta_func = theta_funcs[self.data['method']]
 
-    print(f"Saving as {output_file}\n")
+        new_model = dict()
 
-    if model_ext_0 == 'safetensors':
-        save_file(model_0, output_file)
-    else:
-        torch.save(model_0, output_file)
-    return output_file.rsplit("/", 1)[-1]
+        if self.data['output'] == '':
+            output_file = f'{output_dir}/{self.modelName_0}-{round(alpha * 100)}%--{self.modelName_1}-{round(100 - alpha * 100)}%{self.output_ext}'
+        else:
+            output_file = f'{output_dir}/{self.output}-{round(alpha * 100)}%{self.output_ext}'
 
+        for key in tqdm(self.model_0.keys()):
+            if 'model' in key and key in self.model_1:
+                new_model[key] = theta_func(self.model_0[key], self.model_1[key], (float(1.0) - alpha))
 
-def merge_three(model_0, model_1, alpha, output=None):
-    """consolidate merging models into a helpful function for the purpose of generating a range of merges"""
-    model_0 = load_model_from_config(model_0)
-    model_1 = load_model_from_config(model_1)
-    model_2 = load_model_from_config(args.model_2)
+        for key in self.model_1.keys():
+            if 'model' in key and key not in self.model_0:
+                new_model[key] = self.model_1[key]
 
-    theta_func = add_difference
+        print(f"Saving as {output_file}\n")
 
-    if not os.path.exists(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}"):
-        os.makedirs(f"{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}")
+        if self.output_ext == 'safetensors':
+            save_file(new_model, output_file)
+        else:
+            torch.save(new_model, output_file)
+        return output_file.rsplit("/", 1)[-1]
 
-    if output is None:
-        output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{modelName_0}-{round(alpha * 100)}-{modelName_1}-{round(100 - alpha * 100)}_3_{modelName_2}.{model_ext_0}'
-    else:
-        output_file = f'{models_path}/merge-{modelName_0}_{modelName_1}-{args.method}/{output}-{round(alpha * 100)}.{model_ext_0}'
+    def merge_three(self, alpha):
+        """consolidate merging models into a helpful function for the purpose of generating a range of merges"""
+        theta_func = add_difference
 
-    for key in tqdm(model_0.keys()):
-        if 'model' in key and key in model_1:
-            t2 = (model_2 or {}).get(key)
-            if t2 is None:
-                t2 = torch.zeros_like(model_0[key])
-            model_0[key] = theta_func(model_0[key], model_1[key], t2, (float(
-                1.0) - alpha))  # Need to reverse the interp_amount to match the desired mix ration in the merged checkpoint
+        output_dir = f"{self.output_path}/merge-{self.modelName_0}_{self.modelName_1}-{self.data['method']}"
 
-    for key in model_1.keys():
-        if 'model' in key and key not in model_0:
-            model_0[key] = model_1[key]
+        new_model = dict()
 
-    print(f"Saving as {output_file}\n")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
-    if model_ext_0 == 'safetensors':
-        save_file(model_0, output_file)
-    else:
-        torch.save(model_0, output_file)
-    return output_file.rsplit("/", 1)[-1]
+        if self.data['output'] == '':
+            output_file = f'{output_dir}/{self.modelName_0}-{round(alpha * 100)}-{self.modelName_1}-{round(100 - alpha * 100)}_3_{self.modelName_2}{self.output_ext}'
+        else:
+            output_file = f"{output_dir}/{self.data['output']}-{round(alpha * 100)}{self.output_ext}"
 
+        for key in tqdm(self.model_0.keys()):
+            if 'model' in key and key in self.model_1:
+                t2 = (self.model_2 or {}).get(key)
+                if t2 is None:
+                    t2 = torch.zeros_like(self.model_0[key])
+                new_model[key] = theta_func(self.model_0[key], self.model_1[key], t2, (float(
+                    1.0) - alpha))  # Need to reverse the interp_amount to match the desired mix ration in the merged checkpoint
 
-try:
-    parser = argparse.ArgumentParser(description="Merge two models")
-    parser.add_argument("model_0", type=str, help="Path to model 0")
-    parser.add_argument("model_1", type=str, help="Path to model 1")
-    parser.add_argument("--model_2", type=str,
-                        help="Path to model 2. IF THIS IS SET, --method will be ignored and 'add difference' will be used.",
-                        required=False, default=None)
-    parser.add_argument("--alpha", type=float, help="Alpha value, optional, defaults to 0.5", default=0.5,
-                        required=False)
-    parser.add_argument("--output", type=str, help="Output file name, without extension", required=False)
-    parser.add_argument("--method", type=str,
-                        help="Select interpolation method from 'sigmoid' 'inverse_sigmoid' 'weighted_sum'. defaults to 'weighted_sum'.",
-                        default="weighted_sum", required=False)
-    parser.add_argument("--steps", type=int,
-                        help="Select interpolation steps at which the Models will be merged. 5 will result in 5% 10% 15% 20% .defaults to '10'.",
-                        default=0, required=False)
-    parser.add_argument("--start_steps", type=int, help="Where to start the steps, default 0", default=0,
-                        required=False)
-    parser.add_argument("--end_steps", type=int, help="Where to end the steps, default 100", default=100,
-                        required=False)
-    args = parser.parse_args()
+        for key in self.model_1.keys():
+            if 'model' in key and key not in self.model_0:
+                new_model[key] = self.model_1[key]
 
-    print(args)
+        print(f"Saving as {output_file}\n")
 
-    theta_funcs = {
-        "weighted_sum": weighted_sum,
-        "sigmoid": sigmoid,
-        "inverse_sigmoid": inv_sigmoid,
-    }
+        if self.output_ext == 'safetensors':
+            save_file(new_model, output_file)
+        else:
+            torch.save(new_model, output_file)
+        return output_file.rsplit("/", 1)[-1]
 
-    models_path = os.path.split(args.model_0)[0]
-    print(models_path)
+    def run(self):
+        names = ""
+        if self.data["steps"] != 0:
+            print("Running with incremental steps")
+            print(f"Start: {self.data['start_steps']} End: {self.data['end_steps']} Increment: {self.data['steps']}")
+            time.sleep(5)
+            for i in range(self.data['start_steps'], self.data['end_steps'], self.data['steps']):
+                print(f"Merging {self.modelName_0} with {self.modelName_1} at {i}% interpolation with {self.data['method']}")
+                if self.data['model_2'] != "":
+                    names += self.merge_three(i / 100.) + ","
+                else:
+                    names += self.merge_models(i / 100.) + ","
 
-    # Weird but handles cases when there is a . in the name
-    modelName_0 = os.path.basename(args.model_0).split('.')[0]
-    model_ext_0 = os.path.basename(args.model_0).split('.')[-1]
-    modelName_1 = os.path.basename(args.model_1).split('.')[0]
-    model_ext_1 = os.path.basename(args.model_1).split('.')[-1]
-    if args.model_2:
-        modelName_2 = os.path.basename(args.model_2).split('.')[0]
-        model_ext_2 = os.path.basename(args.model_2).split('.')[-1]
-    names = ""
-
-    if args.steps != 0:
-        print("Running with incremental steps")
-        print(f"Start: {args.start_steps} End: {args.end_steps} Increment: {args.steps}")
-        time.sleep(5)
-        for i in range(args.start_steps, args.end_steps, args.steps):
-            print(f"Merging {modelName_0} with {modelName_1} at {i}% interpolation with {args.method}")
-            if args.model_2 is not None:
-                names += merge_three(args.model_0, args.model_1, i / 100) + ","
+                # Probably not an issue. Remove if not needed:
+                time.sleep(0.5)  # make extra sure the gc has some extra time to dump torch stuff just in case ??
+        else:
+            print(f"Merging {self.modelName_0} with {self.modelName_1} at {self.data['alpha']}% interpolation with {self.data['method']}")
+            if self.data['model_2'] != "":
+                names = self.merge_three(self.data['alpha'] / 100.)
             else:
-                names += merge_models(args.model_0, args.model_1, i / 100) + ","
-
-            # Probably not an issue. Remove if not needed:
-            time.sleep(0.5)  # make extra sure the gc has some extra time to dump torch stuff just in case ??
+                names = self.merge_models(self.data['alpha'] / 100.)
         print(names)
-    else:
-        print(f"Merging {modelName_0} with {modelName_1} at {args.alpha}% interpolation with {args.method}")
-        names += merge_models(args.model_0, args.model_1, args.alpha / 100., args.output) + ","
-
-except Exception as e:
-    print(e)
-    print("Something went wrong. Share the console output. We will fix it")
-    time.sleep(300)

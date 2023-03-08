@@ -30,6 +30,17 @@ export interface SocketEmitEvents {
         upscale_dest: string;
     }) => void;
     remove_from_queue: (data: { id: string }) => void;
+    merge_models: (data: {
+        model_0: string;
+        model_1: string;
+        model_2: string;
+        method: string;
+        alpha: number;
+        output: string;
+        steps: number;
+        start_steps: number;
+        end_steps: number;
+    }) => void;
 }
 
 export const socket: Socket<SocketOnEvents, SocketEmitEvents> = io('http://localhost:5300');

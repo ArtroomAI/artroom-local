@@ -150,7 +150,7 @@ export const vaeState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const loraState = atom<{ name: string, weight: number }[]>({
+export const loraState = atom<Lora[]>({
     key: "lora",
     default: [],
     effects_UNSTABLE: [persistAtom]

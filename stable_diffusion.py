@@ -344,7 +344,6 @@ class StableDiffusion:
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
-        print(f"Loading {speed}..")
         self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
             del self.model
@@ -747,13 +746,16 @@ class StableDiffusion:
                                 negative_prompts_data)
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                        weighted_prompt = weights_handling([prompts])
-                        # print(f"Weighted prompts: {weighted_prompt}")
+                        weighted_prompt = weights_handling(prompts)
+                        if type(weighted_prompt) == str:
+                            weighted_prompt = [prompts]
+                        print(f"Weighted prompts: {weighted_prompt}")
                         if len(weighted_prompt) > 1:
                             c = torch.zeros_like(uc)
                             # normalize each "sub prompt" and add it
+                            total_weight = sum(weight for _, weight in weighted_prompt)
                             for i in range(len(weighted_prompt)):
-                                weight = weighted_prompt[i][1]
+                                weight = weighted_prompt[i][1] / total_weight
                                 # if not skip_normalize:
                                 c = torch.add(c, self.modelCS.get_learned_conditioning(
                                     weighted_prompt[i][0]), alpha=weight).to(self.device)

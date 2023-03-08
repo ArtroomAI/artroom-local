@@ -6,47 +6,11 @@
 #      - https://github.com/kohya-ss/sd-webui-additional-networks/blob/main/scripts/lora_compvis.py
 
 import copy
-import logging
-import math
 import re
 from typing import NamedTuple
 
 import torch
 import torch.nn as nn
-
-
-re_digits = re.compile(r"\d+")
-re_unet_down_blocks = re.compile(r"lora_unet_down_blocks_(\d+)_attentions_(\d+)_(.+)")
-re_unet_mid_blocks = re.compile(r"lora_unet_mid_block_attentions_(\d+)_(.+)")
-re_unet_up_blocks = re.compile(r"lora_unet_up_blocks_(\d+)_attentions_(\d+)_(.+)")
-re_text_block = re.compile(r"lora_te_text_model_encoder_layers_(\d+)_(.+)")
-
-
-def convert_diffusers_name_to_compvis(key):
-    def match(match_list, regex):
-        r = re.match(regex, key)
-        if not r:
-            return False
-
-        match_list.clear()
-        match_list.extend([int(x) if re.match(re_digits, x) else x for x in r.groups()])
-        return True
-
-    m = []
-
-    if match(m, re_unet_down_blocks):
-        return f"diffusion_model_input_blocks_{1 + m[0] * 3 + m[1]}_1_{m[2]}"
-
-    if match(m, re_unet_mid_blocks):
-        return f"diffusion_model_middle_block_1_{m[1]}"
-
-    if match(m, re_unet_up_blocks):
-        return f"diffusion_model_output_blocks_{m[0] * 3 + m[1]}_1_{m[2]}"
-
-    if match(m, re_text_block):
-        return f"transformer_text_model_encoder_layers_{m[0]}_{m[1]}"
-
-    return key
 
 class LoRAInfo(NamedTuple):
     lora_name: str
@@ -88,7 +52,6 @@ class LoRAModule(torch.nn.Module):
         alpha = lora_dim if alpha is None or alpha == 0 else alpha
         self.scale = alpha / self.lora_dim
 
-        # self.scale = 0.01
         self.register_buffer('alpha', torch.tensor(
             alpha))  # 定数として扱える # # can be treated as a constant
 
@@ -155,19 +118,20 @@ def create_network_and_apply_compvis(du_state_dict, multiplier_tenc, multiplier_
         missing_keys = []
         alpha_count = 0
         for key in info.missing_keys:
-            if 'alpha' not in key:
-                missing_keys.append(key)
-            else:
-                if alpha_count == 0:
-                    missing_keys.append(key)
-                alpha_count += 1
-        if alpha_count > 1:
-            missing_keys.append(
-                f"... and {alpha_count - 1} alphas. The model doesn't have alpha, use dim (rannk) as alpha. You can ignore this message.")
+            missing_keys.append(key)
+
+        #     if 'alpha' not in key:
+        #     else:z``
+        #         if alpha_count == 0:
+        #             missing_keys.append(key)
+        #         alpha_count += 1
+        # if alpha_count > 1:
+        #     missing_keys.append(
+        #         f"... and {alpha_count - 1} alphas. The model doesn't have alpha, use dim (rannk) as alpha. You can ignore this message.")
 
         info = torch.nn.modules.module._IncompatibleKeys(
             missing_keys, info.unexpected_keys)
-
+        #print(info)
     return network, info, state_dict
 
 
@@ -195,17 +159,17 @@ class LoRANetworkCompvis(torch.nn.Module):
                 du_suffix = m[3]
 
                 cv_index = 1 + int(m[1]) * 3 + int(m[2])
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_input_blocks_{cv_index}_1_{du_suffix}"
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_input_blocks_{cv_index}_1_{du_suffix}_"
             elif m := re.search(r"_mid_block_attentions_(\d+)_(.+)", du_name):
                 du_suffix = m[2]
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_middle_block_1_{du_suffix}"
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_middle_block_1_{du_suffix}_"
             elif m := re.search(r"_up_blocks_(\d+)_attentions_(\d+)_(.+)", du_name):
                 du_block_index = int(m[1])
                 du_attn_index = int(m[2])
                 du_suffix = m[3]
 
                 cv_index = du_block_index * 3 + du_attn_index  # 3,4,5, 6,7,8, 9,10,11
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_output_blocks_{cv_index}_1_{du_suffix}"
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model2_diffusion_model_output_blocks_{cv_index}_1_{du_suffix}_"
 
         elif LoRANetworkCompvis.LORA_PREFIX_TEXT_ENCODER in du_name:
             if m := re.search(r"_model_encoder_layers_(\d+)_(.+)", du_name):
@@ -330,7 +294,6 @@ class LoRANetworkCompvis(torch.nn.Module):
             new_sd[new_key] = value
             # Make both old and new key availables for quick access
             convis_dict[new_key] = key
-
         return new_sd, convis_dict
 
     def apply_lora_modules(self, lora_modules):
