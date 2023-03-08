@@ -79,8 +79,6 @@ const pyTestCmd = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\pyth
 
 const serverCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
 
-const mergeModelsCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python model_merger.py`;
-
 let server: ChildProcessWithoutNullStreams;
 
 const getFiles = async (folder_path: string, ext: string, excludeFolder?: string) => {  return new Promise((resolve, reject) => {
@@ -197,19 +195,6 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle("getSettings", () => {
-    return new Promise((resolve, reject) => {
-      fs.readFile(artroom_path + "\\artroom\\settings\\sd_settings.json", "utf8", function (err, data) {
-        if (err) {
-          console.log("Error!")
-          reject(err);
-          return;
-        }
-        resolve(data);
-      });
-    });
-  });
-
   ipcMain.handle("uploadSettings", () => {
     return new Promise((resolve, reject) => {
       let properties: OpenDialogOptions['properties'];
@@ -259,29 +244,6 @@ function createWindow() {
     });
 
     return results.filePaths;
-  });
-
-  //Opens file explorer
-  ipcMain.handle("getImageDir", (event, argx = 0) => {
-    return new Promise((resolve, reject) => {
-      fs.readFile(artroom_path + "\\artroom\\settings\\sd_settings.json", "utf8", function (err, data) {
-        if (err) {
-          reject(err);
-          return;
-        }
-        const json = JSON.parse(data);
-        let imgPath = path.join(json['image_save_path'], json['batch_name']);
-        if (fs.existsSync(imgPath.split(path.sep).join(path.posix.sep))) {
-          shell.openPath(imgPath.split(path.sep).join(path.posix.sep))
-        }
-        else {
-          imgPath = JSON.parse(data)['image_save_path'];
-          imgPath = imgPath.replace('%UserProfile%', artroom_path);
-          shell.openPath(imgPath.split(path.sep).join(path.posix.sep))
-        }
-        resolve([data]);
-      });
-    });
   });
 
   ipcMain.handle("openDiscord", (event, argx = 0) => {
@@ -364,82 +326,6 @@ function createWindow() {
       server = spawn(serverCommand, { detached: isDebug, shell: true });
     });
   });
-
-  ipcMain.handle('mergeModels',(event, data) => new Promise((resolve, reject) => {
-        const json = JSON.parse(data);
-        const parameters = [
-                json.modelA,
-                json.modelB  
-        ];
-        if (json.modelC.length > 0) {
-            parameters.push(
-                '--model_2',
-                  json.modelC
-            );
-            parameters.push(
-              '--alphaRange',
-                json.alphaRange
-          );
-        }
-        if (json.alpha) {
-            parameters.push(
-                '--alpha',
-                json.alpha
-            );
-        }
-        if (json.method) {
-            parameters.push(
-                '--method',
-                json.method
-            );
-        }
-        if (json.steps > 0) {
-            parameters.push(
-                '--steps',
-                json.steps
-            );
-        }
-        if (json.start_steps > 0) {
-          parameters.push(
-              '--start_steps',
-              json.start_steps
-          );
-        }
-        if (json.end_steps > 0) {
-            parameters.push(
-                '--end_steps',
-                json.end_steps
-            );
-        }
-        if (json.filename.length > 0) {
-            parameters.push(
-                '--output',
-                json.filename
-            );
-        }
-        const modelMergeServer = spawn(
-            mergeModelsCommand,
-            parameters,
-            {
-                detached: true,
-                shell: true
-            }
-        );
-        modelMergeServer.on(
-            'message',
-            (code, signal) => {
-                console.log(`mergeModels message ${code} ${signal}`);
-            }
-        );
-        modelMergeServer.on(
-            'close',
-            (code, signal) => {
-                console.log(`mergeModels closed ${code} ${signal}`);
-                resolve(code);
-            }
-        );
-    })
-  );
 
   // Create the browser window.
   win = new BrowserWindow({
