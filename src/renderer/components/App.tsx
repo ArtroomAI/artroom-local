@@ -188,28 +188,24 @@ export default function App () {
 
     useEffect(
         () => {
-            window.api.getSettings().then((result) => {
-                setDebugMode(result);
-
-                window.api.runPyTests().then((result) => {
-                    if (result === 'success\r\n') {
-                        toast({
-                            title: 'All Artroom paths & dependencies successfully found!',
-                            status: 'success',
-                            position: 'top',
-                            duration: 2000,
-                            isClosable: true
-                        });
-                    } else if (result.length > 0) {
-                        toast({
-                            title: result,
-                            status: 'error',
-                            position: 'top',
-                            duration: 10000,
-                            isClosable: true
-                        });
-                    }
-                });
+            window.api.runPyTests().then((result) => {
+                if (result === 'success\r\n') {
+                    toast({
+                        title: 'All Artroom paths & dependencies successfully found!',
+                        status: 'success',
+                        position: 'top',
+                        duration: 2000,
+                        isClosable: true
+                    });
+                } else if (result.length > 0) {
+                    toast({
+                        title: result,
+                        status: 'error',
+                        position: 'top',
+                        duration: 10000,
+                        isClosable: true
+                    });
+                }
             });
 
             if (colorMode === 'light') {
