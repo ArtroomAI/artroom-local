@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useContext } from 'react';
 import { useRecoilValue } from 'recoil';
 import {
     Box,
@@ -30,10 +30,12 @@ import {
 import { FaQuestionCircle } from 'react-icons/fa';
 import path from 'path';
 import { modelsDirState } from '../SettingsManager';
+import { SocketContext } from '../socket';
 
 export const ModelMerger = () => {
     const toast = useToast({});
     const modelsDir = useRecoilValue(modelsDirState);
+    const socket = useContext(SocketContext);
 
     const [ckpts, setCkpts] = useState([]);
 
@@ -65,8 +67,7 @@ export const ModelMerger = () => {
                 isClosable: false,
                 containerStyle: { pointerEvents: 'none' }
             });
-        }
-        else if (fullrange && start_steps > end_steps){
+        } else if (fullrange && start_steps > end_steps) {
             toast({
                 title: `Start % cannot be after End %`,
                 status: 'error',
@@ -75,52 +76,21 @@ export const ModelMerger = () => {
                 isClosable: false,
                 containerStyle: { pointerEvents: 'none' }
             });
-        }
-        else{
-            const data = JSON.stringify({
-                modelA: path.join(modelsDir, modelA),
-                modelB: path.join(modelsDir, modelB),
-                modelC: interpolation === 'add_difference' ? path.join(modelsDir, modelC) : '',
+        } else {
+            const data = {
+                model_0: path.join(modelsDir, modelA),
+                model_1: path.join(modelsDir, modelB),
+                model_2: interpolation === 'add_difference' ? path.join(modelsDir, modelC) : '',
                 method: interpolation,
                 alpha,
-                filename,
+                output: filename,
                 steps: fullrange ? steps : 0,
                 start_steps: fullrange ? start_steps : 0,
                 end_steps: fullrange ? end_steps : 0
-            });
+            };
             console.log(data);
-            window.api.mergeModels(data).then((res) => {
-                if (res === 0) {
-                    toast({
-                        title: 'Merged successfully',
-                        status: 'success',
-                        position: 'top',
-                        duration: 1500,
-                        isClosable: false,
-                        containerStyle: { pointerEvents: 'none' }
-                    });
-                } else {
-                    toast({
-                        title: 'Failed',
-                        status: 'error',
-                        position: 'top',
-                        duration: 1500,
-                        isClosable: false,
-                        containerStyle: { pointerEvents: 'none' }
-                    });
-                }
-            }).catch((err) => {
-                toast({
-                    title: `There was an error: ${err}`,
-                    status: 'error',
-                    position: 'top',
-                    duration: 1500,
-                    isClosable: false,
-                    containerStyle: { pointerEvents: 'none' }
-                });
-            });
+            socket.emit("merge_models", data);
         }
-
     };
 
     const getCkpts = useCallback(() => {

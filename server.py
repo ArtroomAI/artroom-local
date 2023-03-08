@@ -18,6 +18,7 @@ try:
     from uuid import uuid4
     from glob import glob
     import re
+    from model_merger import ModelMerger
 
     kernel32 = ctypes.windll.kernel32
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
@@ -73,6 +74,9 @@ try:
         socketio.emit('upscale', {'status': 'Success', 'status_message': 'Your upscale has completed'})
         return
 
+    @socketio.on('merge_models')
+    def merge_models(data):
+        ModelMerger(data).run()
 
     def save_to_settings_folder(data):
         print("Saving settings...")
