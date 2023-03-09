@@ -9,35 +9,21 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 import ctypes
 
-"""
-@Credit: Yuss#5555
-"""
-
-# Prevents console from freezing due to Windows being dumb
-kernel32 = ctypes.windll.kernel32
-kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
-
-
 def weighted_sum(theta0, theta1, alpha):
     return ((1 - alpha) * theta0) + (alpha * theta1)
-
 
 # Smoothstep (https://en.wikipedia.org/wiki/Smoothstep)
 def sigmoid(theta0, theta1, alpha):
     alpha = alpha * alpha * (3 - (2 * alpha))
     return theta0 + ((theta1 - theta0) * alpha)
 
-
 # Inverse Smoothstep (https://en.wikipedia.org/wiki/Smoothstep)
 def inv_sigmoid(theta0, theta1, alpha):
     alpha = 0.5 - math.sin(math.asin(1.0 - 2.0 * alpha) / 3.0)
     return theta0 + ((theta1 - theta0) * alpha)
 
-
-# Line 178 and 179
 def add_difference(theta0, theta1, theta2, alpha):
     return theta0 + (theta1 - theta2) * (1.0 - alpha)
-
 
 def load_model_from_config(ckpt, use_safe_load=True):
     print(f"Loading model from {ckpt}")
@@ -74,13 +60,21 @@ class ModelMerger:
             self.modelName_2 = os.path.basename(data["model_2"]).split('.')[0]
             self.model_2 = load_model_from_config(data["model_2"])
 
+    def save_file(self, new_model, output_file):
+        print(f"Saving as {output_file}\n")
+
+        if self.output_ext == 'safetensors':
+            save_file(new_model, output_file)
+        else:
+            torch.save(new_model, output_file)
+        return output_file.rsplit("/", 1)[-1]
+
     def merge_models(self, alpha):
         """Consolidate merging models into a helpful function for the purpose of generating a range of merges"""
 
         output_dir = f"{self.output_path}/merge-{self.modelName_0}_{self.modelName_1}-{self.data['method']}"
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
 
         theta_funcs = {
             "weighted_sum": weighted_sum,
@@ -94,7 +88,7 @@ class ModelMerger:
         if self.data['output'] == '':
             output_file = f'{output_dir}/{self.modelName_0}-{round(alpha * 100)}%--{self.modelName_1}-{round(100 - alpha * 100)}%{self.output_ext}'
         else:
-            output_file = f'{output_dir}/{self.output}-{round(alpha * 100)}%{self.output_ext}'
+            output_file = f"{output_dir}/{self.data['output']}-{round(alpha * 100)}%{self.output_ext}"
 
         for key in tqdm(self.model_0.keys()):
             if 'model' in key and key in self.model_1:
@@ -104,13 +98,7 @@ class ModelMerger:
             if 'model' in key and key not in self.model_0:
                 new_model[key] = self.model_1[key]
 
-        print(f"Saving as {output_file}\n")
-
-        if self.output_ext == 'safetensors':
-            save_file(new_model, output_file)
-        else:
-            torch.save(new_model, output_file)
-        return output_file.rsplit("/", 1)[-1]
+        return self.save_file(new_model, output_file)
 
     def merge_three(self, alpha):
         """consolidate merging models into a helpful function for the purpose of generating a range of merges"""
@@ -120,8 +108,7 @@ class ModelMerger:
 
         new_model = dict()
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
 
         if self.data['output'] == '':
             output_file = f'{output_dir}/{self.modelName_0}-{round(alpha * 100)}-{self.modelName_1}-{round(100 - alpha * 100)}_3_{self.modelName_2}{self.output_ext}'
@@ -140,13 +127,7 @@ class ModelMerger:
             if 'model' in key and key not in self.model_0:
                 new_model[key] = self.model_1[key]
 
-        print(f"Saving as {output_file}\n")
-
-        if self.output_ext == 'safetensors':
-            save_file(new_model, output_file)
-        else:
-            torch.save(new_model, output_file)
-        return output_file.rsplit("/", 1)[-1]
+        return self.save_file(new_model, output_file)
 
     def run(self):
         names = ""
