@@ -96,51 +96,46 @@ def create_network_and_apply_compvis(du_state_dict, multiplier_tenc, multiplier_
             network_dim = value.size()[0]
         if network_alpha is not None and network_dim is not None:
             break
+
     if network_alpha is None:
         network_alpha = network_dim
 
     if network_dim is None:
         network_dim = 4
         network_alpha = 1
-
     # create, apply and load weights
     network = LoRANetworkCompvis(text_encoder, unet, multiplier_tenc=multiplier_tenc,
                                  multiplier_unet=multiplier_unet, lora_dim=network_dim, alpha=network_alpha)
     # some weights are applied to text encoder
     state_dict = network.apply_lora_modules(du_state_dict)
 
+    # print("DU_STATE_DICT", du_state_dict)
+    # for key, value in du_state_dict.items():
+    #     print(key)
+        
+    # print("STATE_DICT", state_dict)
+    # for key, value in state_dict.items():
+    #     print(key)
+
     # with this, if error comes from next line, the model will be used
     network.to(dtype)
     info = network.load_state_dict(state_dict, strict=False)
 
-    # remove redundant warnings
-    if len(info.missing_keys) > 4:
-        missing_keys = []
-        alpha_count = 0
-        for key in info.missing_keys:
-            missing_keys.append(key)
+    info = torch.nn.modules.module._IncompatibleKeys(
+        info.missing_keys, info.unexpected_keys)
+    #print(info)
 
-        #     if 'alpha' not in key:
-        #     else:z``
-        #         if alpha_count == 0:
-        #             missing_keys.append(key)
-        #         alpha_count += 1
-        # if alpha_count > 1:
-        #     missing_keys.append(
-        #         f"... and {alpha_count - 1} alphas. The model doesn't have alpha, use dim (rannk) as alpha. You can ignore this message.")
-
-        info = torch.nn.modules.module._IncompatibleKeys(
-            missing_keys, info.unexpected_keys)
-        #print(info)
     return network, info, state_dict
 
 
 class LoRANetworkCompvis(torch.nn.Module):
     # current_network = None
 
-    UNET_TARGET_REPLACE_MODULE = ["CrossAttention",
-                                  "Transformer2DModel", "Conv2d", "Attention"]
-    TEXT_ENCODER_TARGET_REPLACE_MODULE = ["CLIPAttention", "CLIPMLP"]
+    # UNET_TARGET_REPLACE_MODULE = ["CrossAttention",
+    #                              "Transformer2DModel", "Conv2d"]
+    UNET_TARGET_REPLACE_MODULE = ["SpatialTransformer", "ResBlock", "Downsample", "Upsample", "Attention"]  # , "Attention"]
+    TEXT_ENCODER_TARGET_REPLACE_MODULE = ["ResidualAttentionBlock", "CLIPAttention", "CLIPMLP"]
+    #TEXT_ENCODER_TARGET_REPLACE_MODULE = ["CLIPAttention", "CLIPMLP"]
 
     LORA_PREFIX_UNET = 'lora_unet'
     LORA_PREFIX_TEXT_ENCODER = 'lora_te'
@@ -153,26 +148,23 @@ class LoRANetworkCompvis(torch.nn.Module):
         """
         cv_name = None
         if LoRANetworkCompvis.LORA_PREFIX_UNET in du_name:
-            if m := re.search(
-                    r"_down_blocks_(\d+)_attentions_(\d+)_(.+)", du_name
-            ):
+            if m := re.search(r"lora_unet_down_blocks_(\d+)_attentions_(\d+)_(.+)", du_name):
                 du_suffix = m[3]
-
                 cv_index = 1 + int(m[1]) * 3 + int(m[2])
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_input_blocks_{cv_index}_1_{du_suffix}_"
-            elif m := re.search(r"_mid_block_attentions_(\d+)_(.+)", du_name):
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_input_blocks_{cv_index}_1_{du_suffix}"
+            elif m := re.search(r"lora_unet_mid_block_attentions_(\d+)_(.+)", du_name):
                 du_suffix = m[2]
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_middle_block_1_{du_suffix}_"
-            elif m := re.search(r"_up_blocks_(\d+)_attentions_(\d+)_(.+)", du_name):
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_middle_block_1_{du_suffix}"
+            elif m := re.search(r"lora_unet_up_blocks_(\d+)_attentions_(\d+)_(.+)", du_name):
                 du_block_index = int(m[1])
                 du_attn_index = int(m[2])
                 du_suffix = m[3]
 
                 cv_index = du_block_index * 3 + du_attn_index  # 3,4,5, 6,7,8, 9,10,11
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model2_diffusion_model_output_blocks_{cv_index}_1_{du_suffix}_"
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model2_diffusion_model_output_blocks_{cv_index}_1_{du_suffix}"
 
         elif LoRANetworkCompvis.LORA_PREFIX_TEXT_ENCODER in du_name:
-            if m := re.search(r"_model_encoder_layers_(\d+)_(.+)", du_name):
+            if m := re.search(r"lora_te_text_model_encoder_layers_(\d+)_(.+)", du_name):
                 du_block_index = int(m[1])
                 du_suffix = m[2]
 
@@ -189,6 +181,7 @@ class LoRANetworkCompvis(torch.nn.Module):
                     cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_TEXT_WRAPPER}_transformer_text_model_encoder_layers_{cv_index}_{du_suffix}"
 
         assert cv_name is not None, f"conversion failed: {du_name}. the model may not be trained by `sd-scripts`."
+
         return cv_name
 
     def __init__(self, text_encoder, unet, multiplier_tenc=1.0, multiplier_unet=1.0, lora_dim=4, alpha=1) -> None:
