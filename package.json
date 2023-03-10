@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.1.2-beta.14",
+  "version": "1.1.2-beta.15",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -40,8 +40,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "installerHeaderIcon": "./icon.ico",
-      "allowToChangeInstallationDirectory": true,
-      "include": "./custom_nsis.nsh"
+      "allowToChangeInstallationDirectory": true
     },
     "files": [
       "dist/**/*",
@@ -60,8 +59,6 @@
       "stable-diffusion/**/*",
       "!stable-diffusion/models/ldm/stable-diffusion-v1/**/*",
       "!stable-diffusion/src/**/*",
-      "py_cuda_install.exe",
-      "py_cuda_install_debug.exe",
       "model_downloader.json",
       "model_merger.py",
       "server.py",
@@ -86,7 +83,6 @@
     "exif-parser": "^0.1.12",
     "framer-motion": "^8.4.0",
     "konva": "^8.4.0",
-    "node-stream-zip": "^1.15.0",
     "qs": "^6.11.0",
     "react": "^18.2.0",
     "react-colorful": "^5.6.1",
@@ -109,7 +105,8 @@
     "use-image": "^1.1.0",
     "uuid": "^9.0.0",
     "validator": "^13.7.0",
-    "ws": "^8.11.0"
+    "ws": "^8.11.0",
+    "yauzl": "^2.10.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.17.6",

@@ -176,25 +176,6 @@ function createWindow() {
     clipboard.writeImage(nativeImage.createFromDataURL(b64));
   });
 
-  ipcMain.handle("reinstallArtroom", () => {
-    return new Promise((resolve, reject) => {
-      console.log("Reinstalling Artroom...");
-      // Define the path to the external .exe file
-      const exePath = 'py_cuda_install_debug.exe';
-
-      // Spawn a new child process to run the .exe file
-      const exeProcess = spawn('runas', ['/user:Administrator', exePath], {
-        detached: true
-      });
-
-      // Listen for the 'close' event, which is emitted when the child process finishes
-      exeProcess.on('close', (code: string) => {
-        console.log(`Process exited with code ${code}`);
-        resolve('Success');
-      });
-    });
-  });
-
   ipcMain.handle("uploadSettings", () => {
     return new Promise((resolve, reject) => {
       let properties: OpenDialogOptions['properties'];
