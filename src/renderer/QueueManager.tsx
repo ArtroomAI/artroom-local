@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect } from 'react';
+import React, { useCallback, useContext, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { addToQueueState, queuePausedState, queueState } from './atoms/atoms';
 import { SocketContext } from './socket';
@@ -24,21 +24,25 @@ export const QueueManager = () => {
     const [queue, setQueue] = useRecoilState(queueState);
     const [isQueuePaused, setQueuePaused] = useRecoilState(queuePausedState);
     const [addToQueue, setAddToQueue] = useRecoilState(addToQueueState);
+    const queuedItemRef = useRef(null);
     
-    const emit = useCallback(() => {
-        const __queue = [...queue];
-        __queue.shift();
-        setQueue(__queue);
-        if(!isQueuePaused && __queue[0]) {
-            socket.emit('generate', __queue[0]);
+    const emit = useCallback((remove: boolean = true) => {
+        if(remove) {
+            const __queue = [...queue];
+            __queue.shift();
+            queuedItemRef.current = __queue[0] || null;
+            setQueue(__queue);
         }
+        if (queuedItemRef.current === null || isQueuePaused) {
+            return;
+        }
+        socket.emit('generate', queuedItemRef.current);
     }, [socket, queue, isQueuePaused]);
 
     useEffect(() => {
-        if(!isQueuePaused && queue[0]) {
-            socket.emit('generate', queue[0]);
-        }
-    }, [socket, queue, isQueuePaused]);
+        queuedItemRef.current = queue[0] || null;
+        emit(false);
+    }, [queue, emit]);
 
     useEffect(() => {
         if(addToQueue) {
