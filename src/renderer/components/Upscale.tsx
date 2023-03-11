@@ -99,7 +99,7 @@ function Upscale () {
             upscale_factor,
             upscale_strength,
             upscale_dest,
-            save_image_path: imageSavePath,
+            image_save_path: imageSavePath,
             models_dir: modelsDir
         };
 

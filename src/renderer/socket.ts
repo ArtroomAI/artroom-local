@@ -28,6 +28,7 @@ export interface SocketEmitEvents {
         upscale_factor: number;
         upscale_strength: number;
         upscale_dest: string;
+        image_save_path: string;
     }) => void;
     remove_from_queue: (data: { id: string }) => void;
     merge_models: (data: {
