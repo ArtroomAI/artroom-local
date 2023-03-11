@@ -57,6 +57,7 @@
       "icon.ico",
       "miniconda.exe",
       "artroom_helpers/**/*",
+      "gfpgan/**/*",
       "stable-diffusion/**/*",
       "!stable-diffusion/models/ldm/stable-diffusion-v1/**/*",
       "!stable-diffusion/src/**/*",
