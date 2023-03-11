@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useCallback, useContext, useEffect, useState } from 'react';
 import { Button, Flex, useToast } from '@chakra-ui/react';
 import { useRecoilValue } from 'recoil';
 import { Popover, IconButton, Slider, Select } from '../../components';
@@ -6,6 +6,8 @@ import { GiResize } from 'react-icons/gi';
 import axios from 'axios';
 import { getCanvasBaseLayer, layerToDataURL } from '../../util';
 import {stageScaleAtom, stageCoordinatesAtom } from '../../atoms/canvas.atoms';
+import { SocketContext, SocketOnEvents } from '../../../../socket';
+import { imageSavePathState, modelsDirState } from '../../../../SettingsManager';
 
 export const CanvasUpscaleButtonPopover: FC = () => {
   const toast = useToast({});
@@ -13,18 +15,57 @@ export const CanvasUpscaleButtonPopover: FC = () => {
   const [upscale_factor, setUpscaleFactor] = useState(2);
   const stageScale = useRecoilValue(stageScaleAtom);   
   const stageCoordinates = useRecoilValue(stageCoordinatesAtom);
+  const socket = useContext(SocketContext);
+  const imageSavePath = useRecoilValue(imageSavePathState);
+  const modelsDir = useRecoilValue(modelsDirState);
 
-  function handleUpscale() {
+  const handleUpscale: SocketOnEvents['upscale']  = useCallback((data) => {
+    if (data.status === 'Success') {
       toast({
-        title: 'Recieved!',
-        description: 'You\'ll get a notification 🔔 when your upscale is ready!',
+        title: 'Upscale Completed',
         status: 'success',
         position: 'top',
-        duration: 1500,
+        duration: 2000,
         isClosable: false,
         containerStyle: {
-            pointerEvents: 'none'
+          pointerEvents: 'none'
         }
+      });
+    } else {
+      toast({
+        title: 'Upscale Failed',
+        description: data.status_message,
+        status: 'error',
+        position: 'top',
+        duration: 5000,
+        isClosable: false,
+        containerStyle: {
+          pointerEvents: 'none'
+        }
+      });
+    }
+  }, [toast]);
+  
+  // on socket message
+  useEffect(() => {
+    socket.on('upscale', handleUpscale);
+
+    return () => {
+      socket.off('upscale', handleUpscale);
+    };
+  }, [socket, handleUpscale]);
+
+  const sendUpscale = useCallback(() => {
+    toast({
+      title: 'Recieved!',
+      description: 'You\'ll get a notification 🔔 when your upscale is ready!',
+      status: 'success',
+      position: 'top',
+      duration: 1500,
+      isClosable: false,
+      containerStyle: {
+        pointerEvents: 'none'
+      }
     });
     const canvasBaseLayer = getCanvasBaseLayer();
 
@@ -35,44 +76,18 @@ export const CanvasUpscaleButtonPopover: FC = () => {
     );
     
     const output = {
-        upscale_image : dataURL,
-        upscaler, 
-        upscale_factor,
-        upscale_dest: ""
+      upscale_images: [dataURL],
+      upscaler,
+      upscale_factor,
+      upscale_strength: 0.5,
+      upscale_dest: "",
+      image_save_path: imageSavePath,
+      models_dir: modelsDir
     };
-    axios.post(
-        'http://127.0.0.1:5300/upscale_canvas',
-        output,
-        {
-          headers: { 'Content-Type': 'application/json' }
-        }
-    ).then((result) => {
-        if (result.data.status === 'Failure') {
-            toast({
-                title: 'Upscale Failed',
-                description: result.data.status_message,
-                status: 'error',
-                position: 'top',
-                duration: 5000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        } else {
-            toast({
-                title: 'Upscale Completed',
-                status: 'success',
-                position: 'top',
-                duration: 1000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    });
-  }
+
+    socket.emit('upscale', output);
+    
+  }, [imageSavePath, modelsDir, socket, stageCoordinates, stageScale, toast, upscale_factor, upscaler]);
 
   return (
     <Popover
@@ -106,7 +121,7 @@ export const CanvasUpscaleButtonPopover: FC = () => {
                 w="300px" 
                 validValues={["RealESRGAN","RealESRGAN-Anime","GFPGANv1.3","GFPGANv1.4","RestoreFormer"]}                  
               />                 
-          <Button onClick={handleUpscale}>Upscale</Button>
+          <Button onClick={sendUpscale}>Upscale</Button>
         </Flex>
     </Popover>
   );
