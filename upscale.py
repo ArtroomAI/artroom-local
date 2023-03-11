@@ -16,17 +16,12 @@ class Upscaler():
         self.artroom_path = None
         self.upscale_queue_path = None
         self.running = False
+        self.images = []
 
     def add_images(self, images):
         # Filter non-images
-        images = [image for image in images if (
+        self.images = [image for image in images if (
             ".jpg" in image or ".png" in image or ".jpeg" in image)]
-        if os.path.exists(self.upscale_queue_path):
-            shutil.rmtree(self.upscale_queue_path)
-
-        os.makedirs(self.upscale_queue_path, exist_ok=True)
-        for image in images:
-            shutil.copy(image, self.upscale_queue_path)
 
     def get_dest_path(self, upscale_dest, upscaler, image_path):
         if upscale_dest == "":
@@ -36,9 +31,6 @@ class Upscaler():
             
         upscale_dest += f"/{upscaler.replace(' ','')}"
         return upscale_dest
-    
-    def get_images(self):
-        return sorted(glob(os.path.join(self.upscale_queue_path, '*')))
 
     def upscale(self, models_dir, images, upscaler, upscale_factor, upscale_dest, upscale_strength=None):
         self.running = True
@@ -92,15 +84,13 @@ class Upscaler():
         suffix = "_upscaled"
         ext = "auto"
 
-        img_list = self.get_images()
-
         # ------------------------ set up background upsampler ------------------------
         if bg_upsampler == 'realesrgan' and torch.cuda.is_available():
             from basicsr.archs.rrdbnet_arch import RRDBNet
             from realesrgan import RealESRGANer
             model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64,
                             num_block=23, num_grow_ch=32, scale=2)
-
+            use_half = get_gpu_architecture() == 'NVIDIA'
             model_path = self.download_upscaler(
                 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth')
 
@@ -111,7 +101,7 @@ class Upscaler():
                 tile=bg_tile,
                 tile_pad=10,
                 pre_pad=0,
-                half=False)  # need to set False in CPU mode
+                half=use_half)
         else:
             bg_upsampler = None
 
@@ -147,7 +137,7 @@ class Upscaler():
         output_images = []
         save_paths = []
         # ------------------------ restore ------------------------
-        for img_path in img_list:
+        for img_path in self.images:
             # read image
             img_name = os.path.basename(img_path)
             print(f'Processing {img_name} ...')
@@ -232,10 +222,9 @@ class Upscaler():
             pre_pad=0,
             half=use_half)
 
-        img_list = self.get_images()
         output_images = []
         save_paths = []
-        for path in img_list:
+        for path in self.images:
             imgname, extension = os.path.splitext(os.path.basename(path))
             img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
             try:
