@@ -3,27 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { ipcMain } from "electron";
-<<<<<<< Updated upstream
 import yauzl from "yauzl";
-import os from 'os';
-
-let installationProcess: ChildProcessWithoutNullStreams;
-let hd = os.homedir();
-const artroom_install_log = hd + "\\AppData\\Local\\artroom_install.log";
-let artroom_path = hd;
-if (fs.existsSync(artroom_install_log)) {
-  let temp = fs.readFileSync(artroom_install_log, 'utf-8');
-  let lines = temp.split(/\r?\n/);
-  artroom_path = lines[0];
-  console.log(`NEW ARTROOM PATH: ${artroom_path}`)
-}
-artroom_path = path.join(artroom_path, "\\artroom")
-=======
-import StreamZip from 'node-stream-zip';
 
 let installationProcess: ChildProcessWithoutNullStreams;
 
->>>>>>> Stashed changes
 async function removeDirectoryIfExists(PATH: fs.PathLike) {
     try {
       const exists = fs.existsSync(PATH);
@@ -37,40 +20,30 @@ async function removeDirectoryIfExists(PATH: fs.PathLike) {
     }
   }
   
-
-<<<<<<< Updated upstream
-const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInstaller: boolean) => () => {
-    const URL = useAMDInstaller ? 
-=======
 const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => () => {
     console.log("REINSTALL BACKING")
     console.log(`VANILLA PATH: ${artroomPath}`)
     const URL = gpuType === 'AMD' ? 
->>>>>>> Stashed changes
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
       : 
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
 
-<<<<<<< Updated upstream
-    const PATH = path.join(artroom_path, "miniconda3");
-=======
     const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
->>>>>>> Stashed changes
     console.log(`ARTROOM PATH: ${PATH}`)
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`)
 
-<<<<<<< Updated upstream
-    const PATH_zip = path.join(artroom_path, "file.zip")
-=======
     const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
->>>>>>> Stashed changes
     console.log(`ARTROOM ZIP PATH: ${PATH_zip}`)
 
     const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
 
     removeDirectoryIfExists(PATH).then(()=>{
         const request = https.get(URL, (response) => {
+            if (fs.existsSync(PATH_zip)) {
+              fs.unlinkSync(PATH_zip);
+            }
+
             const len = parseInt(response.headers['content-length'], 10);
             let cur = 0;
             const toMB = (n: number) => (n / 1048576).toFixed(2);
@@ -94,7 +67,6 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
     
             file.on("finish", () => {
                 file.close();
-<<<<<<< Updated upstream
                 yauzl.open(PATH_zip, { lazyEntries: true }, (error, zipFile) => {
                   if (error) {
                     console.error(`Error opening ZIP archive: ${error}`);
@@ -109,7 +81,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
                   zipFile.on("entry", (entry) => {
                     if (/\/$/.test(entry.fileName)) {
                       // Directory entry
-                      fs.mkdirSync(`${artroom_path}/${entry.fileName}`);
+                      fs.mkdirSync(`${artroomPath}/artroom/${entry.fileName}`);
                       zipFile.readEntry();
                     } else {
                       // File entry
@@ -120,7 +92,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
                           return;
                         }
                 
-                        const writeStream = fs.createWriteStream(`${artroom_path}/${entry.fileName}`);
+                        const writeStream = fs.createWriteStream(`${artroomPath}/artroom/${entry.fileName}`);
                 
                         writeStream.on("close", () => {
                           extractedEntries++;
@@ -129,21 +101,6 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
                           console.log();
                           mainWindow.webContents.send('fixButtonProgress', `Extracting... ${progress}%`);
                           zipFile.readEntry();
-=======
-                console.log('Downloading complete. Decompressing...');
-                console.log(PATH_zip)
-                mainWindow.webContents.send('fixButtonProgress', 'Downloading complete. Decompressing...');
-                const zip = new StreamZip({ file: PATH_zip});
-    
-                zip.on('ready', () => {
-                    fs.mkdirSync(PATH, { recursive: true });
-                    zip.extract(null, path.join(path.join(artroomPath, "\\artroom\\")), (err, count) => {
-                        mainWindow.webContents.send('fixButtonProgress', err ? 'Extract error' : `Finished extracting! Updating libraries...`);
-                        console.log(err ? 'Extract error' : `Finished extracting! Updating libraries...`);
-                        installationProcess = spawn(installationCommand, { shell: true, detached: true });
-                        installationProcess.stdout.on("data", (data) => {
-                            console.log(`stdout: ${data}`);
->>>>>>> Stashed changes
                         });
                 
                         readStream.pipe(writeStream);

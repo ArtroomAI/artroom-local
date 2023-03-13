@@ -7,8 +7,13 @@ const { persistAtom } = recoilPersist();
 
 export const artroomPathState = atom<string>({
     key: "artroomPath",
-    // default: os.homedir() || "",
-    default: "",
+    default: os.homedir() || "",
+    effects_UNSTABLE: [persistAtom]
+});
+
+export const modelsDirState = atom<string>({
+    key: "models_dir",
+    default: path.join(os.homedir() || "", 'artroom', 'model_weights'),
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -166,12 +171,6 @@ export const loraState = atom<Lora[]>({
 export const controlnetState = atom<string>({
     key: "controlnet",
     default: "None",
-    effects_UNSTABLE: [persistAtom]
-});
-
-export const modelsDirState = atom<string>({
-    key: "models_dir",
-    default: path.resolve('/'),
     effects_UNSTABLE: [persistAtom]
 });
 
