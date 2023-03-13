@@ -22,7 +22,7 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState } from '../SettingsManager';
+import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState, artroomPathState } from '../SettingsManager';
 
 function Settings () {
     const toast = useToast({});
@@ -45,6 +45,7 @@ function Settings () {
     const [saveGridTemp, setSaveGridTemp] = useState(saveGrid);
     const [modelsDirTemp, setModelsDirTemp] = useState(modelsDir);
     
+    const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
     const [downloadMessage, setDownloadMessage] = useState('');
 
     // load defaults
@@ -350,7 +351,7 @@ function Settings () {
                         colorScheme="red"
                         alignContent="center"
                         className="reinstall-python-dependencies"
-                        onClick={window.api.pythonInstallDependencies}>
+                        onClick={()=>{window.api.pythonInstallDependencies(artroomPath)}}>
                         Update Packages
                     </Button>
                 </Flex>

@@ -11,17 +11,23 @@ import {
     Text,
     Flex,
     Switch,
-    useToast
+    useToast,
+    RadioGroup,
+    Radio
 } from '@chakra-ui/react';
+import { useRecoilState } from 'recoil';
+import { artroomPathState } from '../../SettingsManager';
 
 function DebugInstallerModal () {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast({});
 
     const cancelRef = React.useRef();
-    const [useAMDInstaller, setUseAMDInstaller] = useState(false);
+    const [gpuType, setGpuType] = useState('NVIDIA');
+    const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
+
     const DebugInstaller = () => {
-        window.api.pythonInstall(useAMDInstaller);
+        window.api.pythonInstall(artroomPath, gpuType);
         toast({
             title: 'Reinstalling Artroom Backend',
             status: 'success',
@@ -90,9 +96,17 @@ function DebugInstallerModal () {
                             </p>
                             <br />
                             <Flex alignItems="center">
-                                <Text fontSize="lg" fontWeight="medium">Use AMD Installer: </Text>
-                                {' '}
-                                <Switch size="lg" onChange={() => setUseAMDInstaller(!useAMDInstaller)} isChecked={useAMDInstaller} />
+                            <RadioGroup value={gpuType} onChange={(event)=>{setGpuType(event)}} mb='4'>
+                                <Text mb='4'>Do you have an NVIDIA or AMD GPU?:</Text>
+                                <Flex flexDirection='row' alignItems='center'>
+                                    <Radio value='NVIDIA' mr='2' />
+                                    NVIDIA
+                                </Flex>
+                                <Flex flexDirection='row' alignItems='center'>
+                                    <Radio value='AMD' mr='2' />
+                                    AMD
+                                </Flex>
+                            </RadioGroup>
                             </Flex>
                         </AlertDialogBody>
 
@@ -111,7 +125,7 @@ function DebugInstallerModal () {
                                 onClick={() => {
                                         DebugInstaller();
                                 }}>
-                                Install Artroom {useAMDInstaller ? 'for AMD' : 'for NVIDIA'}
+                                Install Artroom {gpuType}
                             </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>

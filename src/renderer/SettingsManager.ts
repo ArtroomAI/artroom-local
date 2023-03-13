@@ -5,6 +5,13 @@ import { recoilPersist } from 'recoil-persist';
 
 const { persistAtom } = recoilPersist();
 
+export const artroomPathState = atom<string>({
+    key: "artroomPath",
+    // default: os.homedir() || "",
+    default: "",
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const textPromptsState = atom<string>({
     key: "text_prompts",
     default: "",
@@ -178,6 +185,7 @@ export const queueSettingsSelector = selector<QueueType>({
     key: "queue.settings",
     get: ({ get }) => {
         const settings: QueueType = {
+
             text_prompts: get(textPromptsState),
             negative_prompts: get(negativePromptsState),
 

@@ -17,21 +17,9 @@ import { handlers } from './ipcHandles';
 import { setupQueueHandles } from './ipcFileHandles';
 
 let win: BrowserWindow;
-let hd = os.homedir();
 let LOCAL_URL = process.env.LOCAL_URL;
 //Start with cleanup
 axios.get(`${LOCAL_URL}/shutdown`)
-
-//read installation log to find artroom path
-// const artroom_install_log = userDataPath + "/artroom_install.log";
-const artroom_install_log = hd + "\\AppData\\Local\\artroom_install.log";
-let artroom_path = hd;
-if (fs.existsSync(artroom_install_log)) {
-  // Do something
-  let temp = fs.readFileSync(artroom_install_log, 'utf-8');
-  let lines = temp.split(/\r?\n/);
-  artroom_path = lines[0];
-}
 
 const getPNGEXIF = (png: Buffer) => {
   const png_string = png.toString('utf-8');
@@ -73,12 +61,6 @@ async function getImage(image_path: string) {
   });
 }
 
-//pyTestCmd = "\"" + artroom_path +"\\artroom\\miniconda3\\Scripts\\conda" + "\"" + " run -p " + "\"" + artroom_path + "/artroom/miniconda3/envs/artroom-ldm" + "\"" + " python pytest.py";
-//pyTestCmd = "\"" + artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python" + "\"";
-const pyTestCmd = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe";
-
-const serverCommand = `"${artroom_path}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroom_path}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
-
 let server: ChildProcessWithoutNullStreams;
 
 const getFiles = async (folder_path: string, ext: string, excludeFolder?: string) => {  return new Promise((resolve, reject) => {
@@ -92,10 +74,7 @@ const getFiles = async (folder_path: string, ext: string, excludeFolder?: string
   });
 }
 
-console.log("Artroom Log: " + artroom_install_log);
-
 function createWindow() {
-  server = spawn(serverCommand, { detached: true, shell: true });
 
   ipcMain.handle('saveFromDataURL', async (event, data) => {
     const json = JSON.parse(data);
@@ -239,7 +218,6 @@ function createWindow() {
     });
   });
 
-
   ipcMain.handle('chooseUploadPath', (event) => {
     return new Promise((resolve, reject) => {
       dialog.showOpenDialog({
@@ -258,9 +236,17 @@ function createWindow() {
     });
   });
 
+  ipcMain.handle('startArtroom', async (event, artroomPath) => {
+    setupQueueHandles(ipcMain, artroomPath);
+    const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
+    server = spawn(serverCommand, { detached: true, shell: true });
+  });
+
+
   //startup test logic
-  function runPyTests() {
+  function runPyTests(artroomPath: string) {
     return new Promise((resolve, reject) => {
+      const pyTestCmd = `${artroomPath}\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe`;
       let childPython = spawn(pyTestCmd, ['pytest.py']);
       var result = '';
       childPython.stdout.on(`data`, (data) => {
@@ -277,34 +263,35 @@ function createWindow() {
     })
   };
 
-  async function runTest() {
+  async function runTest(artroomPath: string) {
     try {
-      const res = await runPyTests();
+      const res = await runPyTests(artroomPath);
       return res
     } catch (err) {
       return err
     }
   }
 
-  ipcMain.handle('runPyTests', () => {
-    let python_path = artroom_path + "\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe";
-    if (!(fs.existsSync(artroom_install_log))) {
-      return "cannot find artroom_install_log in " + artroom_install_log;
-    } else if (!(fs.existsSync(python_path))) {
+  ipcMain.handle('runPyTests', async (event, artroomPath) => {
+    let python_path = `${artroomPath}\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe`;
+    if (!(fs.existsSync(python_path))) {
       return "cannot find python in " + python_path;
     } else {
-      let res = runTest();
+      let res = runTest(artroomPath);
       return res;
       //return "success";
     }
   });
 
-  ipcMain.handle('restartServer', async (event, isDebug) => {
+  ipcMain.handle('restartServer', async (event, data) => {
     return new Promise(() => {
-      console.log(`debug mode: ${isDebug}`)
-      kill(server.pid);
-      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-      server = spawn(serverCommand, { detached: isDebug, shell: true });
+      const serverCommand = `"${data.artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${data.artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
+      console.log(`debug mode: ${data.isDebug}`)
+      if (server && server.pid){
+        kill(server.pid);
+        spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+      }
+      server = spawn(serverCommand, { detached: data.isDebug, shell: true });
     });
   });
 
@@ -323,7 +310,6 @@ function createWindow() {
   })
   
   exposeMenuFunctions(ipcMain, win, app);
-  setupQueueHandles(ipcMain, artroom_path);
   handlers(win);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
@@ -372,8 +358,10 @@ function createWindow() {
     dialog.showMessageBox(dialogOpts).then((returnValue) => {
       if (returnValue.response === 0) {
         if (process.platform !== 'darwin') {
-          kill(server.pid);
-          spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+          if (server && server.pid){
+            kill(server.pid);
+            spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+          }
           axios.get(`${LOCAL_URL}/shutdown`)
         }  
         autoUpdater.quitAndInstall();
@@ -403,8 +391,10 @@ app.on('window-all-closed', function () {
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
-    kill(server.pid);
-    spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+    if (server && server.pid){
+      kill(server.pid);
+      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+    }
     axios.get(`${LOCAL_URL}/shutdown`)
     app.quit()
   }

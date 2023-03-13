@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from "electron";
 import { ProgressInfo } from "electron-updater";
 
 const api = {
+    startArtroom: async (artroomPath: string) => {return await ipcRenderer.invoke('startArtroom',artroomPath);},
+    runPyTests: async (artroomPath: string) => {return await ipcRenderer.invoke('runPyTests', artroomPath);},
     getCkpts: async (data: any) => {return await ipcRenderer.invoke('getCkpts',data);},
     getLoras: async (data: any) => {return await ipcRenderer.invoke('getLoras',data);},
     getVaes: async (data: any) => {return await ipcRenderer.invoke('getVaes',data);},
@@ -15,7 +17,6 @@ const api = {
     copyToClipboard: async (data: string) => {return await ipcRenderer.invoke('copyToClipboard',data);},
     saveFromDataURL: async (data: string) => {return await ipcRenderer.invoke('saveFromDataURL',data);},
     chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
-    runPyTests: async () => {return await ipcRenderer.invoke('runPyTests');},
     restartServer: async (isDebug: boolean) => {return await ipcRenderer.invoke('restartServer',isDebug);},
     showInExplorer: async (path: string) => {return await ipcRenderer.invoke('showInExplorer', path);},
     minimizeWindow: async () => {return await ipcRenderer.invoke('minimizeWindow');},
@@ -23,8 +24,8 @@ const api = {
     maxUnmaxWindow: async () => {return await ipcRenderer.invoke('maxUnmaxWindow');},
     closeWindow: async () => {return await ipcRenderer.invoke('closeWindow');},
     getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
-    pythonInstall: async(useAMDInstaller: boolean) => {return await ipcRenderer.invoke('pythonInstall', useAMDInstaller);},
-    pythonInstallDependencies: async() => {return await ipcRenderer.invoke('pythonInstallDependencies');},
+    pythonInstall: async(artroomPath: string, gpuType: string) => {return await ipcRenderer.invoke('pythonInstall', artroomPath, gpuType);},
+    pythonInstallDependencies: async(artroomPath: string) => {return await ipcRenderer.invoke('pythonInstallDependencies', artroomPath);},
     fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback);},
     downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);},
     saveQueue: async (queue: string) => { ipcRenderer.invoke('saveQueue', queue) },

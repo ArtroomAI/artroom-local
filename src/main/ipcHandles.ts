@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { ipcMain } from "electron";
+<<<<<<< Updated upstream
 import yauzl from "yauzl";
 import os from 'os';
 
@@ -17,6 +18,12 @@ if (fs.existsSync(artroom_install_log)) {
   console.log(`NEW ARTROOM PATH: ${artroom_path}`)
 }
 artroom_path = path.join(artroom_path, "\\artroom")
+=======
+import StreamZip from 'node-stream-zip';
+
+let installationProcess: ChildProcessWithoutNullStreams;
+
+>>>>>>> Stashed changes
 async function removeDirectoryIfExists(PATH: fs.PathLike) {
     try {
       const exists = fs.existsSync(PATH);
@@ -31,18 +38,33 @@ async function removeDirectoryIfExists(PATH: fs.PathLike) {
   }
   
 
+<<<<<<< Updated upstream
 const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInstaller: boolean) => () => {
     const URL = useAMDInstaller ? 
+=======
+const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => () => {
+    console.log("REINSTALL BACKING")
+    console.log(`VANILLA PATH: ${artroomPath}`)
+    const URL = gpuType === 'AMD' ? 
+>>>>>>> Stashed changes
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
       : 
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
 
+<<<<<<< Updated upstream
     const PATH = path.join(artroom_path, "miniconda3");
+=======
+    const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
+>>>>>>> Stashed changes
     console.log(`ARTROOM PATH: ${PATH}`)
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`)
 
+<<<<<<< Updated upstream
     const PATH_zip = path.join(artroom_path, "file.zip")
+=======
+    const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
+>>>>>>> Stashed changes
     console.log(`ARTROOM ZIP PATH: ${PATH_zip}`)
 
     const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
@@ -72,6 +94,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInst
     
             file.on("finish", () => {
                 file.close();
+<<<<<<< Updated upstream
                 yauzl.open(PATH_zip, { lazyEntries: true }, (error, zipFile) => {
                   if (error) {
                     console.error(`Error opening ZIP archive: ${error}`);
@@ -106,6 +129,21 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInst
                           console.log();
                           mainWindow.webContents.send('fixButtonProgress', `Extracting... ${progress}%`);
                           zipFile.readEntry();
+=======
+                console.log('Downloading complete. Decompressing...');
+                console.log(PATH_zip)
+                mainWindow.webContents.send('fixButtonProgress', 'Downloading complete. Decompressing...');
+                const zip = new StreamZip({ file: PATH_zip});
+    
+                zip.on('ready', () => {
+                    fs.mkdirSync(PATH, { recursive: true });
+                    zip.extract(null, path.join(path.join(artroomPath, "\\artroom\\")), (err, count) => {
+                        mainWindow.webContents.send('fixButtonProgress', err ? 'Extract error' : `Finished extracting! Updating libraries...`);
+                        console.log(err ? 'Extract error' : `Finished extracting! Updating libraries...`);
+                        installationProcess = spawn(installationCommand, { shell: true, detached: true });
+                        installationProcess.stdout.on("data", (data) => {
+                            console.log(`stdout: ${data}`);
+>>>>>>> Stashed changes
                         });
                 
                         readStream.pipe(writeStream);
@@ -146,10 +184,10 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInst
 
 };
 
-const reinstallPythonDependencies = () => () => {
+const reinstallPythonDependencies = (artroomPath: string) => () => {
     console.log("RESINSTALLING DEPENDENCIES")
-    console.log(artroom_path);
-    const PATH = path.join(artroom_path, "artroom\\miniconda3");
+    console.log(artroomPath);
+    const PATH = path.join(artroomPath, "artroom\\miniconda3");
     console.log(PATH);
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     console.log(PATH_requirements)
@@ -182,8 +220,10 @@ const reinstallPythonDependencies = () => () => {
 }
 
 export const handlers = (mainWindow: Electron.BrowserWindow) => {
-  ipcMain.handle('pythonInstall', (event, useAMDInstaller) => {
-    backupPythonInstallation(mainWindow, useAMDInstaller)();
+  ipcMain.handle('pythonInstall', (event, artroomPath, gpuType) => {
+    backupPythonInstallation(mainWindow, artroomPath, gpuType)();
   });    
-  ipcMain.handle('pythonInstallDependencies', reinstallPythonDependencies());
+  ipcMain.handle('pythonInstallDependencies', (event, artroomPath) => {
+    reinstallPythonDependencies(artroomPath)();
+  });    
 }
