@@ -527,7 +527,8 @@ class UNetModelEncode(nn.Module):
                             num_head_channels=dim_head,
                             use_new_attention_order=use_new_attention_order,
                         ) if not use_spatial_transformer else SpatialTransformer(
-                            ch, num_heads, dim_head, superfastmode=superfastmode,             use_xformers=use_xformers,depth=transformer_depth, context_dim=context_dim
+                            ch, num_heads, dim_head, superfastmode=superfastmode, use_xformers=use_xformers,
+                            depth=transformer_depth, context_dim=context_dim
                         )
                     )
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
@@ -582,7 +583,8 @@ class UNetModelEncode(nn.Module):
                 num_head_channels=dim_head,
                 use_new_attention_order=use_new_attention_order,
             ) if not use_spatial_transformer else SpatialTransformer(
-                ch, num_heads, dim_head, superfastmode=superfastmode,use_xformers=use_xformers, depth=transformer_depth, context_dim=context_dim
+                ch, num_heads, dim_head, superfastmode=superfastmode, use_xformers=use_xformers,
+                depth=transformer_depth, context_dim=context_dim
             ),
             ResBlock(
                 ch,
@@ -595,7 +597,7 @@ class UNetModelEncode(nn.Module):
         )
         self._feature_size += ch
 
-    def forward(self, x, timesteps=None, context=None, y=None):
+    def forward(self, x, timesteps=None, context=None, y=None, control=None):
         """
         Apply the model to an input batch.
         :param x: an [N x C x ...] Tensor of inputs.
@@ -620,6 +622,10 @@ class UNetModelEncode(nn.Module):
             h = module(h, emb, context)
             hs.append(h)
         h = self.middle_block(h, emb, context)
+
+        if control is not None:
+            print(h.shape)
+            h += control
 
         return h, emb, hs
 
@@ -766,7 +772,7 @@ class UNetModelDecode(nn.Module):
                             use_new_attention_order=use_new_attention_order,
                         ) if not use_spatial_transformer else SpatialTransformer(
                             ch, num_heads, dim_head, superfastmode=superfastmode,
-                            use_xformers=use_xformers,depth=transformer_depth, context_dim=context_dim
+                            use_xformers=use_xformers, depth=transformer_depth, context_dim=context_dim
                         )
                     )
                 if level and i == num_res_blocks:
@@ -801,18 +807,22 @@ class UNetModelDecode(nn.Module):
                 # nn.LogSoftmax(dim=1)  # change to cross_entropy and produce non-normalized logits
             )
 
-    def forward(self, h, emb, tp, hs, context=None, y=None):
+    def forward(self, h, emb, tp, hs, context=None, control=None, y=None):
         """
         Apply the model to an input batch.
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param context: conditioning plugged in via crossattn
         :param y: an [N] Tensor of labels, if class-conditional.
+        :param control: control.
         :return: an [N x C x ...] Tensor of outputs.
         """
 
         for module in self.output_blocks:
-            h = torch.cat([h, hs.pop()], dim=1)
+            if control is not None:
+                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
+            else:
+                h = torch.cat([h, hs.pop()], dim=1)
             h = module(h, emb, context)
         del emb
         h = h.type(tp)

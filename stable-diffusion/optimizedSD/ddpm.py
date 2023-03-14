@@ -67,8 +67,8 @@ class DiffusionWrapper(pl.LightningModule):
         super().__init__()
         self.diffusion_model = instantiate_from_config(diff_model_config)
 
-    def forward(self, x, t, cc):
-        out = self.diffusion_model(x, t, context=cc)
+    def forward(self, x, t, cc, control=None):
+        out = self.diffusion_model(x, t, context=cc, control=control)
         return out
 
 
@@ -77,8 +77,8 @@ class DiffusionWrapperOut(pl.LightningModule):
         super().__init__()
         self.diffusion_model = instantiate_from_config(diff_model_config)
 
-    def forward(self, h, emb, tp, hs, cc):
-        return self.diffusion_model(h, emb, tp, hs, context=cc)
+    def forward(self, h, emb, tp, hs, cc, control=None):
+        return self.diffusion_model(h, emb, tp, hs, context=cc, control=control)
 
 
 class DDPM(pl.LightningModule):
@@ -597,20 +597,22 @@ class UNet(DDPM):
         if self.shorten_cond_schedule:
             self.make_cond_schedule()
 
-    def apply_model(self, x_noisy, t, cond, return_ids=False):
+    def apply_model(self, x_noisy, t, cond, control=None, return_ids=False):
 
         if not self.turbo:
             self.model1.to(self.cdevice)
 
         step = self.unet_bs
-        h, emb, hs = self.model1(x_noisy[0:step], t[:step], cond[:step])
+        h, emb, hs = self.model1(x_noisy[0:step], t[:step], cond[:step],
+                                 control=control[:step] if control is not None else None)
         bs = cond.shape[0]
 
         # assert bs%2 == 0
         lenhs = len(hs)
 
         for i in range(step, bs, step):
-            h_temp, emb_temp, hs_temp = self.model1(x_noisy[i:i + step], t[i:i + step], cond[i:i + step])
+            h_temp, emb_temp, hs_temp = self.model1(x_noisy[i:i + step], t[i:i + step], cond[i:i + step],
+                                                    control=control[i:i + step] if control is not None else None)
             h = torch.cat((h, h_temp))
             emb = torch.cat((emb, emb_temp))
             for j in range(lenhs):
@@ -621,11 +623,14 @@ class UNet(DDPM):
             self.model2.to(self.cdevice)
 
         hs_temp = [hs[j][:step] for j in range(lenhs)]
-        x_recon = self.model2(h[:step], emb[:step], x_noisy.dtype, hs_temp, cond[:step])
+        control = [control[j][:step] for j in range(control)] if control is not None else None
+        x_recon = self.model2(h[:step], emb[:step], x_noisy.dtype, hs_temp, cond[:step],
+                              control=control)
 
         for i in range(step, bs, step):
             hs_temp = [hs[j][i:i + step] for j in range(lenhs)]
-            x_recon1 = self.model2(h[i:i + step], emb[i:i + step], x_noisy.dtype, hs_temp, cond[i:i + step])
+            x_recon1 = self.model2(h[i:i + step], emb[i:i + step], x_noisy.dtype, hs_temp, cond[i:i + step],
+                                   control=control)
             x_recon = torch.cat((x_recon, x_recon1))
 
         if not self.turbo:
@@ -721,7 +726,8 @@ class UNet(DDPM):
                txt_scale=1.5,
                unconditional_conditioning=None,
                batch_size=None,
-               mode="default"
+               mode="default",
+               control=None
                ):
         if self.turbo and self.v1:
             self.model1.to(self.cdevice)
@@ -788,7 +794,7 @@ class UNet(DDPM):
             samples = self.ddim_sampling(x_latent, conditioning, S, callback=callback, mode=mode, txt_scale=txt_scale,
                                          unconditional_guidance_scale=unconditional_guidance_scale,
                                          unconditional_conditioning=unconditional_conditioning,
-                                         mask=mask, init_latent=x_T, use_original_steps=False)
+                                         mask=mask, init_latent=x_T, use_original_steps=False, control=control)
         else:
             samples = self.k_sampling(x_latent, conditioning, S, sampler, S_ddim_steps=S_ddim_steps,
                                       unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
@@ -1144,7 +1150,7 @@ class UNet(DDPM):
     @torch.no_grad()
     def ddim_sampling(self, x_latent, cond, t_start, unconditional_guidance_scale=1.0, unconditional_conditioning=None,
                       mask=None, init_latent=None, use_original_steps=False, callback=None, mode="default",
-                      txt_scale=1.5):
+                      txt_scale=1.5, control=None):
 
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:t_start]
@@ -1166,7 +1172,8 @@ class UNet(DDPM):
 
             x_dec = self.p_sample_ddim(x_dec, cond, ts, index=index, use_original_steps=use_original_steps,
                                        unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
-                                       text_cfg_scale=txt_scale, unconditional_conditioning=unconditional_conditioning)
+                                       text_cfg_scale=txt_scale, unconditional_conditioning=unconditional_conditioning,
+                                       control=control)
             if callback:
                 callback(x_dec)
 
@@ -1183,7 +1190,7 @@ class UNet(DDPM):
     @torch.no_grad()
     def p_sample_ddim(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None, text_cfg_scale=1.5,
-                      unconditional_guidance_scale=1., unconditional_conditioning=None, mode="default"):
+                      unconditional_guidance_scale=1., unconditional_conditioning=None, mode="default", control=None):
         b, *_, device = *x.shape, x.device
         multiplier = 3 if mode == "pix2pix" else 2
         x_spare_part = None
@@ -1192,7 +1199,13 @@ class UNet(DDPM):
         else:
             x_in = torch.cat([x] * multiplier)
             t_in = torch.cat([t] * multiplier)
-            if mode == "pix2pix":
+            if self.control_model is not None and control is not None:
+                control = self.control_model.control_model(x, hint=control, timesteps=t, context=c).chunk(2)
+                # control = [c * scale for c, scale in zip(control, self.control_scales)]
+                c_in = torch.cat([unconditional_conditioning, c])
+                model_uncond, model_t = self.apply_model(x_in, t_in, c_in, control=control).chunk(2)
+                model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)
+            elif mode == "pix2pix":
                 x_spare_part = x[:, 4:, :, :]
                 c_in = torch.cat([c, c, unconditional_conditioning])
                 out_cond, out_img_cond, out_uncond = self.apply_model(x_in, t_in, c_in).chunk(3)
@@ -1444,7 +1457,7 @@ class UNetV2(UNet):
     def encode_first_stage(self, x):
         return self.first_stage_model.encode(x)
 
-    def apply_model(self, x_noisy, t, cond, return_ids=False):
+    def apply_model(self, x_noisy, t, cond, control=None, return_ids=False):
         if isinstance(cond, dict):
             # hybrid case, cond is expected to be a dict
             pass

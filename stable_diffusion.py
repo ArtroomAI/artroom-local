@@ -10,12 +10,15 @@ import json
 import math
 import os
 import sys
+
 sys.path.append("stable-diffusion/optimizedSD")
 sys.path.append("artroom_helpers/modules")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
     apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+from artroom_helpers.modules.cldm.model import create_model
+
 from safe import load as safe_load
 from torchvision.utils import make_grid
 from transformers import logging
@@ -242,7 +245,7 @@ class StableDiffusion:
                 self.deinject_lora()
             if len(loras) > 0:
                 for lora in loras:
-                    self.inject_lora(path = lora['path'], weight_tenc = lora['weight'], weight_unet = lora['weight'])
+                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
         return True
@@ -364,9 +367,6 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
 
-        if controlnet_path is not None:
-            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
-
         print("Setting up config...")
         parameterization = "eps"
         if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
@@ -483,6 +483,15 @@ class StableDiffusion:
             self.model.to(torch.float32)
             self.modelCS.to(torch.float32)
             self.modelFS.to(torch.float32)
+
+        if controlnet_path is not None:
+            self.model.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml")
+            self.model.control_model.load_state_dict(
+                self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path), strict=False)
+            self.model.control_model.cpu().half()
+        else:
+            self.model.control_model = None
+
         del sd
 
         # if self.controlnet_path is not None:
@@ -545,20 +554,22 @@ class StableDiffusion:
     def callback_fn(self, x, enabled=True):
         if not enabled:
             return
-        
+
         current_num, total_num, current_step, total_steps = self.get_steps()
-        
-        self.socketio.emit('get_progress', {'current_step': current_step + 1, 'total_steps': total_steps,'current_num': current_num, 'total_num': total_num})
-        
+
+        self.socketio.emit('get_progress',
+                           {'current_step': current_step + 1, 'total_steps': total_steps, 'current_num': current_num,
+                            'total_num': total_num})
+
         def send_intermediates(x):
             def float_tensor_to_pil(tensor: torch.Tensor):
                 """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
                 (Reproduced here to save a torchvision dependency in this demo.)
                 """
                 tensor = (((tensor + 1) / 2)
-                        .clamp(0, 1)  # change scale from -1..1 to 0..1
-                        .mul(0xFF)  # to 0..255
-                        .byte())
+                          .clamp(0, 1)  # change scale from -1..1 to 0..1
+                          .mul(0xFF)  # to 0..255
+                          .byte())
                 tensor = rearrange(tensor, 'c h w -> h w c')
                 return Image.fromarray(tensor.cpu().numpy())
 
@@ -573,12 +584,12 @@ class StableDiffusion:
             ], dtype=torch.float32)))
 
             x = x.resize((x.width * 8, x.height * 8))
-            #x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
-            self.socketio.emit('intermediate_image', { 'b64': support.image_to_b64(x)})
-    
+            # x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
+            self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(x)})
+
         if self.show_intermediates and current_step % 5 == 0:  # every 5 steps
             threading.Thread(target=send_intermediates, args=(x,)).start()
-        
+
     def interrupt(self):
         if self.running and self.model:
             self.model.interrupted_state = True
@@ -586,12 +597,14 @@ class StableDiffusion:
 
     def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
-                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[], image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False, show_intermediates = False,
-                 controlnet="None"
+                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[],
+                 image_save_path="",
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
+                 show_intermediates=False,
+                 controlnet=None
                  ):
 
-        self.show_intermediates = show_intermediates        
+        self.show_intermediates = show_intermediates
 
         controlnet_ckpts = {
             "canny": os.path.join(os.path.dirname(ckpt), "control_sd15_canny.pth"),
@@ -629,7 +642,7 @@ class StableDiffusion:
         oldW, oldH = W, H
 
         if W * H >= 1024 * 1024 and highres_fix:
-            highres_fix_steps = math.ceil((W * H) / (512 * 512)/4)
+            highres_fix_steps = math.ceil((W * H) / (512 * 512) / 4)
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
             H = math.floor(H / 64) * 64
@@ -765,10 +778,10 @@ class StableDiffusion:
 
                         x0 = None
                         for ij in range(1, highres_fix_steps + 1):
-                            self.current_num = n*highres_fix_steps + ij - 1
+                            self.current_num = n * highres_fix_steps + ij - 1
                             self.model.current_step = 0
-                            self.model.total_steps = steps*highres_fix_steps
-                            
+                            self.model.total_steps = steps * highres_fix_steps
+
                             if ij > 1:
                                 strength = 0.1
                                 ddim_steps = int(steps / strength)
@@ -820,10 +833,12 @@ class StableDiffusion:
                             x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                             x0 = init_latent_1stage if mode == "pix2pix" else x0
 
+                            if controlnet is not None:
+                                self.model.control_model.to(self.device)
                             x0 = self.model.sample(
                                 S=steps,
                                 conditioning=c,
-                                x0=x0,
+                                x0=x0 if controlnet is None else None,
                                 S_ddim_steps=ddim_steps,
                                 unconditional_guidance_scale=cfg_scale,
                                 txt_scale=txt_cfg_scale,
@@ -836,8 +851,11 @@ class StableDiffusion:
                                 mask=mask,
                                 x_T=x_T,
                                 callback=self.callback_fn,
-                                mode=mode
+                                mode=mode,
+                                control=x0 if controlnet is not None else None
                             )
+                            if controlnet is not None:
+                                self.model.control_model.cpu()
                             if self.v1:
                                 self.modelFS.to(self.device)
 
@@ -852,11 +870,11 @@ class StableDiffusion:
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                             x_sample = 255. * \
-                                    rearrange(
-                                        x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                                       rearrange(
+                                           x_sample[0].cpu().numpy(), 'c h w -> h w c')
                             out_image = Image.fromarray(
                                 x_sample.astype(np.uint8))
-                        
+
                             if self.can_use_half:
                                 self.model.half()
                                 self.modelCS.half()
@@ -906,12 +924,12 @@ class StableDiffusion:
                                 os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
                             self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                            'path': os.path.join(sample_path, save_name),
-                                                            'batch_id': batch_id})
+                                                              'path': os.path.join(sample_path, save_name),
+                                                              'batch_id': batch_id})
 
                         base_count += 1
                         seed += 1
-                        if len(init_image_str) == 0: #Resets highres_fix starting image
+                        if len(init_image_str) == 0:  # Resets highres_fix starting image
                             init_image = None
                         if not skip_grid and n_iter > 1:
                             all_samples.append(out_image)
