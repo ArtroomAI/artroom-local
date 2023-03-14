@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.1.2-beta.15",
+  "version": "1.1.2-beta.17",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -62,6 +62,7 @@
       "model_downloader.json",
       "model_merger.py",
       "server.py",
+      "pytest.py",
       "safe.py",
       "stable_diffusion.py",
       "upscale.py",

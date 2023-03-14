@@ -43,6 +43,12 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
             if (fs.existsSync(PATH_zip)) {
               fs.unlinkSync(PATH_zip);
             }
+            if (!fs.existsSync(path.join(artroomPath, "artroom"))) {
+              fs.mkdirSync(path.join(artroomPath, "artroom"));
+            }
+            if (!fs.existsSync(path.join(artroomPath, "artroom", "settings"))) {
+              fs.mkdirSync(path.join(artroomPath, "artroom", "settings"));
+            }
 
             const len = parseInt(response.headers['content-length'], 10);
             let cur = 0;

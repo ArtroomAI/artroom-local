@@ -64,13 +64,15 @@ async function getImage(image_path: string) {
 let server: ChildProcessWithoutNullStreams;
 
 const getFiles = async (folder_path: string, ext: string, excludeFolder?: string) => {  return new Promise((resolve, reject) => {
-    glob(`${folder_path}/**/*.{${ext}}`, {}, (err, files) => {
-      if (err) {
-        console.log("ERROR");
-        resolve([]);
-      }
-      resolve(files.filter((match) => !match.includes(`${excludeFolder}`))?.map((match) => path.relative(folder_path, match)) ?? []);
-    })
+    if (folder_path.length){
+      glob(`${folder_path}/**/*.{${ext}}`, {}, (err, files) => {
+        if (err) {
+          console.log("ERROR");
+          resolve([]);
+        }
+        resolve(files.filter((match) => !match.includes(`${excludeFolder}`))?.map((match) => path.relative(folder_path, match)) ?? []);
+      })
+    }
   });
 }
 

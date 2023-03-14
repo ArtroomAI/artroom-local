@@ -81,7 +81,7 @@ function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
         window.api.chooseUploadPath().then(setArtroomPath)
     }
     function handleSelectModelClick() {
-        window.api.chooseUploadPath().then(setArtroomPath)
+        window.api.chooseUploadPath().then(setModelsDir)
     }
 
     return (
