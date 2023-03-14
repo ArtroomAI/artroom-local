@@ -5,6 +5,18 @@ import { recoilPersist } from 'recoil-persist';
 
 const { persistAtom } = recoilPersist();
 
+export const artroomPathState = atom<string>({
+    key: "artroomPath",
+    default: os.homedir() || "",
+    effects_UNSTABLE: [persistAtom]
+});
+
+export const modelsDirState = atom<string>({
+    key: "models_dir",
+    default: path.join(os.homedir() || "", 'artroom', 'model_weights'),
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const textPromptsState = atom<string>({
     key: "text_prompts",
     default: "",
@@ -162,12 +174,6 @@ export const controlnetState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const modelsDirState = atom<string>({
-    key: "models_dir",
-    default: path.resolve('/'),
-    effects_UNSTABLE: [persistAtom]
-});
-
 export const runTypeState = atom<string>({
     key: "run_type",
     default: "regular",
@@ -178,6 +184,7 @@ export const queueSettingsSelector = selector<QueueType>({
     key: "queue.settings",
     get: ({ get }) => {
         const settings: QueueType = {
+
             text_prompts: get(textPromptsState),
             negative_prompts: get(negativePromptsState),
 

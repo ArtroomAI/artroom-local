@@ -3,19 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { ipcMain } from "electron";
-import StreamZip from 'node-stream-zip';
-import os from 'os';
+import yauzl from "yauzl";
 
 let installationProcess: ChildProcessWithoutNullStreams;
-let hd = os.homedir();
-const artroom_install_log = hd + "\\AppData\\Local\\artroom_install.log";
-let artroom_path = hd;
-if (fs.existsSync(artroom_install_log)) {
-  let temp = fs.readFileSync(artroom_install_log, 'utf-8');
-  let lines = temp.split(/\r?\n/);
-  artroom_path = lines[0];
-  console.log(`NEW ARTROOM PATH: ${artroom_path}`)
-}
 
 async function removeDirectoryIfExists(PATH: fs.PathLike) {
     try {
@@ -30,27 +20,36 @@ async function removeDirectoryIfExists(PATH: fs.PathLike) {
     }
   }
   
-
-const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInstaller: boolean) => () => {
+const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => () => {
     console.log("REINSTALL BACKING")
-    console.log(`VANILLA PATH: ${artroom_path}`)
-    const URL = useAMDInstaller ? 
+    console.log(`VANILLA PATH: ${artroomPath}`)
+    const URL = gpuType === 'AMD' ? 
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
       : 
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
 
-    const PATH = path.join(artroom_path, "\\artroom\\miniconda3");
+    const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
     console.log(`ARTROOM PATH: ${PATH}`)
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`)
 
-    const PATH_zip = path.join(artroom_path, "\\artroom\\file.zip")
+    const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
     console.log(`ARTROOM ZIP PATH: ${PATH_zip}`)
 
     const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
 
     removeDirectoryIfExists(PATH).then(()=>{
         const request = https.get(URL, (response) => {
+            if (fs.existsSync(PATH_zip)) {
+              fs.unlinkSync(PATH_zip);
+            }
+            if (!fs.existsSync(path.join(artroomPath, "artroom"))) {
+              fs.mkdirSync(path.join(artroomPath, "artroom"));
+            }
+            if (!fs.existsSync(path.join(artroomPath, "artroom", "settings"))) {
+              fs.mkdirSync(path.join(artroomPath, "artroom", "settings"));
+            }
+
             const len = parseInt(response.headers['content-length'], 10);
             let cur = 0;
             const toMB = (n: number) => (n / 1048576).toFixed(2);
@@ -74,30 +73,68 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInst
     
             file.on("finish", () => {
                 file.close();
-                console.log('Downloading complete. Decompressing...');
-                console.log(PATH_zip)
-                mainWindow.webContents.send('fixButtonProgress', 'Downloading complete. Decompressing...');
-                const zip = new StreamZip({ file: PATH_zip});
-    
-                zip.on('ready', () => {
-                    fs.mkdirSync(PATH, { recursive: true });
-                    zip.extract(null, path.join(path.join(artroom_path, "\\artroom\\")), (err, count) => {
-                        mainWindow.webContents.send('fixButtonProgress', err ? 'Extract error' : `Finished extracting! Updating libraries...`);
-                        console.log(err ? 'Extract error' : `Finished extracting! Updating libraries...`);
-                        installationProcess = spawn(installationCommand, { shell: true, detached: true });
-                        installationProcess.stdout.on("data", (data) => {
-                            console.log(`stdout: ${data}`);
+                yauzl.open(PATH_zip, { lazyEntries: true }, (error, zipFile) => {
+                  if (error) {
+                    console.error(`Error opening ZIP archive: ${error}`);
+                    return;
+                  }
+                
+                  const totalEntries = zipFile.entryCount;
+                  let extractedEntries = 0;
+                
+                  zipFile.readEntry();
+                
+                  zipFile.on("entry", (entry) => {
+                    if (/\/$/.test(entry.fileName)) {
+                      // Directory entry
+                      fs.mkdirSync(`${artroomPath}/artroom/${entry.fileName}`);
+                      zipFile.readEntry();
+                    } else {
+                      // File entry
+                      zipFile.openReadStream(entry, (error, readStream) => {
+                        if (error) {
+                          console.error(`Error opening read stream for ${entry.fileName}: ${error}`);
+                          zipFile.readEntry();
+                          return;
+                        }
+                
+                        const writeStream = fs.createWriteStream(`${artroomPath}/artroom/${entry.fileName}`);
+                
+                        writeStream.on("close", () => {
+                          extractedEntries++;
+                
+                          const progress = Math.round((extractedEntries / totalEntries) * 100);
+                          console.log();
+                          mainWindow.webContents.send('fixButtonProgress', `Extracting... ${progress}%`);
+                          zipFile.readEntry();
                         });
-                        installationProcess.stderr.on("data", (data) => {
-                            console.error(`stderr: ${data}`);
-                        });
-                        installationProcess.on("close", (code) => {
-                            console.log(`child process exited with code ${code}`);
-                            mainWindow.webContents.send('fixButtonProgress', `Finished! Please try reopening the app`);
-                            removeDirectoryIfExists(PATH_zip)
-                        });
-                        zip.close();
+                
+                        readStream.pipe(writeStream);
+                      });
+                    }
+                  });
+                
+                  zipFile.on("error", (error) => {
+                    mainWindow.webContents.send('fixButtonProgress', `Error reading ZIP archive: ${error}`);
+                  });
+                
+                  zipFile.on("end", () => {
+                    mainWindow.webContents.send('fixButtonProgress', "Extraction complete. Updating packages...");
+                    // Delete the ZIP file
+                    fs.unlinkSync(PATH_zip);
+                    installationProcess = spawn(installationCommand, { shell: true, detached: true });
+                    installationProcess.stdout.on("data", (data) => {
+                        console.log(`stdout: ${data}`);
+                        mainWindow.webContents.send('fixButtonProgress', `Finished! Please try reopening the app`);
                     });
+                    installationProcess.stderr.on("data", (data) => {
+                        console.error(`stderr: ${data}`);
+                    });
+                    installationProcess.on("close", (code) => {
+                        console.log(`child process exited with code ${code}`);
+                        mainWindow.webContents.send('fixButtonProgress', `Finished! Please try reopening the app`);
+                    });
+                  });
                 });
             });
     
@@ -110,10 +147,10 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, useAMDInst
 
 };
 
-const reinstallPythonDependencies = () => () => {
+const reinstallPythonDependencies = (artroomPath: string) => () => {
     console.log("RESINSTALLING DEPENDENCIES")
-    console.log(artroom_path);
-    const PATH = path.join(artroom_path, "artroom\\miniconda3");
+    console.log(artroomPath);
+    const PATH = path.join(artroomPath, "artroom\\miniconda3");
     console.log(PATH);
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
     console.log(PATH_requirements)
@@ -146,8 +183,10 @@ const reinstallPythonDependencies = () => () => {
 }
 
 export const handlers = (mainWindow: Electron.BrowserWindow) => {
-  ipcMain.handle('pythonInstall', (event, useAMDInstaller) => {
-    backupPythonInstallation(mainWindow, useAMDInstaller)();
+  ipcMain.handle('pythonInstall', (event, artroomPath, gpuType) => {
+    backupPythonInstallation(mainWindow, artroomPath, gpuType)();
   });    
-  ipcMain.handle('pythonInstallDependencies', reinstallPythonDependencies());
+  ipcMain.handle('pythonInstallDependencies', (event, artroomPath) => {
+    reinstallPythonDependencies(artroomPath)();
+  });    
 }

@@ -30,7 +30,7 @@ from safetensors import safe_open
 from safetensors.torch import load_file
 
 from artroom_helpers import support, inpainting
-from artroom_helpers.prompt_parsing import weights_handling, split_weighted_subprompts
+from artroom_helpers.prompt_parsing import weights_handling
 from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import HN
 

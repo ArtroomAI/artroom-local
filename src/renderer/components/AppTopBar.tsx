@@ -6,7 +6,8 @@ import CloseIcon from '../images/close.png';
 
 const AppTopBar = () => {
     return (
-        <div id="menu-bar">
+        <div 
+            id="menu-bar">
             <div className="left" role="menu">
                 <img src={ArtroomIcon} width="30px"/>
                 <h3 id="artroom-head">ArtroomAI</h3>

@@ -15,7 +15,7 @@ const theme = extendTheme(indexTheme);
 ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode>
     <HashRouter>
         <ColorModeScript />
-        <ChakraProvider theme={theme}>
+        <ChakraProvider portalZIndex={9001} theme={theme}>
             <RecoilRoot>
                 <AppTopBar/>
                 <SocketContext.Provider value={socket}>

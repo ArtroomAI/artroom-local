@@ -31,8 +31,11 @@ def parse_prompt_attention(text):
             res[p][1] *= multiplier
 
     for m in re_attention.finditer(text):
-        text = m.group(0)
+        text = m.group(0).strip(" ,")
         weight = m.group(1)
+
+        if len(text) == 0 or text in [',','.']:
+            continue
 
         if text.startswith('\\'):
             res.append([text[1:], 1.0])
@@ -75,8 +78,6 @@ def weights_handling(prompt):
     else:
         return prompt
     return c
-
-def split_weighted_subprompts(text):
     """
     grabs all text up to the first occurrence of ':' 
     uses the grabbed text as a sub-prompt, and takes the value following ':' as weight

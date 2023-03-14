@@ -39,7 +39,8 @@ import { UpdateProgressBar } from './UpdateProgressBar';
 import ImageEditor from './ImageEditor';
 import { QueueManager } from '../QueueManager';
 
-import { batchNameState, imageSavePathState } from '../SettingsManager';
+import { artroomPathState, batchNameState, imageSavePathState } from '../SettingsManager';
+import ArtroomInstaller from './Modals/ArtroomInstaller';
 
 export default function App () {
     // Connect to the server 
@@ -60,6 +61,9 @@ export default function App () {
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
     const setMainImage = useSetRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
+    const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState)
+
+    const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
 
     const socket = useContext(SocketContext);
 
@@ -188,8 +192,9 @@ export default function App () {
 
     useEffect(
         () => {
-            window.api.runPyTests().then((result) => {
+            window.api.runPyTests(artroomPath).then((result) => {
                 if (result === 'success\r\n') {
+                    window.api.startArtroom(artroomPath)
                     toast({
                         title: 'All Artroom paths & dependencies successfully found!',
                         status: 'success',
@@ -198,13 +203,14 @@ export default function App () {
                         isClosable: true
                     });
                 } else if (result.length > 0) {
-                    toast({
-                        title: result,
-                        status: 'error',
-                        position: 'top',
-                        duration: 10000,
-                        isClosable: true
-                    });
+                    setShowArtroomInstaller(true)
+                    // toast({
+                    //     title: result,
+                    //     status: 'error',
+                    //     position: 'top',
+                    //     duration: 10000,
+                    //     isClosable: true
+                    // });
                 }
             });
 
@@ -329,6 +335,7 @@ export default function App () {
                     </Flex>
                 </GridItem>
             </Grid>
+            <ArtroomInstaller showArtroomInstaller={showArtroomInstaller} setShowArtroomInstaller={setShowArtroomInstaller}></ArtroomInstaller>
             <UpdateProgressBar />
             <QueueManager />
         </>
