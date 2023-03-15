@@ -624,7 +624,6 @@ class UNetModelEncode(nn.Module):
         h = self.middle_block(h, emb, context)
 
         if control is not None:
-            print(h.shape)
             h += control
 
         return h, emb, hs

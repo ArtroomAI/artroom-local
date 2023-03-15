@@ -31,7 +31,6 @@ class ControlledUnetModel(UNetModel):
                 hs.append(h)
             h = self.middle_block(h, emb, context)
 
-        print([y.shape for y in control])
         if control is not None:
             h += control.pop()
 

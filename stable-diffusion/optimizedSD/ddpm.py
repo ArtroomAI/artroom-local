@@ -17,6 +17,7 @@ from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_t
 from ldm.modules.diffusionmodules.util import make_ddim_sampling_parameters, make_ddim_timesteps, noise_like
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 from ldm.util import exists, default, instantiate_from_config, disabled_train
+from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 
 
 class DiffusionWrapperv2(pl.LightningModule):
@@ -727,12 +728,18 @@ class UNet(DDPM):
                unconditional_conditioning=None,
                batch_size=None,
                mode="default",
-               control=None
                ):
         if self.turbo and self.v1:
             self.model1.to(self.cdevice)
             self.model2.to(self.cdevice)
-        if mode == "default":
+        if self.control_model is not None:
+            ddim_sampler = DDIMSampler(self.control_model)
+            samples, _ = ddim_sampler.sample(S, 1,
+                                             tuple(shape[1:]), conditioning, verbose=False, eta=eta,
+                                             unconditional_guidance_scale=unconditional_guidance_scale,
+                                             unconditional_conditioning=unconditional_conditioning)
+            return samples
+        elif mode == "default":
             if x0 is None:
                 batch_size, b1, b2, b3 = shape
                 img_shape = (1, b1, b2, b3)
@@ -794,7 +801,7 @@ class UNet(DDPM):
             samples = self.ddim_sampling(x_latent, conditioning, S, callback=callback, mode=mode, txt_scale=txt_scale,
                                          unconditional_guidance_scale=unconditional_guidance_scale,
                                          unconditional_conditioning=unconditional_conditioning,
-                                         mask=mask, init_latent=x_T, use_original_steps=False, control=control)
+                                         mask=mask, init_latent=x_T, use_original_steps=False)
         else:
             samples = self.k_sampling(x_latent, conditioning, S, sampler, S_ddim_steps=S_ddim_steps,
                                       unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
@@ -1150,7 +1157,7 @@ class UNet(DDPM):
     @torch.no_grad()
     def ddim_sampling(self, x_latent, cond, t_start, unconditional_guidance_scale=1.0, unconditional_conditioning=None,
                       mask=None, init_latent=None, use_original_steps=False, callback=None, mode="default",
-                      txt_scale=1.5, control=None):
+                      txt_scale=1.5):
 
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:t_start]
@@ -1172,8 +1179,7 @@ class UNet(DDPM):
 
             x_dec = self.p_sample_ddim(x_dec, cond, ts, index=index, use_original_steps=use_original_steps,
                                        unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
-                                       text_cfg_scale=txt_scale, unconditional_conditioning=unconditional_conditioning,
-                                       control=control)
+                                       text_cfg_scale=txt_scale, unconditional_conditioning=unconditional_conditioning)
             if callback:
                 callback(x_dec)
 
@@ -1190,7 +1196,7 @@ class UNet(DDPM):
     @torch.no_grad()
     def p_sample_ddim(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None, text_cfg_scale=1.5,
-                      unconditional_guidance_scale=1., unconditional_conditioning=None, mode="default", control=None):
+                      unconditional_guidance_scale=1., unconditional_conditioning=None, mode="default"):
         b, *_, device = *x.shape, x.device
         multiplier = 3 if mode == "pix2pix" else 2
         x_spare_part = None
@@ -1199,13 +1205,7 @@ class UNet(DDPM):
         else:
             x_in = torch.cat([x] * multiplier)
             t_in = torch.cat([t] * multiplier)
-            if self.control_model is not None and control is not None:
-                control = self.control_model.control_model(x, hint=control, timesteps=t, context=c).chunk(2)
-                # control = [c * scale for c, scale in zip(control, self.control_scales)]
-                c_in = torch.cat([unconditional_conditioning, c])
-                model_uncond, model_t = self.apply_model(x_in, t_in, c_in, control=control).chunk(2)
-                model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)
-            elif mode == "pix2pix":
+            if mode == "pix2pix":
                 x_spare_part = x[:, 4:, :, :]
                 c_in = torch.cat([c, c, unconditional_conditioning])
                 out_cond, out_img_cond, out_uncond = self.apply_model(x_in, t_in, c_in).chunk(3)

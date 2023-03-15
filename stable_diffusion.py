@@ -835,14 +835,17 @@ class StableDiffusion:
 
                             if controlnet is not None:
                                 self.model.control_model.to(self.device)
+                                control = init_image
+                                cond = {"c_concat": [control], "c_crossattn": [c]}
+                                un_cond = {"c_concat": [control], "c_crossattn": [uc]}
                             x0 = self.model.sample(
                                 S=steps,
-                                conditioning=c,
+                                conditioning=c if controlnet is None else cond,
                                 x0=x0 if controlnet is None else None,
                                 S_ddim_steps=ddim_steps,
                                 unconditional_guidance_scale=cfg_scale,
                                 txt_scale=txt_cfg_scale,
-                                unconditional_conditioning=uc,
+                                unconditional_conditioning=uc if controlnet is None else un_cond,
                                 eta=ddim_eta,
                                 sampler=sampler,
                                 shape=shape,
@@ -851,8 +854,7 @@ class StableDiffusion:
                                 mask=mask,
                                 x_T=x_T,
                                 callback=self.callback_fn,
-                                mode=mode,
-                                control=x0 if controlnet is not None else None
+                                mode=mode
                             )
                             if controlnet is not None:
                                 self.model.control_model.cpu()
