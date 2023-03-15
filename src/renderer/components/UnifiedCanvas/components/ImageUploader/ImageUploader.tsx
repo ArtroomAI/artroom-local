@@ -164,8 +164,6 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
     };
   }, [toast]);
 
-  const overlaySecondaryText = ' to Unified Canvas';
-
   return (
     <ImageUploaderTriggerContext.Provider value={open}>
       <div
@@ -181,7 +179,6 @@ export const ImageUploader: FC<ImageUploaderProps> = (props) => {
           <ImageUploadOverlay
             isDragAccept={isDragAccept}
             isDragReject={isDragReject}
-            overlaySecondaryText={overlaySecondaryText}
             setIsHandlingUpload={setIsHandlingUpload}
           />
         )}

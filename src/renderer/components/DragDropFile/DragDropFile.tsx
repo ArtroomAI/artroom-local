@@ -5,13 +5,14 @@ import {
     Box,
     Image as ChakraImage,
     IconButton,
-    ButtonGroup
+    ButtonGroup,
+    Tooltip
 } from '@chakra-ui/react';
 import {
     FiUpload
 } from 'react-icons/fi';
 import {
-    FaTrashAlt
+    FaTrashAlt, FaClipboardList
 } from 'react-icons/fa';
 import { aspectRatioState, heightState, initImageState, widthState } from '../../SettingsManager';
 
@@ -164,33 +165,58 @@ const DragDropFile = () => {
                     htmlFor="input-file-upload"
                     id="label-file-upload"
                 >
-                    <ButtonGroup
-                        pt={2}
-                        isAttached
-                        variant="outline"
-                    >
-                        <IconButton
-                            border="2px"
-                            icon={<FiUpload />}
-                            onClick={onButtonClick}
-                            width="100px"
-                            aria-label='upload'
-                        />
-                        <IconButton
-                            aria-label="Clear Init Image"
-                            border="2px"
-                            icon={<FaTrashAlt />}
-                            onClick={() => {
-                                inputRef.current.value = null;
-                                setInitImagePath('');
-                                setInitImage('');
-                                if (aspectRatioSelection === "Init Image") {
-                                    setAspectRatio('None');
-                                    setAspectRatioSelection('None');
-                                }
-                            }}
-                        />
-                    </ButtonGroup>
+
+                <ButtonGroup pt={2} isAttached variant="outline">
+                <Tooltip label="Clear Init Image">
+                    <IconButton
+                    aria-label="Clear Init Image"
+                    border="2px"
+                    icon={<FaClipboardList />}
+                    onClick={() => {
+                        navigator.clipboard.read().then((data) => {
+                          for (let i = 0; i < data.length; i++) {
+                            if (data[i].types.includes('image/png') || data[i].types.includes('image/jpeg')) {
+                              data[i].getType('image/png').then((blob) => {
+                                const reader = new FileReader();
+                                reader.readAsDataURL(blob);
+                                reader.onloadend = () => {
+                                  const base64data = reader.result;
+                                 setInitImage(base64data);
+                                };
+                              });
+                              break;
+                            }
+                          }
+                        });
+                      }}
+                    />
+                </Tooltip>
+                <Tooltip label="Upload">
+                    <IconButton
+                    border="2px"
+                    icon={<FiUpload />}
+                    onClick={onButtonClick}
+                    width="65px"
+                    aria-label="upload"
+                    />
+                </Tooltip>
+                <Tooltip label="Clear Init Image">
+                    <IconButton
+                    aria-label="Clear Init Image"
+                    border="2px"
+                    icon={<FaTrashAlt />}
+                    onClick={() => {
+                        inputRef.current.value = null;
+                        setInitImagePath("");
+                        setInitImage("");
+                        if (aspectRatioSelection === "Init Image") {
+                        setAspectRatio("None");
+                        setAspectRatioSelection("None");
+                        }
+                    }}
+                    />
+                </Tooltip>
+                </ButtonGroup>
                 </label>
             </form>
         </Box>
