@@ -752,14 +752,15 @@ class StableDiffusion:
                         print(f"Weighted prompts: {weighted_prompt}")
                         if len(weighted_prompt) > 1:
                             c = torch.zeros_like(uc)
-                            # normalize each "sub prompt" and add it
-                            total_weight = sum(weight for _, weight in weighted_prompt)
+                            weights_greater_than_zero = sum([wp[1]-1 for wp in weighted_prompt if wp[1] > 1])+1
+                            weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
+                            c = self.modelCS.get_learned_conditioning(weighted_prompt_joined).to(self.device)
+                            c /= weights_greater_than_zero
                             for i in range(len(weighted_prompt)):
                                 weight = weighted_prompt[i][1]
-                                if weight > 1.0:
+                                if weight > 1:
                                     c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0]).to(self.device)
-                                    c = torch.add(c, c_weighted, alpha=(weight))
-                            c /= len(weighted_prompt)
+                                    c = torch.add(c, c_weighted, alpha=(weight-1)/weights_greater_than_zero)
                         else:
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
