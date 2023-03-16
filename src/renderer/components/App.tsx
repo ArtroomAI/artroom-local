@@ -39,7 +39,7 @@ import { UpdateProgressBar } from './UpdateProgressBar';
 import ImageEditor from './ImageEditor';
 import { QueueManager } from '../QueueManager';
 
-import { artroomPathState, batchNameState, imageSavePathState } from '../SettingsManager';
+import { artroomPathState, batchNameState, debugModeState, imageSavePathState } from '../SettingsManager';
 import ArtroomInstaller from './Modals/ArtroomInstaller';
 
 export default function App () {
@@ -51,7 +51,7 @@ export default function App () {
     const image_save_path = useRecoilValue(imageSavePathState);
     const batch_name = useRecoilValue(batchNameState);
 
-    const setDebugMode = useSetRecoilState(atom.debugMode);
+    const debugMode = useRecoilValue(debugModeState);
 
     const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
@@ -194,7 +194,7 @@ export default function App () {
         () => {
             window.api.runPyTests(artroomPath).then((result) => {
                 if (result === 'success\r\n') {
-                    window.api.startArtroom(artroomPath)
+                    window.api.startArtroom(artroomPath, debugMode)
                     toast({
                         title: 'All Artroom paths & dependencies successfully found!',
                         status: 'success',

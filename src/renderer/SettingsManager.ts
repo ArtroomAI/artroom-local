@@ -180,6 +180,12 @@ export const runTypeState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const debugModeState = atom<boolean>({
+    key: 'debug_mode',
+    default: false,
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const queueSettingsSelector = selector<QueueType>({
     key: "queue.settings",
     get: ({ get }) => {

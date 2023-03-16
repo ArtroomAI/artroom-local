@@ -52,10 +52,6 @@ export const cloudRunningState = atom({
     default: false
 });
 
-export const debugMode = atom({
-    key: 'debug_mode',
-    default: false
-});
 
 export const initImageThumbnailState = atom({
     key: 'initImageThumbnail',

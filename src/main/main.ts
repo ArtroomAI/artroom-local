@@ -238,12 +238,12 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle('startArtroom', async (event, artroomPath) => {
-    setupQueueHandles(ipcMain, artroomPath);
-    const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
-    server = spawn(serverCommand, { detached: true, shell: true });
-  });
+  setupQueueHandles(ipcMain);
 
+  ipcMain.handle('startArtroom', async (event, artroomPath, debug_mode) => {
+    const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
+    server = spawn(serverCommand, { detached: debug_mode, shell: true });
+  });
 
   //startup test logic
   function runPyTests(artroomPath: string) {
@@ -285,16 +285,14 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('restartServer', async (event, data) => {
-    return new Promise(() => {
-      const serverCommand = `"${data.artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${data.artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
-      console.log(`debug mode: ${data.isDebug}`)
-      if (server && server.pid){
-        kill(server.pid);
-        spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-      }
-      server = spawn(serverCommand, { detached: data.isDebug, shell: true });
-    });
+  ipcMain.handle('restartServer', async (event, artroomPath, debug_mode) => {
+    const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
+    console.log(`debug mode: ${debug_mode}`)
+    if (server && server.pid){
+      kill(server.pid);
+      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+    }
+    server = spawn(serverCommand, { detached: debug_mode, shell: true });
   });
 
   // Create the browser window.

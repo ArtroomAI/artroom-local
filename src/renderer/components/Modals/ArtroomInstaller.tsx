@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import {
     Modal,
     ModalOverlay,
@@ -16,10 +16,9 @@ import {
     Spacer,
     useToast,
     Checkbox,
-    VStack,
     HStack,
 } from '@chakra-ui/react';
-import { artroomPathState, modelsDirState } from '../../SettingsManager';
+import { artroomPathState, debugModeState, modelsDirState } from '../../SettingsManager';
 import path from 'path';
 
 function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
@@ -30,6 +29,7 @@ function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
     const [gpuType, setGpuType] = useState('NVIDIA');
     const [downloadMessage, setDownloadMessage] = useState('');
     const [downloading, setDownloading] = useState(false);
+    const debugMode = useRecoilValue(debugModeState);
 
     const toast = useToast({});
 
@@ -39,7 +39,7 @@ function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
             if (str.includes("Finished")){
                 setDownloading(false);
                 setShowArtroomInstaller(false);
-                window.api.startArtroom(artroomPath)
+                window.api.startArtroom(artroomPath, debugMode);
             }
         });
     }, []);

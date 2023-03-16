@@ -22,12 +22,12 @@ import {
     FaQuestionCircle
 } from 'react-icons/fa';
 import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState, artroomPathState } from '../SettingsManager';
+import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState, artroomPathState, debugModeState } from '../SettingsManager';
 
 function Settings () {
     const toast = useToast({});
 
-    const [debugMode, setDebugMode] = useRecoilState(atom.debugMode);
+    const [debugMode, setDebugMode] = useRecoilState(debugModeState);
     const [longSavePath, setLongSavePath] = useRecoilState(longSavePathState);
     const [highresFix, setHighresFix] = useRecoilState(highresFixState);
     const [showIntermediates, setShowIntermediates] = useRecoilState(showIntermediatesState);
@@ -82,7 +82,7 @@ function Settings () {
                     isClosable: true
                 });
             }
-            window.api.restartServer(debugModeTemp);
+            window.api.restartServer(artroomPath, debugModeTemp);
         }
         setDebugMode(debugModeTemp);
         setLongSavePath(longSavePathTemp);

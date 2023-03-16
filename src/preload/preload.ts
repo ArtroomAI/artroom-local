@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { ProgressInfo } from "electron-updater";
 
 const api = {
-    startArtroom: async (artroomPath: string) => {return await ipcRenderer.invoke('startArtroom',artroomPath);},
+    startArtroom: async (artroomPath: string, isDebug: boolean) => {return await ipcRenderer.invoke('startArtroom',artroomPath, isDebug);},
     runPyTests: async (artroomPath: string) => {return await ipcRenderer.invoke('runPyTests', artroomPath);},
     getCkpts: async (data: any) => {return await ipcRenderer.invoke('getCkpts',data);},
     getLoras: async (data: any) => {return await ipcRenderer.invoke('getLoras',data);},
@@ -17,7 +17,7 @@ const api = {
     copyToClipboard: async (data: string) => {return await ipcRenderer.invoke('copyToClipboard',data);},
     saveFromDataURL: async (data: string) => {return await ipcRenderer.invoke('saveFromDataURL',data);},
     chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
-    restartServer: async (isDebug: boolean) => {return await ipcRenderer.invoke('restartServer',isDebug);},
+    restartServer: async (artroomPath: string, isDebug: boolean) => {return await ipcRenderer.invoke('restartServer', artroomPath, isDebug);},
     showInExplorer: async (path: string) => {return await ipcRenderer.invoke('showInExplorer', path);},
     minimizeWindow: async () => {return await ipcRenderer.invoke('minimizeWindow');},
     unmaximizeWindow: async () => {return await ipcRenderer.invoke('unmaximizeWindow');},
@@ -28,8 +28,8 @@ const api = {
     pythonInstallDependencies: async(artroomPath: string) => {return await ipcRenderer.invoke('pythonInstallDependencies', artroomPath);},
     fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback);},
     downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);},
-    saveQueue: async (queue: string) => { ipcRenderer.invoke('saveQueue', queue) },
-    readQueue: async (): Promise<string | undefined> => { return await ipcRenderer.invoke('readQueue') }
+    saveQueue: async (queue: string, artroom_path: string) => { ipcRenderer.invoke('saveQueue', queue, artroom_path) },
+    readQueue: async (artroom_path: string): Promise<string | undefined> => { return await ipcRenderer.invoke('readQueue', artroom_path) }
 }
 
 if (process.env.NODE_ENV !== 'production') {
