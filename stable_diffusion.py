@@ -1,6 +1,8 @@
 import threading
 import warnings
 import random
+
+import matplotlib.pyplot as plt
 import torch
 import gc
 import re
@@ -10,12 +12,17 @@ import json
 import math
 import os
 import sys
+
+from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
+
 sys.path.append("stable-diffusion/optimizedSD")
 sys.path.append("artroom_helpers/modules")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
     apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+from artroom_helpers.modules.cldm.model import create_model, load_state_dict
+
 from safe import load as safe_load
 from torchvision.utils import make_grid
 from transformers import logging
@@ -117,6 +124,13 @@ def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
                 image = apply_scribble(image)
             case "hed":
                 image = apply_hed(image)
+            case _:
+                print("Unknown control mode:", controlnet_mode)
+        control = torch.from_numpy(image.copy()).float().cuda() / 255.0
+        control = torch.stack([control for _ in range(1)], dim=0)
+        control = rearrange(control, 'b h w c -> b c h w').clone()
+        return control
+
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -242,54 +256,10 @@ class StableDiffusion:
                 self.deinject_lora()
             if len(loras) > 0:
                 for lora in loras:
-                    self.inject_lora(path = lora['path'], weight_tenc = lora['weight'], weight_unet = lora['weight'])
+                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
         return True
-
-    def hack_everything(self, clip_skip=0):
-        def _hacked_clip_forward(self, text):
-            PAD = self.tokenizer.pad_token_id
-            EOS = self.tokenizer.eos_token_id
-            BOS = self.tokenizer.bos_token_id
-
-            def tokenize(t):
-                return self.tokenizer(t, truncation=False, add_special_tokens=False)["input_ids"]
-
-            def transformer_encode(t):
-                if self.clip_skip > 1:
-                    rt = self.transformer(input_ids=t, output_hidden_states=True)
-                    return self.transformer.text_model.final_layer_norm(rt.hidden_states[-self.clip_skip])
-                else:
-                    return self.transformer(input_ids=t, output_hidden_states=False).last_hidden_state
-
-            def split(x):
-                return x[75 * 0: 75 * 1], x[75 * 1: 75 * 2], x[75 * 2: 75 * 3]
-
-            def pad(x, p, i):
-                return x[:i] if len(x) >= i else x + [p] * (i - len(x))
-
-            raw_tokens_list = tokenize(text)
-            tokens_list = []
-
-            for raw_tokens in raw_tokens_list:
-                raw_tokens_123 = split(raw_tokens)
-                raw_tokens_123 = [[BOS] + raw_tokens_i + [EOS] for raw_tokens_i in raw_tokens_123]
-                raw_tokens_123 = [pad(raw_tokens_i, PAD, 77) for raw_tokens_i in raw_tokens_123]
-                tokens_list.append(raw_tokens_123)
-
-            tokens_list = torch.IntTensor(tokens_list).to(self.device)
-
-            feed = rearrange(tokens_list, 'b f i -> (b f) i')
-            y = transformer_encode(feed)
-            z = rearrange(y, '(b f) i c -> b (f i) c', f=3)
-
-            return z
-
-        self.modelCS.cond_stage_model.forward = _hacked_clip_forward
-        self.modelCS.cond_stage_model.clip_skip = clip_skip
-        print('Enabled clip hacks.')
-        return
 
     def inject_controlnet(self, input_state_dict, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
@@ -340,6 +310,7 @@ class StableDiffusion:
                 p_new = p
                 # print(f'Direct clone to [{key}]')
             final_state_dict[key] = p_new
+        del sd15_with_control_state_dict, sd15_state_dict
         return final_state_dict
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
@@ -363,9 +334,6 @@ class StableDiffusion:
         else:
             print("Model safety check died midways")
             return
-
-        if controlnet_path is not None:
-            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
 
         print("Setting up config...")
         parameterization = "eps"
@@ -483,6 +451,14 @@ class StableDiffusion:
             self.model.to(torch.float32)
             self.modelCS.to(torch.float32)
             self.modelFS.to(torch.float32)
+
+        if controlnet_path is not None:
+            self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
+            self.control_model.load_state_dict(sd)
+        else:
+            self.control_model = None
+
         del sd
 
         # if self.controlnet_path is not None:
@@ -545,20 +521,22 @@ class StableDiffusion:
     def callback_fn(self, x, enabled=True):
         if not enabled:
             return
-        
+
         current_num, total_num, current_step, total_steps = self.get_steps()
-        
-        self.socketio.emit('get_progress', {'current_step': current_step + 1, 'total_steps': total_steps,'current_num': current_num, 'total_num': total_num})
-        
+
+        self.socketio.emit('get_progress',
+                           {'current_step': current_step + 1, 'total_steps': total_steps, 'current_num': current_num,
+                            'total_num': total_num})
+
         def send_intermediates(x):
             def float_tensor_to_pil(tensor: torch.Tensor):
                 """aka torchvision's ToPILImage or DiffusionPipeline.numpy_to_pil
                 (Reproduced here to save a torchvision dependency in this demo.)
                 """
                 tensor = (((tensor + 1) / 2)
-                        .clamp(0, 1)  # change scale from -1..1 to 0..1
-                        .mul(0xFF)  # to 0..255
-                        .byte())
+                          .clamp(0, 1)  # change scale from -1..1 to 0..1
+                          .mul(0xFF)  # to 0..255
+                          .byte())
                 tensor = rearrange(tensor, 'c h w -> h w c')
                 return Image.fromarray(tensor.cpu().numpy())
 
@@ -573,12 +551,12 @@ class StableDiffusion:
             ], dtype=torch.float32)))
 
             x = x.resize((x.width * 8, x.height * 8))
-            #x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
-            self.socketio.emit('intermediate_image', { 'b64': support.image_to_b64(x)})
-    
+            # x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
+            self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(x)})
+
         if self.show_intermediates and current_step % 5 == 0:  # every 5 steps
             threading.Thread(target=send_intermediates, args=(x,)).start()
-        
+
     def interrupt(self):
         if self.running and self.model:
             self.model.interrupted_state = True
@@ -586,12 +564,14 @@ class StableDiffusion:
 
     def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
                  invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
-                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[], image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False, show_intermediates = False,
-                 controlnet="None"
+                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[],
+                 image_save_path="",
+                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
+                 show_intermediates=False,
+                 controlnet=None
                  ):
 
-        self.show_intermediates = show_intermediates        
+        self.show_intermediates = show_intermediates
 
         controlnet_ckpts = {
             "canny": os.path.join(os.path.dirname(ckpt), "control_sd15_canny.pth"),
@@ -629,7 +609,7 @@ class StableDiffusion:
         oldW, oldH = W, H
 
         if W * H >= 1024 * 1024 and highres_fix:
-            highres_fix_steps = math.ceil((W * H) / (512 * 512)/4)
+            highres_fix_steps = math.ceil((W * H) / (512 * 512) / 4)
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
             H = math.floor(H / 64) * 64
@@ -684,6 +664,10 @@ class StableDiffusion:
 
             init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
                                   controlnet_mode=controlnet).to(self.device)
+            if controlnet_path is not None:
+                control = init_image.clone()
+            else:
+                control = None
             _, _, H, W = init_image.shape
             init_image = init_image.to(self.dtype)
         else:
@@ -767,10 +751,10 @@ class StableDiffusion:
 
                         x0 = None
                         for ij in range(1, highres_fix_steps + 1):
-                            self.current_num = n*highres_fix_steps + ij - 1
+                            self.current_num = n * highres_fix_steps + ij - 1
                             self.model.current_step = 0
-                            self.model.total_steps = steps*highres_fix_steps
-                            
+                            self.model.total_steps = steps * highres_fix_steps
+
                             if ij > 1:
                                 strength = 0.1
                                 ddim_steps = int(steps / strength)
@@ -822,24 +806,38 @@ class StableDiffusion:
                             x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                             x0 = init_latent_1stage if mode == "pix2pix" else x0
 
-                            x0 = self.model.sample(
-                                S=steps,
-                                conditioning=c,
-                                x0=x0,
-                                S_ddim_steps=ddim_steps,
-                                unconditional_guidance_scale=cfg_scale,
-                                txt_scale=txt_cfg_scale,
-                                unconditional_conditioning=uc,
-                                eta=ddim_eta,
-                                sampler=sampler,
-                                shape=shape,
-                                batch_size=batch_size,
-                                seed=seed,
-                                mask=mask,
-                                x_T=x_T,
-                                callback=self.callback_fn,
-                                mode=mode
-                            )
+                            if controlnet is not None and controlnet.lower() != "none":
+                                # control = torch.load("control.torch")
+                                c = {"c_concat": [control], "c_crossattn": [c]}
+                                uc = {"c_concat": [control], "c_crossattn": [uc]}
+                                self.control_model.control_scales = [1.0] * 13
+                                self.control_model.to(self.device)
+                                ddim_sampler = DDIMSampler(self.control_model)
+                                x0 = ddim_sampler.sample(steps, batch_size, tuple(shape[1:]), c, verbose=False,
+                                                         eta=ddim_eta,
+                                                         unconditional_guidance_scale=cfg_scale,
+                                                         callback=self.callback_fn,
+                                                         unconditional_conditioning=uc)
+                                self.control_model.cpu()
+                            else:
+                                x0 = self.model.sample(
+                                    S=steps,
+                                    conditioning=c,
+                                    x0=x0 if controlnet is None else None,
+                                    S_ddim_steps=ddim_steps,
+                                    unconditional_guidance_scale=cfg_scale,
+                                    txt_scale=txt_cfg_scale,
+                                    unconditional_conditioning=uc,
+                                    eta=ddim_eta,
+                                    sampler=sampler,
+                                    shape=shape,
+                                    batch_size=batch_size,
+                                    seed=seed,
+                                    mask=mask,
+                                    x_T=x_T,
+                                    callback=self.callback_fn,
+                                    mode=mode
+                                )
                             if self.v1:
                                 self.modelFS.to(self.device)
 
@@ -854,11 +852,11 @@ class StableDiffusion:
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                             x_sample = 255. * \
-                                    rearrange(
-                                        x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                                       rearrange(
+                                           x_sample[0].cpu().numpy(), 'c h w -> h w c')
                             out_image = Image.fromarray(
                                 x_sample.astype(np.uint8))
-                        
+
                             if self.can_use_half:
                                 self.model.half()
                                 self.modelCS.half()
@@ -908,12 +906,12 @@ class StableDiffusion:
                                 os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
                             self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                            'path': os.path.join(sample_path, save_name),
-                                                            'batch_id': batch_id})
+                                                              'path': os.path.join(sample_path, save_name),
+                                                              'batch_id': batch_id})
 
                         base_count += 1
                         seed += 1
-                        if len(init_image_str) == 0: #Resets highres_fix starting image
+                        if len(init_image_str) == 0:  # Resets highres_fix starting image
                             init_image = None
                         if not skip_grid and n_iter > 1:
                             all_samples.append(out_image)
