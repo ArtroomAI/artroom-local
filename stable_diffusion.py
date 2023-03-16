@@ -1,6 +1,8 @@
 import threading
 import warnings
 import random
+
+import matplotlib.pyplot as plt
 import torch
 import gc
 import re
@@ -11,13 +13,15 @@ import math
 import os
 import sys
 
+from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
+
 sys.path.append("stable-diffusion/optimizedSD")
 sys.path.append("artroom_helpers/modules")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
     apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
-from artroom_helpers.modules.cldm.model import create_model
+from artroom_helpers.modules.cldm.model import create_model, load_state_dict
 
 from safe import load as safe_load
 from torchvision.utils import make_grid
@@ -120,6 +124,13 @@ def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
                 image = apply_scribble(image)
             case "hed":
                 image = apply_hed(image)
+            case _:
+                print("Unknown control mode:", controlnet_mode)
+        control = torch.from_numpy(image.copy()).float().cuda() / 255.0
+        control = torch.stack([control for _ in range(1)], dim=0)
+        control = rearrange(control, 'b h w c -> b c h w').clone()
+        return control
+
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
@@ -250,50 +261,6 @@ class StableDiffusion:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def hack_everything(self, clip_skip=0):
-        def _hacked_clip_forward(self, text):
-            PAD = self.tokenizer.pad_token_id
-            EOS = self.tokenizer.eos_token_id
-            BOS = self.tokenizer.bos_token_id
-
-            def tokenize(t):
-                return self.tokenizer(t, truncation=False, add_special_tokens=False)["input_ids"]
-
-            def transformer_encode(t):
-                if self.clip_skip > 1:
-                    rt = self.transformer(input_ids=t, output_hidden_states=True)
-                    return self.transformer.text_model.final_layer_norm(rt.hidden_states[-self.clip_skip])
-                else:
-                    return self.transformer(input_ids=t, output_hidden_states=False).last_hidden_state
-
-            def split(x):
-                return x[75 * 0: 75 * 1], x[75 * 1: 75 * 2], x[75 * 2: 75 * 3]
-
-            def pad(x, p, i):
-                return x[:i] if len(x) >= i else x + [p] * (i - len(x))
-
-            raw_tokens_list = tokenize(text)
-            tokens_list = []
-
-            for raw_tokens in raw_tokens_list:
-                raw_tokens_123 = split(raw_tokens)
-                raw_tokens_123 = [[BOS] + raw_tokens_i + [EOS] for raw_tokens_i in raw_tokens_123]
-                raw_tokens_123 = [pad(raw_tokens_i, PAD, 77) for raw_tokens_i in raw_tokens_123]
-                tokens_list.append(raw_tokens_123)
-
-            tokens_list = torch.IntTensor(tokens_list).to(self.device)
-
-            feed = rearrange(tokens_list, 'b f i -> (b f) i')
-            y = transformer_encode(feed)
-            z = rearrange(y, '(b f) i c -> b (f i) c', f=3)
-
-            return z
-
-        self.modelCS.cond_stage_model.forward = _hacked_clip_forward
-        self.modelCS.cond_stage_model.clip_skip = clip_skip
-        print('Enabled clip hacks.')
-        return
-
     def inject_controlnet(self, input_state_dict, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
 
@@ -343,6 +310,7 @@ class StableDiffusion:
                 p_new = p
                 # print(f'Direct clone to [{key}]')
             final_state_dict[key] = p_new
+        del sd15_with_control_state_dict, sd15_state_dict
         return final_state_dict
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
@@ -485,12 +453,11 @@ class StableDiffusion:
             self.modelFS.to(torch.float32)
 
         if controlnet_path is not None:
-            self.model.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml")
-            self.model.control_model.load_state_dict(
-                self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path), strict=False)
-            self.model.control_model.cpu().half()
+            self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
+            self.control_model.load_state_dict(sd)
         else:
-            self.model.control_model = None
+            self.control_model = None
 
         del sd
 
@@ -697,6 +664,10 @@ class StableDiffusion:
 
             init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
                                   controlnet_mode=controlnet).to(self.device)
+            if controlnet_path is not None:
+                control = init_image.clone()
+            else:
+                control = None
             _, _, H, W = init_image.shape
             init_image = init_image.to(self.dtype)
         else:
@@ -833,31 +804,38 @@ class StableDiffusion:
                             x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                             x0 = init_latent_1stage if mode == "pix2pix" else x0
 
-                            if controlnet is not None:
-                                self.model.control_model.to(self.device)
-                                control = init_image
-                                cond = {"c_concat": [control], "c_crossattn": [c]}
-                                un_cond = {"c_concat": [control], "c_crossattn": [uc]}
-                            x0 = self.model.sample(
-                                S=steps,
-                                conditioning=c if controlnet is None else cond,
-                                x0=x0 if controlnet is None else None,
-                                S_ddim_steps=ddim_steps,
-                                unconditional_guidance_scale=cfg_scale,
-                                txt_scale=txt_cfg_scale,
-                                unconditional_conditioning=uc if controlnet is None else un_cond,
-                                eta=ddim_eta,
-                                sampler=sampler,
-                                shape=shape,
-                                batch_size=batch_size,
-                                seed=seed,
-                                mask=mask,
-                                x_T=x_T,
-                                callback=self.callback_fn,
-                                mode=mode
-                            )
-                            if controlnet is not None:
-                                self.model.control_model.cpu()
+                            if controlnet is not None and controlnet.lower() != "none":
+                                # control = torch.load("control.torch")
+                                c = {"c_concat": [control], "c_crossattn": [c]}
+                                uc = {"c_concat": [control], "c_crossattn": [uc]}
+                                self.control_model.control_scales = [1.0] * 13
+                                self.control_model.to(self.device)
+                                ddim_sampler = DDIMSampler(self.control_model)
+                                x0 = ddim_sampler.sample(steps, batch_size, tuple(shape[1:]), c, verbose=False,
+                                                         eta=ddim_eta,
+                                                         unconditional_guidance_scale=cfg_scale,
+                                                         callback=self.callback_fn,
+                                                         unconditional_conditioning=uc)
+                                self.control_model.cpu()
+                            else:
+                                x0 = self.model.sample(
+                                    S=steps,
+                                    conditioning=c,
+                                    x0=x0 if controlnet is None else None,
+                                    S_ddim_steps=ddim_steps,
+                                    unconditional_guidance_scale=cfg_scale,
+                                    txt_scale=txt_cfg_scale,
+                                    unconditional_conditioning=uc,
+                                    eta=ddim_eta,
+                                    sampler=sampler,
+                                    shape=shape,
+                                    batch_size=batch_size,
+                                    seed=seed,
+                                    mask=mask,
+                                    x_T=x_T,
+                                    callback=self.callback_fn,
+                                    mode=mode
+                                )
                             if self.v1:
                                 self.modelFS.to(self.device)
 

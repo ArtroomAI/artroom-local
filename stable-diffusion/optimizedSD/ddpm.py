@@ -17,7 +17,6 @@ from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_t
 from ldm.modules.diffusionmodules.util import make_ddim_sampling_parameters, make_ddim_timesteps, noise_like
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 from ldm.util import exists, default, instantiate_from_config, disabled_train
-from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 
 
 class DiffusionWrapperv2(pl.LightningModule):
@@ -68,8 +67,8 @@ class DiffusionWrapper(pl.LightningModule):
         super().__init__()
         self.diffusion_model = instantiate_from_config(diff_model_config)
 
-    def forward(self, x, t, cc, control=None):
-        out = self.diffusion_model(x, t, context=cc, control=control)
+    def forward(self, x, t, cc):
+        out = self.diffusion_model(x, t, context=cc)
         return out
 
 
@@ -78,8 +77,8 @@ class DiffusionWrapperOut(pl.LightningModule):
         super().__init__()
         self.diffusion_model = instantiate_from_config(diff_model_config)
 
-    def forward(self, h, emb, tp, hs, cc, control=None):
-        return self.diffusion_model(h, emb, tp, hs, context=cc, control=control)
+    def forward(self, h, emb, tp, hs, cc):
+        return self.diffusion_model(h, emb, tp, hs, context=cc)
 
 
 class DDPM(pl.LightningModule):
@@ -598,22 +597,20 @@ class UNet(DDPM):
         if self.shorten_cond_schedule:
             self.make_cond_schedule()
 
-    def apply_model(self, x_noisy, t, cond, control=None, return_ids=False):
+    def apply_model(self, x_noisy, t, cond, return_ids=False):
 
         if not self.turbo:
             self.model1.to(self.cdevice)
 
         step = self.unet_bs
-        h, emb, hs = self.model1(x_noisy[0:step], t[:step], cond[:step],
-                                 control=control[:step] if control is not None else None)
+        h, emb, hs = self.model1(x_noisy[0:step], t[:step], cond[:step])
         bs = cond.shape[0]
 
         # assert bs%2 == 0
         lenhs = len(hs)
 
         for i in range(step, bs, step):
-            h_temp, emb_temp, hs_temp = self.model1(x_noisy[i:i + step], t[i:i + step], cond[i:i + step],
-                                                    control=control[i:i + step] if control is not None else None)
+            h_temp, emb_temp, hs_temp = self.model1(x_noisy[i:i + step], t[i:i + step], cond[i:i + step])
             h = torch.cat((h, h_temp))
             emb = torch.cat((emb, emb_temp))
             for j in range(lenhs):
@@ -624,14 +621,12 @@ class UNet(DDPM):
             self.model2.to(self.cdevice)
 
         hs_temp = [hs[j][:step] for j in range(lenhs)]
-        control = [control[j][:step] for j in range(control)] if control is not None else None
-        x_recon = self.model2(h[:step], emb[:step], x_noisy.dtype, hs_temp, cond[:step],
-                              control=control)
+
+        x_recon = self.model2(h[:step], emb[:step], x_noisy.dtype, hs_temp, cond[:step])
 
         for i in range(step, bs, step):
             hs_temp = [hs[j][i:i + step] for j in range(lenhs)]
-            x_recon1 = self.model2(h[i:i + step], emb[i:i + step], x_noisy.dtype, hs_temp, cond[i:i + step],
-                                   control=control)
+            x_recon1 = self.model2(h[i:i + step], emb[i:i + step], x_noisy.dtype, hs_temp, cond[i:i + step])
             x_recon = torch.cat((x_recon, x_recon1))
 
         if not self.turbo:
@@ -732,14 +727,7 @@ class UNet(DDPM):
         if self.turbo and self.v1:
             self.model1.to(self.cdevice)
             self.model2.to(self.cdevice)
-        if self.control_model is not None:
-            ddim_sampler = DDIMSampler(self.control_model)
-            samples, _ = ddim_sampler.sample(S, 1,
-                                             tuple(shape[1:]), conditioning, verbose=False, eta=eta,
-                                             unconditional_guidance_scale=unconditional_guidance_scale,
-                                             unconditional_conditioning=unconditional_conditioning)
-            return samples
-        elif mode == "default":
+        if mode == "default":
             if x0 is None:
                 batch_size, b1, b2, b3 = shape
                 img_shape = (1, b1, b2, b3)
@@ -1457,7 +1445,7 @@ class UNetV2(UNet):
     def encode_first_stage(self, x):
         return self.first_stage_model.encode(x)
 
-    def apply_model(self, x_noisy, t, cond, control=None, return_ids=False):
+    def apply_model(self, x_noisy, t, cond, return_ids=False):
         if isinstance(cond, dict):
             # hybrid case, cond is expected to be a dict
             pass

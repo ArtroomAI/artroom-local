@@ -2,7 +2,8 @@ import os
 import torch
 
 from omegaconf import OmegaConf
-from ldm.util import instantiate_from_config
+
+from artroom_helpers.modules.cldm.cl_ldm.util import instantiate_from_config
 
 
 def get_state_dict(d):
