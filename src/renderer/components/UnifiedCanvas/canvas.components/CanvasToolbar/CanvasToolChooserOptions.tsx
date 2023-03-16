@@ -19,7 +19,15 @@ import {
   addFillRectAction,
   addEraseRectAction,
   isStagingSelector,
+  boundingBoxCoordinatesAtom,
+  boundingBoxDimensionsAtom,
+  futureLayerStatesAtom,
+  layerStateAtom,
+  maxHistoryAtom,
+  pastLayerStatesAtom,
+  setInitialCanvasImageAction,
 } from '../../atoms/canvas.atoms';
+import { uploadImage } from '../../helpers/uploadImage';
 
 // import {
 // 	addEraseRect,
@@ -64,6 +72,15 @@ export const CanvasToolChooserOptions: FC = () => {
   const addFillRect = useSetRecoilState(addFillRectAction);
   const addEraseRect = useSetRecoilState(addEraseRectAction);
   const isStaging = useRecoilValue(isStagingSelector);
+
+
+  const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
+  const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
+  const maxHistory = useRecoilValue(maxHistoryAtom);  
+  const [layerState, setLayerState] = useRecoilState(layerStateAtom);  
+  const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
+  const setFutureLayerStates = useSetRecoilState(futureLayerStatesAtom);  
+  const setInitialCanvasImage = useSetRecoilState(setInitialCanvasImageAction)
 
   useHotkeys(
     ['b'],
@@ -123,6 +140,56 @@ export const CanvasToolChooserOptions: FC = () => {
     }
   );
 
+  const fileAcceptedCallback = async (file: File) => {
+    uploadImage({
+      imageFile: file,
+      setInitialCanvasImage,
+      boundingBoxCoordinates,
+      boundingBoxDimensions,
+      setPastLayerStates,
+      pastLayerStates,
+      layerState,
+      maxHistory,
+      setLayerState,
+      setFutureLayerStates
+    });
+  };
+
+  const handlePaste = async () => {
+    try {
+      const clipboardData = await navigator.clipboard.read();
+      for (let i = 0; i < clipboardData.length; i++) {
+        const clipboardItem = clipboardData[i];
+        if (
+          clipboardItem.types.includes("image/png") ||
+          clipboardItem.types.includes("image/jpeg")
+        ) {
+          const blob = await clipboardItem.getType("image/png");
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = async () => {
+            const base64data = String(reader.result);
+            blob["b64"] = base64data;
+            fileAcceptedCallback(blob);
+          };
+          break;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to read clipboard contents: ", err);
+    }
+  };
+  
+  useHotkeys(
+    ["ctrl+v"],
+    handlePaste,
+    {
+      enabled: () => !isStaging,
+      preventDefault: true,
+    },
+    [fileAcceptedCallback]
+  );
+
   useHotkeys(
     ['BracketLeft'],
     () => {
@@ -153,6 +220,21 @@ export const CanvasToolChooserOptions: FC = () => {
       setBrushColor({
         ...brushColor,
         a: _.clamp(brushColor.a - 0.05, 0.05, 1),
+      });
+    },
+    {
+      enabled: () => !isStaging,
+      preventDefault: true,
+    },
+    [brushColor]
+  );
+
+  useHotkeys(
+    ['shift+BracketRight'],
+    () => {
+      setBrushColor({
+        ...brushColor,
+        a: _.clamp(brushColor.a + 0.05, 0.05, 1),
       });
     },
     {

@@ -5,7 +5,6 @@ import { useHotkeys } from 'react-hotkeys-hook';
 type ImageUploadOverlayProps = {
 	isDragAccept: boolean;
 	isDragReject: boolean;
-	overlaySecondaryText: string;
 	setIsHandlingUpload: (isHandlingUpload: boolean) => void;
 };
 
@@ -13,7 +12,6 @@ export const ImageUploadOverlay: FC<ImageUploadOverlayProps> = props => {
 	const {
 		isDragAccept,
 		isDragReject,
-		overlaySecondaryText,
 		setIsHandlingUpload,
 	} = props;
 
@@ -26,7 +24,7 @@ export const ImageUploadOverlay: FC<ImageUploadOverlayProps> = props => {
 			{isDragAccept && (
 				<div className="dropzone-overlay is-drag-accept">
 					<Heading size={'lg'}>
-						Upload Image{overlaySecondaryText}
+						Upload Image
 					</Heading>
 				</div>
 			)}
