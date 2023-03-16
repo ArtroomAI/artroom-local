@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useRef } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { addToQueueState, queuePausedState, queueState } from './atoms/atoms';
+import { artroomPathState } from './SettingsManager';
 import { SocketContext } from './socket';
 
 const parseQueue = (queue: string | undefined): any[] => {
@@ -25,6 +26,7 @@ export const QueueManager = () => {
     const [isQueuePaused, setQueuePaused] = useRecoilState(queuePausedState);
     const [addToQueue, setAddToQueue] = useRecoilState(addToQueueState);
     const queuedItemRef = useRef(null);
+    const artroomPath = useRecoilValue(artroomPathState);
     
     const emit = useCallback((remove: boolean = true) => {
         if(remove) {
@@ -61,23 +63,23 @@ export const QueueManager = () => {
 
     useEffect(() => {
         const saveQueue = () => {
-            window.api.saveQueue(JSON.stringify(queue));
+            window.api.saveQueue(JSON.stringify(queue), artroomPath);
         }
         window.addEventListener('beforeunload', saveQueue);
         return () => {
             window.removeEventListener('beforeunload', saveQueue);
         }
-    }, [queue]);
+    }, [queue, artroomPath]);
 
     useEffect(() => {
-        window.api.readQueue().then(queue => {
+        window.api.readQueue(artroomPath).then(queue => {
             const __queue = parseQueue(queue);
             if(__queue.length) {
                 setQueuePaused(true);
             }
             setQueue(__queue);
         });
-    }, []);
+    }, [artroomPath]);
 
     return <></>;
 }

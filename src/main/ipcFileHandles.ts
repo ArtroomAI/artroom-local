@@ -1,14 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 
-export const setupQueueHandles = (ipcMain: Electron.IpcMain, artroom_path: string) => {
-  const queue_path = path.join(artroom_path, 'artroom', 'settings', 'queue.json');
+export const setupQueueHandles = (ipcMain: Electron.IpcMain) => {
 
-  ipcMain.handle('saveQueue', (_, queue) => {
+  ipcMain.handle('saveQueue', (_, queue, artroom_path) => {
+    const queue_path = path.join(artroom_path, 'artroom', 'settings', 'queue.json');
     fs.writeFileSync(queue_path, queue, 'utf-8');
   });
   
-  ipcMain.handle('readQueue', () => {
+  ipcMain.handle('readQueue', (_, artroom_path) => {
+    const queue_path = path.join(artroom_path, 'artroom', 'settings', 'queue.json');
     return fs.readFileSync(queue_path, 'utf-8');
   });
 }
