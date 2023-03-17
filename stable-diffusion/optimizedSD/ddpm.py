@@ -621,6 +621,7 @@ class UNet(DDPM):
             self.model2.to(self.cdevice)
 
         hs_temp = [hs[j][:step] for j in range(lenhs)]
+
         x_recon = self.model2(h[:step], emb[:step], x_noisy.dtype, hs_temp, cond[:step])
 
         for i in range(step, bs, step):
@@ -721,7 +722,7 @@ class UNet(DDPM):
                txt_scale=1.5,
                unconditional_conditioning=None,
                batch_size=None,
-               mode="default"
+               mode="default",
                ):
         if self.turbo and self.v1:
             self.model1.to(self.cdevice)
