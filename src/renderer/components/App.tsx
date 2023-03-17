@@ -32,7 +32,6 @@ import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
 import path from 'path';
-import { Console } from './Console';
 import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
 import { UpdateProgressBar } from './UpdateProgressBar';
@@ -204,23 +203,13 @@ export default function App () {
                     });
                 } else if (result.length > 0) {
                     setShowArtroomInstaller(true)
-                    // toast({
-                    //     title: result,
-                    //     status: 'error',
-                    //     position: 'top',
-                    //     duration: 10000,
-                    //     isClosable: true
-                    // });
                 }
             });
 
             if (colorMode === 'light') {
                 toggleColorMode();
             }
-        },
-        // load only once
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        []
+        },[]
     );
 
     return (

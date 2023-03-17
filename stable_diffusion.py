@@ -98,45 +98,6 @@ def image_grid(imgs, rows, cols, path):
     grid.save(path)
     print("Grid finished")
 
-
-def load_img(image, h0, w0, inpainting=False, controlnet_mode=None):
-    w, h = image.size
-    if not inpainting and h0 != 0 and w0 != 0:
-        h, w = h0, w0
-
-    # resize to integer multiple of 32
-    w, h = map(lambda x: x - x % 64, (w, h))
-    print(f"New image size ({w}, {h})")
-    image = image.resize((w, h), resample=Image.LANCZOS)
-
-    if controlnet_mode is not None:
-        image = HWC3(np.array(image))
-        match controlnet_mode:
-            case "canny":
-                image = apply_canny(image)
-            case "pose":
-                image = apply_pose(image)
-            case "depth":
-                image = apply_depth(image)
-            case "normal":
-                image = apply_normal(image)
-            case "scribble":
-                image = apply_scribble(image)
-            case "hed":
-                image = apply_hed(image)
-            case _:
-                print("Unknown control mode:", controlnet_mode)
-        control = torch.from_numpy(image.copy()).float().cuda() / 255.0
-        control = torch.stack([control for _ in range(1)], dim=0)
-        control = rearrange(control, 'b h w c -> b c h w').clone()
-        return control
-
-    image = np.array(image).astype(np.float32) / 255.0
-    image = image[None].transpose(0, 3, 1, 2)
-    image = torch.from_numpy(image)
-    return 2. * image - 1.
-
-
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
         self.network = None
@@ -167,6 +128,44 @@ class StableDiffusion:
         self.cc = self.get_cc()
         self.intermediate_path = ''
         # Generation Runtime Parameters
+
+    def load_img(self, image, h0, w0, inpainting=False, controlnet_mode=None):
+        w, h = image.size
+        if not inpainting and h0 != 0 and w0 != 0:
+            h, w = h0, w0
+
+        # resize to integer multiple of 32
+        w, h = map(lambda x: x - x % 64, (w, h))
+        print(f"New image size ({w}, {h})")
+        image = image.resize((w, h), resample=Image.LANCZOS)
+
+        if controlnet_mode is not None:
+            image = HWC3(np.array(image))
+            match controlnet_mode:
+                case "canny":
+                    image = apply_canny(image)
+                case "pose":
+                    image = apply_pose(image)
+                case "depth":
+                    image = apply_depth(image)
+                case "normal":
+                    image = apply_normal(image)
+                case "scribble":
+                    image = apply_scribble(image)
+                case "hed":
+                    image = apply_hed(image)
+                case _:
+                    print("Unknown control mode:", controlnet_mode)
+            
+            control = torch.from_numpy(image.copy()).float().cuda() / 255.0
+            control = torch.stack([control for _ in range(1)], dim=0)
+            control = rearrange(control, 'b h w c -> b c h w').clone()
+            return control
+
+        image = np.array(image).astype(np.float32) / 255.0
+        image = image[None].transpose(0, 3, 1, 2)
+        image = torch.from_numpy(image)
+        return 2. * image - 1.
 
     def get_cc(self):
         try:
@@ -261,7 +260,7 @@ class StableDiffusion:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def inject_controlnet(self, input_state_dict, path_sd15, path_sd15_with_control):
+    def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
 
         def get_state_dict(d):
@@ -275,7 +274,6 @@ class StableDiffusion:
             else:
                 state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
             state_dict = get_state_dict(state_dict)
-            print(f'Loaded state_dict from [{ckpt_path}]')
             return state_dict
 
         def get_node_name(name, parent_name):
@@ -288,6 +286,7 @@ class StableDiffusion:
 
         sd15_state_dict = load_state_dict(path_sd15)
         sd15_with_control_state_dict = load_state_dict(path_sd15_with_control)
+        input_state_dict = load_state_dict(ckpt)
         keys = sd15_with_control_state_dict.keys()
 
         final_state_dict = {}
@@ -305,13 +304,13 @@ class StableDiffusion:
                 sd15_key_name = key
             if sd15_key_name in input_state_dict:
                 p_new = p + input_state_dict[sd15_key_name] - sd15_state_dict[sd15_key_name]
-                # print(f'Offset clone from [{sd15_key_name}] to [{key}]')
             else:
                 p_new = p
-                # print(f'Direct clone to [{key}]')
             final_state_dict[key] = p_new
-        del sd15_with_control_state_dict, sd15_state_dict
+        del sd15_with_control_state_dict, sd15_state_dict, input_state_dict
+
         return final_state_dict
+
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
@@ -454,12 +453,12 @@ class StableDiffusion:
 
         if controlnet_path is not None:
             self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-            sd = self.inject_controlnet(sd, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
+            sd = self.inject_controlnet(ckpt, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
             self.control_model.load_state_dict(sd)
         else:
             self.control_model = None
 
-        del sd
+        del sd  
 
         # if self.controlnet_path is not None:
         #     self.hack_everything(clip_skip=2)
@@ -574,17 +573,28 @@ class StableDiffusion:
         self.show_intermediates = show_intermediates
 
         controlnet_ckpts = {
-            "canny": os.path.join(os.path.dirname(ckpt), "control_sd15_canny.pth"),
-            "depth": os.path.join(os.path.dirname(ckpt), "control_sd15_depth.pth"),
-            "normal": os.path.join(os.path.dirname(ckpt), "control_sd15_normal.pth"),
-            "pose": os.path.join(os.path.dirname(ckpt), "control_sd15_openpose.pth"),
-            "scribble": os.path.join(os.path.dirname(ckpt), "control_sd15_scribble.pth"),
-            "hed": os.path.join(os.path.dirname(ckpt), "control_sd15_hed.pth"),
+            "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_canny.pth"),
+            "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_depth.pth"),
+            "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_normal.pth"),
+            "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_openpose.pth"),
+            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_scribble.pth"),
+            "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_hed.pth"),
             "None": None,
             "none": None
         }
 
-        print(f"Using contorlnet {controlnet}")
+        # controlnet_ckpts = {
+        #     "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
+        #     "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
+        #     "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
+        #     "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
+        #     "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_scribbleV10.safetensors"),
+        #     "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
+        #     "None": None,
+        #     "none": None
+        # }
+
+        print(f"Using controlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
         if controlnet_path is None:
             deinit_cnet_stuff()
@@ -662,7 +672,7 @@ class StableDiffusion:
                 except Exception as e:
                     print(f"Failed to outpaint the alpha layer {e}")
 
-            init_image = load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
+            init_image = self.load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
                                   controlnet_mode=controlnet).to(self.device)
             if controlnet_path is not None:
                 control = init_image.clone()
@@ -813,11 +823,16 @@ class StableDiffusion:
                                 self.control_model.control_scales = [1.0] * 13
                                 self.control_model.to(self.device)
                                 ddim_sampler = DDIMSampler(self.control_model)
-                                x0 = ddim_sampler.sample(steps, batch_size, tuple(shape[1:]), c, verbose=False,
-                                                         eta=ddim_eta,
-                                                         unconditional_guidance_scale=cfg_scale,
-                                                         callback=self.callback_fn,
-                                                         unconditional_conditioning=uc)
+                                x0 = ddim_sampler.sample(
+                                    steps, 
+                                    batch_size, 
+                                    tuple(shape[1:]), 
+                                    c, 
+                                    verbose=False,
+                                    eta=ddim_eta,
+                                    unconditional_guidance_scale=cfg_scale,
+                                    callback=self.callback_fn,
+                                    unconditional_conditioning=uc)
                                 self.control_model.cpu()
                             else:
                                 x0 = self.model.sample(
@@ -864,11 +879,11 @@ class StableDiffusion:
                                 torch.set_default_tensor_type(torch.HalfTensor)
 
                             if ij < highres_fix_steps - 1:
-                                init_image = load_img(
+                                init_image = self.load_img(
                                     out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0),
                                     controlnet_mode=None).to(self.device).to(self.dtype)  # we only encode cnet 1 time
                             elif ij == highres_fix_steps - 1:
-                                init_image = load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0),
+                                init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0),
                                                       controlnet_mode=None).to(self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size

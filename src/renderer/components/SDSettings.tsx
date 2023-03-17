@@ -23,12 +23,19 @@ import {
     Spacer,
     Text,
     Icon,
-    useToast
+    useToast,
+    Accordion,
+    AccordionButton,
+    AccordionIcon,
+    AccordionItem,
+    AccordionPanel
 } from '@chakra-ui/react';
-import { FaQuestionCircle } from 'react-icons/fa';
+import { FaLink, FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 import { aspectRatioState, batchNameState, cfgState, ckptState, controlnetState, heightState, initImageState, iterationsState, loadSettingsFromFile, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, vaeState, widthState } from '../SettingsManager';
 import LoraSelector from './LoraSelector';
+import DragDropFile from './DragDropFile/DragDropFile';
+import { FiLink } from 'react-icons/fi';
 
 function SDSettings () {
     const toast = useToast({});
@@ -121,7 +128,7 @@ function SDSettings () {
     return (
         <Flex
             pr="10"
-            width="300px"
+            width="450px"
         >
             <Box
                 m="-1"
@@ -132,22 +139,23 @@ function SDSettings () {
                     className="sd-settings"
                     spacing={3}
                 >
-                    <FormControl className="folder-name-input">
-                        <FormLabel htmlFor="batch_name">
-                            Output Folder
-                        </FormLabel>
-
-                        <Input
-                            id="batch_name"
-                            name="batch_name"
-                            onChange={(event) => setBatchName(event.target.value)}
-                            value={batchName}
-                            variant="outline"
-                        />
-                    </FormControl>
-
                     <HStack>
-                        <FormControl className="num-images-input">
+                        <FormControl className="folder-name-input">
+                            <FormLabel htmlFor="batch_name">
+                                Output Folder
+                            </FormLabel>
+
+                            <Input
+                                fontSize="sm"
+                                id="batch_name"
+                                name="batch_name"
+                                onChange={(event) => setBatchName(event.target.value)}
+                                value={batchName}
+                                variant="outline"
+                            />
+                        </FormControl>
+
+                        <FormControl width="200px" className="num-images-input">
                             <FormLabel htmlFor="n_iter">
                                 № of Images
                             </FormLabel>
@@ -166,480 +174,181 @@ function SDSettings () {
                             </NumberInput>
                         </FormControl>
 
-                        <FormControl className="steps-input">
-                            <HStack>
-                                <FormLabel htmlFor="steps">
-                                    № of Steps
-                                </FormLabel>
-
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Steps determine how long you want the model to spend on generating your image. The more steps you have, the longer it will take but you'll get better results. The results are less impactful the more steps you have, so you may stop seeing improvement after 100 steps. 50 is typically a good number"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
-
-                            <NumberInput
-                                id="steps"
-                                min={1}
-                                name="steps"
-                                onChange={(v, n) => {
-                                    setSteps(isNaN(n) ? 1 : n);
-                                }}
-                                value={steps}
-                                variant="outline"
-                            >
-                                <NumberInputField id="steps" />
-                            </NumberInput>
-                        </FormControl>
                     </HStack>
+
 
                     <Box
                         className="size-input"
                         width="100%"
                     >
-                        <FormControl
-                            className=" aspect-ratio-input"
-                            marginBottom={2}
-                        >
-                            <FormLabel htmlFor="AspectRatio">
-                                Fixed Aspect Ratio
-                            </FormLabel>
+                        <HStack>
+                            <VStack width="100%">
+                                <FormControl className="width-input">
+                                    <FormLabel justifyContent="center" htmlFor="Width">
+                                        Width:
+                                    </FormLabel>
 
-                            <HStack>
-                                <Select
+                                    <Slider
+                                        colorScheme="teal"
+                                        defaultValue={512}
+                                        id="width"
+                                        isReadOnly={aspectRatio === 'Init Image'}
+                                        max={2048}
+                                        min={256}
+                                        name="width"
+                                        onChange={setWidth}                                
+                                        step={64}
+                                        value={width}
+                                        variant="outline"
+                                    >
+                                        <SliderTrack bg="#EEEEEE">
+                                            <Box
+                                                position="relative"
+                                                right={10}
+                                            />
+
+                                            <SliderFilledTrack bg="#4f8ff8" />
+                                        </SliderTrack>
+
+                                        <Tooltip
+                                            bg="#4f8ff8"
+                                            color="white"
+                                            isOpen={!(aspectRatio === 'Init Image')}
+                                            label={`${width}`}
+                                            placement="bottom"
+                                        >
+                                            <SliderThumb />
+                                        </Tooltip>
+                                    </Slider>
+                                </FormControl>
+
+                                <FormControl className="height-input">
+                                    <FormLabel htmlFor="Height">
+                                        Height:
+                                    </FormLabel>
+
+                                    <Slider
+                                        defaultValue={512}
+                                        isReadOnly={aspectRatio === 'Init Image'}
+                                        max={2048}
+                                        min={256}
+                                        onChange={setHeight}                                        
+                                        step={64}
+                                        value={height}
+                                    >
+                                        <SliderTrack bg="#EEEEEE">
+                                            <Box
+                                                position="relative"
+                                                right={10}
+                                            />
+
+                                            <SliderFilledTrack bg="#4f8ff8" />
+                                        </SliderTrack>
+
+                                        <Tooltip
+                                            bg="#4f8ff8"
+                                            color="white"
+                                            isOpen={!(aspectRatio === 'Init Image')}
+                                            label={`${height}`}
+                                            placement="bottom"
+                                        >
+                                            <SliderThumb />
+                                        </Tooltip>
+                                    </Slider>
+                                </FormControl>
+                            </VStack>
+
+                            <FormControl width="50%" className="aspect-ratio-input" marginBottom={2}>
+                                <VStack>
+                                    <Icon as={FiLink}/>
+                                    <Select
                                     id="aspect_ratio_selection"
                                     name="aspect_ratio_selection"
                                     onChange={(event) => {
                                         setAspectRatioSelection(event.target.value);
-                                        if (event.target.value === 'Init Image' && !initImage) {
-                                            //Switch to aspect ratio to none and print warning that no init image is set
-                                            setAspectRatioSelection('None');
-                                            setAspectRatio('None');
-                                            toast({
-                                                'title': 'Invalid Aspect Ratio Selection',
-                                                'description': 'Must upload Starting Image first to use its resolution',
-                                                'status': 'error',
-                                                'position': 'top',
-                                                'duration': 3000,
-                                                'isClosable': true,
-                                                'containerStyle': {
-                                                    'pointerEvents': 'none'
-                                                }
-                                            });
-                                        } else if (event.target.value !== 'Custom') {
-                                            setAspectRatio(event.target.value);
+                                        if (
+                                        event.target.value === "Init Image" &&
+                                        !initImage
+                                        ) {
+                                        //Switch to aspect ratio to none and print warning that no init image is set
+                                        setAspectRatioSelection("None");
+                                        setAspectRatio("None");
+                                        toast({
+                                            title: "Invalid Aspect Ratio Selection",
+                                            description: "Must upload Starting Image first to use its resolution",
+                                            status: "error",
+                                            position: "top",
+                                            duration: 3000,
+                                            isClosable: true,
+                                            containerStyle: {
+                                            pointerEvents: "none",
+                                            },
+                                        });
+                                        } else if (event.target.value !== "Custom") {
+                                        setAspectRatio(event.target.value);
                                         }
                                     }}
                                     value={aspectRatioSelection}
                                     variant="outline"
-                                >
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="None"
                                     >
+                                    <option style={{ backgroundColor: "#080B16" }} value="None">
                                         None
                                     </option>
 
-                                    {initImage.length && <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="Init Image"
-                                    >
+                                    {/* {initImage.length && (
+                                        <option style={{ backgroundColor: "#080B16" }} value="Init Image">
                                         Init Image
-                                    </option>}
+                                        </option>
+                                    )} */}
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="1:1"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="1:1">
                                         1:1
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="1:2"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="1:2">
                                         1:2
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="2:1"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="2:1">
                                         2:1
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="4:3"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="4:3">
                                         4:3
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="3:4"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="3:4">
                                         3:4
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="16:9"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="16:9">
                                         16:9
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="9:16"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="9:16">
                                         9:16
                                     </option>
 
-                                    <option
-                                        style={{ 'backgroundColor': '#080B16' }}
-                                        value="Custom"
-                                    >
+                                    <option style={{ backgroundColor: "#080B16" }} value="Custom">
                                         Custom
                                     </option>
-                                </Select>
+                                    </Select>
 
-                                {aspectRatioSelection === 'Custom'
-                                    ? <Input
+                                    {aspectRatioSelection === "Custom" ? (
+                                    <Input
                                         id="aspect_ratio"
                                         name="aspect_ratio"
                                         onChange={(event) => setAspectRatio(event.target.value)}
                                         value={aspectRatio}
                                         variant="outline"
                                     />
-                                    : <></>}
-
-                            </HStack>
-                        </FormControl>
-
-                        <FormControl className="width-input">
-                            <FormLabel htmlFor="Width">
-                                Width:
-                            </FormLabel>
-
-                            <Slider
-                                colorScheme="teal"
-                                defaultValue={512}
-                                id="width"
-                                isReadOnly={aspectRatio === 'Init Image'}
-                                max={2048}
-                                min={256}
-                                name="width"
-                                onChange={setWidth}                                
-                                step={64}
-                                value={width}
-                                variant="outline"
-                            >
-                                <SliderTrack bg="#EEEEEE">
-                                    <Box
-                                        position="relative"
-                                        right={10}
-                                    />
-
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
-
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={!(aspectRatio === 'Init Image')}
-                                    label={`${width}`}
-                                    placement="right"
-                                >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
-                        </FormControl>
-
-                        <FormControl className="height-input">
-                            <FormLabel htmlFor="Height">
-                                Height:
-                            </FormLabel>
-
-                            <Slider
-                                defaultValue={512}
-                                isReadOnly={aspectRatio === 'Init Image'}
-                                max={2048}
-                                min={256}
-                                onChange={setHeight}                                        
-                                step={64}
-                                value={height}
-                            >
-                                <SliderTrack bg="#EEEEEE">
-                                    <Box
-                                        position="relative"
-                                        right={10}
-                                    />
-
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
-
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={!(aspectRatio === 'Init Image')}
-                                    label={`${height}`}
-                                    placement="right"
-                                >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
-                        </FormControl>
+                                    ) : (
+                                    <></>
+                                    )}
+                                </VStack>
+                            </FormControl>
+                        </HStack>
                     </Box>
-
-                    <FormControl className="cfg-scale-input">
-                        <HStack>
-                            <FormLabel htmlFor="cfg_scale">
-                                Prompt Strength (CFG):
-                            </FormLabel>
-
-                            <Spacer />
-
-                            <Tooltip
-                                fontSize="md"
-                                label="Prompt Strength or CFG Scale determines how intense the generations are. A typical value is around 5-15 with higher numbers telling the AI to stay closer to the prompt you typed"
-                                placement="left"
-                                shouldWrapChildren
-                            >
-                                <FaQuestionCircle color="#777" />
-                            </Tooltip>
-                        </HStack>
-
-                        <NumberInput
-                            id="cfg_scale"
-                            min={0}
-                            name="cfg_scale"
-                            onChange={setCfg}         
-                            value={cfg}
-                            variant="outline"
-                        >
-                            <NumberInputField id="cfg_scale" />
-                        </NumberInput>
-                    </FormControl>
-
-                    <FormControl className="strength-input">
-                        <HStack>
-                            <FormLabel htmlFor="Strength">
-                                Image Variation Strength:
-                            </FormLabel>
-                            <Spacer />
-                            <Tooltip
-                                fontSize="md"
-                                label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                placement="left"
-                                shouldWrapChildren
-                            >
-                                <FaQuestionCircle color="#777" />
-                            </Tooltip>
-                        </HStack>
-
-                        <Slider
-                            defaultValue={0.75}
-                            id="strength"
-                            max={0.99}
-                            min={0.0}
-                            name="strength"
-                            onChange={setStrength}        
-                            step={0.01}
-                            value={strength}
-                            variant="outline"
-                        >
-                            <SliderTrack bg="#EEEEEE">
-                                <Box
-                                    position="relative"
-                                    right={10}
-                                />
-
-                                <SliderFilledTrack bg="#4f8ff8" />
-                            </SliderTrack>
-
-                            <Tooltip
-                                bg="#4f8ff8"
-                                color="white"
-                                isOpen={true}
-                                label={`${strength}`}
-                                placement="right"
-                            >
-                                <SliderThumb />
-                            </Tooltip>
-                        </Slider>
-                    </FormControl>
-                    <HStack>
-                        <FormControl className="samplers-input">
-                            <HStack>
-                                <FormLabel htmlFor="Sampler">
-                                    Sampler
-                                </FormLabel>
-
-                                <Spacer />
-
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-
-                            </HStack>
-
-                            <Select
-                                id="sampler"
-                                name="sampler"
-                                onChange={(event) => setSampler(event.target.value)}
-                                value={sampler}
-                                variant="outline"
-                            >
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="ddim"
-                                >
-                                    DDIM
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="dpmpp_2m"
-                                >
-                                    DPM++ 2M Karras
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="dpmpp_2s_ancestral"
-                                >
-                                    DPM++ 2S Ancestral Karras
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="euler"
-                                >
-                                    Euler
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="euler_a"
-                                >
-                                    Euler Ancestral
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="dpm_2"
-                                >
-                                    DPM 2
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="dpm_a"
-                                >
-                                    DPM 2 Ancestral
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="lms"
-                                >
-                                    LMS
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="heun"
-                                >
-                                    Heun
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="plms"
-                                >
-                                    PLMS
-                                </option>
-                            </Select>
-                        </FormControl>
-                        <FormControl className="controlnet-input">
-                            <HStack>
-                                <FormLabel htmlFor="Controlnet">
-                                    Controlnet
-                                </FormLabel>
-
-                                <Spacer />
-
-                                <Tooltip
-                                    fontSize="md"
-                                    label=""
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-
-                            </HStack>
-
-                            <Select
-                                id="controlnet"
-                                name="controlnet"
-                                onChange={(event) => setControlnet(event.target.value)}
-                                value={controlnet}
-                                variant="outline"
-                            >
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="none"
-                                >
-                                    None
-                                </option>
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="canny"
-                                >
-                                    Canny
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="pose"
-                                >
-                                    Pose
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="depth"
-                                >
-                                    Depth
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="normal"
-                                >
-                                    Normal
-                                </option>
-
-                                <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value="scribble"
-                                >
-                                    Scribble
-                                </option>
-                            </Select>
-                        </FormControl>
-                    </HStack>
 
                     <FormControl className="model-ckpt-input">
                         <FormLabel htmlFor="Ckpt">
@@ -680,110 +389,399 @@ function SDSettings () {
                             </option>))}
                         </Select>
                     </FormControl>
-                                
-                    <LoraSelector cloudMode={cloudMode} options={loras}></LoraSelector>
 
-                    <FormControl className="vae-ckpt-input">
-                        <FormLabel htmlFor="Vae">
+                    <Accordion allowToggle border="none" bg="transparent" width="100%">
+                        <AccordionItem border="none">
+                            <h2>
+                            <AccordionButton bg="transparent" _hover={{ bg: 'transparent' }}>
+                                <Box width="100%" flex="1" textAlign="start">
+                                Advanced Settings
+                                </Box>
+                                <AccordionIcon />
+                            </AccordionButton>
+                            </h2>
+                            <AccordionPanel width="100%" pb={8} bg="transparent">
+                            <FormControl className="strength-input">
+                                    <HStack>
+                                        <FormLabel htmlFor="Strength">
+                                            Image Variation Strength:
+                                        </FormLabel>
+                                        <Spacer />
+                                        <Tooltip
+                                            fontSize="md"
+                                            label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                                            placement="left"
+                                            shouldWrapChildren
+                                        >
+                                            <FaQuestionCircle color="#777" />
+                                        </Tooltip>
+                                    </HStack>
+
+                                    <Slider
+                                        defaultValue={0.75}
+                                        id="strength"
+                                        max={0.99}
+                                        min={0.0}
+                                        name="strength"
+                                        onChange={setStrength}        
+                                        step={0.01}
+                                        value={strength}
+                                        variant="outline"
+                                    >
+                                        <SliderTrack bg="#EEEEEE">
+                                            <SliderFilledTrack bg="#4f8ff8" />
+                                        </SliderTrack>
+
+                                        <Tooltip
+                                            bg="#4f8ff8"
+                                            color="white"
+                                            isOpen={true}
+                                            label={`${strength}`}
+                                            placement="right"
+                                        >
+                                            <SliderThumb />
+                                        </Tooltip>
+                                    </Slider>
+                            </FormControl>
                             <HStack>
-                                <Text>
-                                    VAE
-                                </Text>
+                                <Box pt="22px">
+                                <FormControl className="steps-input">
+                                    <HStack>
+                                        <FormLabel fontSize='sm' htmlFor="steps">
+                                            № of Steps
+                                        </FormLabel>
 
-                                {cloudMode
-                                    ? <Icon as={IoMdCloud} />
-                                    : null}
+                                        <Tooltip
+                                            fontSize="md"
+                                            label="Steps determine how long you want the model to spend on generating your image. The more steps you have, the longer it will take but you'll get better results. The results are less impactful the more steps you have, so you may stop seeing improvement after 100 steps. 50 is typically a good number"
+                                            placement="left"
+                                            shouldWrapChildren
+                                        >
+                                            <FaQuestionCircle color="#777" />
+                                        </Tooltip>
+                                    </HStack>
+
+                                    <NumberInput
+                                        id="steps"
+                                        min={1}
+                                        name="steps"
+                                        onChange={(v, n) => {
+                                            setSteps(isNaN(n) ? 1 : n);
+                                        }}
+                                        value={steps}
+                                        variant="outline"
+                                    >
+                                        <NumberInputField id="steps" />
+                                    </NumberInput>
+                                </FormControl>
+                                </Box>
+                                <FormControl className="cfg-scale-input">
+                                    <HStack>
+                                        <FormLabel fontSize='sm' htmlFor="cfg_scale">
+                                            Prompt Strength:
+                                        </FormLabel>
+
+                                        <Spacer />
+
+                                        <Tooltip
+                                            fontSize="md"
+                                            label="Prompt Strength or CFG Scale determines how intense the generations are. A typical value is around 5-15 with higher numbers telling the AI to stay closer to the prompt you typed"
+                                            placement="left"
+                                            shouldWrapChildren
+                                        >
+                                            <FaQuestionCircle color="#777" />
+                                        </Tooltip>
+                                    </HStack>
+
+                                    <NumberInput
+                                        id="cfg_scale"
+                                        min={0}
+                                        name="cfg_scale"
+                                        onChange={setCfg}         
+                                        value={cfg}
+                                        variant="outline"
+                                    >
+                                        <NumberInputField id="cfg_scale" />
+                                    </NumberInput>
+                                </FormControl>
+
                             </HStack>
-                        </FormLabel>
 
-                        <Select
-                            id="vae"
-                            name="vae"
-                            onChange={(event) => setVae(event.target.value)}
-                            onMouseEnter={getCkpts}
-                            value={vae}
-                            variant="outline"
-                        >
-                            <option
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value=""
-                            >
-                                No vae
-                            </option>
-                            {vaes.map((ckpt_option, i) => (<option
-                                key={i}
-                                style={{ 'backgroundColor': '#080B16' }}
-                                value={ckpt_option}
-                            >
-                                {ckpt_option}
-                            </option>))}
-                        </Select>
-                    </FormControl>
+                            <FormControl className="samplers-input">
+                                <HStack>
+                                    <FormLabel htmlFor="Sampler">
+                                        Sampler
+                                    </FormLabel>
 
-                    <HStack className="seed-input">
-                        <FormControl>
-                            <HStack>
-                                <FormLabel htmlFor="seed">
-                                    Seed:
+                                    <Spacer />
+
+                                    <Tooltip
+                                        fontSize="md"
+                                        label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
+                                        placement="left"
+                                        shouldWrapChildren
+                                    >
+                                        <FaQuestionCircle color="#777" />
+                                    </Tooltip>
+
+                                </HStack>
+
+                                <Select
+                                    id="sampler"
+                                    name="sampler"
+                                    onChange={(event) => setSampler(event.target.value)}
+                                    value={sampler}
+                                    variant="outline"
+                                >
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="ddim"
+                                    >
+                                        DDIM
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="dpmpp_2m"
+                                    >
+                                        DPM++ 2M Karras
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="dpmpp_2s_ancestral"
+                                    >
+                                        DPM++ 2S Ancestral Karras
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="euler"
+                                    >
+                                        Euler
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="euler_a"
+                                    >
+                                        Euler Ancestral
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="dpm_2"
+                                    >
+                                        DPM 2
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="dpm_a"
+                                    >
+                                        DPM 2 Ancestral
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="lms"
+                                    >
+                                        LMS
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="heun"
+                                    >
+                                        Heun
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="plms"
+                                    >
+                                        PLMS
+                                    </option>
+                                </Select>
+                            </FormControl>
+
+                            <HStack className="seed-input">
+                                <FormControl>
+                                    <HStack>
+                                        <FormLabel htmlFor="seed">
+                                            Seed:
+                                        </FormLabel>
+
+                                        <Spacer />
+
+                                        <Tooltip
+                                            fontSize="md"
+                                            label="Seed controls randomness. If you set the same seed each time and use the same settings, then you will get the same results"
+                                            placement="left"
+                                            shouldWrapChildren
+                                        >
+                                            <FaQuestionCircle color="#777" />
+                                        </Tooltip>
+                                    </HStack>
+
+                                    <NumberInput
+                                        id="seed"
+                                        isDisabled={randomSeed}
+                                        min={0}
+                                        name="seed"
+                                        onChange={(v, n) => {
+                                            setSeed(isNaN(n) ? 0 : n);
+                                        }}        
+                                        value={seed}
+                                        variant="outline"
+                                    >
+                                        <NumberInputField id="seed" />
+                                    </NumberInput>
+                                </FormControl>
+
+                                <VStack
+                                    align="center"
+                                    justify="center"
+                                >
+                                    <FormLabel
+                                        htmlFor="use_random_seed"
+                                    >
+                                        Random
+                                    </FormLabel>
+
+                                    <Checkbox
+                                        id="use_random_seed"
+                                        isChecked={randomSeed}
+                                        name="use_random_seed"
+                                        onChange={() => {
+                                            setRandomSeed((useRandomSeed) => !useRandomSeed);
+                                        }}
+                                        pb="12px"
+                                    />
+                                </VStack>
+                            </HStack>
+
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>
+
+                    <Accordion allowToggle border="none" bg="transparent" width="100%">
+                        <AccordionItem border="none">
+                            <h2>
+                            <AccordionButton bg="transparent" _hover={{ bg: 'transparent' }}>
+                                <Box width="100%" flex="1" textAlign="start">
+                                Advanced Models
+                                </Box>
+                                <AccordionIcon />
+                            </AccordionButton>
+                            </h2>
+                            <AccordionPanel width="100%" bg="transparent">
+
+                            <LoraSelector cloudMode={cloudMode} options={loras}></LoraSelector>
+
+                            <FormControl className="controlnet-input">
+                                <HStack>
+                                    <FormLabel htmlFor="Controlnet">
+                                        Controlnet
+                                    </FormLabel>
+                                </HStack>
+                                <Select
+                                    id="controlnet"
+                                    name="controlnet"
+                                    onChange={(event) => setControlnet(event.target.value)}
+                                    value={controlnet}
+                                    variant="outline"
+                                >
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="none"
+                                    >
+                                        None
+                                    </option>
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="canny"
+                                    >
+                                        Canny
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="pose"
+                                    >
+                                        Pose
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="depth"
+                                    >
+                                        Depth
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="normal"
+                                    >
+                                        Normal
+                                    </option>
+
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="scribble"
+                                    >
+                                        Scribble
+                                    </option>
+                                </Select>
+                            </FormControl>
+
+                            <FormControl className="vae-ckpt-input">
+                                <FormLabel htmlFor="Vae">
+                                    <HStack>
+                                        <Text>
+                                            VAE
+                                        </Text>
+
+                                        {cloudMode
+                                            ? <Icon as={IoMdCloud} />
+                                            : null}
+                                    </HStack>
                                 </FormLabel>
 
-                                <Spacer />
-
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Seed controls randomness. If you set the same seed each time and use the same settings, then you will get the same results"
-                                    placement="left"
-                                    shouldWrapChildren
+                                <Select
+                                    id="vae"
+                                    name="vae"
+                                    onChange={(event) => setVae(event.target.value)}
+                                    onMouseEnter={getCkpts}
+                                    value={vae}
+                                    variant="outline"
                                 >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value=""
+                                    >
+                                        No vae
+                                    </option>
+                                    {vaes.map((ckpt_option, i) => (<option
+                                        key={i}
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value={ckpt_option}
+                                    >
+                                        {ckpt_option}
+                                    </option>))}
+                                </Select>
+                            </FormControl>
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>
 
-                            <NumberInput
-                                id="seed"
-                                isDisabled={randomSeed}
-                                min={0}
-                                name="seed"
-                                onChange={(v, n) => {
-                                    setSeed(isNaN(n) ? 0 : n);
-                                }}        
-                                value={seed}
-                                variant="outline"
-                            >
-                                <NumberInputField id="seed" />
-                            </NumberInput>
-                        </FormControl>
-
-                        <VStack
-                            align="center"
-                            justify="center"
-                        >
-                            <FormLabel
-                                htmlFor="use_random_seed"
-                                pb="3px"
-                            >
-                                Random
-                            </FormLabel>
-
-                            <Checkbox
-                                id="use_random_seed"
-                                isChecked={randomSeed}
-                                name="use_random_seed"
-                                onChange={() => {
-                                    setRandomSeed((useRandomSeed) => !useRandomSeed);
-                                }}
-                                pb="12px"
-                            />
-                        </VStack>
-                    </HStack>
-
-                    <Button
+                    {/* <Button
                         className="load-settings-button"
                         onClick={uploadSettings}
                         w="250px"
                     >
                         Load Settings
-                    </Button>
+                    </Button> */}
                 </VStack>
             </Box>
         </Flex>

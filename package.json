@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.1.2-beta.17",
+  "version": "1.1.2-beta.18",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",

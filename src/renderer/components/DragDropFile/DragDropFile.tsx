@@ -6,13 +6,14 @@ import {
     Image as ChakraImage,
     IconButton,
     ButtonGroup,
-    Tooltip
+    Tooltip,
+    VStack
 } from '@chakra-ui/react';
 import {
     FiUpload
 } from 'react-icons/fi';
 import {
-    FaTrashAlt, FaClipboardList
+    FaTrashAlt, FaClipboardList, FaQuestionCircle
 } from 'react-icons/fa';
 import { aspectRatioState, heightState, initImageState, widthState } from '../../SettingsManager';
 
@@ -96,16 +97,18 @@ const DragDropFile = () => {
     };
 
     return (
+        <VStack
+        >
         <Box
             bg="#080B16"
-            height="140px"
-            width="140px"
+            height="180px"
+            width="180px"
         >
             {initImage.length > 0
                 ? <Box
                     border="1px"
                     borderStyle="ridge"
-                    height="140px"
+                    height="180px"
                     onClick={onButtonClick}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -117,10 +120,10 @@ const DragDropFile = () => {
                         justifyContent: 'center',
                         textAlign: 'center',
                         borderColor: '#FFFFFF20' }}
-                    width="140px"
+                    width="180px"
                 >
                     <ChakraImage
-                        boxSize="140px"
+                        boxSize="180px"
                         fit="contain"
                         rounded="md"
                         src={initImage}
@@ -129,7 +132,7 @@ const DragDropFile = () => {
                 : <Box
                     border="1px"
                     borderStyle="ridge"
-                    height="140px"
+                    height="180px"
                     onClick={onButtonClick}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -142,9 +145,16 @@ const DragDropFile = () => {
                         justifyContent: 'center',
                         textAlign: 'center',
                         borderColor: '#FFFFFF20' }}
-                    width="140px"
+                    width="180px"
                 >
-                    Click or Drag Image Here
+                        Click or Drag A Starting Image Here
+                    <Tooltip
+                        fontSize="md"
+                        label="Upload an image to use as the starting point for your generation instead of just random noise"
+                        placement="top"
+                        shouldWrapChildren>
+                        <FaQuestionCircle color="#777" />
+                    </Tooltip>
                 </Box> }
 
             <form
@@ -165,30 +175,34 @@ const DragDropFile = () => {
                     htmlFor="input-file-upload"
                     id="label-file-upload"
                 >
+                </label>
+            </form>
 
-                <ButtonGroup pt={2} isAttached variant="outline">
+        </Box>
+            <ButtonGroup width="100%" isAttached variant="outline">
                 <Tooltip label="Clear Init Image">
                     <IconButton
-                    aria-label="Clear Init Image"
-                    border="2px"
-                    icon={<FaClipboardList />}
-                    onClick={() => {
+                        width="50px"
+                        aria-label="Clear Init Image"
+                        border="2px"
+                        icon={<FaClipboardList />}
+                        onClick={() => {
                         navigator.clipboard.read().then((data) => {
-                          for (let i = 0; i < data.length; i++) {
+                        for (let i = 0; i < data.length; i++) {
                             if (data[i].types.includes('image/png') || data[i].types.includes('image/jpeg')) {
-                              data[i].getType('image/png').then((blob) => {
+                            data[i].getType('image/png').then((blob) => {
                                 const reader = new FileReader();
                                 reader.readAsDataURL(blob);
                                 reader.onloadend = () => {
-                                  const base64data = reader.result;
-                                 setInitImage(base64data);
+                                const base64data = reader.result;
+                                setInitImage(base64data);
                                 };
-                              });
-                              break;
+                            });
+                            break;
                             }
-                          }
+                        }
                         });
-                      }}
+                    }}
                     />
                 </Tooltip>
                 <Tooltip label="Upload">
@@ -196,15 +210,17 @@ const DragDropFile = () => {
                     border="2px"
                     icon={<FiUpload />}
                     onClick={onButtonClick}
-                    width="65px"
+                    width="80px"
                     aria-label="upload"
                     />
                 </Tooltip>
                 <Tooltip label="Clear Init Image">
                     <IconButton
+                    width="50px"
                     aria-label="Clear Init Image"
                     border="2px"
                     icon={<FaTrashAlt />}
+                    width="50px"
                     onClick={() => {
                         inputRef.current.value = null;
                         setInitImagePath("");
@@ -216,10 +232,9 @@ const DragDropFile = () => {
                     }}
                     />
                 </Tooltip>
-                </ButtonGroup>
-                </label>
-            </form>
-        </Box>
+            </ButtonGroup>
+        </VStack>
+
     );
 };
 

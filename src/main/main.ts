@@ -241,6 +241,10 @@ function createWindow() {
   setupQueueHandles(ipcMain);
 
   ipcMain.handle('startArtroom', async (event, artroomPath, debug_mode) => {
+    if (server && server.pid){
+      kill(server.pid);
+      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
+    }
     const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
     if (server && server.pid){
       kill(server.pid);

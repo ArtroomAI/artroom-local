@@ -45,102 +45,84 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
     const [negativePrompts, setNegativePrompts] = useRecoilState(negativePromptsState);
 
     return (
-        <HStack width="100%">
-            <VStack w="80%">
-                <FormControl>
-                    <HStack w="80%">
-                        <Tooltip
-                            fontSize="md"
-                            label="Type here what you want the AI to generate in the image"
-                            placement="top"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
+        <HStack alignItems="flex-start" justifyContent="flex-start" width="100%">
+        <VStack alignContent="start" w="100%">
+            <FormControl>
+            <HStack w="100%">
+                <Tooltip
+                fontSize="md"
+                label="Type here what you want the AI to generate in the image"
+                placement="top"
+                shouldWrapChildren
+                >
+                <FaQuestionCircle color="#777" />
+                </Tooltip>
 
-                        <FormLabel htmlFor="text_prompts">
-                            Prompt
-                        </FormLabel>
+                <FormLabel htmlFor="text_prompts">Prompt</FormLabel>
 
-                        <Spacer />
-                    </HStack>
+                <Spacer />
+            </HStack>
 
-                    <Flex
-                        className="text-prompts"
-                        w="80%">
-                        <AutoResizeTextarea
-                            id="text_prompts"
-                            name="text_prompts"
-                            onBlur={() => setFocused(false)}
-                            onChange={(event) => setTextPrompts(event.target.value)}
-                            onFocus={() => setFocused(true)}
-                            value={textPrompts}
-                            variant="outline"
-                        />
-                    </Flex>
-                </FormControl>
+            <Flex className="text-prompts" w="100%">
+                <AutoResizeTextarea
+                id="text_prompts"
+                name="text_prompts"
+                onBlur={() => setFocused(false)}
+                onChange={(event) => setTextPrompts(event.target.value)}
+                onFocus={() => setFocused(true)}
+                value={textPrompts}
+                variant="outline"
+                />
+            </Flex>
+            </FormControl>
 
-                <FormControl>
-                    <HStack w="80%">
-                        <Tooltip
-                            fontSize="md"
-                            label="Type what you DON'T want the AI to generate in the image"
-                            placement="top"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
+            <FormControl>
+            <HStack w="100%">
+                <Tooltip
+                fontSize="md"
+                label="Type what you DON'T want the AI to generate in the image"
+                placement="top"
+                shouldWrapChildren
+                >
+                <FaQuestionCircle color="#777" />
+                </Tooltip>
 
-                        <FormLabel htmlFor="negative_prompts">
-                            Negative Prompt
-                        </FormLabel>
+                <FormLabel htmlFor="negative_prompts">Negative Prompt</FormLabel>
 
-                        <Spacer />
+                <Spacer />
 
-                        <Button
-                            className="defualt-negative-prompt"
-                            h="25px"
-                            onClick={() => setNegativePrompts('lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry')}
-                            w="150px">
-                            Default Negative
-                        </Button>
-                    </HStack>
+                <Button
+                className="defualt-negative-prompt"
+                h="25px"
+                onClick={() =>
+                    setNegativePrompts(
+                    "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry"
+                    )
+                }
+                w="150px"
+                >
+                Default Negative
+                </Button>
+            </HStack>
 
-                    <Spacer />
+            <Spacer />
 
-                    <Flex
-                        className="negative-prompts"
-                        w="80%">
-                        <AutoResizeTextarea
-                            id="negative_prompts"
-                            name="negative_prompts"
-                            onBlur={() => setFocused(false)}
-                            onChange={(event) => setNegativePrompts(event.target.value)}
-                            onFocus={() => setFocused(true)}
-                            value={negativePrompts}
-                            variant="outline"
-                        />
-                    </Flex>
-                </FormControl>
-            </VStack>
-
-            <VStack className="starting-image">
-                <HStack>
-                    <Tooltip
-                        fontSize="md"
-                        label="Upload an image to use as the starting point instead of just random noise"
-                        placement="top"
-                        shouldWrapChildren>
-                        <FaQuestionCircle color="#777" />
-                    </Tooltip>
-
-                    <FormLabel htmlFor="init_image">
-                        Starting Image
-                    </FormLabel>
-                </HStack>
-
-                <Box paddingBottom={30}>
-                    <DragDropFile />
-                </Box>
-            </VStack>
+            <Flex className="negative-prompts" w="100%">
+                <AutoResizeTextarea
+                id="negative_prompts"
+                name="negative_prompts"
+                onBlur={() => setFocused(false)}
+                onChange={(event) => setNegativePrompts(event.target.value)}
+                onFocus={() => setFocused(true)}
+                value={negativePrompts}
+                variant="outline"
+                />
+            </Flex>
+            </FormControl>
+        </VStack>
+        <Box pt="20px" pl="30">
+            <DragDropFile />
+        </Box>
         </HStack>
     );
 }
