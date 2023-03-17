@@ -718,7 +718,12 @@ function SDSettings () {
                                     >
                                         Depth
                                     </option>
-
+                                    <option
+                                        style={{ 'backgroundColor': '#080B16' }}
+                                        value="hed"
+                                    >
+                                        HED
+                                    </option>
                                     <option
                                         style={{ 'backgroundColor': '#080B16' }}
                                         value="normal"
