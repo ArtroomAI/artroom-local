@@ -2,6 +2,12 @@ import threading
 import warnings
 import random
 
+from scipy.spatial import ConvexHull
+
+try:
+    import face_recognition
+except:
+    print("Face recognition not found, install it via: `pip install face_recognition`")
 import matplotlib.pyplot as plt
 import torch
 import gc
@@ -32,7 +38,7 @@ from omegaconf import OmegaConf
 from itertools import islice
 from einops import rearrange, repeat
 from contextlib import nullcontext
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 from safetensors import safe_open
 from safetensors.torch import load_file
 
@@ -98,6 +104,29 @@ def image_grid(imgs, rows, cols, path):
     grid.save(path)
     print("Grid finished")
 
+
+def mask_from_face(img, h, w, face_idx=0):
+    def flatten(l):
+        return [item for sublist in l for item in sublist]
+
+    img = np.array(img.resize((w, h)))
+    face_landmarks_list = face_recognition.face_landmarks(img)  # image - np array
+    if len(face_landmarks_list) > 1:
+        print(f"Warning: multiple faces detected: {len(face_landmarks_list)}")
+
+    try:
+        lmarks = flatten([face_landmarks_list[face_idx][x] for x in face_landmarks_list[face_idx].keys()])
+    except:
+        return None  # no face
+
+    hull = ConvexHull(lmarks)
+    lmarks = [lmarks[x] for x in hull.vertices]
+
+    mask = Image.new("L", (img.shape[1], img.shape[0]), 0)
+    ImageDraw.Draw(mask).polygon(lmarks, outline=1, fill="white")
+    return mask
+
+
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
         self.network = None
@@ -156,7 +185,7 @@ class StableDiffusion:
                     image = apply_hed(image)
                 case _:
                     print("Unknown control mode:", controlnet_mode)
-            
+
             control = torch.from_numpy(image.copy()).float().cuda() / 255.0
             control = torch.stack([control for _ in range(1)], dim=0)
             control = rearrange(control, 'b h w c -> b c h w').clone()
@@ -311,7 +340,6 @@ class StableDiffusion:
 
         return final_state_dict
 
-
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('get_status', {'status': "Loading Model"})
@@ -458,7 +486,7 @@ class StableDiffusion:
         else:
             self.control_model = None
 
-        del sd  
+        del sd
 
         # if self.controlnet_path is not None:
         #     self.hack_everything(clip_skip=2)
@@ -561,15 +589,16 @@ class StableDiffusion:
             self.model.interrupted_state = True
             self.running = False
 
-    def generate(self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
-                 invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
-                 sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=[],
-                 image_save_path="",
-                 speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False, long_save_path=False,
-                 show_intermediates=False,
-                 controlnet=None
-                 ):
+    def generate(
+            self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
+            invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
+            sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
+            image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
+            long_save_path=False, show_intermediates=False, controlnet=None, auto_mask_face=False
+    ):
 
+        if loras is None:
+            loras = []
         self.show_intermediates = show_intermediates
 
         controlnet_ckpts = {
@@ -673,7 +702,7 @@ class StableDiffusion:
                     print(f"Failed to outpaint the alpha layer {e}")
 
             init_image = self.load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
-                                  controlnet_mode=controlnet).to(self.device)
+                                       controlnet_mode=controlnet).to(self.device)
             if controlnet_path is not None:
                 control = init_image.clone()
             else:
@@ -681,7 +710,9 @@ class StableDiffusion:
             _, _, H, W = init_image.shape
             init_image = init_image.to(self.dtype)
         else:
+            image = None
             init_image = None
+            control = None
 
         mode = "default" if not self.v1 or (
                 self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
@@ -746,15 +777,16 @@ class StableDiffusion:
                         print(f"Weighted prompts: {weighted_prompt}")
                         if len(weighted_prompt) > 1:
                             c = torch.zeros_like(uc)
-                            weights_greater_than_zero = sum([wp[1]-1 for wp in weighted_prompt if wp[1] > 1])+1
+                            weights_greater_than_zero = sum([wp[1] - 1 for wp in weighted_prompt if wp[1] > 1]) + 1
                             weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
                             c = self.modelCS.get_learned_conditioning(weighted_prompt_joined).to(self.device)
                             c /= weights_greater_than_zero
                             for i in range(len(weighted_prompt)):
                                 weight = weighted_prompt[i][1]
                                 if weight > 1:
-                                    c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0]).to(self.device)
-                                    c = torch.add(c, c_weighted, alpha=(weight-1)/weights_greater_than_zero)
+                                    c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0]).to(
+                                        self.device)
+                                    c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
                         else:
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
@@ -784,13 +816,18 @@ class StableDiffusion:
                                     ddim_eta,
                                     ddim_steps,
                                 )
-                            if len(mask_b64) > 0:
+                            if auto_mask_face and image is not None:
+                                mask_image = mask_from_face(image.convert('RGB'), H, W)
+                            elif len(mask_b64) > 0:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
                                     mask_image = support.b64_to_image(mask_b64).convert('L')
                                 elif os.path.exists(mask_b64):
                                     mask_image = Image.open(mask_b64).convert("L")
+                            else:
+                                mask_image = None
 
+                            if mask_image is not None:
                                 if invert:
                                     mask_image = ImageOps.invert(mask_image)
 
@@ -816,7 +853,7 @@ class StableDiffusion:
                             x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                             x0 = init_latent_1stage if mode == "pix2pix" else x0
 
-                            if controlnet is not None and controlnet.lower() != "none":
+                            if controlnet is not None and controlnet.lower() != "none" and control is not None:
                                 # control = torch.load("control.torch")
                                 c = {"c_concat": [control], "c_crossattn": [c]}
                                 uc = {"c_concat": [control], "c_crossattn": [uc]}
@@ -824,21 +861,24 @@ class StableDiffusion:
                                 self.control_model.to(self.device)
                                 ddim_sampler = DDIMSampler(self.control_model)
                                 x0 = ddim_sampler.sample(
-                                    steps, 
-                                    batch_size, 
-                                    tuple(shape[1:]), 
-                                    c, 
+                                    steps,
+                                    batch_size,
+                                    tuple(shape[1:]),
+                                    c,
                                     verbose=False,
                                     eta=ddim_eta,
                                     unconditional_guidance_scale=cfg_scale,
                                     callback=self.callback_fn,
                                     unconditional_conditioning=uc)
-                                self.control_model.cpu()
+                                try:
+                                    self.control_model.cpu()
+                                except:  # means it's still under usage by another thread
+                                    pass
                             else:
                                 x0 = self.model.sample(
                                     S=steps,
                                     conditioning=c,
-                                    x0=x0 if controlnet is None else None,
+                                    x0=x0,
                                     S_ddim_steps=ddim_steps,
                                     unconditional_guidance_scale=cfg_scale,
                                     txt_scale=txt_cfg_scale,
@@ -884,7 +924,7 @@ class StableDiffusion:
                                     controlnet_mode=None).to(self.device).to(self.dtype)  # we only encode cnet 1 time
                             elif ij == highres_fix_steps - 1:
                                 init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0),
-                                                      controlnet_mode=None).to(self.device).to(self.dtype)
+                                                           controlnet_mode=None).to(self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size
                                 out_image = out_image.crop((padding, padding, w - padding, h - padding))
