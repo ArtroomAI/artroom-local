@@ -215,7 +215,7 @@ function SDSettings () {
                                             color="white"
                                             isOpen={!(aspectRatio === 'Init Image')}
                                             label={`${width}`}
-                                            placement="bottom"
+                                            placement="left"
                                         >
                                             <SliderThumb />
                                         </Tooltip>
@@ -250,7 +250,7 @@ function SDSettings () {
                                             color="white"
                                             isOpen={!(aspectRatio === 'Init Image')}
                                             label={`${height}`}
-                                            placement="bottom"
+                                            placement="left"
                                         >
                                             <SliderThumb />
                                         </Tooltip>
@@ -295,11 +295,11 @@ function SDSettings () {
                                         None
                                     </option>
 
-                                    {/* {initImage.length && (
+                                    {initImage.length && (
                                         <option style={{ backgroundColor: "#080B16" }} value="Init Image">
                                         Init Image
                                         </option>
-                                    )} */}
+                                    )}
 
                                     <option style={{ backgroundColor: "#080B16" }} value="1:1">
                                         1:1

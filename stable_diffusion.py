@@ -7,7 +7,8 @@ from scipy.spatial import ConvexHull
 try:
     import face_recognition
 except:
-    print("Face recognition not found, install it via: `pip install face_recognition`")
+    pass
+    # print("Face recognition not found, install it via: `pip install face_recognition`")
 import matplotlib.pyplot as plt
 import torch
 import gc
@@ -473,7 +474,7 @@ class StableDiffusion:
             self.model.half()
             self.modelCS.half()
             self.modelFS.half()
-            torch.set_default_tensor_type(torch.HalfTensor)
+            # torch.set_default_tensor_type(torch.HalfTensor)
         else:
             self.model.to(torch.float32)
             self.modelCS.to(torch.float32)
@@ -627,6 +628,7 @@ class StableDiffusion:
         controlnet_path = controlnet_ckpts[controlnet]
         if controlnet_path is None:
             deinit_cnet_stuff()
+            controlnet = None
         else:
             init_cnet_stuff(controlnet)
 
@@ -899,7 +901,7 @@ class StableDiffusion:
                             self.model.to(torch.float32)
                             self.modelCS.to(torch.float32)
                             self.modelFS.to(torch.float32)
-                            torch.set_default_tensor_type(torch.FloatTensor)
+                            # torch.set_default_tensor_type(torch.FloatTensor)
 
                             x_samples_ddim = self.modelFS.decode_first_stage(
                                 x0[0].to(torch.float32).unsqueeze(0))
@@ -916,7 +918,7 @@ class StableDiffusion:
                                 self.model.half()
                                 self.modelCS.half()
                                 self.modelFS.half()
-                                torch.set_default_tensor_type(torch.HalfTensor)
+                                # torch.set_default_tensor_type(torch.HalfTensor)
 
                             if ij < highres_fix_steps - 1:
                                 init_image = self.load_img(
