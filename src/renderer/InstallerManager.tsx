@@ -18,43 +18,53 @@ import {
     Checkbox,
     HStack,
 } from '@chakra-ui/react';
-import { artroomPathState, debugModeState, modelsDirState } from '../../SettingsManager';
+import { artroomPathState, debugModeState, modelsDirState } from './SettingsManager';
 import path from 'path';
 
-function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
+export const InstallerManager = () => {
+    const toast = useToast({});
 
+    const debugMode = useRecoilValue(debugModeState);
+
+    const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
     const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
     const [modelsDir, setModelsDir] = useRecoilState(modelsDirState)
     const [sameModelDirAndArtroomPath, setSameModelDirAndArtroomPath] = useState(false);
     const [gpuType, setGpuType] = useState('NVIDIA');
     const [downloadMessage, setDownloadMessage] = useState('');
     const [downloading, setDownloading] = useState(false);
-    const debugMode = useRecoilValue(debugModeState);
 
-    const toast = useToast({});
+    useEffect(() => {
+        window.api.runPyTests(artroomPath).then((result) => {
+            if (result === 'success\r\n') {
+                console.log(result);
+                window.api.startArtroom(artroomPath, debugMode);
+                setShowArtroomInstaller(false);
+                toast({
+                    title: 'All Artroom paths & dependencies successfully found!',
+                    status: 'success',
+                    position: 'top',
+                    duration: 2000,
+                    isClosable: true
+                });
+            } else if (result.length > 0) {
+                setShowArtroomInstaller(true)
+            }
+        });
+    }, [artroomPath]);
 
     useEffect(() => {
         window.api.fixButtonProgress((_, str) => {
             setDownloadMessage(str);
-            if (str.includes("Finished")){
+            if (str.includes("Finished")) {
                 setDownloading(false);
                 setShowArtroomInstaller(false);
                 window.api.startArtroom(artroomPath, debugMode);
             }
         });
     }, []);
-    
-    useEffect(()=>{
-        //Let users change their path if they just move the file
-        window.api.runPyTests(artroomPath).then((result) => {
-            console.log(result);
-            if (result === 'success\r\n') {
-                setShowArtroomInstaller(false)
-            }
-        });
-    },[artroomPath])
 
-    function handleRunClick() {
+    const handleRunClick = () => {
         toast({
             title: 'Reinstalling Artroom Backend',
             status: 'success',
@@ -67,14 +77,14 @@ function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
         });
         setDownloading(true);
         try {
-            if (sameModelDirAndArtroomPath){
+            if (sameModelDirAndArtroomPath) {
                 setModelsDir(path.join(artroomPath, 'artroom', 'model_weights'))
             }
             window.api.pythonInstall(artroomPath, gpuType);
-          } catch (error) {
+        } catch (error) {
             console.error(error);
             setDownloading(false);
-          }
+        }
     }
 
     function handleSelectArtroomClick() {
@@ -144,5 +154,3 @@ function ArtroomInstaller ({showArtroomInstaller, setShowArtroomInstaller}) {
         </Modal>
     )
 }
-
-export default ArtroomInstaller;

@@ -6,6 +6,10 @@ a {
     -webkit-user-drag: none;
 }
 
+#chakra-toast-manager-top {
+    margin-top: 30px !important;
+}
+
 #menu-bar {
     z-index: 9500;
     top: 0;

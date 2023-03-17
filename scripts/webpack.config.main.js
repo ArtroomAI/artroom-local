@@ -2,7 +2,7 @@ const path = require('path');
 const Dotenv = require('dotenv-webpack');
 
 const config = {
-    mode: 'development',
+    mode: process.env.NODE_ENV,
     target: 'electron-main',
     devtool: 'source-map',
     entry: './src/main/main.ts',

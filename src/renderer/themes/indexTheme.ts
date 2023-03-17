@@ -4,20 +4,7 @@ import inputTheme from './components/inputTheme';
 import textareaTheme from './components/textareaTheme';
 // Import selectTheme from "./components/selectTheme";
 
-const toast = {
-    style: {
-      borderRadius: "md",
-      background: "rgba(0,0,0,0.8)",
-      color: "white",
-    },
-    position: "top",
-    duration: 5000,
-    isClosable: true,
-  };
-
 const indexTheme = {
-    initialColorMode: 'dark',
-    useSystemColorMode: false,
     components: {
         Button: buttonTheme,
         Checkbox: checkboxTheme,
@@ -44,9 +31,8 @@ const indexTheme = {
         }
     },
     config: {
-        toast: {
-          zIndex: 9999, // set the zIndex to a value higher than your portal
-        },
-      },
+        initialColorMode: 'dark',
+        useSystemColorMode: false
+    }
 };
 export default indexTheme;

@@ -43,12 +43,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
             if (fs.existsSync(PATH_zip)) {
               fs.unlinkSync(PATH_zip);
             }
-            if (!fs.existsSync(path.join(artroomPath, "artroom"))) {
-              fs.mkdirSync(path.join(artroomPath, "artroom"));
-            }
-            if (!fs.existsSync(path.join(artroomPath, "artroom", "settings"))) {
-              fs.mkdirSync(path.join(artroomPath, "artroom", "settings"));
-            }
+            fs.mkdirSync(path.join(artroomPath, "artroom", "settings"), { recursive: true });
 
             const len = parseInt(response.headers['content-length'], 10);
             let cur = 0;
@@ -87,7 +82,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
                   zipFile.on("entry", (entry) => {
                     if (/\/$/.test(entry.fileName)) {
                       // Directory entry
-                      fs.mkdirSync(`${artroomPath}/artroom/${entry.fileName}`);
+                      fs.mkdirSync(`${artroomPath}/artroom/${entry.fileName}`, { recursive: true });
                       zipFile.readEntry();
                     } else {
                       // File entry

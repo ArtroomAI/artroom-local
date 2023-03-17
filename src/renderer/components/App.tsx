@@ -7,7 +7,6 @@ import {
     useToast,
     Grid,
     GridItem,
-    useColorMode,
     VStack,
     HStack,
     Switch,
@@ -38,19 +37,15 @@ import { UpdateProgressBar } from './UpdateProgressBar';
 import ImageEditor from './ImageEditor';
 import { QueueManager } from '../QueueManager';
 
-import { artroomPathState, batchNameState, debugModeState, imageSavePathState } from '../SettingsManager';
-import ArtroomInstaller from './Modals/ArtroomInstaller';
+import { batchNameState, imageSavePathState } from '../SettingsManager';
 
 export default function App () {
     // Connect to the server 
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
-    const { colorMode, toggleColorMode } = useColorMode();
     const [loggedIn, setLoggedIn] = useState(false);
 
     const image_save_path = useRecoilValue(imageSavePathState);
     const batch_name = useRecoilValue(batchNameState);
-
-    const debugMode = useRecoilValue(debugModeState);
 
     const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
@@ -60,9 +55,6 @@ export default function App () {
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
     const setMainImage = useSetRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
-    const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState)
-
-    const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
 
     const socket = useContext(SocketContext);
 
@@ -189,29 +181,6 @@ export default function App () {
         cloudRunning ? 5000 : null
     );
 
-    useEffect(
-        () => {
-            window.api.runPyTests(artroomPath).then((result) => {
-                if (result === 'success\r\n') {
-                    window.api.startArtroom(artroomPath, debugMode)
-                    toast({
-                        title: 'All Artroom paths & dependencies successfully found!',
-                        status: 'success',
-                        position: 'top',
-                        duration: 2000,
-                        isClosable: true
-                    });
-                } else if (result.length > 0) {
-                    setShowArtroomInstaller(true)
-                }
-            });
-
-            if (colorMode === 'light') {
-                toggleColorMode();
-            }
-        },[]
-    );
-
     return (
         <>
             <Grid
@@ -324,7 +293,6 @@ export default function App () {
                     </Flex>
                 </GridItem>
             </Grid>
-            <ArtroomInstaller showArtroomInstaller={showArtroomInstaller} setShowArtroomInstaller={setShowArtroomInstaller}></ArtroomInstaller>
             <UpdateProgressBar />
             <QueueManager />
         </>

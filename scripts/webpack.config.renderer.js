@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 
 const config = {
-    mode: 'development',
+    mode: process.env.NODE_ENV,
     entry: './src/renderer/renderer.ts',
     target: 'electron-renderer',
     devtool: 'source-map',

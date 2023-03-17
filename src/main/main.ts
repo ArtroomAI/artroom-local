@@ -241,10 +241,6 @@ function createWindow() {
   setupQueueHandles(ipcMain);
 
   ipcMain.handle('startArtroom', async (event, artroomPath, debug_mode) => {
-    if (server && server.pid){
-      kill(server.pid);
-      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-    }
     const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
     if (server && server.pid){
       kill(server.pid);
@@ -311,7 +307,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: true,
-      contextIsolation: process.env.NODE_ENV === 'production',
+      contextIsolation: false,
       webSecurity: false,
       devTools: isDev
     }
@@ -331,8 +327,6 @@ function createWindow() {
       ? 'http://localhost:3000'
       : `file://${path.join(__dirname, '../build/index.html')}`
   )
-
-  
 
   //TODO: In frontend, map out a button that lets users do an auto update and update the "don't remind me" or "check for auto update", check version number and press "check for updates or update" in the app itself
   // When an update is available, show a message to the user

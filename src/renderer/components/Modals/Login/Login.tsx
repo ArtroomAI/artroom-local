@@ -23,11 +23,11 @@ import axios from 'axios';
 import { useRecoilState } from 'recoil';
 import * as atom from '../../../atoms/atoms'
 import ProtectedReqManager from '../../../helpers/ProtectedReqManager';
+import qs from 'qs';
 
 const Login = ({ setLoggedIn, setState }: { setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>, setState: React.Dispatch<React.SetStateAction<string>> }) => {    
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const toast = useToast({});
-    const qs = require('qs');
 
     const [email, setEmail] = useRecoilState(atom.emailState);
     const [username, setUsername] = useRecoilState(atom.usernameState);

@@ -1,5 +1,5 @@
-import { contextBridge, ipcRenderer } from "electron";
-import { ProgressInfo } from "electron-updater";
+import { ipcRenderer } from "electron";
+import type { ProgressInfo } from "electron-updater";
 
 const api = {
     startArtroom: async (artroomPath: string, isDebug: boolean) => {return await ipcRenderer.invoke('startArtroom',artroomPath, isDebug);},
@@ -32,13 +32,7 @@ const api = {
     readQueue: async (artroom_path: string): Promise<string | undefined> => { return await ipcRenderer.invoke('readQueue', artroom_path) }
 }
 
-if (process.env.NODE_ENV !== 'production') {
-    window.api = api;
-} else {
-    contextBridge.exposeInMainWorld(
-        'api', api
-    );
-}
+window.api = api;
 
 declare global {
     interface Window {
