@@ -30,7 +30,8 @@ more-itertools>=8.0.0
 jsonmerge
 pyyaml
 clean-fid
-scikit-image 
+scikit-image
+scipy
 torchdiffeq
 realesrgan
 gfpgan
@@ -41,3 +42,4 @@ regex
 resize-right
 open-clip-torch
 timm
+face_recognition
