@@ -123,6 +123,7 @@ def mask_from_face(img, w, h, face_idx=0):
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
+        self.control_model = None
         self.network = None
         self.config = None
         self.dtype = None
@@ -260,7 +261,9 @@ class StableDiffusion:
                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
-    def load_ckpt(self, ckpt, speed, vae, loras=[], controlnet_path=None):
+    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None):
+        if loras is None:
+            loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
         if self.ckpt != ckpt or self.speed != speed or self.vae != vae or self.controlnet_path != controlnet_path:
             try:
@@ -356,129 +359,135 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
 
-        print("Setting up config...")
-        parameterization = "eps"
-        if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
-            print("Detected v2 model")
-            self.config = os.path.splitext(ckpt)[0] + ".yaml"
-            if os.path.exists(self.config):
-                # so, we can't select their config because our is modified to our implementation
-                # still, there are only two types of configs, the ones with parameterization in them and without
-                if "parameterization" in "".join(open(self.config, "r").readlines()):
-                    parameterization = "v"
-                    self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference-v.yaml'
+        if controlnet_path is None:
+            print("Setting up config...")
+            parameterization = "eps"
+            if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
+                print("Detected v2 model")
+                self.config = os.path.splitext(ckpt)[0] + ".yaml"
+                if os.path.exists(self.config):
+                    # so, we can't select their config because our is modified to our implementation
+                    # still, there are only two types of configs, the ones with parameterization in them and without
+                    if "parameterization" in "".join(open(self.config, "r").readlines()):
+                        parameterization = "v"
+                        self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference-v.yaml'
+                    else:
+                        self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
                 else:
                     self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
+                print(f"v2 conf: {self.config}")
+                config = OmegaConf.load(f"{self.config}")
+                self.model = instantiate_from_config(config.model)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.parameterization = parameterization
+                self.model.cdevice = self.device
+                self.model.to(self.device)
+                self.modelCS = self.model  # just link without a copy
+                self.modelFS = self.model  # just link without a copy
+                self.v1 = False
             else:
-                self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
-            print(f"v2 conf: {self.config}")
-            config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.model)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.parameterization = parameterization
-            self.model.cdevice = self.device
-            self.model.to(self.device)
-            self.modelCS = self.model  # just link without a copy
-            self.modelFS = self.model  # just link without a copy
-            self.v1 = False
-        else:
-            self.v1 = True
-            if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
-                print("Detected runwayml inpainting model")
-                if speed == 'Low':
-                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
-                elif speed == 'Medium':
-                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
-                elif speed == 'High':
-                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
-                elif speed == 'Max':
-                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_xformer.yaml'
-                else:
-                    print(f"Dafuq is {speed}")
-                    self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
-            elif sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 8:
-                print("Detected pix2pix model")
-                if speed == 'Low':
-                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
-                elif speed == 'Medium':
-                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
-                elif speed == 'High':
-                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
-                elif speed == 'Max':
-                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
-                else:
-                    print(f"Dafuq is {speed}")
-                    self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
-            else:
-                print("Loading ordinary model")
-                if 60 <= self.cc <= 86 and self.device.type == "cuda":
-                    print("Congrats, your gpu supports xformers, autoselecting it")
-                    self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
-                else:
-                    print("Using speed mode from artroom settings")
+                self.v1 = True
+                if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
+                    print("Detected runwayml inpainting model")
                     if speed == 'Low':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
                     elif speed == 'Medium':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
                     elif speed == 'High':
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
                     elif speed == 'Max':
+                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_xformer.yaml'
+                    else:
+                        print(f"Dafuq is {speed}")
+                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
+                elif sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 8:
+                    print("Detected pix2pix model")
+                    if speed == 'Low':
+                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                    elif speed == 'Medium':
+                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                    elif speed == 'High':
+                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                    elif speed == 'Max':
+                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
+                    else:
+                        print(f"Dafuq is {speed}")
+                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                else:
+                    print("Loading ordinary model")
+                    if 60 <= self.cc <= 86 and self.device.type == "cuda":
+                        print("Congrats, your gpu supports xformers, autoselecting it")
                         self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                     else:
-                        print(f"Not recognized speed: {speed}")
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
-            li = []
-            lo = []
-            for key, value in sd.items():
-                sp = key.split('.')
-                if (sp[0]) == 'model':
-                    if 'input_blocks' in sp:
-                        li.append(key)
-                    elif 'middle_block' in sp:
-                        li.append(key)
-                    elif 'time_embed' in sp:
-                        li.append(key)
-                    else:
-                        lo.append(key)
-            for key in li:
-                sd['model1.' + key[6:]] = sd.pop(key)
-            for key in lo:
-                sd['model2.' + key[6:]] = sd.pop(key)
-            config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.modelUNet)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.cdevice = self.device
-            self.model.unet_bs = 1  # unet_bs=1
+                        print("Using speed mode from artroom settings")
+                        if speed == 'Low':
+                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                        elif speed == 'Medium':
+                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                        elif speed == 'High':
+                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                        elif speed == 'Max':
+                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
+                        else:
+                            print(f"Not recognized speed: {speed}")
+                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                li = []
+                lo = []
+                for key, value in sd.items():
+                    sp = key.split('.')
+                    if (sp[0]) == 'model':
+                        if 'input_blocks' in sp:
+                            li.append(key)
+                        elif 'middle_block' in sp:
+                            li.append(key)
+                        elif 'time_embed' in sp:
+                            li.append(key)
+                        else:
+                            lo.append(key)
+                for key in li:
+                    sd['model1.' + key[6:]] = sd.pop(key)
+                for key in lo:
+                    sd['model2.' + key[6:]] = sd.pop(key)
+                config = OmegaConf.load(f"{self.config}")
+                self.model = instantiate_from_config(config.modelUNet)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.cdevice = self.device
+                self.model.unet_bs = 1  # unet_bs=1
 
-            self.model.turbo = (speed != 'Low')
+                self.model.turbo = (speed != 'Low')
 
-            self.modelCS = instantiate_from_config(config.modelCondStage)
-            _, _ = self.modelCS.load_state_dict(sd, strict=False)
-            self.modelCS.eval()
-            self.modelCS.cond_stage_model.device = self.device
+                self.modelCS = instantiate_from_config(config.modelCondStage)
+                _, _ = self.modelCS.load_state_dict(sd, strict=False)
+                self.modelCS.eval()
+                self.modelCS.cond_stage_model.device = self.device
 
-            self.modelFS = instantiate_from_config(config.modelFirstStage)
-            _, _ = self.modelFS.load_state_dict(sd, strict=False)
-            self.modelFS.eval()
+                self.modelFS = instantiate_from_config(config.modelFirstStage)
+                _, _ = self.modelFS.load_state_dict(sd, strict=False)
+                self.modelFS.eval()
 
-        if self.can_use_half:
-            self.model.half()
-            self.modelCS.half()
-            self.modelFS.half()
-            # torch.set_default_tensor_type(torch.HalfTensor)
+            if self.can_use_half:
+                self.model.half()
+                self.modelCS.half()
+                self.modelFS.half()
+                # torch.set_default_tensor_type(torch.HalfTensor)
+            else:
+                self.model.to(torch.float32)
+                self.modelCS.to(torch.float32)
+                self.modelFS.to(torch.float32)
+            self.control_model = None
         else:
-            self.model.to(torch.float32)
-            self.modelCS.to(torch.float32)
-            self.modelFS.to(torch.float32)
-
-        if controlnet_path is not None:
             self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
             sd = self.inject_controlnet(ckpt, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
             self.control_model.load_state_dict(sd)
-        else:
-            self.control_model = None
+            self.model = self.control_model  # soft links
+            self.modelCS = self.control_model  # soft links
+            self.modelFS = self.control_model  # soft links
+            if self.can_use_half:
+                self.control_model.half()
+            else:
+                self.control_model.to(torch.float32)
 
         del sd
 
@@ -709,10 +718,13 @@ class StableDiffusion:
             init_image = None
             control = None
 
-        mode = "default" if not self.v1 or (
-                self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
-            "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
-        )
+        if self.control_model is None:
+            mode = "default" if not self.v1 or (
+                    self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
+                "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
+            )
+        else:
+            mode = "default"
 
         if mode == "pix2pix":
             sampler = "ddim"
@@ -737,7 +749,7 @@ class StableDiffusion:
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
-            if self.v1:
+            if self.v1 or self.control_model is not None:
                 self.modelFS.to(self.device)
 
         self.total_num = n_iter * highres_fix_steps
@@ -745,7 +757,7 @@ class StableDiffusion:
         precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
-                if not self.running:
+                if not self.running and self.control_model is None:
                     self.clean_up()
                     return
 
@@ -762,8 +774,7 @@ class StableDiffusion:
                             self.modelCS.to(self.device)
                         uc = None
                         if cfg_scale != 1.0:
-                            uc = self.modelCS.get_learned_conditioning(
-                                negative_prompts_data)
+                            uc = self.modelCS.get_learned_conditioning(negative_prompts_data)
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
                         weighted_prompt = weights_handling(prompts)
@@ -771,7 +782,6 @@ class StableDiffusion:
                             weighted_prompt = [prompts]
                         print(f"Weighted prompts: {weighted_prompt}")
                         if len(weighted_prompt) > 1:
-                            c = torch.zeros_like(uc)
                             weights_greater_than_zero = sum([wp[1] - 1 for wp in weighted_prompt if wp[1] > 1]) + 1
                             weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
                             c = self.modelCS.get_learned_conditioning(weighted_prompt_joined).to(self.device)
@@ -795,7 +805,7 @@ class StableDiffusion:
                             if ij > 1:
                                 strength = 0.1
                                 ddim_steps = int(steps / strength)
-                            if init_image is not None:
+                            if init_image is not None and self.control_model is None:
                                 init_image = init_image.to(self.device)
                                 init_image = repeat(
                                     init_image, '1 ... -> b ...', b=batch_size)
@@ -853,7 +863,6 @@ class StableDiffusion:
                                 c = {"c_concat": [control], "c_crossattn": [c]}
                                 uc = {"c_concat": [control], "c_crossattn": [uc]}
                                 self.control_model.control_scales = [1.0] * 13
-                                self.control_model.to(self.device)
                                 ddim_sampler = DDIMSampler(self.control_model)
                                 x0 = ddim_sampler.sample(
                                     steps,
@@ -865,10 +874,6 @@ class StableDiffusion:
                                     unconditional_guidance_scale=cfg_scale,
                                     callback=self.callback_fn,
                                     unconditional_conditioning=uc)
-                                try:
-                                    self.control_model.cpu()
-                                except:  # means it's still under usage by another thread
-                                    pass
                             else:
                                 x0 = self.model.sample(
                                     S=steps,
@@ -891,8 +896,6 @@ class StableDiffusion:
                             if self.v1:
                                 self.modelFS.to(self.device)
 
-                            self.model.to(torch.float32)
-                            self.modelCS.to(torch.float32)
                             self.modelFS.to(torch.float32)
                             # torch.set_default_tensor_type(torch.FloatTensor)
 
@@ -908,8 +911,6 @@ class StableDiffusion:
                                 x_sample.astype(np.uint8))
 
                             if self.can_use_half:
-                                self.model.half()
-                                self.modelCS.half()
                                 self.modelFS.half()
                                 # torch.set_default_tensor_type(torch.HalfTensor)
 
