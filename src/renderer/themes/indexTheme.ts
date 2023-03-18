@@ -27,13 +27,19 @@ const indexTheme: DeepPartial<Theme> = {
         },
         Checkbox: {
             // The styles all button have in common
-            baseStyle: {
-                borderRadius: 'base' // <-- border radius is same for all variants and sizes
-            },
+            baseStyle: () => ({
+                borderRadius: 'base', // <-- border radius is same for all variants and sizes
+                control: {
+                    _checked: {
+                        bg: '#4f8ff8',
+                        color: '#fff',
+                        borderColor: '#4f8ff8'
+                    }
+                }
+            }),
             defaultProps: {
                 size: 'md',
-                variant: 'solid',
-                colorScheme: '#FFD717'
+                variant: 'solid'
             }
         },
         Select: {
@@ -68,6 +74,9 @@ const indexTheme: DeepPartial<Theme> = {
     config: {
         initialColorMode: 'dark',
         useSystemColorMode: false
+    },
+    zIndices: {
+        tooltip: 1000
     }
 };
 export default indexTheme;
