@@ -42,3 +42,4 @@ regex
 resize-right
 open-clip-torch
 timm
+face_alignment

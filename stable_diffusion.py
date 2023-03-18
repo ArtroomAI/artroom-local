@@ -2,14 +2,11 @@ import threading
 import warnings
 import random
 
-from scipy.spatial import ConvexHull
-
 try:
-    import face_recognition
+    import face_alignment
 except:
-    pass
-    # print("Face recognition not found, install it via: `pip install face_recognition`")
-import matplotlib.pyplot as plt
+    print("Install face_alignment via `pip install face_alignment`")
+from scipy.spatial import ConvexHull
 import torch
 import gc
 import re
@@ -106,24 +103,20 @@ def image_grid(imgs, rows, cols, path):
     print("Grid finished")
 
 
-def mask_from_face(img, h, w, face_idx=0):
-    def flatten(l):
-        return [item for sublist in l for item in sublist]
-
+def mask_from_face(img, w, h, face_idx=0):
+    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device="cpu")
     img = np.array(img.resize((w, h)))
-    face_landmarks_list = face_recognition.face_landmarks(img)  # image - np array
-    if len(face_landmarks_list) > 1:
-        print(f"Warning: multiple faces detected: {len(face_landmarks_list)}")
 
-    try:
-        lmarks = flatten([face_landmarks_list[face_idx][x] for x in face_landmarks_list[face_idx].keys()])
-    except:
-        return None  # no face
+    lmarks = fa.get_landmarks(img)
+    if len(lmarks) > 1:
+        print(f"Multiple faces found! Selecing: {face_idx}")
+    lmarks = lmarks[face_idx]
+    lmarks = [(int(x[0]), int(x[1])) for x in lmarks]
 
     hull = ConvexHull(lmarks)
     lmarks = [lmarks[x] for x in hull.vertices]
 
-    mask = Image.new("L", (img.shape[1], img.shape[0]), 0)
+    mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).polygon(lmarks, outline=1, fill="white")
     return mask
 
@@ -819,7 +812,7 @@ class StableDiffusion:
                                     ddim_steps,
                                 )
                             if auto_mask_face and image is not None:
-                                mask_image = mask_from_face(image.convert('RGB'), H, W)
+                                mask_image = mask_from_face(image.convert('RGB'), W, H)
                             elif len(mask_b64) > 0:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")
