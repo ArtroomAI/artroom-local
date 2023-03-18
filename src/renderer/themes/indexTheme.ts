@@ -1,15 +1,50 @@
-import buttonTheme from './components/buttonTheme';
-import checkboxTheme from './components/checkboxTheme';
-import inputTheme from './components/inputTheme';
-import textareaTheme from './components/textareaTheme';
-// Import selectTheme from "./components/selectTheme";
+import { DeepPartial, Theme } from '@chakra-ui/react';
 
-const indexTheme = {
+const indexTheme: DeepPartial<Theme> = {
     components: {
-        Button: buttonTheme,
-        Checkbox: checkboxTheme,
-        NumberInputField: inputTheme,
-        Textarea: textareaTheme
+        Button: {
+            // The styles all button have in common
+            baseStyle: {
+                borderRadius: '20'
+            },
+            // Two variants: outline and solid
+            variants: {
+                outline: {
+                    borderColor: '#4f8ff8',
+                    color: 'white'
+                },
+                solid: {
+                    bg: '#4f8ff8',
+                    color: 'white'
+                }
+            },
+            // The default size and variant values
+            defaultProps: {
+                size: 'md',
+                variant: 'solid',
+                colorScheme: 'blue'
+            }
+        },
+        Checkbox: {
+            // The styles all button have in common
+            baseStyle: {
+                borderRadius: 'base' // <-- border radius is same for all variants and sizes
+            },
+            defaultProps: {
+                size: 'md',
+                variant: 'solid',
+                colorScheme: '#FFD717'
+            }
+        },
+        Select: {
+            "baseStyle": {
+                field: {
+                    "> option, > optgroup": {
+                        "bg": "#080B16"
+                    }
+                }
+            }
+        }
     },
     styles: {
         global: {

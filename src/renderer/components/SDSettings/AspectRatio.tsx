@@ -135,73 +135,73 @@ export const AspectRatio = () => {
                     <VStack>
                         <Icon as={FiLink}/>
                         <Select
-                        id="aspect_ratio_selection"
-                        name="aspect_ratio_selection"
-                        onChange={(event) => {
-                            setAspectRatioSelection(event.target.value);
-                            if (event.target.value === "Init Image" && !initImage) {
-                                //Switch to aspect ratio to none and print warning that no init image is set
-                                setAspectRatioSelection("None");
-                                setAspectRatio("None");
-                                toast({
-                                    title: "Invalid Aspect Ratio Selection",
-                                    description: "Must upload Starting Image first to use its resolution",
-                                    status: "error",
-                                    position: "top",
-                                    duration: 3000,
-                                    isClosable: true,
-                                    containerStyle: {
-                                    pointerEvents: "none",
-                                    },
-                                });
-                            } else if (event.target.value !== "Custom") {
-                                setAspectRatio(event.target.value);
-                            }
-                        }}
-                        value={aspectRatioSelection}
-                        variant="outline"
+                            id="aspect_ratio_selection"
+                            name="aspect_ratio_selection"
+                            onChange={(event) => {
+                                setAspectRatioSelection(event.target.value);
+                                if (event.target.value === "Init Image" && !initImage) {
+                                    //Switch to aspect ratio to none and print warning that no init image is set
+                                    setAspectRatioSelection("None");
+                                    setAspectRatio("None");
+                                    toast({
+                                        title: "Invalid Aspect Ratio Selection",
+                                        description: "Must upload Starting Image first to use its resolution",
+                                        status: "error",
+                                        position: "top",
+                                        duration: 3000,
+                                        isClosable: true,
+                                        containerStyle: {
+                                        pointerEvents: "none",
+                                        },
+                                    });
+                                } else if (event.target.value !== "Custom") {
+                                    setAspectRatio(event.target.value);
+                                }
+                            }}
+                            value={aspectRatioSelection}
+                            variant="outline"
                         >
-                        <option style={{ backgroundColor: "#080B16" }} value="None">
-                            None
-                        </option>
-
-                        {initImage.length && (
-                            <option style={{ backgroundColor: "#080B16" }} value="Init Image">
-                            Init Image
+                            <option value="None">
+                                None
                             </option>
-                        )}
 
-                        <option style={{ backgroundColor: "#080B16" }} value="1:1">
-                            1:1
-                        </option>
+                            {initImage.length && (
+                                <option value="Init Image">
+                                    Init Image
+                                </option>
+                            )}
 
-                        <option style={{ backgroundColor: "#080B16" }} value="1:2">
-                            1:2
-                        </option>
+                            <option value="1:1">
+                                1:1
+                            </option>
 
-                        <option style={{ backgroundColor: "#080B16" }} value="2:1">
-                            2:1
-                        </option>
+                            <option value="1:2">
+                                1:2
+                            </option>
 
-                        <option style={{ backgroundColor: "#080B16" }} value="4:3">
-                            4:3
-                        </option>
+                            <option value="2:1">
+                                2:1
+                            </option>
 
-                        <option style={{ backgroundColor: "#080B16" }} value="3:4">
-                            3:4
-                        </option>
+                            <option value="4:3">
+                                4:3
+                            </option>
 
-                        <option style={{ backgroundColor: "#080B16" }} value="16:9">
-                            16:9
-                        </option>
+                            <option value="3:4">
+                                3:4
+                            </option>
 
-                        <option style={{ backgroundColor: "#080B16" }} value="9:16">
-                            9:16
-                        </option>
+                            <option value="16:9">
+                                16:9
+                            </option>
 
-                        <option style={{ backgroundColor: "#080B16" }} value="Custom">
-                            Custom
-                        </option>
+                            <option value="9:16">
+                                9:16
+                            </option>
+
+                            <option value="Custom">
+                                Custom
+                            </option>
                         </Select>
 
                         {aspectRatioSelection === "Custom" ? (

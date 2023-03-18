@@ -127,17 +127,13 @@ function SDSettings () {
                             variant="outline"
                         >
                             {ckpts.length > 0
-                                ? <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value=""
-                                >
+                                ? <option value="">
                                     Choose Your Model Weights
                                 </option>
                                 : <></>}
 
                             {ckpts.map((ckpt_option, i) => (<option
                                 key={i}
-                                style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}
                             >
                                 {ckpt_option}
@@ -284,73 +280,43 @@ function SDSettings () {
                                         value={sampler}
                                         variant="outline"
                                     >
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="ddim"
-                                        >
+                                        <option value="ddim">
                                             DDIM
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="dpmpp_2m"
-                                        >
+                                        <option value="dpmpp_2m">
                                             DPM++ 2M Karras
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="dpmpp_2s_ancestral"
-                                        >
+                                        <option value="dpmpp_2s_ancestral">
                                             DPM++ 2S Ancestral Karras
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="euler"
-                                        >
+                                        <option value="euler">
                                             Euler
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="euler_a"
-                                        >
+                                        <option value="euler_a">
                                             Euler Ancestral
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="dpm_2"
-                                        >
+                                        <option value="dpm_2">
                                             DPM 2
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="dpm_a"
-                                        >
+                                        <option value="dpm_a">
                                             DPM 2 Ancestral
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="lms"
-                                        >
+                                        <option value="lms">
                                             LMS
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="heun"
-                                        >
+                                        <option value="heun">
                                             Heun
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="plms"
-                                        >
+                                        <option value="plms">
                                             PLMS
                                         </option>
                                     </Select>
@@ -440,49 +406,31 @@ function SDSettings () {
                                         value={controlnet}
                                         variant="outline"
                                     >
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="none"
-                                        >
+                                        <option value="none">
                                             None
                                         </option>
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="canny"
-                                        >
+
+                                        <option value="canny">
                                             Canny
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="pose"
-                                        >
+                                        <option value="pose">
                                             Pose
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="depth"
-                                        >
+                                        <option value="depth">
                                             Depth
                                         </option>
-                                            <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="hed"
-                                        >
+                                        
+                                        <option value="hed">
                                             HED
                                         </option>
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="normal"
-                                        >
+
+                                        <option value="normal">
                                             Normal
                                         </option>
 
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value="scribble"
-                                        >
+                                        <option value="scribble">
                                             Scribble
                                         </option>
                                     </Select>
@@ -509,15 +457,11 @@ function SDSettings () {
                                         value={vae}
                                         variant="outline"
                                     >
-                                        <option
-                                            style={{ 'backgroundColor': '#080B16' }}
-                                            value=""
-                                        >
+                                        <option value="">
                                             No vae
                                         </option>
                                         {vaes.map((ckpt_option, i) => (<option
                                             key={i}
-                                            style={{ 'backgroundColor': '#080B16' }}
                                             value={ckpt_option}
                                         >
                                             {ckpt_option}

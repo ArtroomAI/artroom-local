@@ -97,13 +97,7 @@ export const ModelMerger = () => {
         window.api.getCkpts(modelsDir).then(setCkpts);
     }, [modelsDir]);
 
-    useEffect(() => {
-        getCkpts();
-    }, []);
-
-    useEffect(() => {
-        getCkpts();
-    }, [getCkpts]);
+    useEffect(getCkpts, [getCkpts]);
 
     return (
         <Box
@@ -178,17 +172,13 @@ export const ModelMerger = () => {
                             variant="outline"
                         >
                             {ckpts.length > 0
-                                ? <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value=""
-                                >
+                                ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts?.map((ckpt_option, i) => (<option
+                            {ckpts.map((ckpt_option, i) => (<option
                                 key={i}
-                                style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}
                             >
                                 {ckpt_option}
@@ -214,17 +204,13 @@ export const ModelMerger = () => {
                             variant="outline"
                         >
                             {ckpts.length > 0
-                                ? <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value=""
-                                >
+                                ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts?.map((ckpt_option, i) => (<option
+                            {ckpts.map((ckpt_option, i) => (<option
                                 key={i}
-                                style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}
                             >
                                 {ckpt_option}
@@ -251,17 +237,13 @@ export const ModelMerger = () => {
                             variant="outline"
                         >
                             {ckpts.length > 0
-                                ? <option
-                                    style={{ 'backgroundColor': '#080B16' }}
-                                    value=""
-                                >
+                                ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
                             {ckpts?.map((ckpt_option, i) => (<option
                                 key={i}
-                                style={{ 'backgroundColor': '#080B16' }}
                                 value={ckpt_option}
                             >
                                 {ckpt_option}

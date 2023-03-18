@@ -270,41 +270,29 @@ function Upscale () {
                                 variant="outline"
                                 w="300px"
                             >
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="Choose Upscaler">
+                                <option value="Choose Upscaler">
                                     Choose Upscaler
                                 </option>
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="GFPGANv1.3">
+                                <option value="GFPGANv1.3">
                                     GFPGANv1.3
                                 </option>
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="GFPGANv1.4">
+                                <option value="GFPGANv1.4">
                                     GFPGANv1.4
                                 </option>
 
                                 {/* <option value='CodeFormer'>CodeFormer</option> */}
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="RestoreFormer">
+                                <option value="RestoreFormer">
                                     RestoreFormer
                                 </option>
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="RealESRGAN">
+                                <option value="RealESRGAN">
                                     RealESRGAN
                                 </option>
 
-                                <option
-                                    style={{ backgroundColor: '#080B16' }}
-                                    value="RealESRGAN-Anime">
+                                <option value="RealESRGAN-Anime">
                                     RealESRGAN-Anime
                                 </option>
                             </Select>
