@@ -142,7 +142,7 @@ class ModulatedDeformConv2dFunction(Function):
             pad = ctx.padding[d]
             kernel = ctx.dilation[d] * (weight.size(d + 2) - 1) + 1
             stride_ = ctx.stride[d]
-            output_size += ((in_size + (2 * pad) - kernel) // stride_ + 1, )
+            output_size += ((in_size + (2 * pad) - kernel) // stride_ + 1,)
         if not all(map(lambda s: s > 0, output_size)):
             raise ValueError(
                 'convolution input is too small (output would be ' +

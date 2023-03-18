@@ -34,7 +34,7 @@ imread_flags = {
     'unchanged': IMREAD_UNCHANGED,
     'color_ignore_orientation': IMREAD_IGNORE_ORIENTATION | IMREAD_COLOR,
     'grayscale_ignore_orientation':
-    IMREAD_IGNORE_ORIENTATION | IMREAD_GRAYSCALE
+        IMREAD_IGNORE_ORIENTATION | IMREAD_GRAYSCALE
 }
 
 imread_backend = 'cv2'

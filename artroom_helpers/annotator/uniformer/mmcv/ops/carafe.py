@@ -266,7 +266,7 @@ class CARAFEPack(nn.Module):
         n, mask_c, h, w = mask.size()
         # use float division explicitly,
         # to void inconsistency while exporting to onnx
-        mask_channel = int(mask_c / float(self.up_kernel**2))
+        mask_channel = int(mask_c / float(self.up_kernel ** 2))
         mask = mask.view(n, mask_channel, -1, h, w)
 
         mask = F.softmax(mask, dim=2, dtype=mask.dtype)

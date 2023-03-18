@@ -38,6 +38,7 @@ else:
         'contour_expand',
     ]
 
+
     def get_fake_func(name, e):
 
         def fake_func(*args, **kwargs):
@@ -45,6 +46,7 @@ else:
             raise e
 
         return fake_func
+
 
     def load_ext(name, funcs):
         ExtModule = namedtuple('ExtModule', funcs)

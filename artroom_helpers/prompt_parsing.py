@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-import re 
+import re
 
 re_attention = re.compile(r"""
         \\\(|
@@ -18,6 +18,7 @@ re_attention = re.compile(r"""
         :
         """, re.X)
 
+
 def parse_prompt_attention(text):
     res = []
     round_brackets = []
@@ -34,7 +35,7 @@ def parse_prompt_attention(text):
         text = m.group(0).strip(" ,")
         weight = m.group(1)
 
-        if len(text) == 0 or text in [',','.']:
+        if len(text) == 0 or text in [',', '.']:
             continue
 
         if text.startswith('\\'):
@@ -71,6 +72,7 @@ def parse_prompt_attention(text):
             i += 1
 
     return res
+
 
 def weights_handling(prompt):
     if "(" in prompt or ")" in prompt or "[" in prompt or "]" in prompt:

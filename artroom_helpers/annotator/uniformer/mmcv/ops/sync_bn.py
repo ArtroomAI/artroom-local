@@ -44,9 +44,9 @@ class SyncBatchNormFunction(Function):
         self.stats_mode = stats_mode
 
         assert isinstance(
-                   input, (torch.HalfTensor, torch.FloatTensor,
-                           torch.cuda.HalfTensor, torch.cuda.FloatTensor)), \
-               f'only support Half or Float Tensor, but {input.type()}'
+            input, (torch.HalfTensor, torch.FloatTensor,
+                    torch.cuda.HalfTensor, torch.cuda.FloatTensor)), \
+            f'only support Half or Float Tensor, but {input.type()}'
         output = torch.zeros_like(input)
         input3d = input.flatten(start_dim=2)
         output3d = output.view_as(input3d)
@@ -152,7 +152,7 @@ class SyncBatchNormFunction(Function):
                                              grad_input3d)
 
         return grad_input, None, None, grad_weight, grad_bias, \
-            None, None, None, None, None
+               None, None, None, None, None
 
 
 @NORM_LAYERS.register_module(name='MMSyncBN')

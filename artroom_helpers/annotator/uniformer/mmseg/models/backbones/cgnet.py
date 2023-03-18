@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from annotator.uniformer.mmcv.cnn import (ConvModule, build_conv_layer, build_norm_layer,
-                      constant_init, kaiming_init)
+                                          constant_init, kaiming_init)
 from annotator.uniformer.mmcv.runner import load_checkpoint
 from annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 

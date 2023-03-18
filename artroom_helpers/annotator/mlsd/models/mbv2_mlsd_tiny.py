@@ -3,11 +3,11 @@ import sys
 import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
-from  torch.nn import  functional as F
+from torch.nn import functional as F
 
 
 class BlockTypeA(nn.Module):
-    def __init__(self, in_c1, in_c2, out_c1, out_c2, upscale = True):
+    def __init__(self, in_c1, in_c2, out_c1, out_c2, upscale=True):
         super(BlockTypeA, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_c2, out_c2, kernel_size=1),
@@ -32,7 +32,7 @@ class BlockTypeB(nn.Module):
     def __init__(self, in_c, out_c):
         super(BlockTypeB, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_c, in_c,  kernel_size=3, padding=1),
+            nn.Conv2d(in_c, in_c, kernel_size=3, padding=1),
             nn.BatchNorm2d(in_c),
             nn.ReLU()
         )
@@ -47,16 +47,17 @@ class BlockTypeB(nn.Module):
         x = self.conv2(x)
         return x
 
+
 class BlockTypeC(nn.Module):
     def __init__(self, in_c, out_c):
         super(BlockTypeC, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_c, in_c,  kernel_size=3, padding=5, dilation=5),
+            nn.Conv2d(in_c, in_c, kernel_size=3, padding=5, dilation=5),
             nn.BatchNorm2d(in_c),
             nn.ReLU()
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_c, in_c,  kernel_size=3, padding=1),
+            nn.Conv2d(in_c, in_c, kernel_size=3, padding=1),
             nn.BatchNorm2d(in_c),
             nn.ReLU()
         )
@@ -67,6 +68,7 @@ class BlockTypeC(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         return x
+
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -92,7 +94,7 @@ class ConvBNReLU(nn.Sequential):
     def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
         self.channel_pad = out_planes - in_planes
         self.stride = stride
-        #padding = (kernel_size - 1) // 2
+        # padding = (kernel_size - 1) // 2
 
         # TFLite uses slightly different padding than PyTorch
         if stride == 2:
@@ -107,12 +109,11 @@ class ConvBNReLU(nn.Sequential):
         )
         self.max_pool = nn.MaxPool2d(kernel_size=stride, stride=stride)
 
-
     def forward(self, x):
         # TFLite uses  different padding
         if self.stride == 2:
             x = F.pad(x, (0, 1, 0, 1), "constant", 0)
-            #print(x.shape)
+            # print(x.shape)
 
         for module in self:
             if not isinstance(module, nn.MaxPool2d):
@@ -175,9 +176,9 @@ class MobileNetV2(nn.Module):
             [6, 24, 2, 2],
             [6, 32, 3, 2],
             [6, 64, 4, 2],
-            #[6, 96, 3, 1],
-            #[6, 160, 3, 2],
-            #[6, 320, 1, 1],
+            # [6, 96, 3, 1],
+            # [6, 160, 3, 2],
+            # [6, 320, 1, 1],
         ]
 
         # only check the first element, assuming user knows t,c,n,s are required
@@ -212,7 +213,7 @@ class MobileNetV2(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
 
-        #if pretrained:
+        # if pretrained:
         #    self._load_pretrained_model()
 
     def _forward_impl(self, x):
@@ -228,7 +229,6 @@ class MobileNetV2(nn.Module):
 
         c2, c3, c4 = fpn_features
         return c2, c3, c4
-
 
     def forward(self, x):
         return self._forward_impl(x)
@@ -250,12 +250,12 @@ class MobileV2_MLSD_Tiny(nn.Module):
 
         self.backbone = MobileNetV2(pretrained=True)
 
-        self.block12 = BlockTypeA(in_c1= 32, in_c2= 64,
-                                  out_c1= 64, out_c2=64)
+        self.block12 = BlockTypeA(in_c1=32, in_c2=64,
+                                  out_c1=64, out_c2=64)
         self.block13 = BlockTypeB(128, 64)
 
-        self.block14 = BlockTypeA(in_c1 = 24,  in_c2 = 64,
-                                  out_c1= 32,  out_c2= 32)
+        self.block14 = BlockTypeA(in_c1=24, in_c2=64,
+                                  out_c1=32, out_c2=32)
         self.block15 = BlockTypeB(64, 64)
 
         self.block16 = BlockTypeC(64, 16)
@@ -269,7 +269,7 @@ class MobileV2_MLSD_Tiny(nn.Module):
         x = self.block15(x)
         x = self.block16(x)
         x = x[:, 7:, :, :]
-        #print(x.shape)
+        # print(x.shape)
         x = F.interpolate(x, scale_factor=2.0, mode='bilinear', align_corners=True)
 
         return x

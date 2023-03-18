@@ -54,7 +54,7 @@ class _Voxelization(Function):
                 size=(max_voxels, max_points, points.size(1)))
             coors = points.new_zeros(size=(max_voxels, 3), dtype=torch.int)
             num_points_per_voxel = points.new_zeros(
-                size=(max_voxels, ), dtype=torch.int)
+                size=(max_voxels,), dtype=torch.int)
             voxel_num = ext_module.hard_voxelize_forward(
                 points, voxels, coors, num_points_per_voxel, voxel_size,
                 coors_range, max_points, max_voxels, 3)

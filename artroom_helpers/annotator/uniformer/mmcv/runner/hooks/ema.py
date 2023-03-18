@@ -35,7 +35,7 @@ class EMAHook(Hook):
         self.warm_up = warm_up
         self.interval = interval
         assert momentum > 0 and momentum < 1
-        self.momentum = momentum**interval
+        self.momentum = momentum ** interval
         self.checkpoint = resume_from
 
     def before_run(self, runner):

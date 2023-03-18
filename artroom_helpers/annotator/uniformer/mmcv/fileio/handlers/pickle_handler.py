@@ -5,7 +5,6 @@ from .base import BaseFileHandler
 
 
 class PickleHandler(BaseFileHandler):
-
     str_like = False
 
     def load_from_fileobj(self, file, **kwargs):

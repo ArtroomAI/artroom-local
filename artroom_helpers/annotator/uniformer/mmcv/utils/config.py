@@ -222,13 +222,13 @@ class Config:
         if DEPRECATION_KEY in cfg_dict:
             deprecation_info = cfg_dict.pop(DEPRECATION_KEY)
             warning_msg = f'The config file {filename} will be deprecated ' \
-                'in the future.'
+                          'in the future.'
             if 'expected' in deprecation_info:
                 warning_msg += f' Please use {deprecation_info["expected"]} ' \
-                    'instead.'
+                               'instead.'
             if 'reference' in deprecation_info:
                 warning_msg += ' More information can be found at ' \
-                    f'{deprecation_info["reference"]}'
+                               f'{deprecation_info["reference"]}'
             warnings.warn(warning_msg)
 
         cfg_text = filename + '\n'

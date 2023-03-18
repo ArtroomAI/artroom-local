@@ -21,7 +21,7 @@ async function removeDirectoryIfExists(PATH: fs.PathLike) {
   }
   
 const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => () => {
-    console.log("REINSTALL BACKING")
+    console.log("REINSTALL BACKEND")
     console.log(`VANILLA PATH: ${artroomPath}`)
     const URL = gpuType === 'AMD' ? 
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 

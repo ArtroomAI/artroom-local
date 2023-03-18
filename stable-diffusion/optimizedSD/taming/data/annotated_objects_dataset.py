@@ -97,7 +97,8 @@ class AnnotatedObjectsDataset(Dataset):
         crop_bbox = None
         flipped = None
         for t in self.transform_functions:
-            if isinstance(t, (RandomCrop1dReturnCoordinates, CenterCropReturnCoordinates, Random2dCropReturnCoordinates)):
+            if isinstance(t,
+                          (RandomCrop1dReturnCoordinates, CenterCropReturnCoordinates, Random2dCropReturnCoordinates)):
                 crop_bbox, x = t(x)
             elif isinstance(t, RandomHorizontalFlipReturn):
                 flipped, x = t(x)

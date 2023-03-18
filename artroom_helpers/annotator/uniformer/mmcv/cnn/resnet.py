@@ -245,7 +245,7 @@ class ResNet(nn.Module):
         for i, num_blocks in enumerate(stage_blocks):
             stride = strides[i]
             dilation = dilations[i]
-            planes = 64 * 2**i
+            planes = 64 * 2 ** i
             res_layer = make_res_layer(
                 block,
                 self.inplanes,
@@ -260,7 +260,7 @@ class ResNet(nn.Module):
             self.add_module(layer_name, res_layer)
             self.res_layers.append(layer_name)
 
-        self.feat_dim = block.expansion * 64 * 2**(len(stage_blocks) - 1)
+        self.feat_dim = block.expansion * 64 * 2 ** (len(stage_blocks) - 1)
 
     def init_weights(self, pretrained=None):
         if isinstance(pretrained, str):

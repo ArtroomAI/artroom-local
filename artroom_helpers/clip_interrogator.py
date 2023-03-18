@@ -28,7 +28,7 @@ CACHE_URLS_VITL = [
     'https://huggingface.co/pharma/ci-preprocess/resolve/main/ViT-L-14_openai_mediums.pkl',
     'https://huggingface.co/pharma/ci-preprocess/resolve/main/ViT-L-14_openai_movements.pkl',
     'https://huggingface.co/pharma/ci-preprocess/resolve/main/ViT-L-14_openai_trendings.pkl',
-] 
+]
 
 CACHE_URLS_VITH = [
     'https://huggingface.co/pharma/ci-preprocess/resolve/main/ViT-H-14_laion2b_s32b_b79k_artists.pkl',
@@ -39,7 +39,7 @@ CACHE_URLS_VITH = [
 ]
 
 
-@dataclass 
+@dataclass
 class Config:
     # models can optionally be passed in directly
     blip_model: BLIP_Decoder = None
@@ -49,7 +49,7 @@ class Config:
     # blip settings
     blip_image_eval_size: int = 384
     blip_max_length: int = 32
-    blip_model_type: str = 'large' # choose between 'base' or 'large'
+    blip_model_type: str = 'large'  # choose between 'base' or 'large'
     blip_num_beams: int = 8
     blip_offload: bool = False
 
@@ -58,13 +58,13 @@ class Config:
     clip_model_path: str = None
 
     # interrogator settings
-    cache_path: str = 'cache'   # path to store cached text embeddings
-    download_cache: bool = True # when true, cached embeds are downloaded from huggingface
-    chunk_size: int = 2048      # batch size for CLIP, use smaller for lower VRAM
+    cache_path: str = 'cache'  # path to store cached text embeddings
+    download_cache: bool = True  # when true, cached embeds are downloaded from huggingface
+    chunk_size: int = 2048  # batch size for CLIP, use smaller for lower VRAM
     data_path: str = os.path.join(os.path.dirname(__file__), 'data')
     device: str = ("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
     flavor_intermediate_count: int = 2048
-    quiet: bool = False # when quiet progress bars are not shown
+    quiet: bool = False  # when quiet progress bars are not shown
 
 
 class Interrogator():
@@ -80,8 +80,8 @@ class Interrogator():
             med_config = os.path.join(configs_path, 'med_config.json')
             blip_model = blip_decoder(
                 pretrained=BLIP_MODELS[config.blip_model_type],
-                image_size=config.blip_image_eval_size, 
-                vit=config.blip_model_type, 
+                image_size=config.blip_image_eval_size,
+                vit=config.blip_model_type,
                 med_config=med_config
             )
             blip_model.eval()
@@ -117,8 +117,8 @@ class Interrogator():
 
             clip_model_name, clip_model_pretrained_name = config.clip_model_name.split('/', 2)
             self.clip_model, _, self.clip_preprocess = open_clip.create_model_and_transforms(
-                clip_model_name, 
-                pretrained=clip_model_pretrained_name, 
+                clip_model_name,
+                pretrained=clip_model_pretrained_name,
                 precision='fp16' if config.device == 'cuda' else 'fp32',
                 device=config.device,
                 jit=False,
@@ -130,11 +130,13 @@ class Interrogator():
             self.clip_preprocess = config.clip_preprocess
         self.tokenize = open_clip.get_tokenizer(clip_model_name)
 
-        sites = ['Artstation', 'behance', 'cg society', 'cgsociety', 'deviantart', 'dribble', 'flickr', 'instagram', 'pexels', 'pinterest', 'pixabay', 'pixiv', 'polycount', 'reddit', 'shutterstock', 'tumblr', 'unsplash', 'zbrush central']
+        sites = ['Artstation', 'behance', 'cg society', 'cgsociety', 'deviantart', 'dribble', 'flickr', 'instagram',
+                 'pexels', 'pinterest', 'pixabay', 'pixiv', 'polycount', 'reddit', 'shutterstock', 'tumblr', 'unsplash',
+                 'zbrush central']
         trending_list = [site for site in sites]
-        trending_list.extend(["trending on "+site for site in sites])
-        trending_list.extend(["featured on "+site for site in sites])
-        trending_list.extend([site+" contest winner" for site in sites])
+        trending_list.extend(["trending on " + site for site in sites])
+        trending_list.extend(["featured on " + site for site in sites])
+        trending_list.extend([site + " contest winner" for site in sites])
 
         raw_artists = _load_list(config.data_path, 'artists.txt')
         artists = [f"by {a}" for a in raw_artists]
@@ -144,26 +146,30 @@ class Interrogator():
             self.download_cache(config.clip_model_name)
 
         self.artists = LabelTable(artists, "artists", self.clip_model, self.tokenize, config)
-        self.flavors = LabelTable(_load_list(config.data_path, 'flavors.txt'), "flavors", self.clip_model, self.tokenize, config)
-        self.mediums = LabelTable(_load_list(config.data_path, 'mediums.txt'), "mediums", self.clip_model, self.tokenize, config)
-        self.movements = LabelTable(_load_list(config.data_path, 'movements.txt'), "movements", self.clip_model, self.tokenize, config)
+        self.flavors = LabelTable(_load_list(config.data_path, 'flavors.txt'), "flavors", self.clip_model,
+                                  self.tokenize, config)
+        self.mediums = LabelTable(_load_list(config.data_path, 'mediums.txt'), "mediums", self.clip_model,
+                                  self.tokenize, config)
+        self.movements = LabelTable(_load_list(config.data_path, 'movements.txt'), "movements", self.clip_model,
+                                    self.tokenize, config)
         self.trendings = LabelTable(trending_list, "trendings", self.clip_model, self.tokenize, config)
-        self.negative = LabelTable(_load_list(config.data_path, 'negative.txt'), "negative", self.clip_model, self.tokenize, config)
+        self.negative = LabelTable(_load_list(config.data_path, 'negative.txt'), "negative", self.clip_model,
+                                   self.tokenize, config)
 
         end_time = time.time()
         if not config.quiet:
-            print(f"Loaded CLIP model and data in {end_time-start_time:.2f} seconds.")
+            print(f"Loaded CLIP model and data in {end_time - start_time:.2f} seconds.")
 
     def chain(
-        self, 
-        image_features: torch.Tensor, 
-        phrases: List[str], 
-        best_prompt: str="", 
-        best_sim: float=0, 
-        min_count: int=8,
-        max_count: int=32, 
-        desc="Chaining", 
-        reverse: bool=False
+            self,
+            image_features: torch.Tensor,
+            phrases: List[str],
+            best_prompt: str = "",
+            best_sim: float = 0,
+            min_count: int = 8,
+            max_count: int = 32,
+            desc="Chaining",
+            reverse: bool = False
     ) -> str:
         phrases = set(phrases)
         if not best_prompt:
@@ -171,14 +177,14 @@ class Interrogator():
             best_sim = self.similarity(image_features, best_prompt)
             phrases.remove(best_prompt)
         curr_prompt, curr_sim = best_prompt, best_sim
-        
+
         def check(addition: str, idx: int) -> bool:
             nonlocal best_prompt, best_sim, curr_prompt, curr_sim
             prompt = curr_prompt + ", " + addition
             sim = self.similarity(image_features, prompt)
             if reverse:
                 sim = -sim
-            
+
             if sim > best_sim:
                 best_prompt, best_sim = prompt, sim
             if sim > curr_sim or idx < min_count:
@@ -188,7 +194,7 @@ class Interrogator():
 
         for idx in tqdm(range(max_count), desc=desc, disable=self.config.quiet):
             best = self.rank_top(image_features, [f"{curr_prompt}, {f}" for f in phrases], reverse=reverse)
-            flave = best[len(curr_prompt)+2:]
+            flave = best[len(curr_prompt) + 2:]
             if not check(flave, idx):
                 break
             if _prompt_at_max_len(curr_prompt, self.tokenize):
@@ -209,10 +215,10 @@ class Interrogator():
 
         with torch.no_grad():
             caption = self.blip_model.generate(
-                gpu_image, 
-                sample=False, 
-                num_beams=self.config.blip_num_beams, 
-                max_length=self.config.blip_max_length, 
+                gpu_image,
+                sample=False,
+                num_beams=self.config.blip_num_beams,
+                max_length=self.config.blip_max_length,
                 min_length=5
             )
         if self.config.blip_offload:
@@ -226,7 +232,7 @@ class Interrogator():
             image_features /= image_features.norm(dim=-1, keepdim=True)
         return image_features
 
-    def interrogate_classic(self, image: Image, max_flavors: int=3) -> str:
+    def interrogate_classic(self, image: Image, max_flavors: int = 3) -> str:
         """Classic mode creates a prompt in a standard format first describing the image, 
         then listing the artist, trending, movement, and flavor text modifiers."""
         caption = self.generate_caption(image)
@@ -264,7 +270,7 @@ class Interrogator():
         flaves = flaves + self.negative.labels
         return self.chain(image_features, flaves, max_count=max_flavors, reverse=True, desc="Negative chain")
 
-    def interrogate(self, image: Image, min_flavors: int=8, max_flavors: int=32) -> str:
+    def interrogate(self, image: Image, min_flavors: int = 8, max_flavors: int = 32) -> str:
         caption = self.generate_caption(image)
         image_features = self.image_to_features(image)
 
@@ -272,14 +278,15 @@ class Interrogator():
         flaves = merged.rank(image_features, self.config.flavor_intermediate_count)
 
         best_prompt, best_sim = caption, self.similarity(image_features, caption)
-        best_prompt = self.chain(image_features, flaves, best_prompt, best_sim, min_count=min_flavors, max_count=max_flavors, desc="Flavor chain")
+        best_prompt = self.chain(image_features, flaves, best_prompt, best_sim, min_count=min_flavors,
+                                 max_count=max_flavors, desc="Flavor chain")
 
         fast_prompt = self.interrogate_fast(image, max_flavors)
         classic_prompt = self.interrogate_classic(image, max_flavors)
         candidates = [caption, classic_prompt, fast_prompt, best_prompt]
         return candidates[np.argmax(self.similarities(image_features, candidates))]
 
-    def rank_top(self, image_features: torch.Tensor, text_array: List[str], reverse: bool=False) -> str:
+    def rank_top(self, image_features: torch.Tensor, text_array: List[str], reverse: bool = False) -> str:
         text_tokens = self.tokenize([text for text in text_array]).to(self.device)
         with torch.no_grad(), torch.cuda.amp.autocast():
             text_features = self.clip_model.encode_text(text_tokens)
@@ -307,7 +314,7 @@ class Interrogator():
 
 
 class LabelTable():
-    def __init__(self, labels:List[str], desc:str, clip_model, tokenize, config: Config):
+    def __init__(self, labels: List[str], desc: str, clip_model, tokenize, config: Config):
         self.chunk_size = config.chunk_size
         self.config = config
         self.device = config.device
@@ -334,7 +341,7 @@ class LabelTable():
 
         if len(self.labels) != len(self.embeds):
             self.embeds = []
-            chunks = np.array_split(self.labels, max(1, len(self.labels)/config.chunk_size))
+            chunks = np.array_split(self.labels, max(1, len(self.labels) / config.chunk_size))
             for chunk in tqdm(chunks, desc=f"Preprocessing {desc}" if desc else None, disable=self.config.quiet):
                 text_tokens = self.tokenize(chunk).to(self.device)
                 with torch.no_grad(), torch.cuda.amp.autocast():
@@ -347,16 +354,17 @@ class LabelTable():
             if cache_filepath is not None:
                 with open(cache_filepath, 'wb') as f:
                     pickle.dump({
-                        "labels": self.labels, 
-                        "embeds": self.embeds, 
-                        "hash": hash, 
+                        "labels": self.labels,
+                        "embeds": self.embeds,
+                        "hash": hash,
                         "model": config.clip_model_name
                     }, f)
 
         if self.device == 'cpu' or self.device == torch.device('cpu'):
             self.embeds = [e.astype(np.float32) for e in self.embeds]
-    
-    def _rank(self, image_features: torch.Tensor, text_embeds: torch.Tensor, top_count: int=1, reverse: bool=False) -> str:
+
+    def _rank(self, image_features: torch.Tensor, text_embeds: torch.Tensor, top_count: int = 1,
+              reverse: bool = False) -> str:
         top_count = min(top_count, len(text_embeds))
         text_embeds = torch.stack([torch.from_numpy(t) for t in text_embeds]).to(self.device)
         with torch.cuda.amp.autocast():
@@ -366,27 +374,27 @@ class LabelTable():
         _, top_labels = similarity.float().cpu().topk(top_count, dim=-1)
         return [top_labels[0][i].numpy() for i in range(top_count)]
 
-    def rank(self, image_features: torch.Tensor, top_count: int=1, reverse: bool=False) -> List[str]:
+    def rank(self, image_features: torch.Tensor, top_count: int = 1, reverse: bool = False) -> List[str]:
         if len(self.labels) <= self.chunk_size:
             tops = self._rank(image_features, self.embeds, top_count=top_count, reverse=reverse)
             return [self.labels[i] for i in tops]
 
-        num_chunks = int(math.ceil(len(self.labels)/self.chunk_size))
+        num_chunks = int(math.ceil(len(self.labels) / self.chunk_size))
         keep_per_chunk = int(self.chunk_size / num_chunks)
 
         top_labels, top_embeds = [], []
         for chunk_idx in tqdm(range(num_chunks), disable=self.config.quiet):
-            start = chunk_idx*self.chunk_size
-            stop = min(start+self.chunk_size, len(self.embeds))
+            start = chunk_idx * self.chunk_size
+            stop = min(start + self.chunk_size, len(self.embeds))
             tops = self._rank(image_features, self.embeds[start:stop], top_count=keep_per_chunk, reverse=reverse)
-            top_labels.extend([self.labels[start+i] for i in tops])
-            top_embeds.extend([self.embeds[start+i] for i in tops])
+            top_labels.extend([self.labels[start + i] for i in tops])
+            top_embeds.extend([self.embeds[start + i] for i in tops])
 
         tops = self._rank(image_features, top_embeds, top_count=top_count)
         return [top_labels[i] for i in tops]
 
 
-def _download_file(url: str, filepath: str, chunk_size: int = 64*1024, quiet: bool = False):
+def _download_file(url: str, filepath: str, chunk_size: int = 64 * 1024, quiet: bool = False):
     r = requests.get(url, stream=True)
     file_size = int(r.headers.get("Content-Length", 0))
     filename = url.split("/")[-1]
@@ -398,10 +406,12 @@ def _download_file(url: str, filepath: str, chunk_size: int = 64*1024, quiet: bo
                 progress.update(len(chunk))
     progress.close()
 
+
 def _load_list(data_path: str, filename: str) -> List[str]:
     with open(os.path.join(data_path, filename), 'r', encoding='utf-8', errors='replace') as f:
         items = [line.strip() for line in f.readlines()]
     return items
+
 
 def _merge_tables(tables: List[LabelTable], config: Config) -> LabelTable:
     m = LabelTable([], None, None, None, config)
@@ -410,9 +420,11 @@ def _merge_tables(tables: List[LabelTable], config: Config) -> LabelTable:
         m.embeds.extend(table.embeds)
     return m
 
+
 def _prompt_at_max_len(text: str, tokenize) -> bool:
     tokens = tokenize([text])
     return tokens[0][-1] != 0
+
 
 def _truncate_to_fit(text: str, tokenize) -> str:
     parts = text.split(', ')

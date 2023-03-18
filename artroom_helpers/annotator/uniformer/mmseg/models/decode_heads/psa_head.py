@@ -143,7 +143,7 @@ class PSAHead(BaseDecodeHead):
                 y = F.softmax(y, dim=1)
             out = torch.bmm(
                 out.view(n, c, h * w), y.view(n, h * w, h * w)).view(
-                    n, c, h, w) * (1.0 / self.normalization_factor)
+                n, c, h, w) * (1.0 / self.normalization_factor)
         else:
             x_col = self.reduce(x)
             x_dis = self.reduce_p(x)
@@ -180,10 +180,10 @@ class PSAHead(BaseDecodeHead):
                 y_dis = F.softmax(y_dis, dim=1)
             x_col = torch.bmm(
                 x_col.view(n, c, h * w), y_col.view(n, h * w, h * w)).view(
-                    n, c, h, w) * (1.0 / self.normalization_factor)
+                n, c, h, w) * (1.0 / self.normalization_factor)
             x_dis = torch.bmm(
                 x_dis.view(n, c, h * w), y_dis.view(n, h * w, h * w)).view(
-                    n, c, h, w) * (1.0 / self.normalization_factor)
+                n, c, h, w) * (1.0 / self.normalization_factor)
             out = torch.cat([x_col, x_dis], 1)
         out = self.proj(out)
         out = resize(

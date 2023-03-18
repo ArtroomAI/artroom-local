@@ -10,7 +10,6 @@ from artroom_helpers.modules.cldm.cl_ldm.modules.midas.midas.midas_net import Mi
 from artroom_helpers.modules.cldm.cl_ldm.modules.midas.midas.midas_net_custom import MidasNet_small
 from artroom_helpers.modules.cldm.cl_ldm.modules.midas.midas.transforms import Resize, NormalizeImage, PrepareForNet
 
-
 ISL_PATHS = {
     "dpt_large": "midas_models/dpt_large-midas-2f21e586.pt",
     "dpt_hybrid": "midas_models/dpt_hybrid-midas-501f0c75.pt",
@@ -167,4 +166,3 @@ class MiDaSInference(nn.Module):
             )
         assert prediction.shape == (x.shape[0], 1, x.shape[2], x.shape[3])
         return prediction
-

@@ -18,7 +18,7 @@ class Encoding(nn.Module):
         super(Encoding, self).__init__()
         # init codewords and smoothing factor
         self.channels, self.num_codes = channels, num_codes
-        std = 1. / ((num_codes * channels)**0.5)
+        std = 1. / ((num_codes * channels) ** 0.5)
         # [num_codes, channels]
         self.codewords = nn.Parameter(
             torch.empty(num_codes, channels,
@@ -39,7 +39,7 @@ class Encoding(nn.Module):
         reshaped_codewords = codewords.view((1, 1, num_codes, channels))
 
         scaled_l2_norm = reshaped_scale * (
-            expanded_x - reshaped_codewords).pow(2).sum(dim=3)
+                expanded_x - reshaped_codewords).pow(2).sum(dim=3)
         return scaled_l2_norm
 
     @staticmethod

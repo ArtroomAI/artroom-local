@@ -13,7 +13,6 @@ open_images_unify_categories_for_coco = {
     '/m/0h8mzrc': '/m/01x3z',
 }
 
-
 top_300_classes_plus_coco_compatibility = [
     ('Man', 1060962),
     ('Clothing', 986610),

@@ -93,7 +93,7 @@ class NoiseScheduleVP:
             self.cosine_s = 0.008
             self.cosine_beta_max = 999.
             self.cosine_t_max = math.atan(self.cosine_beta_max * (1. + self.cosine_s) / math.pi) * 2. * (
-                        1. + self.cosine_s) / math.pi - self.cosine_s
+                    1. + self.cosine_s) / math.pi - self.cosine_s
             self.cosine_log_alpha_0 = math.log(math.cos(self.cosine_s / (1. + self.cosine_s) * math.pi / 2.))
             self.schedule = schedule
             if schedule == 'cosine':
@@ -153,7 +153,7 @@ class NoiseScheduleVP:
         else:
             log_alpha = -0.5 * torch.logaddexp(-2. * lamb, torch.zeros((1,)).to(lamb))
             t_fn = lambda log_alpha_t: torch.arccos(torch.exp(log_alpha_t + self.cosine_log_alpha_0)) * 2. * (
-                        1. + self.cosine_s) / math.pi - self.cosine_s
+                    1. + self.cosine_s) / math.pi - self.cosine_s
             t = t_fn(log_alpha)
             return t
 
@@ -566,7 +566,7 @@ class DPM_Solver:
                         expand_dims(sigma_t / sigma_s, dims) * x
                         - expand_dims(alpha_t * phi_1, dims) * model_s
                         + (1. / r1) * expand_dims(alpha_t * ((torch.exp(-h) - 1.) / h + 1.), dims) * (
-                                    model_s1 - model_s)
+                                model_s1 - model_s)
                 )
         else:
             phi_11 = torch.expm1(r1 * h)

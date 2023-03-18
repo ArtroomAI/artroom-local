@@ -139,21 +139,21 @@ def flops_to_string(flops, units='GFLOPs', precision=2):
         '3e-09 FLOPs'
     """
     if units is None:
-        if flops // 10**9 > 0:
-            return str(round(flops / 10.**9, precision)) + ' GFLOPs'
-        elif flops // 10**6 > 0:
-            return str(round(flops / 10.**6, precision)) + ' MFLOPs'
-        elif flops // 10**3 > 0:
-            return str(round(flops / 10.**3, precision)) + ' KFLOPs'
+        if flops // 10 ** 9 > 0:
+            return str(round(flops / 10. ** 9, precision)) + ' GFLOPs'
+        elif flops // 10 ** 6 > 0:
+            return str(round(flops / 10. ** 6, precision)) + ' MFLOPs'
+        elif flops // 10 ** 3 > 0:
+            return str(round(flops / 10. ** 3, precision)) + ' KFLOPs'
         else:
             return str(flops) + ' FLOPs'
     else:
         if units == 'GFLOPs':
-            return str(round(flops / 10.**9, precision)) + ' ' + units
+            return str(round(flops / 10. ** 9, precision)) + ' ' + units
         elif units == 'MFLOPs':
-            return str(round(flops / 10.**6, precision)) + ' ' + units
+            return str(round(flops / 10. ** 6, precision)) + ' ' + units
         elif units == 'KFLOPs':
-            return str(round(flops / 10.**3, precision)) + ' ' + units
+            return str(round(flops / 10. ** 3, precision)) + ' ' + units
         else:
             return str(flops) + ' FLOPs'
 
@@ -180,17 +180,17 @@ def params_to_string(num_params, units=None, precision=2):
         '3e-09'
     """
     if units is None:
-        if num_params // 10**6 > 0:
-            return str(round(num_params / 10**6, precision)) + ' M'
-        elif num_params // 10**3:
-            return str(round(num_params / 10**3, precision)) + ' k'
+        if num_params // 10 ** 6 > 0:
+            return str(round(num_params / 10 ** 6, precision)) + ' M'
+        elif num_params // 10 ** 3:
+            return str(round(num_params / 10 ** 3, precision)) + ' k'
         else:
             return str(num_params)
     else:
         if units == 'M':
-            return str(round(num_params / 10.**6, precision)) + ' ' + units
+            return str(round(num_params / 10. ** 6, precision)) + ' ' + units
         elif units == 'K':
-            return str(round(num_params / 10.**3, precision)) + ' ' + units
+            return str(round(num_params / 10. ** 3, precision)) + ' ' + units
         else:
             return str(num_params)
 
@@ -451,7 +451,7 @@ def deconv_flops_counter_hook(conv_module, input, output):
 
     filters_per_channel = out_channels // groups
     conv_per_position_flops = (
-        kernel_height * kernel_width * in_channels * filters_per_channel)
+            kernel_height * kernel_width * in_channels * filters_per_channel)
 
     active_elements_count = batch_size * input_height * input_width
     overall_conv_flops = conv_per_position_flops * active_elements_count
@@ -487,7 +487,6 @@ def conv_flops_counter_hook(conv_module, input, output):
     bias_flops = 0
 
     if conv_module.bias is not None:
-
         bias_flops = out_channels * active_elements_count
 
     overall_flops = overall_conv_flops + bias_flops
@@ -509,7 +508,6 @@ def batch_counter_hook(module, input, output):
 
 
 def add_batch_counter_variables_or_reset(module):
-
     module.__batch_counter__ = 0
 
 

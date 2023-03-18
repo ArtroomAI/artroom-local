@@ -12,7 +12,6 @@ from itertools import repeat
 
 # From PyTorch internals
 def _ntuple(n):
-
     def parse(x):
         if isinstance(x, collections.abc.Iterable):
             return x
@@ -207,7 +206,7 @@ def check_prerequisites(
         prerequisites,
         checker,
         msg_tmpl='Prerequisites "{}" are required in method "{}" but not '
-        'found, please install them first.'):  # yapf: disable
+                 'found, please install them first.'):  # yapf: disable
     """A decorator factory to check if prerequisites are satisfied.
 
     Args:
@@ -320,7 +319,6 @@ def deprecated_api_warning(name_dict, cls_name=None):
             if kwargs:
                 for src_arg_name, dst_arg_name in name_dict.items():
                     if src_arg_name in kwargs:
-
                         assert dst_arg_name not in kwargs, (
                             f'The expected behavior is to replace '
                             f'the deprecated key `{src_arg_name}` to '

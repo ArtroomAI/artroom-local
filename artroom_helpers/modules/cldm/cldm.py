@@ -13,7 +13,8 @@ from artroom_helpers.modules.cldm.cl_ldm.modules.diffusionmodules.util import (
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from artroom_helpers.modules.cldm.cl_ldm.modules.attention import SpatialTransformer
-from artroom_helpers.modules.cldm.cl_ldm.modules.diffusionmodules.openaimodel import UNetModel, TimestepEmbedSequential, ResBlock, Downsample, AttentionBlock
+from artroom_helpers.modules.cldm.cl_ldm.modules.diffusionmodules.openaimodel import UNetModel, TimestepEmbedSequential, \
+    ResBlock, Downsample, AttentionBlock
 from artroom_helpers.modules.cldm.cl_ldm.models.diffusion.ddpm import LatentDiffusion
 from artroom_helpers.modules.cldm.cl_ldm.util import log_txt_as_img, exists, instantiate_from_config
 from artroom_helpers.modules.cldm.cl_ldm.models.diffusion.ddim import DDIMSampler
@@ -111,7 +112,8 @@ class ControlNet(nn.Module):
             assert len(disable_self_attentions) == len(channel_mult)
         if num_attention_blocks is not None:
             assert len(num_attention_blocks) == len(self.num_res_blocks)
-            assert all(map(lambda i: self.num_res_blocks[i] >= num_attention_blocks[i], range(len(num_attention_blocks))))
+            assert all(
+                map(lambda i: self.num_res_blocks[i] >= num_attention_blocks[i], range(len(num_attention_blocks))))
             print(f"Constructor of UNetModel received num_attention_blocks={num_attention_blocks}. "
                   f"This option has LESS priority than attention_resolutions {attention_resolutions}, "
                   f"i.e., in cases where num_attention_blocks[i] > 0 but 2**i not in attention_resolutions, "
@@ -329,11 +331,13 @@ class ControlLDM(LatentDiffusion):
         cond_txt = torch.cat(cond['c_crossattn'], 1)
 
         if cond['c_concat'] is None:
-            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None, only_mid_control=self.only_mid_control)
+            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None,
+                                  only_mid_control=self.only_mid_control)
         else:
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
             control = [c * scale for c, scale in zip(control, self.control_scales)]
-            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
+            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control,
+                                  only_mid_control=self.only_mid_control)
 
         return eps
 

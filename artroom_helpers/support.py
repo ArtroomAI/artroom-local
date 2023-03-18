@@ -94,18 +94,19 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
         np_matched_result = np_image.copy()
         np_matched_result[:, :, :] = (((np_matched_result[:, :, :].astype(np.float32) - gen_means[None, None,
                                                                                         :]) / gen_std[None, None,
-                                                                                            :]) * init_std[None, None,
+                                                                                              :]) * init_std[None, None,
                                                                                                     :] + init_means[
-                                                                                                        None, None,
-                                                                                                        :]).clip(0,
-                                                                                                                255).astype(np.uint8)
+                                                                                                         None, None,
+                                                                                                         :]).clip(0,
+                                                                                                                  255).astype(
+            np.uint8)
         matched_result = Image.fromarray(np_matched_result, mode='RGB')
     else:
         matched_result = Image.fromarray(np_image, mode='RGB')
     # Blur the mask out (into init image) by specified amount
     if mask_blur_radius > 0:
         nm = np.asarray(pil_init_mask, dtype=np.uint8)
-        nmd = cv2.erode(nm, kernel=np.ones((3,3), dtype=np.uint8), iterations=int(mask_blur_radius))
+        nmd = cv2.erode(nm, kernel=np.ones((3, 3), dtype=np.uint8), iterations=int(mask_blur_radius))
         pmd = Image.fromarray(nmd, mode='L')
         blurred_init_mask = pmd.filter(ImageFilter.BoxBlur(mask_blur_radius))
     else:

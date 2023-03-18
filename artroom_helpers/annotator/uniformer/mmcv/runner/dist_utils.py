@@ -86,7 +86,6 @@ def get_dist_info():
 
 
 def master_only(func):
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         rank, _ = get_dist_info()

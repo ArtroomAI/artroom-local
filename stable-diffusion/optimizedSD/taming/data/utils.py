@@ -59,7 +59,7 @@ def prompt_download(file_, source, target_dir, content_dir=None):
     targetpath = os.path.join(target_dir, file_)
     while not os.path.exists(targetpath):
         if content_dir is not None and os.path.exists(
-            os.path.join(target_dir, content_dir)
+                os.path.join(target_dir, content_dir)
         ):
             break
         print(
@@ -79,7 +79,7 @@ def download_url(file_, url, target_dir):
     targetpath = os.path.join(target_dir, file_)
     os.makedirs(target_dir, exist_ok=True)
     with tqdm(
-        unit="B", unit_scale=True, unit_divisor=1024, miniters=1, desc=file_
+            unit="B", unit_scale=True, unit_divisor=1024, miniters=1, desc=file_
     ) as bar:
         urllib.request.urlretrieve(url, targetpath, reporthook=reporthook(bar))
     return targetpath
@@ -118,7 +118,7 @@ def quadratic_crop(x, bbox, alpha=1.0):
         center = center[0] + required_padding, center[1] + required_padding
     xmin = int(center[0] - l / 2)
     ymin = int(center[1] - l / 2)
-    return np.array(x[ymin : ymin + l, xmin : xmin + l, ...])
+    return np.array(x[ymin: ymin + l, xmin: xmin + l, ...])
 
 
 def custom_collate(batch):

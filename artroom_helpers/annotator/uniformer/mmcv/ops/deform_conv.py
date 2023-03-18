@@ -167,7 +167,7 @@ class DeformConv2dFunction(Function):
                 im2col_step=cur_im2col_step)
 
         return grad_input, grad_offset, grad_weight, \
-            None, None, None, None, None, None, None
+               None, None, None, None, None, None, None
 
     @staticmethod
     def _output_size(ctx, input, weight):
@@ -178,7 +178,7 @@ class DeformConv2dFunction(Function):
             pad = ctx.padding[d]
             kernel = ctx.dilation[d] * (weight.size(d + 2) - 1) + 1
             stride_ = ctx.stride[d]
-            output_size += ((in_size + (2 * pad) - kernel) // stride_ + 1, )
+            output_size += ((in_size + (2 * pad) - kernel) // stride_ + 1,)
         if not all(map(lambda s: s > 0, output_size)):
             raise ValueError(
                 'convolution input is too small (output would be ' +
@@ -309,7 +309,7 @@ class DeformConv2d(nn.Module):
                             False, self.im2col_step)
         if input_pad:
             out = out[:, :, :out.size(2) - pad_h, :out.size(3) -
-                      pad_w].contiguous()
+                                                   pad_w].contiguous()
         return out
 
     def __repr__(self):

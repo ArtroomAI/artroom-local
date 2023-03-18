@@ -90,7 +90,7 @@ class CheckpointHook(Hook):
         # allow to create a symlink
         if 'create_symlink' in self.args:
             if self.args[
-                    'create_symlink'] and not self.file_client.allow_symlink:
+                'create_symlink'] and not self.file_client.allow_symlink:
                 self.args['create_symlink'] = False
                 warnings.warn(
                     ('create_symlink is set as True by the user but is changed'

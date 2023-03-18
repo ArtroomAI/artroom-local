@@ -131,7 +131,7 @@ def is_norm(layer, exclude=None):
     """
     if exclude is not None:
         if not isinstance(exclude, tuple):
-            exclude = (exclude, )
+            exclude = (exclude,)
         if not is_tuple_of(exclude, type):
             raise TypeError(
                 f'"exclude" must be either None or type or a tuple of types, '

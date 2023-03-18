@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from annotator.uniformer.mmcv.cnn import (build_conv_layer, build_norm_layer, build_plugin_layer,
-                      constant_init, kaiming_init)
+                                          constant_init, kaiming_init)
 from annotator.uniformer.mmcv.runner import load_checkpoint
 from annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 
@@ -440,7 +440,7 @@ class ResNet(nn.Module):
             # multi grid is applied to last layer only
             stage_multi_grid = multi_grid if i == len(
                 self.stage_blocks) - 1 else None
-            planes = base_channels * 2**i
+            planes = base_channels * 2 ** i
             res_layer = self.make_res_layer(
                 block=self.block,
                 inplanes=self.inplanes,
@@ -458,14 +458,14 @@ class ResNet(nn.Module):
                 multi_grid=stage_multi_grid,
                 contract_dilation=contract_dilation)
             self.inplanes = planes * self.block.expansion
-            layer_name = f'layer{i+1}'
+            layer_name = f'layer{i + 1}'
             self.add_module(layer_name, res_layer)
             self.res_layers.append(layer_name)
 
         self._freeze_stages()
 
-        self.feat_dim = self.block.expansion * base_channels * 2**(
-            len(self.stage_blocks) - 1)
+        self.feat_dim = self.block.expansion * base_channels * 2 ** (
+                len(self.stage_blocks) - 1)
 
     def make_stage_plugins(self, plugins, stage_idx):
         """make plugins for ResNet 'stage_idx'th stage .

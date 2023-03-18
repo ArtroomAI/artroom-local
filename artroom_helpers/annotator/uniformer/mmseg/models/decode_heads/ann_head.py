@@ -197,7 +197,7 @@ class ANNHead(BaseDecodeHead):
 
     def __init__(self,
                  project_channels,
-                 query_scales=(1, ),
+                 query_scales=(1,),
                  key_pool_scales=(1, 3, 6, 8),
                  **kwargs):
         super(ANNHead, self).__init__(

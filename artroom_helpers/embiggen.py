@@ -3,36 +3,37 @@ ldm.invoke.generator.embiggen descends from ldm.invoke.generator
 and generates with ldm.invoke.generator.img2img
 '''
 
-#TODO: This produces lower quality results than SD as the last pass but stitches together and keeps things okay in VRAM. Will be backup option if highres fix is too big
+# TODO: This produces lower quality results than SD as the last pass but stitches together and keeps things okay in VRAM. Will be backup option if highres fix is too big
 
 import torch
-import numpy as  np
+import numpy as np
 from tqdm import trange
 from PIL import Image
 
+
 @torch.no_grad()
 def embiggen(
-    SD,
-    prompt,
-    sampler,
-    steps,
-    cfg_scale,
-    ddim_eta,
-    conditioning,
-    init_img,
-    strength,
-    width,
-    height,
-    embiggen,
-    embiggen_tiles,
-    step_callback=None,
-    **kwargs
+        SD,
+        prompt,
+        sampler,
+        steps,
+        cfg_scale,
+        ddim_eta,
+        conditioning,
+        init_img,
+        strength,
+        width,
+        height,
+        embiggen,
+        embiggen_tiles,
+        step_callback=None,
+        **kwargs
 ):
     """
     Returns a function returning an image derived from the prompt and multi-stage twice-baked potato layering over the img2img on the initial image
     Return value depends on the seed at the time you call it
     """
-    #assert not sampler.uses_inpainting_model(), "--embiggen is not supported by inpainting models"
+    # assert not sampler.uses_inpainting_model(), "--embiggen is not supported by inpainting models"
 
     # Construct embiggen arg array, and sanity check arguments
     if embiggen == None:  # embiggen can also be called with just embiggen_tiles
@@ -50,16 +51,18 @@ def embiggen(
         embiggen.append(0.25)
     elif embiggen[2] < 0:
         embiggen[2] = 0.25
-        print('>> Overlap size for Embiggen must be a positive ratio between 0 and 1 OR a number of pixels, fell back to the default of 0.25 !')
+        print(
+            '>> Overlap size for Embiggen must be a positive ratio between 0 and 1 OR a number of pixels, fell back to the default of 0.25 !')
 
     # Convert tiles from their user-freindly count-from-one to count-from-zero, because we need to do modulo math
     # and then sort them, because... people.
     if embiggen_tiles:
-        embiggen_tiles = list(map(lambda n: n-1, embiggen_tiles))
+        embiggen_tiles = list(map(lambda n: n - 1, embiggen_tiles))
         embiggen_tiles.sort()
 
     if strength >= 0.5:
-        print(f'* WARNING: Embiggen may produce mirror motifs if the strength (-f) is too high (currently {strength}). Try values between 0.35-0.45.')
+        print(
+            f'* WARNING: Embiggen may produce mirror motifs if the strength (-f) is too high (currently {strength}). Try values between 0.35-0.45.')
 
     # Open original init image (not a tensor) to manipulate
     initsuperimage = Image.open(init_img)
@@ -72,8 +75,8 @@ def embiggen(
 
     # Increase by scaling factor if not already resized, using ESRGAN as able
     if embiggen[0] != 1.0:
-        initsuperwidth = round(initsuperwidth*embiggen[0])
-        initsuperheight = round(initsuperheight*embiggen[0])
+        initsuperwidth = round(initsuperwidth * embiggen[0])
+        initsuperheight = round(initsuperheight * embiggen[0])
         if embiggen[1] > 0:  # No point in ESRGAN upscaling if strength is set zero
             from ldm.invoke.restoration.realesrgan import ESRGAN
             esrgan = ESRGAN()
@@ -121,10 +124,10 @@ def embiggen(
     emb_tiles_y = 1
     if (initsuperwidth - width) > 0:
         emb_tiles_x = ceildiv(initsuperwidth - width,
-                                width - overlap_size_x) + 1
+                              width - overlap_size_x) + 1
     if (initsuperheight - height) > 0:
         emb_tiles_y = ceildiv(initsuperheight - height,
-                                height - overlap_size_y) + 1
+                              height - overlap_size_y) + 1
     # Sanity
     assert emb_tiles_x > 1 or emb_tiles_y > 1, f'ERROR: Based on the requested dimensions of {initsuperwidth}x{initsuperheight} and tiles of {width}x{height} you don\'t need to Embiggen! Check your arguments.'
 
@@ -144,7 +147,7 @@ def embiggen(
             # Clamp values to max 255
             if distanceToLR > 255:
                 distanceToLR = 255
-            #Place the pixel as invert of distance
+            # Place the pixel as invert of distance
             agradientC.putpixel((x, y), round(255 - distanceToLR))
 
     # Create alternative asymmetric diagonal corner to use on "tailing" intersections to prevent hard edges
@@ -152,8 +155,8 @@ def embiggen(
     agradientAsymC = Image.new('L', (256, 256))
     for y in range(256):
         for x in range(256):
-            value = round(max(0, x-(255-y)) * (255 / max(1,y)))
-            #Clamp values
+            value = round(max(0, x - (255 - y)) * (255 / max(1, y)))
+            # Clamp values
             value = max(0, value)
             value = min(255, value)
             agradientAsymC.putpixel((x, y), value)
@@ -171,9 +174,11 @@ def embiggen(
     # make masks with an asymmetric upper-right corner so when the curved transparent corner of the next tile
     # to its right is placed it doesn't reveal a hard trailing semi-transparent edge in the overlapping space
     alphaLayerTaC = alphaLayerT.copy()
-    alphaLayerTaC.paste(agradientAsymC.rotate(270).resize((overlap_size_x, overlap_size_y)), (width - overlap_size_x, 0))
+    alphaLayerTaC.paste(agradientAsymC.rotate(270).resize((overlap_size_x, overlap_size_y)),
+                        (width - overlap_size_x, 0))
     alphaLayerLTaC = alphaLayerLTC.copy()
-    alphaLayerLTaC.paste(agradientAsymC.rotate(270).resize((overlap_size_x, overlap_size_y)), (width - overlap_size_x, 0))
+    alphaLayerLTaC.paste(agradientAsymC.rotate(270).resize((overlap_size_x, overlap_size_y)),
+                         (width - overlap_size_x, 0))
 
     if embiggen_tiles:
         # Individual unconnected sides
@@ -264,7 +269,7 @@ def embiggen(
         # produce duplicated structures for each tile and make the tiling effect more obvious
         # instead track and iterate a local seed we pass to Img2Img
         seed = self.seed
-        seedintlimit = np.iinfo(np.uint32).max - 1 # only retreive this one from numpy
+        seedintlimit = np.iinfo(np.uint32).max - 1  # only retreive this one from numpy
 
         for tile in range(emb_tiles_x * emb_tiles_y):
             # Don't iterate on first tile
@@ -316,20 +321,20 @@ def embiggen(
 
             tile_results = gen_img2img.generate(
                 prompt,
-                iterations     = 1,
-                seed           = seed,
-                sampler        = DDIMSampler(self.model, device=self.model.device),
-                steps          = steps,
-                cfg_scale      = cfg_scale,
-                conditioning   = conditioning,
-                ddim_eta       = ddim_eta,
-                image_callback = None,  # called only after the final image is generated
-                step_callback  = step_callback,   # called after each intermediate image is generated
-                width          = width,
-                height         = height,
-                init_image     = newinitimage,    # notice that init_image is different from init_img
-                mask_image     = None,
-                strength       = strength,
+                iterations=1,
+                seed=seed,
+                sampler=DDIMSampler(self.model, device=self.model.device),
+                steps=steps,
+                cfg_scale=cfg_scale,
+                conditioning=conditioning,
+                ddim_eta=ddim_eta,
+                image_callback=None,  # called only after the final image is generated
+                step_callback=step_callback,  # called after each intermediate image is generated
+                width=width,
+                height=height,
+                init_image=newinitimage,  # notice that init_image is different from init_img
+                mask_image=None,
+                strength=strength,
             )
 
             emb_tile_store.append(tile_results[0][0])
@@ -338,7 +343,8 @@ def embiggen(
             del newinitimage
 
         # Sanity check we have them all
-        if len(emb_tile_store) == (emb_tiles_x * emb_tiles_y) or (embiggen_tiles != [] and len(emb_tile_store) == len(embiggen_tiles)):
+        if len(emb_tile_store) == (emb_tiles_x * emb_tiles_y) or (
+                embiggen_tiles != [] and len(emb_tile_store) == len(embiggen_tiles)):
             outputsuperimage = Image.new(
                 "RGBA", (initsuperwidth, initsuperheight))
             if embiggen_tiles:
@@ -365,7 +371,7 @@ def embiggen(
                         left = initsuperwidth - width
                     else:
                         left = round(emb_column_i *
-                                        (width - overlap_size_x))
+                                     (width - overlap_size_x))
                     if emb_row_i + 1 == emb_tiles_y:
                         top = initsuperheight - height
                     else:
@@ -376,33 +382,33 @@ def embiggen(
                         # top of image
                         if emb_row_i == 0:
                             if emb_column_i == 0:
-                                if (tile+1) in embiggen_tiles:  # Look-ahead right
-                                    if (tile+emb_tiles_x) not in embiggen_tiles:  # Look-ahead down
+                                if (tile + 1) in embiggen_tiles:  # Look-ahead right
+                                    if (tile + emb_tiles_x) not in embiggen_tiles:  # Look-ahead down
                                         intileimage.putalpha(alphaLayerB)
                                     # Otherwise do nothing on this tile
-                                elif (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
+                                elif (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
                                     intileimage.putalpha(alphaLayerR)
                                 else:
                                     intileimage.putalpha(alphaLayerRBC)
                             elif emb_column_i == emb_tiles_x - 1:
-                                if (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down
+                                if (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down
                                     intileimage.putalpha(alphaLayerL)
                                 else:
                                     intileimage.putalpha(alphaLayerLBC)
                             else:
-                                if (tile+1) in embiggen_tiles:  # Look-ahead right
-                                    if (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down
+                                if (tile + 1) in embiggen_tiles:  # Look-ahead right
+                                    if (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down
                                         intileimage.putalpha(alphaLayerL)
                                     else:
                                         intileimage.putalpha(alphaLayerLBC)
-                                elif (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
+                                elif (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
                                     intileimage.putalpha(alphaLayerLR)
                                 else:
                                     intileimage.putalpha(alphaLayerABT)
                         # bottom of image
                         elif emb_row_i == emb_tiles_y - 1:
                             if emb_column_i == 0:
-                                if (tile+1) in embiggen_tiles: # Look-ahead right
+                                if (tile + 1) in embiggen_tiles:  # Look-ahead right
                                     intileimage.putalpha(alphaLayerTaC)
                                 else:
                                     intileimage.putalpha(alphaLayerRTC)
@@ -410,34 +416,34 @@ def embiggen(
                                 # No tiles to look ahead to
                                 intileimage.putalpha(alphaLayerLTC)
                             else:
-                                if (tile+1) in embiggen_tiles: # Look-ahead right
+                                if (tile + 1) in embiggen_tiles:  # Look-ahead right
                                     intileimage.putalpha(alphaLayerLTaC)
                                 else:
                                     intileimage.putalpha(alphaLayerABB)
                         # vertical middle of image
                         else:
                             if emb_column_i == 0:
-                                if (tile+1) in embiggen_tiles: # Look-ahead right
-                                    if (tile+emb_tiles_x) in embiggen_tiles: # Look-ahead down
+                                if (tile + 1) in embiggen_tiles:  # Look-ahead right
+                                    if (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down
                                         intileimage.putalpha(alphaLayerTaC)
                                     else:
                                         intileimage.putalpha(alphaLayerTB)
-                                elif (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
+                                elif (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
                                     intileimage.putalpha(alphaLayerRTC)
                                 else:
                                     intileimage.putalpha(alphaLayerABL)
                             elif emb_column_i == emb_tiles_x - 1:
-                                if (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down
+                                if (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down
                                     intileimage.putalpha(alphaLayerLTC)
                                 else:
                                     intileimage.putalpha(alphaLayerABR)
                             else:
-                                if (tile+1) in embiggen_tiles: # Look-ahead right
-                                    if (tile+emb_tiles_x) in embiggen_tiles: # Look-ahead down
+                                if (tile + 1) in embiggen_tiles:  # Look-ahead right
+                                    if (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down
                                         intileimage.putalpha(alphaLayerLTaC)
                                     else:
                                         intileimage.putalpha(alphaLayerABR)
-                                elif (tile+emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
+                                elif (tile + emb_tiles_x) in embiggen_tiles:  # Look-ahead down only
                                     intileimage.putalpha(alphaLayerABB)
                                 else:
                                     intileimage.putalpha(alphaLayerAA)
@@ -446,21 +452,23 @@ def embiggen(
                         if emb_row_i == 0 and emb_column_i >= 1:
                             intileimage.putalpha(alphaLayerL)
                         elif emb_row_i >= 1 and emb_column_i == 0:
-                            if emb_column_i + 1 == emb_tiles_x: # If we don't have anything that can be placed to the right
+                            if emb_column_i + 1 == emb_tiles_x:  # If we don't have anything that can be placed to the right
                                 intileimage.putalpha(alphaLayerT)
                             else:
                                 intileimage.putalpha(alphaLayerTaC)
                         else:
-                            if emb_column_i + 1 == emb_tiles_x: # If we don't have anything that can be placed to the right
+                            if emb_column_i + 1 == emb_tiles_x:  # If we don't have anything that can be placed to the right
                                 intileimage.putalpha(alphaLayerLTC)
                             else:
                                 intileimage.putalpha(alphaLayerLTaC)
                 # Layer tile onto final image
                 outputsuperimage.alpha_composite(intileimage, (left, top))
         else:
-            print(f'Error: could not find all Embiggen output tiles in memory? Something must have gone wrong with img2img generation.')
+            print(
+                f'Error: could not find all Embiggen output tiles in memory? Something must have gone wrong with img2img generation.')
 
         # after internal loops and patching up return Embiggen image
         return outputsuperimage
+
     # end of function declaration
     return make_image

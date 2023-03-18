@@ -119,8 +119,8 @@ class BaseModule(nn.Module, metaclass=ABCMeta):
                     update_init_info(
                         m,
                         init_info=f'Initialized by '
-                        f'user-defined `init_weights`'
-                        f' in {m.__class__.__name__} ')
+                                  f'user-defined `init_weights`'
+                                  f' in {m.__class__.__name__} ')
 
             self._is_init = True
         else:

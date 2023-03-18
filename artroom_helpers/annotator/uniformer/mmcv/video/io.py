@@ -8,7 +8,7 @@ from cv2 import (CAP_PROP_FOURCC, CAP_PROP_FPS, CAP_PROP_FRAME_COUNT,
                  CAP_PROP_POS_FRAMES, VideoWriter_fourcc)
 
 from annotator.uniformer.mmcv.utils import (check_file_exist, mkdir_or_exist, scandir,
-                        track_progress)
+                                            track_progress)
 
 
 class Cache:

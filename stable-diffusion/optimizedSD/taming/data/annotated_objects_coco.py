@@ -65,7 +65,7 @@ def load_annotations(annotations_json: List[Dict], image_descriptions: Dict[str,
         annotations[image_id].append(
             Annotation(
                 id=ann['id'],
-                area=bbox[2]*bbox[3],  # use bbox area
+                area=bbox[2] * bbox[3],  # use bbox area
                 is_group_of=ann['iscrowd'],
                 image_id=ann['image_id'],
                 bbox=bbox,

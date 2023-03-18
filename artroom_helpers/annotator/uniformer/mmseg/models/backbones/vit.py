@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from annotator.uniformer.mmcv.cnn import (Conv2d, Linear, build_activation_layer, build_norm_layer,
-                      constant_init, kaiming_init, normal_init)
+                                          constant_init, kaiming_init, normal_init)
 from annotator.uniformer.mmcv.runner import _load_checkpoint
 from annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 
@@ -79,7 +79,7 @@ class Attention(nn.Module):
         super(Attention, self).__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = qk_scale or head_dim**-0.5
+        self.scale = qk_scale or head_dim ** -0.5
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)

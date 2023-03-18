@@ -1,13 +1,12 @@
-
 '''
 This module defines a singleton object, "patchmatch" that
 wraps the actual patchmatch object. It respects the global
 "try_patchmatch" attribute, so that patchmatch loading can
 be suppressed or deferred
 '''
-import numpy as  np
+import numpy as np
 
-#! /usr/bin/env python3
+# ! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # File   : patch_match.py
 # Author : Jiayuan Mao
@@ -41,11 +40,10 @@ logger.setLevel(logging.INFO)
 
 # Create handlers
 stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.INFO) # TODO: make this user-configurable
+stream_handler.setLevel(logging.INFO)  # TODO: make this user-configurable
 stream_format = logging.Formatter('>> %(name)s: %(levelname)s - %(message)s')
 stream_handler.setFormatter(stream_format)
 logger.addHandler(stream_handler)
-
 
 __all__ = ['set_random_seed', 'set_verbose', 'inpaint', 'inpaint_regularity']
 
@@ -65,11 +63,13 @@ class CMatT(ctypes.Structure):
         ('dtype', ctypes.c_int)
     ]
 
+
 import tempfile
 from urllib.request import urlopen, Request
 import shutil
 from pathlib import Path
 from tqdm import tqdm
+
 
 def download_url_to_file(url, dst, hash_prefix=None, progress=True):
     r"""Download object at the given URL to a local path.
@@ -118,6 +118,7 @@ def download_url_to_file(url, dst, hash_prefix=None, progress=True):
         if os.path.exists(f.name):
             os.remove(f.name)
 
+
 import json
 import platform
 
@@ -160,17 +161,16 @@ try:
             if os.environ.get('INVOKEAI_DEBUG_PATCHMATCH'):
                 make_stdout = None
                 make_stderr = None
-            
+
             logger.info('Compiling and loading c extensions from "{}".'.format(osp.realpath(osp.dirname(__file__))))
             # subprocess.check_call(['./travis.sh'], cwd=osp.dirname(__file__))
             # TODO: pipe output to logger instead of just swallowing it
             subprocess.run("make clean && make",
-                cwd    = osp.dirname(__file__),
-                shell  = True,
-                check  = True,
-                stdout = make_stdout,
-                stderr = make_stderr)
-
+                           cwd=osp.dirname(__file__),
+                           shell=True,
+                           check=True,
+                           stdout=make_stdout,
+                           stderr=make_stderr)
 
     PMLIB = ctypes.CDLL(osp.join(osp.dirname(__file__), pypatchmatch_lib))
     patchmatch_available = True
@@ -197,11 +197,11 @@ try:
 
 
     def inpaint(
-        image: Union[np.ndarray, Image.Image],
-        mask: Optional[Union[np.ndarray, Image.Image]] = None,
-        *,
-        global_mask: Optional[Union[np.ndarray, Image.Image]] = None,
-        patch_size: int = 15
+            image: Union[np.ndarray, Image.Image],
+            mask: Optional[Union[np.ndarray, Image.Image]] = None,
+            *,
+            global_mask: Optional[Union[np.ndarray, Image.Image]] = None,
+            patch_size: int = 15
     ) -> np.ndarray:
         """
         PatchMatch based inpainting proposed in:
@@ -236,7 +236,8 @@ try:
             ret_pymat = PMLIB.PM_inpaint(np_to_pymat(image), np_to_pymat(mask), ctypes.c_int(patch_size))
         else:
             global_mask = _canonize_mask_array(global_mask)
-            ret_pymat = PMLIB.PM_inpaint2(np_to_pymat(image), np_to_pymat(mask), np_to_pymat(global_mask), ctypes.c_int(patch_size))
+            ret_pymat = PMLIB.PM_inpaint2(np_to_pymat(image), np_to_pymat(mask), np_to_pymat(global_mask),
+                                          ctypes.c_int(patch_size))
 
         ret_npmat = pymat_to_np(ret_pymat)
         PMLIB.PM_free_pymat(ret_pymat)
@@ -245,12 +246,12 @@ try:
 
 
     def inpaint_regularity(
-        image: Union[np.ndarray, Image.Image],
-        mask: Optional[Union[np.ndarray, Image.Image]],
-        ijmap: np.ndarray,
-        *,
-        global_mask: Optional[Union[np.ndarray, Image.Image]] = None,
-        patch_size: int = 15, guide_weight: float = 0.25
+            image: Union[np.ndarray, Image.Image],
+            mask: Optional[Union[np.ndarray, Image.Image]],
+            ijmap: np.ndarray,
+            *,
+            global_mask: Optional[Union[np.ndarray, Image.Image]] = None,
+            patch_size: int = 15, guide_weight: float = 0.25
     ) -> np.ndarray:
         if isinstance(image, Image.Image):
             image = np.array(image)
@@ -266,12 +267,14 @@ try:
         else:
             mask = _canonize_mask_array(mask)
 
-
         if global_mask is None:
-            ret_pymat = PMLIB.PM_inpaint_regularity(np_to_pymat(image), np_to_pymat(mask), np_to_pymat(ijmap), ctypes.c_int(patch_size), ctypes.c_float(guide_weight))
+            ret_pymat = PMLIB.PM_inpaint_regularity(np_to_pymat(image), np_to_pymat(mask), np_to_pymat(ijmap),
+                                                    ctypes.c_int(patch_size), ctypes.c_float(guide_weight))
         else:
             global_mask = _canonize_mask_array(global_mask)
-            ret_pymat = PMLIB.PM_inpaint2_regularity(np_to_pymat(image), np_to_pymat(mask), np_to_pymat(global_mask), np_to_pymat(ijmap), ctypes.c_int(patch_size), ctypes.c_float(guide_weight))
+            ret_pymat = PMLIB.PM_inpaint2_regularity(np_to_pymat(image), np_to_pymat(mask), np_to_pymat(global_mask),
+                                                     np_to_pymat(ijmap), ctypes.c_int(patch_size),
+                                                     ctypes.c_float(guide_weight))
 
         ret_npmat = pymat_to_np(ret_pymat)
         PMLIB.PM_free_pymat(ret_pymat)
@@ -297,7 +300,6 @@ try:
         ctypes.c_float,
         ctypes.c_double,
     ]
-
 
     dtype_np_to_pymat = {
         'uint8': 0,

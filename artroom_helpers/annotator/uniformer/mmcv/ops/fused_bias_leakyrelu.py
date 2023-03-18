@@ -210,7 +210,7 @@ class FusedBiasLeakyReLU(nn.Module):
             map. Defaults to 2**0.5.
     """
 
-    def __init__(self, num_channels, negative_slope=0.2, scale=2**0.5):
+    def __init__(self, num_channels, negative_slope=0.2, scale=2 ** 0.5):
         super(FusedBiasLeakyReLU, self).__init__()
 
         self.bias = nn.Parameter(torch.zeros(num_channels))
@@ -222,7 +222,7 @@ class FusedBiasLeakyReLU(nn.Module):
                                     self.scale)
 
 
-def fused_bias_leakyrelu(input, bias, negative_slope=0.2, scale=2**0.5):
+def fused_bias_leakyrelu(input, bias, negative_slope=0.2, scale=2 ** 0.5):
     """Fused bias leaky ReLU function.
 
     This function is introduced in the StyleGAN2:
@@ -254,8 +254,7 @@ def fused_bias_leakyrelu(input, bias, negative_slope=0.2, scale=2**0.5):
                                             negative_slope, scale)
 
 
-def bias_leakyrelu_ref(x, bias, negative_slope=0.2, scale=2**0.5):
-
+def bias_leakyrelu_ref(x, bias, negative_slope=0.2, scale=2 ** 0.5):
     if bias is not None:
         assert bias.ndim == 1
         assert bias.shape[0] == x.shape[1]

@@ -23,7 +23,7 @@ class GCHead(FCNHead):
     def __init__(self,
                  ratio=1 / 4.,
                  pooling_type='att',
-                 fusion_types=('channel_add', ),
+                 fusion_types=('channel_add',),
                  **kwargs):
         super(GCHead, self).__init__(num_convs=2, **kwargs)
         self.ratio = ratio

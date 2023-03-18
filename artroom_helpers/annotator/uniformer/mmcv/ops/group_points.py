@@ -92,7 +92,7 @@ class QueryAndGroup(nn.Module):
                     unique_cnt[i_batch, i_region] = num_unique
                     sample_ind = torch.randint(
                         0,
-                        num_unique, (self.sample_num - num_unique, ),
+                        num_unique, (self.sample_num - num_unique,),
                         dtype=torch.long)
                     all_ind = torch.cat((unique_ind, unique_ind[sample_ind]))
                     idx[i_batch, i_region, :] = all_ind
@@ -101,7 +101,7 @@ class QueryAndGroup(nn.Module):
         # (B, 3, npoint, sample_num)
         grouped_xyz = grouping_operation(xyz_trans, idx)
         grouped_xyz_diff = grouped_xyz - \
-            center_xyz.transpose(1, 2).unsqueeze(-1)  # relative offsets
+                           center_xyz.transpose(1, 2).unsqueeze(-1)  # relative offsets
         if self.normalize_xyz:
             grouped_xyz_diff /= self.max_radius
 

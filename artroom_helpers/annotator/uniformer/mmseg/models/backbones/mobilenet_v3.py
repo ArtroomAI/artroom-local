@@ -84,12 +84,12 @@ class MobileNetV3(nn.Module):
             if index not in range(0, len(self.arch_settings[arch]) + 2):
                 raise ValueError(
                     'the item in out_indices must in '
-                    f'range(0, {len(self.arch_settings[arch])+2}). '
+                    f'range(0, {len(self.arch_settings[arch]) + 2}). '
                     f'But received {index}')
 
         if frozen_stages not in range(-1, len(self.arch_settings[arch]) + 2):
             raise ValueError('frozen_stages must be in range(-1, '
-                             f'{len(self.arch_settings[arch])+2}). '
+                             f'{len(self.arch_settings[arch]) + 2}). '
                              f'But received {frozen_stages}')
         self.arch = arch
         self.conv_cfg = conv_cfg

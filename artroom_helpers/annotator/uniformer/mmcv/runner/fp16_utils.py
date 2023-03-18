@@ -333,7 +333,7 @@ class LossScaler:
     """
 
     def __init__(self,
-                 init_scale=2**32,
+                 init_scale=2 ** 32,
                  mode='dynamic',
                  scale_factor=2.,
                  scale_window=1000):

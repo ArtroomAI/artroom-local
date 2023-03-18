@@ -28,7 +28,6 @@ else:
         else:
             return func
 
-
 if TORCH_VERSION == 'parrots':
     from parrots.utils.tester import skip_no_elena
 else:

@@ -3,11 +3,11 @@ import sys
 import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
-from  torch.nn import  functional as F
+from torch.nn import functional as F
 
 
 class BlockTypeA(nn.Module):
-    def __init__(self, in_c1, in_c2, out_c1, out_c2, upscale = True):
+    def __init__(self, in_c1, in_c2, out_c1, out_c2, upscale=True):
         super(BlockTypeA, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_c2, out_c2, kernel_size=1),
@@ -25,7 +25,7 @@ class BlockTypeA(nn.Module):
         b = self.conv1(b)
         a = self.conv2(a)
         if self.upscale:
-             b = F.interpolate(b, scale_factor=2.0, mode='bilinear', align_corners=True)
+            b = F.interpolate(b, scale_factor=2.0, mode='bilinear', align_corners=True)
         return torch.cat((a, b), dim=1)
 
 
@@ -33,7 +33,7 @@ class BlockTypeB(nn.Module):
     def __init__(self, in_c, out_c):
         super(BlockTypeB, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_c, in_c,  kernel_size=3, padding=1),
+            nn.Conv2d(in_c, in_c, kernel_size=3, padding=1),
             nn.BatchNorm2d(in_c),
             nn.ReLU()
         )
@@ -48,16 +48,17 @@ class BlockTypeB(nn.Module):
         x = self.conv2(x)
         return x
 
+
 class BlockTypeC(nn.Module):
     def __init__(self, in_c, out_c):
         super(BlockTypeC, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_c, in_c,  kernel_size=3, padding=5, dilation=5),
+            nn.Conv2d(in_c, in_c, kernel_size=3, padding=5, dilation=5),
             nn.BatchNorm2d(in_c),
             nn.ReLU()
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_c, in_c,  kernel_size=3, padding=1),
+            nn.Conv2d(in_c, in_c, kernel_size=3, padding=1),
             nn.BatchNorm2d(in_c),
             nn.ReLU()
         )
@@ -68,6 +69,7 @@ class BlockTypeC(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         return x
+
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -93,7 +95,7 @@ class ConvBNReLU(nn.Sequential):
     def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
         self.channel_pad = out_planes - in_planes
         self.stride = stride
-        #padding = (kernel_size - 1) // 2
+        # padding = (kernel_size - 1) // 2
 
         # TFLite uses slightly different padding than PyTorch
         if stride == 2:
@@ -108,12 +110,11 @@ class ConvBNReLU(nn.Sequential):
         )
         self.max_pool = nn.MaxPool2d(kernel_size=stride, stride=stride)
 
-
     def forward(self, x):
         # TFLite uses  different padding
         if self.stride == 2:
             x = F.pad(x, (0, 1, 0, 1), "constant", 0)
-            #print(x.shape)
+            # print(x.shape)
 
         for module in self:
             if not isinstance(module, nn.MaxPool2d):
@@ -177,8 +178,8 @@ class MobileNetV2(nn.Module):
             [6, 32, 3, 2],
             [6, 64, 4, 2],
             [6, 96, 3, 1],
-            #[6, 160, 3, 2],
-            #[6, 320, 1, 1],
+            # [6, 160, 3, 2],
+            # [6, 320, 1, 1],
         ]
 
         # only check the first element, assuming user knows t,c,n,s are required
@@ -213,7 +214,7 @@ class MobileNetV2(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
         if pretrained:
-           self._load_pretrained_model()
+            self._load_pretrained_model()
 
     def _forward_impl(self, x):
         # This exists since TorchScript doesn't support inheritance, so the superclass method
@@ -228,7 +229,6 @@ class MobileNetV2(nn.Module):
 
         c1, c2, c3, c4, c5 = fpn_features
         return c1, c2, c3, c4, c5
-
 
     def forward(self, x):
         return self._forward_impl(x)
@@ -250,14 +250,14 @@ class MobileV2_MLSD_Large(nn.Module):
 
         self.backbone = MobileNetV2(pretrained=False)
         ## A, B
-        self.block15 = BlockTypeA(in_c1= 64, in_c2= 96,
-                                  out_c1= 64, out_c2=64,
+        self.block15 = BlockTypeA(in_c1=64, in_c2=96,
+                                  out_c1=64, out_c2=64,
                                   upscale=False)
         self.block16 = BlockTypeB(128, 64)
 
         ## A, B
-        self.block17 = BlockTypeA(in_c1 = 32,  in_c2 = 64,
-                                  out_c1= 64,  out_c2= 64)
+        self.block17 = BlockTypeA(in_c1=32, in_c2=64,
+                                  out_c1=64, out_c2=64)
         self.block18 = BlockTypeB(128, 64)
 
         ## A, B

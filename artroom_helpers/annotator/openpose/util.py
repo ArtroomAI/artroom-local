@@ -9,22 +9,23 @@ def padRightDownCorner(img, stride, padValue):
     w = img.shape[1]
 
     pad = 4 * [None]
-    pad[0] = 0 # up
-    pad[1] = 0 # left
-    pad[2] = 0 if (h % stride == 0) else stride - (h % stride) # down
-    pad[3] = 0 if (w % stride == 0) else stride - (w % stride) # right
+    pad[0] = 0  # up
+    pad[1] = 0  # left
+    pad[2] = 0 if (h % stride == 0) else stride - (h % stride)  # down
+    pad[3] = 0 if (w % stride == 0) else stride - (w % stride)  # right
 
     img_padded = img
-    pad_up = np.tile(img_padded[0:1, :, :]*0 + padValue, (pad[0], 1, 1))
+    pad_up = np.tile(img_padded[0:1, :, :] * 0 + padValue, (pad[0], 1, 1))
     img_padded = np.concatenate((pad_up, img_padded), axis=0)
-    pad_left = np.tile(img_padded[:, 0:1, :]*0 + padValue, (1, pad[1], 1))
+    pad_left = np.tile(img_padded[:, 0:1, :] * 0 + padValue, (1, pad[1], 1))
     img_padded = np.concatenate((pad_left, img_padded), axis=1)
-    pad_down = np.tile(img_padded[-2:-1, :, :]*0 + padValue, (pad[2], 1, 1))
+    pad_down = np.tile(img_padded[-2:-1, :, :] * 0 + padValue, (pad[2], 1, 1))
     img_padded = np.concatenate((img_padded, pad_down), axis=0)
-    pad_right = np.tile(img_padded[:, -2:-1, :]*0 + padValue, (1, pad[3], 1))
+    pad_right = np.tile(img_padded[:, -2:-1, :] * 0 + padValue, (1, pad[3], 1))
     img_padded = np.concatenate((img_padded, pad_right), axis=1)
 
     return img_padded, pad
+
 
 # transfer caffe model to pytorch which will match the layer name
 def transfer(model, model_weights):
@@ -32,6 +33,7 @@ def transfer(model, model_weights):
     for weights_name in model.state_dict().keys():
         transfered_model_weights[weights_name] = model_weights['.'.join(weights_name.split('.')[1:])]
     return transfered_model_weights
+
 
 # draw the body keypoint and lims
 def draw_bodypose(canvas, candidate, subset):
@@ -77,10 +79,11 @@ def draw_handpose(canvas, all_hand_peaks, show_number=False):
 
     for peaks in all_hand_peaks:
         for ie, e in enumerate(edges):
-            if np.sum(np.all(peaks[e], axis=1)==0)==0:
+            if np.sum(np.all(peaks[e], axis=1) == 0) == 0:
                 x1, y1 = peaks[e[0]]
                 x2, y2 = peaks[e[1]]
-                cv2.line(canvas, (x1, y1), (x2, y2), matplotlib.colors.hsv_to_rgb([ie/float(len(edges)), 1.0, 1.0])*255, thickness=2)
+                cv2.line(canvas, (x1, y1), (x2, y2),
+                         matplotlib.colors.hsv_to_rgb([ie / float(len(edges)), 1.0, 1.0]) * 255, thickness=2)
 
         for i, keyponit in enumerate(peaks):
             x, y = keyponit
@@ -88,6 +91,7 @@ def draw_handpose(canvas, all_hand_peaks, show_number=False):
             if show_number:
                 cv2.putText(canvas, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), lineType=cv2.LINE_AA)
     return canvas
+
 
 # detect hand according to body pose keypoints
 # please refer to https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/src/openpose/hand/handDetector.cpp
@@ -104,7 +108,7 @@ def handDetect(candidate, subset, oriImg):
         if not (has_left or has_right):
             continue
         hands = []
-        #left hand
+        # left hand
         if has_left:
             left_shoulder_index, left_elbow_index, left_wrist_index = person[[5, 6, 7]]
             x1, y1 = candidate[left_shoulder_index][:2]
@@ -154,6 +158,7 @@ def handDetect(candidate, subset, oriImg):
     x, y is the coordinate of top left 
     '''
     return detect_result
+
 
 # get max index of 2d array
 def npmax(array):

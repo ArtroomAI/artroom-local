@@ -172,27 +172,45 @@ def flow_warp(img, flow, filling_value=0, interpolate_mode='nearest'):
 
     if interpolate_mode == 'nearest':
         output[valid, :] = img[dx[valid].round().astype(int),
-                               dy[valid].round().astype(int), :]
+                           dy[valid].round().astype(int), :]
     elif interpolate_mode == 'bilinear':
         # dirty walkround for integer positions
         eps_ = 1e-6
         dx, dy = dx + eps_, dy + eps_
         left_top_ = img[np.floor(dx[valid]).astype(int),
-                        np.floor(dy[valid]).astype(int), :] * (
-                            np.ceil(dx[valid]) - dx[valid])[:, None] * (
-                                np.ceil(dy[valid]) - dy[valid])[:, None]
+                    np.floor(dy[valid]).astype(int), :] * (
+                                                                  np.ceil(dx[valid]) - dx[valid])[:, None] * (
+                                                                                                                     np.ceil(
+                                                                                                                         dy[
+                                                                                                                             valid]) -
+                                                                                                                     dy[
+                                                                                                                         valid])[
+                                                                                                             :, None]
         left_down_ = img[np.ceil(dx[valid]).astype(int),
-                         np.floor(dy[valid]).astype(int), :] * (
-                             dx[valid] - np.floor(dx[valid]))[:, None] * (
-                                 np.ceil(dy[valid]) - dy[valid])[:, None]
+                     np.floor(dy[valid]).astype(int), :] * (
+                                                                   dx[valid] - np.floor(dx[valid]))[:, None] * (
+                                                                                                                       np.ceil(
+                                                                                                                           dy[
+                                                                                                                               valid]) -
+                                                                                                                       dy[
+                                                                                                                           valid])[
+                                                                                                               :, None]
         right_top_ = img[np.floor(dx[valid]).astype(int),
-                         np.ceil(dy[valid]).astype(int), :] * (
-                             np.ceil(dx[valid]) - dx[valid])[:, None] * (
-                                 dy[valid] - np.floor(dy[valid]))[:, None]
+                     np.ceil(dy[valid]).astype(int), :] * (
+                                                                  np.ceil(dx[valid]) - dx[valid])[:, None] * (
+                                                                                                                     dy[
+                                                                                                                         valid] - np.floor(
+                                                                                                                 dy[
+                                                                                                                     valid]))[
+                                                                                                             :, None]
         right_down_ = img[np.ceil(dx[valid]).astype(int),
-                          np.ceil(dy[valid]).astype(int), :] * (
-                              dx[valid] - np.floor(dx[valid]))[:, None] * (
-                                  dy[valid] - np.floor(dy[valid]))[:, None]
+                      np.ceil(dy[valid]).astype(int), :] * (
+                                                                   dx[valid] - np.floor(dx[valid]))[:, None] * (
+                                                                                                                       dy[
+                                                                                                                           valid] - np.floor(
+                                                                                                                   dy[
+                                                                                                                       valid]))[
+                                                                                                               :, None]
         output[valid, :] = left_top_ + left_down_ + right_top_ + right_down_
     else:
         raise NotImplementedError(
@@ -250,5 +268,5 @@ def sparse_flow_from_bytes(content):
     flow = flow[:, :, ::-1].astype(np.float32)
     # flow shape (H, W, 2) valid shape (H, W)
     flow, valid = flow[:, :, :2], flow[:, :, 2]
-    flow = (flow - 2**15) / 64.0
+    flow = (flow - 2 ** 15) / 64.0
     return flow, valid

@@ -1,6 +1,6 @@
 import torch.nn as nn
 from annotator.uniformer.mmcv.cnn import (build_conv_layer, build_norm_layer, constant_init,
-                      kaiming_init)
+                                          kaiming_init)
 from annotator.uniformer.mmcv.runner import load_checkpoint
 from annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 
@@ -142,7 +142,7 @@ class HRModule(nn.Module):
                             build_norm_layer(self.norm_cfg, in_channels[i])[1],
                             # we set align_corners=False for HRNet
                             Upsample(
-                                scale_factor=2**(j - i),
+                                scale_factor=2 ** (j - i),
                                 mode='bilinear',
                                 align_corners=False)))
                 elif j == i:

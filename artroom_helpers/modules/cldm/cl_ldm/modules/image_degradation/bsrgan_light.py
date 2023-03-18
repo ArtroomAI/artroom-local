@@ -25,6 +25,7 @@ import artroom_helpers.modules.cldm.cl_ldm.modules.image_degradation.utils_image
 # --------------------------------------------
 """
 
+
 def modcrop_np(img, sf):
     '''
     Args:
@@ -325,8 +326,8 @@ def add_blur(img, sf=4):
     wd2 = 4.0 + sf
     wd = 2.0 + 0.2 * sf
 
-    wd2 = wd2/4
-    wd = wd/4
+    wd2 = wd2 / 4
+    wd = wd / 4
 
     if random.random() < 0.5:
         l1 = wd2 * random.random()
@@ -617,11 +618,10 @@ def degradation_bsrgan_variant(image, sf=4, isp_model=None, up=False):
     image = add_JPEG_noise(image)
     image = util.single2uint(image)
     if up:
-        image = cv2.resize(image, (w1, h1), interpolation=cv2.INTER_CUBIC)  # todo: random, as above? want to condition on it then
+        image = cv2.resize(image, (w1, h1),
+                           interpolation=cv2.INTER_CUBIC)  # todo: random, as above? want to condition on it then
     example = {"image": image}
     return example
-
-
 
 
 if __name__ == '__main__':
@@ -638,7 +638,8 @@ if __name__ == '__main__':
         img_lq = deg_fn(img)["image"]
         img_hq, img_lq = util.uint2single(img_hq), util.uint2single(img_lq)
         print(img_lq)
-        img_lq_bicubic = albumentations.SmallestMaxSize(max_size=h, interpolation=cv2.INTER_CUBIC)(image=img_hq)["image"]
+        img_lq_bicubic = albumentations.SmallestMaxSize(max_size=h, interpolation=cv2.INTER_CUBIC)(image=img_hq)[
+            "image"]
         print(img_lq.shape)
         print("bicubic", img_lq_bicubic.shape)
         print(img_hq.shape)

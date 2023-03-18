@@ -60,7 +60,7 @@ class KeyNotFoundError(Exception):
 
 
 def retrieve(
-    list_or_dict, key, splitval="/", default=None, expand=True, pass_success=False
+        list_or_dict, key, splitval="/", default=None, expand=True, pass_success=False
 ):
     """Given a nested list or dict return the desired value at key expanding
     callable nodes if necessary and :attr:`expand` is ``True``. The expansion
@@ -151,7 +151,7 @@ if __name__ == "__main__":
                    }
               }
     from omegaconf import OmegaConf
+
     config = OmegaConf.create(config)
     print(config)
     retrieve(config, "keya")
-

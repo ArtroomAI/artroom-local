@@ -79,9 +79,9 @@ class ObjectsCenterPointsConditionalBuilder:
         table_of_content = grouper(conditional_list, self.object_descriptor_length)
         assert conditional.shape[0] == self.embedding_dim
         return [
-            (object_tuple[0], self.coordinates_from_token(object_tuple[1]))
-            for object_tuple in table_of_content if object_tuple[0] != self.none
-        ], crop_coordinates
+                   (object_tuple[0], self.coordinates_from_token(object_tuple[1]))
+                   for object_tuple in table_of_content if object_tuple[0] != self.none
+               ], crop_coordinates
 
     def plot(self, conditional: LongTensor, label_for_category_no: Callable[[int], str], figure_size: Tuple[int, int],
              line_width: int = 3, font_size: Optional[int] = None) -> Tensor:

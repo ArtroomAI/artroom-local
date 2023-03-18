@@ -117,7 +117,7 @@ class AssignScoreWithK(Function):
             aggregate=agg)
 
         return grad_scores, grad_point_features, \
-            grad_center_features, None, None
+               grad_center_features, None, None
 
 
 assign_score_withk = AssignScoreWithK.apply

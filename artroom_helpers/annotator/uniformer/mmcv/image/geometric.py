@@ -422,13 +422,13 @@ def imcrop(img, bboxes, scale=1.0, pad_fill=None):
                 patch_shape = (_y2 - _y1 + 1, _x2 - _x1 + 1, chn)
             patch = np.array(
                 pad_fill, dtype=img.dtype) * np.ones(
-                    patch_shape, dtype=img.dtype)
+                patch_shape, dtype=img.dtype)
             x_start = 0 if _x1 >= 0 else -_x1
             y_start = 0 if _y1 >= 0 else -_y1
             w = x2 - x1 + 1
             h = y2 - y1 + 1
             patch[y_start:y_start + h, x_start:x_start + w,
-                  ...] = img[y1:y1 + h, x1:x1 + w, ...]
+            ...] = img[y1:y1 + h, x1:x1 + w, ...]
         patches.append(patch)
 
     if bboxes.ndim == 1:
@@ -584,7 +584,7 @@ def cutout(img, shape, pad_val=0):
     img_cutout = img.copy()
     patch = np.array(
         pad_val, dtype=img.dtype) * np.ones(
-            patch_shape, dtype=img.dtype)
+        patch_shape, dtype=img.dtype)
     img_cutout[y1:y2, x1:x2, ...] = patch
 
     return img_cutout

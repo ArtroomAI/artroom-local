@@ -56,7 +56,7 @@ class ACM(nn.Module):
             norm_cfg=self.norm_cfg,
             act_cfg=self.act_cfg)
 
-        self.gla = nn.Conv2d(self.channels, self.pool_scale**2, 1, 1, 0)
+        self.gla = nn.Conv2d(self.channels, self.pool_scale ** 2, 1, 1, 0)
 
         self.residual_conv = ConvModule(
             self.channels,
@@ -90,7 +90,7 @@ class ACM(nn.Module):
         affinity_matrix = self.gla(x + resize(
             self.global_info(F.adaptive_avg_pool2d(x, 1)), size=x.shape[2:])
                                    ).permute(0, 2, 3, 1).reshape(
-                                       batch_size, -1, self.pool_scale**2)
+            batch_size, -1, self.pool_scale ** 2)
         affinity_matrix = F.sigmoid(affinity_matrix)
         # [batch_size, h * w, channels]
         z_out = torch.matmul(affinity_matrix, pooled_x)

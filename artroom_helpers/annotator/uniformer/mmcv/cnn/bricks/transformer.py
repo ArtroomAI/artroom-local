@@ -16,12 +16,14 @@ from .registry import (ATTENTION, FEEDFORWARD_NETWORK, POSITIONAL_ENCODING,
 # Avoid BC-breaking of importing MultiScaleDeformableAttention from this file
 try:
     from annotator.uniformer.mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention  # noqa F401
+
     warnings.warn(
         ImportWarning(
             '``MultiScaleDeformableAttention`` has been moved to '
             '``mmcv.ops.multi_scale_deform_attn``, please change original path '  # noqa E501
             '``from annotator.uniformer.mmcv.cnn.bricks.transformer import MultiScaleDeformableAttention`` '  # noqa E501
-            'to ``from annotator.uniformer.mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention`` '  # noqa E501
+            'to ``from annotator.uniformer.mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention`` '
+            # noqa E501
         ))
 
 except ImportError:
@@ -243,7 +245,7 @@ class FFN(BaseModule):
                  **kwargs):
         super(FFN, self).__init__(init_cfg)
         assert num_fcs >= 2, 'num_fcs should be no less ' \
-            f'than 2. got {num_fcs}.'
+                             f'than 2. got {num_fcs}.'
         self.embed_dims = embed_dims
         self.feedforward_channels = feedforward_channels
         self.num_fcs = num_fcs
@@ -351,10 +353,10 @@ class BaseTransformerLayer(BaseModule):
 
         assert set(operation_order) & set(
             ['self_attn', 'norm', 'ffn', 'cross_attn']) == \
-            set(operation_order), f'The operation_order of' \
-            f' {self.__class__.__name__} should ' \
-            f'contains all four operation type ' \
-            f"{['self_attn', 'norm', 'ffn', 'cross_attn']}"
+               set(operation_order), f'The operation_order of' \
+                                     f' {self.__class__.__name__} should ' \
+                                     f'contains all four operation type ' \
+                                     f"{['self_attn', 'norm', 'ffn', 'cross_attn']}"
 
         num_attn = operation_order.count('self_attn') + operation_order.count(
             'cross_attn')
@@ -362,9 +364,9 @@ class BaseTransformerLayer(BaseModule):
             attn_cfgs = [copy.deepcopy(attn_cfgs) for _ in range(num_attn)]
         else:
             assert num_attn == len(attn_cfgs), f'The length ' \
-                f'of attn_cfg {num_attn} is ' \
-                f'not consistent with the number of attention' \
-                f'in operation_order {operation_order}.'
+                                               f'of attn_cfg {num_attn} is ' \
+                                               f'not consistent with the number of attention' \
+                                               f'in operation_order {operation_order}.'
 
         self.num_attn = num_attn
         self.operation_order = operation_order
@@ -464,9 +466,9 @@ class BaseTransformerLayer(BaseModule):
                           f'{self.__class__.__name__} ')
         else:
             assert len(attn_masks) == self.num_attn, f'The length of ' \
-                        f'attn_masks {len(attn_masks)} must be equal ' \
-                        f'to the number of attention in ' \
-                        f'operation_order {self.num_attn}'
+                                                     f'attn_masks {len(attn_masks)} must be equal ' \
+                                                     f'to the number of attention in ' \
+                                                     f'operation_order {self.num_attn}'
 
         for layer in self.operation_order:
             if layer == 'self_attn':

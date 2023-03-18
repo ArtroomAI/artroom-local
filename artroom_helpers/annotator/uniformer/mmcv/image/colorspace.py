@@ -234,8 +234,8 @@ def ycbcr2rgb(img):
     out_img = np.matmul(img, [[0.00456621, 0.00456621, 0.00456621],
                               [0, -0.00153632, 0.00791071],
                               [0.00625893, -0.00318811, 0]]) * 255.0 + [
-                                  -222.921, 135.576, -276.836
-                              ]
+                  -222.921, 135.576, -276.836
+              ]
     out_img = _convert_output_type_range(out_img, img_type)
     return out_img
 
@@ -266,14 +266,13 @@ def ycbcr2bgr(img):
     out_img = np.matmul(img, [[0.00456621, 0.00456621, 0.00456621],
                               [0.00791071, -0.00153632, 0],
                               [0, -0.00318811, 0.00625893]]) * 255.0 + [
-                                  -276.836, 135.576, -222.921
-                              ]
+                  -276.836, 135.576, -222.921
+              ]
     out_img = _convert_output_type_range(out_img, img_type)
     return out_img
 
 
 def convert_color_factory(src, dst):
-
     code = getattr(cv2, f'COLOR_{src.upper()}2{dst.upper()}')
 
     def convert_color(img):

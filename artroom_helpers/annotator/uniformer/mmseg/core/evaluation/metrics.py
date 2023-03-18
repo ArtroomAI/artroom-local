@@ -17,8 +17,8 @@ def f_score(precision, recall, beta=1):
     Returns:
         [torch.tensor]: The f-score value.
     """
-    score = (1 + beta**2) * (precision * recall) / (
-        (beta**2 * precision) + recall)
+    score = (1 + beta ** 2) * (precision * recall) / (
+            (beta ** 2 * precision) + recall)
     return score
 
 
@@ -113,10 +113,10 @@ def total_intersect_and_union(results,
     """
     num_imgs = len(results)
     assert len(gt_seg_maps) == num_imgs
-    total_area_intersect = torch.zeros((num_classes, ), dtype=torch.float64)
-    total_area_union = torch.zeros((num_classes, ), dtype=torch.float64)
-    total_area_pred_label = torch.zeros((num_classes, ), dtype=torch.float64)
-    total_area_label = torch.zeros((num_classes, ), dtype=torch.float64)
+    total_area_intersect = torch.zeros((num_classes,), dtype=torch.float64)
+    total_area_union = torch.zeros((num_classes,), dtype=torch.float64)
+    total_area_pred_label = torch.zeros((num_classes,), dtype=torch.float64)
+    total_area_label = torch.zeros((num_classes,), dtype=torch.float64)
     for i in range(num_imgs):
         area_intersect, area_union, area_pred_label, area_label = \
             intersect_and_union(
@@ -127,7 +127,7 @@ def total_intersect_and_union(results,
         total_area_pred_label += area_pred_label
         total_area_label += area_label
     return total_area_intersect, total_area_union, total_area_pred_label, \
-        total_area_label
+           total_area_label
 
 
 def mean_iou(results,
@@ -288,9 +288,9 @@ def eval_metrics(results,
         raise KeyError('metrics {} is not supported'.format(metrics))
 
     total_area_intersect, total_area_union, total_area_pred_label, \
-        total_area_label = total_intersect_and_union(
-            results, gt_seg_maps, num_classes, ignore_index, label_map,
-            reduce_zero_label)
+    total_area_label = total_intersect_and_union(
+        results, gt_seg_maps, num_classes, ignore_index, label_map,
+        reduce_zero_label)
     all_acc = total_area_intersect.sum() / total_area_label.sum()
     ret_metrics = OrderedDict({'aAcc': all_acc})
     for metric in metrics:
@@ -301,7 +301,7 @@ def eval_metrics(results,
             ret_metrics['Acc'] = acc
         elif metric == 'mDice':
             dice = 2 * total_area_intersect / (
-                total_area_pred_label + total_area_label)
+                    total_area_pred_label + total_area_label)
             acc = total_area_intersect / total_area_label
             ret_metrics['Dice'] = dice
             ret_metrics['Acc'] = acc

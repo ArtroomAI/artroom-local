@@ -20,13 +20,15 @@ from torchvision.utils import make_grid
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from omegaconf import ListConfig
 
-from artroom_helpers.modules.cldm.cl_ldm.util import log_txt_as_img, exists, default, ismap, isimage, mean_flat, count_params, instantiate_from_config
+from artroom_helpers.modules.cldm.cl_ldm.util import log_txt_as_img, exists, default, ismap, isimage, mean_flat, \
+    count_params, instantiate_from_config
 from artroom_helpers.modules.cldm.cl_ldm.modules.ema import LitEma
-from artroom_helpers.modules.cldm.cl_ldm.modules.distributions.distributions import normal_kl, DiagonalGaussianDistribution
+from artroom_helpers.modules.cldm.cl_ldm.modules.distributions.distributions import normal_kl, \
+    DiagonalGaussianDistribution
 from artroom_helpers.modules.cldm.cl_ldm.models.autoencoder import IdentityFirstStage, AutoencoderKL
-from artroom_helpers.modules.cldm.cl_ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor, noise_like
+from artroom_helpers.modules.cldm.cl_ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor, \
+    noise_like
 from artroom_helpers.modules.cldm.cl_ldm.models.diffusion.ddim import DDIMSampler
-
 
 __conditioning_keys__ = {'concat': 'c_concat',
                          'crossattn': 'c_crossattn',
@@ -112,7 +114,8 @@ class DDPM(pl.LightningModule):
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys, only_model=load_only_unet)
             if reset_ema:
                 assert self.use_ema
-                print(f"Resetting ema to pure model weights. This is useful when restoring from an ema-only checkpoint.")
+                print(
+                    f"Resetting ema to pure model weights. This is useful when restoring from an ema-only checkpoint.")
                 self.model_ema = LitEma(self.model)
         if reset_num_ema_updates:
             print(" +++++++++++ WARNING: RESETTING NUM_EMA UPDATES TO ZERO +++++++++++ ")
@@ -1463,7 +1466,7 @@ class LatentUpscaleDiffusion(LatentDiffusion):
                     uc[k] = [uc_tmp]
                 elif k == "c_adm":  # todo: only run with text-based guidance?
                     assert isinstance(c[k], torch.Tensor)
-                    #uc[k] = torch.ones_like(c[k]) * self.low_scale_model.max_noise_level
+                    # uc[k] = torch.ones_like(c[k]) * self.low_scale_model.max_noise_level
                     uc[k] = c[k]
                 elif isinstance(c[k], list):
                     uc[k] = [c[k][i] for i in range(len(c[k]))]
@@ -1739,6 +1742,7 @@ class LatentUpscaleFinetuneDiffusion(LatentFinetuneDiffusion):
     """
         condition on low-res image (and optionally on some spatial noise augmentation)
     """
+
     def __init__(self, concat_keys=("lr",), reshuffle_patch_size=None,
                  low_scale_config=None, low_scale_key=None, *args, **kwargs):
         super().__init__(concat_keys=concat_keys, *args, **kwargs)

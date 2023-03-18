@@ -92,7 +92,7 @@ class LrUpdaterHook(Hook):
                                                            self.warmup_ratio)
                 warmup_lr = [_lr * (1 - k) for _lr in regular_lr]
             elif self.warmup == 'exp':
-                k = self.warmup_ratio**(1 - cur_iters / self.warmup_iters)
+                k = self.warmup_ratio ** (1 - cur_iters / self.warmup_iters)
                 warmup_lr = [_lr * k for _lr in regular_lr]
             return warmup_lr
 
@@ -203,7 +203,7 @@ class StepLrUpdaterHook(LrUpdaterHook):
                     exp = i
                     break
 
-        lr = base_lr * (self.gamma**exp)
+        lr = base_lr * (self.gamma ** exp)
         if self.min_lr is not None:
             # clip to a minimum value
             lr = max(lr, self.min_lr)
@@ -219,7 +219,7 @@ class ExpLrUpdaterHook(LrUpdaterHook):
 
     def get_lr(self, runner, base_lr):
         progress = runner.epoch if self.by_epoch else runner.iter
-        return base_lr * self.gamma**progress
+        return base_lr * self.gamma ** progress
 
 
 @HOOKS.register_module()
@@ -237,7 +237,7 @@ class PolyLrUpdaterHook(LrUpdaterHook):
         else:
             progress = runner.iter
             max_progress = runner.max_iters
-        coeff = (1 - progress / max_progress)**self.power
+        coeff = (1 - progress / max_progress) ** self.power
         return (base_lr - self.min_lr) * coeff + self.min_lr
 
 
@@ -251,7 +251,7 @@ class InvLrUpdaterHook(LrUpdaterHook):
 
     def get_lr(self, runner, base_lr):
         progress = runner.epoch if self.by_epoch else runner.iter
-        return base_lr * (1 + self.gamma * progress)**(-self.power)
+        return base_lr * (1 + self.gamma * progress) ** (-self.power)
 
 
 @HOOKS.register_module()

@@ -97,7 +97,7 @@ class GradientCumulativeOptimizerHook(OptimizerHook):
         residual_iters = runner.max_iters - runner.iter
 
         self.divisible_iters = (
-            residual_iters // self.cumulative_iters * self.cumulative_iters)
+                residual_iters // self.cumulative_iters * self.cumulative_iters)
         self.remainder_iters = residual_iters - self.divisible_iters
 
         self.initialized = True
@@ -237,6 +237,7 @@ if (TORCH_VERSION != 'parrots'
             # save state_dict of loss_scaler
             runner.meta.setdefault(
                 'fp16', {})['loss_scaler'] = self.loss_scaler.state_dict()
+
 
     @HOOKS.register_module()
     class GradientCumulativeFp16OptimizerHook(GradientCumulativeOptimizerHook,
@@ -434,6 +435,7 @@ else:
             # save state_dict of loss_scaler
             runner.meta.setdefault(
                 'fp16', {})['loss_scaler'] = self.loss_scaler.state_dict()
+
 
     @HOOKS.register_module()
     class GradientCumulativeFp16OptimizerHook(GradientCumulativeOptimizerHook,

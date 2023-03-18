@@ -7,8 +7,8 @@ from annotator.uniformer.mmcv.utils import TORCH_VERSION, build_from_cfg, digit_
 from .registry import ACTIVATION_LAYERS
 
 for module in [
-        nn.ReLU, nn.LeakyReLU, nn.PReLU, nn.RReLU, nn.ReLU6, nn.ELU,
-        nn.Sigmoid, nn.Tanh
+    nn.ReLU, nn.LeakyReLU, nn.PReLU, nn.RReLU, nn.ReLU6, nn.ELU,
+    nn.Sigmoid, nn.Tanh
 ]:
     ACTIVATION_LAYERS.register_module(module=module)
 

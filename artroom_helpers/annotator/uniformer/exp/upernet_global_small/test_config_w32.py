@@ -1,7 +1,7 @@
 _base_ = [
-    '../../configs/_base_/models/upernet_uniformer.py', 
+    '../../configs/_base_/models/upernet_uniformer.py',
     '../../configs/_base_/datasets/ade20k.py',
-    '../../configs/_base_/default_runtime.py', 
+    '../../configs/_base_/default_runtime.py',
     '../../configs/_base_/schedules/schedule_160k.py'
 ]
 model = dict(
@@ -36,4 +36,4 @@ lr_config = dict(_delete_=True, policy='poly',
                  warmup_ratio=1e-6,
                  power=1.0, min_lr=0.0, by_epoch=False)
 
-data=dict(samples_per_gpu=2)
+data = dict(samples_per_gpu=2)

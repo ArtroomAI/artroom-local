@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from annotator.uniformer.mmcv.cnn import (UPSAMPLE_LAYERS, ConvModule, build_activation_layer,
-                      build_norm_layer, constant_init, kaiming_init)
+                                          build_norm_layer, constant_init, kaiming_init)
 from annotator.uniformer.mmcv.runner import load_checkpoint
 from annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 
@@ -113,12 +113,12 @@ class DeconvModule(nn.Module):
                  scale_factor=2):
         super(DeconvModule, self).__init__()
 
-        assert (kernel_size - scale_factor >= 0) and\
-               (kernel_size - scale_factor) % 2 == 0,\
-               f'kernel_size should be greater than or equal to scale_factor '\
-               f'and (kernel_size - scale_factor) should be even numbers, '\
-               f'while the kernel size is {kernel_size} and scale_factor is '\
-               f'{scale_factor}.'
+        assert (kernel_size - scale_factor >= 0) and \
+               (kernel_size - scale_factor) % 2 == 0, \
+            f'kernel_size should be greater than or equal to scale_factor ' \
+            f'and (kernel_size - scale_factor) should be even numbers, ' \
+            f'while the kernel size is {kernel_size} and scale_factor is ' \
+            f'{scale_factor}.'
 
         stride = scale_factor
         padding = (kernel_size - scale_factor) // 2
@@ -296,34 +296,34 @@ class UNet(nn.Module):
         assert dcn is None, 'Not implemented yet.'
         assert plugins is None, 'Not implemented yet.'
         assert len(strides) == num_stages, \
-            'The length of strides should be equal to num_stages, '\
-            f'while the strides is {strides}, the length of '\
-            f'strides is {len(strides)}, and the num_stages is '\
+            'The length of strides should be equal to num_stages, ' \
+            f'while the strides is {strides}, the length of ' \
+            f'strides is {len(strides)}, and the num_stages is ' \
             f'{num_stages}.'
         assert len(enc_num_convs) == num_stages, \
-            'The length of enc_num_convs should be equal to num_stages, '\
-            f'while the enc_num_convs is {enc_num_convs}, the length of '\
-            f'enc_num_convs is {len(enc_num_convs)}, and the num_stages is '\
+            'The length of enc_num_convs should be equal to num_stages, ' \
+            f'while the enc_num_convs is {enc_num_convs}, the length of ' \
+            f'enc_num_convs is {len(enc_num_convs)}, and the num_stages is ' \
             f'{num_stages}.'
-        assert len(dec_num_convs) == (num_stages-1), \
-            'The length of dec_num_convs should be equal to (num_stages-1), '\
-            f'while the dec_num_convs is {dec_num_convs}, the length of '\
-            f'dec_num_convs is {len(dec_num_convs)}, and the num_stages is '\
+        assert len(dec_num_convs) == (num_stages - 1), \
+            'The length of dec_num_convs should be equal to (num_stages-1), ' \
+            f'while the dec_num_convs is {dec_num_convs}, the length of ' \
+            f'dec_num_convs is {len(dec_num_convs)}, and the num_stages is ' \
             f'{num_stages}.'
-        assert len(downsamples) == (num_stages-1), \
-            'The length of downsamples should be equal to (num_stages-1), '\
-            f'while the downsamples is {downsamples}, the length of '\
-            f'downsamples is {len(downsamples)}, and the num_stages is '\
+        assert len(downsamples) == (num_stages - 1), \
+            'The length of downsamples should be equal to (num_stages-1), ' \
+            f'while the downsamples is {downsamples}, the length of ' \
+            f'downsamples is {len(downsamples)}, and the num_stages is ' \
             f'{num_stages}.'
         assert len(enc_dilations) == num_stages, \
-            'The length of enc_dilations should be equal to num_stages, '\
-            f'while the enc_dilations is {enc_dilations}, the length of '\
-            f'enc_dilations is {len(enc_dilations)}, and the num_stages is '\
+            'The length of enc_dilations should be equal to num_stages, ' \
+            f'while the enc_dilations is {enc_dilations}, the length of ' \
+            f'enc_dilations is {len(enc_dilations)}, and the num_stages is ' \
             f'{num_stages}.'
-        assert len(dec_dilations) == (num_stages-1), \
-            'The length of dec_dilations should be equal to (num_stages-1), '\
-            f'while the dec_dilations is {dec_dilations}, the length of '\
-            f'dec_dilations is {len(dec_dilations)}, and the num_stages is '\
+        assert len(dec_dilations) == (num_stages - 1), \
+            'The length of dec_dilations should be equal to (num_stages-1), ' \
+            f'while the dec_dilations is {dec_dilations}, the length of ' \
+            f'dec_dilations is {len(dec_dilations)}, and the num_stages is ' \
             f'{num_stages}.'
         self.num_stages = num_stages
         self.strides = strides
@@ -343,9 +343,9 @@ class UNet(nn.Module):
                 self.decoder.append(
                     UpConvBlock(
                         conv_block=BasicConvBlock,
-                        in_channels=base_channels * 2**i,
-                        skip_channels=base_channels * 2**(i - 1),
-                        out_channels=base_channels * 2**(i - 1),
+                        in_channels=base_channels * 2 ** i,
+                        skip_channels=base_channels * 2 ** (i - 1),
+                        out_channels=base_channels * 2 ** (i - 1),
                         num_convs=dec_num_convs[i - 1],
                         stride=1,
                         dilation=dec_dilations[i - 1],
@@ -360,7 +360,7 @@ class UNet(nn.Module):
             enc_conv_block.append(
                 BasicConvBlock(
                     in_channels=in_channels,
-                    out_channels=base_channels * 2**i,
+                    out_channels=base_channels * 2 ** i,
                     num_convs=enc_num_convs[i],
                     stride=strides[i],
                     dilation=enc_dilations[i],
@@ -371,7 +371,7 @@ class UNet(nn.Module):
                     dcn=None,
                     plugins=None))
             self.encoder.append((nn.Sequential(*enc_conv_block)))
-            in_channels = base_channels * 2**i
+            in_channels = base_channels * 2 ** i
 
     def forward(self, x):
         self._check_input_divisible(x)
@@ -403,10 +403,10 @@ class UNet(nn.Module):
             if self.strides[i] == 2 or self.downsamples[i - 1]:
                 whole_downsample_rate *= 2
         assert (h % whole_downsample_rate == 0) \
-            and (w % whole_downsample_rate == 0),\
-            f'The input image size {(h, w)} should be divisible by the whole '\
-            f'downsample rate {whole_downsample_rate}, when num_stages is '\
-            f'{self.num_stages}, strides is {self.strides}, and downsamples '\
+               and (w % whole_downsample_rate == 0), \
+            f'The input image size {(h, w)} should be divisible by the whole ' \
+            f'downsample rate {whole_downsample_rate}, when num_stages is ' \
+            f'{self.num_stages}, strides is {self.strides}, and downsamples ' \
             f'is {self.downsamples}.'
 
     def init_weights(self, pretrained=None):

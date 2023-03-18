@@ -80,7 +80,7 @@ def scandir(dir_path, suffix=None, recursive=False, case_sensitive=True):
     return _scandir(dir_path, suffix, recursive, case_sensitive)
 
 
-def find_vcs_root(path, markers=('.git', )):
+def find_vcs_root(path, markers=('.git',)):
     """Finds the root directory (including itself) of specified markers.
 
     Args:

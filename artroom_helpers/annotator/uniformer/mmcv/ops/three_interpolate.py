@@ -45,7 +45,7 @@ class ThreeInterpolate(Function):
 
     @staticmethod
     def backward(
-        ctx, grad_out: torch.Tensor
+            ctx, grad_out: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Args:

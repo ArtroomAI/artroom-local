@@ -165,8 +165,8 @@ class DefaultOptimizerConstructor:
         is_norm = isinstance(module,
                              (_BatchNorm, _InstanceNorm, GroupNorm, LayerNorm))
         is_dwconv = (
-            isinstance(module, torch.nn.Conv2d)
-            and module.in_channels == module.groups)
+                isinstance(module, torch.nn.Conv2d)
+                and module.in_channels == module.groups)
 
         for name, param in module.named_parameters(recurse=False):
             param_group = {'params': [param]}

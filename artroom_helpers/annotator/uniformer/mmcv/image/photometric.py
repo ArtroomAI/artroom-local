@@ -281,7 +281,7 @@ def auto_contrast(img, cutoff=0):
         cutoff = (cutoff, cutoff)
     else:
         assert isinstance(cutoff, tuple), 'cutoff must be of type int, ' \
-            f'float or tuple, but got {type(cutoff)} instead.'
+                                          f'float or tuple, but got {type(cutoff)} instead.'
     # Auto adjusts contrast for each channel independently and then stacks
     # the result.
     s1 = _auto_contrast_channel(img, 0, cutoff)
@@ -363,7 +363,7 @@ def adjust_lighting(img, eigval, eigvec, alphastd=0.1, to_rgb=True):
     assert eigvec.shape == (3, eigval.shape[0])
     n_eigval = eigval.shape[0]
     assert isinstance(alphastd, float), 'alphastd should be of type float, ' \
-        f'got {type(alphastd)} instead.'
+                                        f'got {type(alphastd)} instead.'
 
     img = img.copy().astype(np.float32)
     if to_rgb:
@@ -371,8 +371,8 @@ def adjust_lighting(img, eigval, eigvec, alphastd=0.1, to_rgb=True):
 
     alpha = np.random.normal(0, alphastd, n_eigval)
     alter = eigvec \
-        * np.broadcast_to(alpha.reshape(1, n_eigval), (3, n_eigval)) \
-        * np.broadcast_to(eigval.reshape(1, n_eigval), (3, n_eigval))
+            * np.broadcast_to(alpha.reshape(1, n_eigval), (3, n_eigval)) \
+            * np.broadcast_to(eigval.reshape(1, n_eigval), (3, n_eigval))
     alter = np.broadcast_to(alter.sum(axis=1).reshape(1, 1, 3), img.shape)
     img_adjusted = img + alter
     return img_adjusted
@@ -397,7 +397,7 @@ def lut_transform(img, lut_table):
     assert isinstance(img, np.ndarray)
     assert 0 <= np.min(img) and np.max(img) <= 255
     assert isinstance(lut_table, np.ndarray)
-    assert lut_table.shape == (256, )
+    assert lut_table.shape == (256,)
 
     return cv2.LUT(np.array(img, dtype=np.uint8), lut_table)
 

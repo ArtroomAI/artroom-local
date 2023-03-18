@@ -10,8 +10,8 @@ from .midas.dpt_depth import DPTDepthModel
 from .midas.midas_net import MidasNet
 from .midas.midas_net_custom import MidasNet_small
 from .midas.transforms import Resize, NormalizeImage, PrepareForNet
-annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
 
+annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
 
 ISL_PATHS = {
     "dpt_large": os.path.join(annotator_ckpts_path, "dpt_large-midas-2f21e586.pt"),
@@ -166,4 +166,3 @@ class MiDaSInference(nn.Module):
         with torch.no_grad():
             prediction = self.model(x)
         return prediction
-

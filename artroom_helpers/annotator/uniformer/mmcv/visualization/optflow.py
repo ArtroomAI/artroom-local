@@ -44,18 +44,18 @@ def flow2rgb(flow, color_wheel=None, unknown_thr=1e6):
     dy = flow[:, :, 1].copy()
 
     ignore_inds = (
-        np.isnan(dx) | np.isnan(dy) | (np.abs(dx) > unknown_thr) |
-        (np.abs(dy) > unknown_thr))
+            np.isnan(dx) | np.isnan(dy) | (np.abs(dx) > unknown_thr) |
+            (np.abs(dy) > unknown_thr))
     dx[ignore_inds] = 0
     dy[ignore_inds] = 0
 
-    rad = np.sqrt(dx**2 + dy**2)
+    rad = np.sqrt(dx ** 2 + dy ** 2)
     if np.any(rad > np.finfo(float).eps):
         max_rad = np.max(rad)
         dx /= max_rad
         dy /= max_rad
 
-    rad = np.sqrt(dx**2 + dy**2)
+    rad = np.sqrt(dx ** 2 + dy ** 2)
     angle = np.arctan2(-dy, -dx) / np.pi
 
     bin_real = (angle + 1) / 2 * (num_bins - 1)

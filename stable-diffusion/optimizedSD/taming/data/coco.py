@@ -6,7 +6,7 @@ from PIL import Image
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
-from taming.data.sflckr import SegmentationBase # for examples included in repo
+from taming.data.sflckr import SegmentationBase  # for examples included in repo
 
 
 class Examples(SegmentationBase):
@@ -21,6 +21,7 @@ class Examples(SegmentationBase):
 
 class CocoBase(Dataset):
     """needed for (image, caption, segmentation) pairs"""
+
     def __init__(self, size=None, dataroot="", datajson="", onehot_segmentation=False, use_stuffthing=False,
                  crop_size=None, force_no_crop=False, given_files=None):
         self.split = self.get_split()
@@ -30,8 +31,8 @@ class CocoBase(Dataset):
         else:
             self.crop_size = crop_size
 
-        self.onehot = onehot_segmentation       # return segmentation as rgb or one hot
-        self.stuffthing = use_stuffthing        # include thing in segmentation
+        self.onehot = onehot_segmentation  # return segmentation as rgb or one hot
+        self.stuffthing = use_stuffthing  # include thing in segmentation
         if self.onehot and not self.stuffthing:
             raise NotImplemented("One hot mode is only supported for the "
                                  "stuffthings version because labels are stored "
@@ -77,7 +78,7 @@ class CocoBase(Dataset):
             self.img_id_to_captions[capdir["image_id"]].append(np.array([capdir["caption"]]))
 
         self.rescaler = albumentations.SmallestMaxSize(max_size=self.size)
-        if self.split=="validation":
+        if self.split == "validation":
             self.cropper = albumentations.CenterCrop(height=self.crop_size, width=self.crop_size)
         else:
             self.cropper = albumentations.RandomCrop(height=self.crop_size, width=self.crop_size)
@@ -144,12 +145,13 @@ class CocoBase(Dataset):
                    "img_path": img_path,
                    "seg_path": seg_path,
                    "filename_": img_path.split(os.sep)[-1]
-                    }
+                   }
         return example
 
 
 class CocoImagesAndCaptionsTrain(CocoBase):
     """returns a pair of (image, caption)"""
+
     def __init__(self, size, onehot_segmentation=False, use_stuffthing=False, crop_size=None, force_no_crop=False):
         super().__init__(size=size,
                          dataroot="data/coco/train2017",
@@ -163,6 +165,7 @@ class CocoImagesAndCaptionsTrain(CocoBase):
 
 class CocoImagesAndCaptionsValidation(CocoBase):
     """returns a pair of (image, caption)"""
+
     def __init__(self, size, onehot_segmentation=False, use_stuffthing=False, crop_size=None, force_no_crop=False,
                  given_files=None):
         super().__init__(size=size,

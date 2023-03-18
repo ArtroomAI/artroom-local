@@ -488,7 +488,7 @@ class CLAHE(object):
 
     def __repr__(self):
         repr_str = self.__class__.__name__
-        repr_str += f'(clip_limit={self.clip_limit}, '\
+        repr_str += f'(clip_limit={self.clip_limit}, ' \
                     f'tile_grid_size={self.tile_grid_size})'
         return repr_str
 
@@ -718,7 +718,7 @@ class AdjustGamma(object):
         assert gamma > 0
         self.gamma = gamma
         inv_gamma = 1.0 / gamma
-        self.table = np.array([(i / 255.0)**inv_gamma * 255
+        self.table = np.array([(i / 255.0) ** inv_gamma * 255
                                for i in np.arange(256)]).astype('uint8')
 
     def __call__(self, results):
@@ -840,8 +840,8 @@ class PhotoMetricDistortion(object):
         if random.randint(2):
             img = mmcv.bgr2hsv(img)
             img[:, :,
-                0] = (img[:, :, 0].astype(int) +
-                      random.randint(-self.hue_delta, self.hue_delta)) % 180
+            0] = (img[:, :, 0].astype(int) +
+                  random.randint(-self.hue_delta, self.hue_delta)) % 180
             img = mmcv.hsv2bgr(img)
         return img
 

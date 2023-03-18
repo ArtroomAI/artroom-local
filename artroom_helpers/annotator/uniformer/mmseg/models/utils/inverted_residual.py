@@ -41,7 +41,7 @@ class InvertedResidual(nn.Module):
         super(InvertedResidual, self).__init__()
         self.stride = stride
         assert stride in [1, 2], f'stride must in [1, 2]. ' \
-            f'But received {stride}.'
+                                 f'But received {stride}.'
         self.with_cp = with_cp
         self.use_res_connect = self.stride == 1 and in_channels == out_channels
         hidden_dim = int(round(in_channels * expand_ratio))

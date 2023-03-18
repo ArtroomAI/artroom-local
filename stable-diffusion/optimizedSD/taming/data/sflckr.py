@@ -28,7 +28,7 @@ class SegmentationBase(Dataset):
                                    for l in self.image_paths]
         }
 
-        size = None if size is not None and size<=0 else size
+        size = None if size is not None and size <= 0 else size
         self.size = size
         if self.size is not None:
             self.interpolation = interpolation
@@ -65,7 +65,7 @@ class SegmentationBase(Dataset):
         segmentation = np.array(segmentation).astype(np.uint8)
         if self.shift_segmentation:
             # used to support segmentations containing unlabeled==255 label
-            segmentation = segmentation+1
+            segmentation = segmentation + 1
         if self.size is not None:
             segmentation = self.segmentation_rescaler(image=segmentation)["image"]
         if self.size is not None:
@@ -76,7 +76,7 @@ class SegmentationBase(Dataset):
             processed = {"image": image,
                          "mask": segmentation
                          }
-        example["image"] = (processed["image"]/127.5 - 1.0).astype(np.float32)
+        example["image"] = (processed["image"] / 127.5 - 1.0).astype(np.float32)
         segmentation = processed["mask"]
         onehot = np.eye(self.n_labels)[segmentation]
         example["segmentation"] = onehot

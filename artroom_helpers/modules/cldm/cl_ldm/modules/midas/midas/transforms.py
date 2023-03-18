@@ -50,14 +50,14 @@ class Resize(object):
     """
 
     def __init__(
-        self,
-        width,
-        height,
-        resize_target=True,
-        keep_aspect_ratio=False,
-        ensure_multiple_of=1,
-        resize_method="lower_bound",
-        image_interpolation_method=cv2.INTER_AREA,
+            self,
+            width,
+            height,
+            resize_target=True,
+            keep_aspect_ratio=False,
+            ensure_multiple_of=1,
+            resize_method="lower_bound",
+            image_interpolation_method=cv2.INTER_AREA,
     ):
         """Init.
 

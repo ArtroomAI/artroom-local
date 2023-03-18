@@ -27,7 +27,7 @@ plat_table = (
 )
 
 arch_table = (
-    ('x86', ('i?86', )),
+    ('x86', ('i?86',)),
     ('x86_64', ('x64', 'x86_64', 'amd64', 'intel')),
     ('arm', ('armv5',)),
     ('armv6', ('armv6l',)),
@@ -56,6 +56,7 @@ class PytransformError(Exception):
 def dllmethod(func):
     def wrap(*args, **kwargs):
         return func(*args, **kwargs)
+
     return wrap
 
 
@@ -145,7 +146,7 @@ def get_hd_info(hdtype, name=None):
     buf = t_buf()
     cname = c_char_p(0 if name is None
                      else name.encode('utf-8') if hasattr('name', 'encode')
-                     else name)
+    else name)
     if (_pytransform.get_hd_info(hdtype, buf, size, cname) == -1):
         raise PytransformError('Get hardware information failed')
     return buf.value.decode()
@@ -163,7 +164,9 @@ def assert_armored(*names):
         def wrap_execute(*args, **kwargs):
             dlfunc(names)
             return func(*args, **kwargs)
+
         return wrap_execute
+
     return wrapper
 
 
@@ -191,7 +194,7 @@ def get_license_info():
     if rcode.startswith('*VERSION:'):
         index = rcode.find('\n')
         info['ISSUER'] = rcode[9:index].split('.')[0].replace('-sn-1.txt', '')
-        rcode = rcode[index+1:]
+        rcode = rcode[index + 1:]
 
     index = 0
     if rcode.startswith('*TIME:'):
@@ -216,7 +219,7 @@ def get_license_info():
     info['CODE'] = rcode[start:]
     i = info['CODE'].find(';')
     if i > 0:
-        info['DATA'] = info['CODE'][i+1:]
+        info['DATA'] = info['CODE'][i + 1:]
         info['CODE'] = info['CODE'][:i]
     return info
 
@@ -387,6 +390,7 @@ def generate_license_file(filename, priname, rcode, start=-1, count=1):
                   start, count) if sys.version_info[0] == 3 \
         else dlfunc(filename, priname, rcode, start, count)
 
+
 #
 # Not available from v5.6
 #
@@ -452,6 +456,7 @@ def generate_module_key(pubname, key):
     prototype = PYFUNCTYPE(py_object, c_char_p, t_key, c_char_p)
     dlfunc = prototype(('generate_module_key', _pytransform))
     return dlfunc(pubname.encode(), t_key(*key), None)
+
 
 #
 # Compatible for PyArmor v3.0

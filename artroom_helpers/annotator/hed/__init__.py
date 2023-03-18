@@ -67,11 +67,13 @@ class Network(torch.nn.Module):
             torch.nn.Sigmoid()
         )
 
-        self.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.load(model_path).items()})
+        self.load_state_dict(
+            {strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.load(model_path).items()})
 
     def forward(self, tenInput):
         tenInput = tenInput * 255.0
-        tenInput = tenInput - torch.tensor(data=[104.00698793, 116.66876762, 122.67891434], dtype=tenInput.dtype, device=tenInput.device).view(1, 3, 1, 1)
+        tenInput = tenInput - torch.tensor(data=[104.00698793, 116.66876762, 122.67891434], dtype=tenInput.dtype,
+                                           device=tenInput.device).view(1, 3, 1, 1)
 
         tenVggOne = self.netVggOne(tenInput)
         tenVggTwo = self.netVggTwo(tenVggOne)
@@ -85,13 +87,18 @@ class Network(torch.nn.Module):
         tenScoreFou = self.netScoreFou(tenVggFou)
         tenScoreFiv = self.netScoreFiv(tenVggFiv)
 
-        tenScoreOne = torch.nn.functional.interpolate(input=tenScoreOne, size=(tenInput.shape[2], tenInput.shape[3]), mode='bilinear', align_corners=False)
-        tenScoreTwo = torch.nn.functional.interpolate(input=tenScoreTwo, size=(tenInput.shape[2], tenInput.shape[3]), mode='bilinear', align_corners=False)
-        tenScoreThr = torch.nn.functional.interpolate(input=tenScoreThr, size=(tenInput.shape[2], tenInput.shape[3]), mode='bilinear', align_corners=False)
-        tenScoreFou = torch.nn.functional.interpolate(input=tenScoreFou, size=(tenInput.shape[2], tenInput.shape[3]), mode='bilinear', align_corners=False)
-        tenScoreFiv = torch.nn.functional.interpolate(input=tenScoreFiv, size=(tenInput.shape[2], tenInput.shape[3]), mode='bilinear', align_corners=False)
+        tenScoreOne = torch.nn.functional.interpolate(input=tenScoreOne, size=(tenInput.shape[2], tenInput.shape[3]),
+                                                      mode='bilinear', align_corners=False)
+        tenScoreTwo = torch.nn.functional.interpolate(input=tenScoreTwo, size=(tenInput.shape[2], tenInput.shape[3]),
+                                                      mode='bilinear', align_corners=False)
+        tenScoreThr = torch.nn.functional.interpolate(input=tenScoreThr, size=(tenInput.shape[2], tenInput.shape[3]),
+                                                      mode='bilinear', align_corners=False)
+        tenScoreFou = torch.nn.functional.interpolate(input=tenScoreFou, size=(tenInput.shape[2], tenInput.shape[3]),
+                                                      mode='bilinear', align_corners=False)
+        tenScoreFiv = torch.nn.functional.interpolate(input=tenScoreFiv, size=(tenInput.shape[2], tenInput.shape[3]),
+                                                      mode='bilinear', align_corners=False)
 
-        return self.netCombine(torch.cat([ tenScoreOne, tenScoreTwo, tenScoreThr, tenScoreFou, tenScoreFiv ], 1))
+        return self.netCombine(torch.cat([tenScoreOne, tenScoreTwo, tenScoreThr, tenScoreFou, tenScoreFiv], 1))
 
 
 class HEDdetector:

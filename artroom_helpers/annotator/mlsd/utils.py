@@ -13,21 +13,21 @@ import os
 import numpy as np
 import cv2
 import torch
-from  torch.nn import  functional as F
+from torch.nn import functional as F
 
 
-def deccode_output_score_and_ptss(tpMap, topk_n = 200, ksize = 5):
+def deccode_output_score_and_ptss(tpMap, topk_n=200, ksize=5):
     '''
     tpMap:
     center: tpMap[1, 0, :, :]
     displacement: tpMap[1, 1:5, :, :]
     '''
     b, c, h, w = tpMap.shape
-    assert  b==1, 'only support bsize==1'
+    assert b == 1, 'only support bsize==1'
     displacement = tpMap[:, 1:5, :, :][0]
     center = tpMap[:, 0, :, :]
     heat = torch.sigmoid(center)
-    hmax = F.max_pool2d( heat, (ksize, ksize), stride=1, padding=(ksize-1)//2)
+    hmax = F.max_pool2d(heat, (ksize, ksize), stride=1, padding=(ksize - 1) // 2)
     keep = (hmax == heat).float()
     heat = heat * keep
     heat = heat.reshape(-1, )
@@ -35,13 +35,13 @@ def deccode_output_score_and_ptss(tpMap, topk_n = 200, ksize = 5):
     scores, indices = torch.topk(heat, topk_n, dim=-1, largest=True)
     yy = torch.floor_divide(indices, w).unsqueeze(-1)
     xx = torch.fmod(indices, w).unsqueeze(-1)
-    ptss = torch.cat((yy, xx),dim=-1)
+    ptss = torch.cat((yy, xx), dim=-1)
 
-    ptss   = ptss.detach().cpu().numpy()
+    ptss = ptss.detach().cpu().numpy()
     scores = scores.detach().cpu().numpy()
     displacement = displacement.detach().cpu().numpy()
-    displacement = displacement.transpose((1,2,0))
-    return  ptss, scores, displacement
+    displacement = displacement.transpose((1, 2, 0))
+    return ptss, scores, displacement
 
 
 def pred_lines(image, model,
@@ -54,7 +54,7 @@ def pred_lines(image, model,
     resized_image = np.concatenate([cv2.resize(image, (input_shape[1], input_shape[0]), interpolation=cv2.INTER_AREA),
                                     np.ones([input_shape[0], input_shape[1], 1])], axis=-1)
 
-    resized_image = resized_image.transpose((2,0,1))
+    resized_image = resized_image.transpose((2, 0, 1))
     batch_image = np.expand_dims(resized_image, axis=0).astype('float32')
     batch_image = (batch_image / 127.5) - 1.0
 
@@ -178,9 +178,9 @@ def pred_squares(image,
 
     ### fast suppression using pytorch op
     acc_map = torch.from_numpy(acc_map_np).unsqueeze(0).unsqueeze(0)
-    _,_, h, w = acc_map.shape
-    max_acc_map = F.max_pool2d(acc_map,kernel_size=5, stride=1, padding=2)
-    acc_map = acc_map * ( (acc_map == max_acc_map).float() )
+    _, _, h, w = acc_map.shape
+    max_acc_map = F.max_pool2d(acc_map, kernel_size=5, stride=1, padding=2)
+    acc_map = acc_map * ((acc_map == max_acc_map).float())
     flatten_acc_map = acc_map.reshape([-1, ])
 
     scores, indices = torch.topk(flatten_acc_map, len(pts), dim=-1, largest=True)

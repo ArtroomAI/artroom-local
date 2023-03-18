@@ -259,9 +259,9 @@ class EncoderDecoder(BaseSegmentor):
             flip_direction = img_meta[0]['flip_direction']
             assert flip_direction in ['horizontal', 'vertical']
             if flip_direction == 'horizontal':
-                output = output.flip(dims=(3, ))
+                output = output.flip(dims=(3,))
             elif flip_direction == 'vertical':
-                output = output.flip(dims=(2, ))
+                output = output.flip(dims=(2,))
 
         return output
 

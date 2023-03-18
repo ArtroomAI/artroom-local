@@ -5,8 +5,8 @@ from tqdm import tqdm
 import shutil
 import os
 import sys
-sys.path.append('.')
 
+sys.path.append('.')
 
 kernel32 = ctypes.windll.kernel32
 kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
@@ -16,7 +16,6 @@ if len(sys.argv) < 2:
 else:
     skipWeights = bool(int(sys.argv[1]))
     print("Model Weights download will be skipped")
-
 
 # Set up settings
 try:
@@ -112,14 +111,14 @@ for model in upscale_models:
     model_name = os.path.basename(url)
     os.makedirs(model_dest, exist_ok=True)
 
-    if os.path.exists(model_dest+model_name):
+    if os.path.exists(model_dest + model_name):
         continue
-    if os.path.exists(f"{userprofile}/artroom/"+model_name):
-        os.remove(f"{userprofile}/artroom/"+model_name)
+    if os.path.exists(f"{userprofile}/artroom/" + model_name):
+        os.remove(f"{userprofile}/artroom/" + model_name)
     if os.path.exists(f"{userprofile}/artroom/model_weights/upscalers/{model_name}"):
         shutil.move(
             f"{userprofile}/artroom/model_weights/upscalers/{model_name}", model_dest)
-    if not os.path.exists(model_dest+model_name):
+    if not os.path.exists(model_dest + model_name):
         print(f"Downloading {model_name}...")
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(
@@ -127,7 +126,7 @@ for model in upscale_models:
         block_size = 1024  # 1 Kibibyte
         progress_bar = tqdm(total=total_size_in_bytes,
                             unit='iB', unit_scale=True)
-        with open(f"{userprofile}/artroom/"+model_name, 'wb') as file:
+        with open(f"{userprofile}/artroom/" + model_name, 'wb') as file:
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
                 file.write(data)
@@ -145,7 +144,6 @@ sd_path = model_dl_json["sd_path"]
 model_path = model_dl_json["model_path"]
 model_name = model_dl_json["model_name"]
 
-
 if "%UserProfile%" in model_path:
     model_path = model_path.replace("%UserProfile%", userprofile)
 
@@ -156,14 +154,14 @@ if "%UserProfile%" in custom_model_path:
     custom_model_path = custom_model_path.replace("%UserProfile%", userprofile)
 
 # Remove broken download if failed during install
-if os.path.exists(f"{userprofile}/artroom/"+"model.ckpt"):
-    os.remove(f"{userprofile}/artroom/"+"model.ckpt")
+if os.path.exists(f"{userprofile}/artroom/" + "model.ckpt"):
+    os.remove(f"{userprofile}/artroom/" + "model.ckpt")
 os.makedirs(model_path, exist_ok=True)
 
 if os.path.exists(sd_path):
     if skipWeights:
         print("Model.ckpt download skipped")
-    elif os.path.exists(model_path+"/model.ckpt") or os.path.exists(custom_model_path):
+    elif os.path.exists(model_path + "/model.ckpt") or os.path.exists(custom_model_path):
         print("Model found")
     else:
         print("Model not found")
@@ -176,16 +174,16 @@ if os.path.exists(sd_path):
                 block_size = 1024  # 1 Kibibyte
                 progress_bar = tqdm(total=total_size_in_bytes,
                                     unit='iB', unit_scale=True)
-                with open(f"{userprofile}/artroom/"+"model.ckpt", 'wb') as file:
+                with open(f"{userprofile}/artroom/" + "model.ckpt", 'wb') as file:
                     for data in response.iter_content(block_size):
                         progress_bar.update(len(data))
                         file.write(data)
                 progress_bar.close()
                 if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
                     print("ERROR, something went wrong")
-                    os.remove(f"{userprofile}/artroom/"+"model.ckpt")
+                    os.remove(f"{userprofile}/artroom/" + "model.ckpt")
                     continue
-                shutil.move(f"{userprofile}/artroom/"+"model.ckpt", model_path)
+                shutil.move(f"{userprofile}/artroom/" + "model.ckpt", model_path)
                 break
             except:
                 pass
@@ -193,6 +191,7 @@ if os.path.exists(sd_path):
     print('attempt to load model to do cache related downloads up front')
     try:
         from stable_diffusion import StableDiffusion
+
         SD = StableDiffusion()
         SD.set_artroom_path(userprofile)
         print('Loading model finished')

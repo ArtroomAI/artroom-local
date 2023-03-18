@@ -23,7 +23,6 @@ class CorrelationFunction(Function):
                 padding=1,
                 dilation=1,
                 dilation_patch=1):
-
         ctx.save_for_backward(input1, input2)
 
         kH, kW = ctx.kernel_size = _pair(kernel_size)

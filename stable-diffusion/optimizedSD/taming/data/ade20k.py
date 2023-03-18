@@ -5,7 +5,7 @@ import albumentations
 from PIL import Image
 from torch.utils.data import Dataset
 
-from taming.data.sflckr import SegmentationBase # for examples included in repo
+from taming.data.sflckr import SegmentationBase  # for examples included in repo
 
 
 class Examples(SegmentationBase):
@@ -22,7 +22,7 @@ class Examples(SegmentationBase):
 class ADE20kBase(Dataset):
     def __init__(self, config=None, size=None, random_crop=False, interpolation="bicubic", crop_size=None):
         self.split = self.get_split()
-        self.n_labels = 151 # unknown + 150
+        self.n_labels = 151  # unknown + 150
         self.data_csv = {"train": "data/ade20k_train.txt",
                          "validation": "data/ade20k_test.txt"}[self.split]
         self.data_root = "data/ade20k_root"
@@ -45,7 +45,7 @@ class ADE20kBase(Dataset):
                                for l in self.image_paths],
         }
 
-        size = None if size is not None and size<=0 else size
+        size = None if size is not None and size <= 0 else size
         self.size = size
         if crop_size is None:
             self.crop_size = size if size is not None else None
@@ -91,7 +91,7 @@ class ADE20kBase(Dataset):
             processed = self.preprocessor(image=image, mask=segmentation)
         else:
             processed = {"image": image, "mask": segmentation}
-        example["image"] = (processed["image"]/127.5 - 1.0).astype(np.float32)
+        example["image"] = (processed["image"] / 127.5 - 1.0).astype(np.float32)
         segmentation = processed["mask"]
         onehot = np.eye(self.n_labels)[segmentation]
         example["segmentation"] = onehot
@@ -102,7 +102,7 @@ class ADE20kTrain(ADE20kBase):
     # default to random_crop=True
     def __init__(self, config=None, size=None, random_crop=True, interpolation="bicubic", crop_size=None):
         super().__init__(config=config, size=size, random_crop=random_crop,
-                          interpolation=interpolation, crop_size=crop_size)
+                         interpolation=interpolation, crop_size=crop_size)
 
     def get_split(self):
         return "train"

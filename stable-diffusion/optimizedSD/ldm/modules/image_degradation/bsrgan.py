@@ -415,7 +415,7 @@ def add_Poisson_noise(img):
 
 
 def add_JPEG_noise(img):
-    #quality_factor = random.randint(30, 95)
+    # quality_factor = random.randint(30, 95)
     quality_factor = 100
     img = cv2.cvtColor(util.single2uint(img), cv2.COLOR_RGB2BGR)
     result, encimg = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), quality_factor])

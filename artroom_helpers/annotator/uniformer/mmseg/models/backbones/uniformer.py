@@ -97,7 +97,7 @@ class Attention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
+        q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
@@ -132,7 +132,7 @@ class SABlock(nn.Module):
         x = x + self.drop_path(self.attn(self.norm1(x)))
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         x = x.transpose(1, 2).reshape(B, N, H, W)
-        return x   
+        return x
 
 
 def window_partition(x, window_size):
@@ -166,10 +166,11 @@ def window_reverse(windows, window_size, H, W):
 
 
 class SABlock_Windows(nn.Module):
-    def __init__(self, dim, num_heads, window_size=14, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
+    def __init__(self, dim, num_heads, window_size=14, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0.,
+                 attn_drop=0.,
                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
-        self.window_size=window_size
+        self.window_size = window_size
         self.pos_embed = nn.Conv2d(dim, dim, 3, padding=1, groups=dim)
         self.norm1 = norm_layer(dim)
         self.attn = Attention(
@@ -194,7 +195,7 @@ class SABlock_Windows(nn.Module):
         pad_b = (self.window_size - H % self.window_size) % self.window_size
         x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         _, Hp, Wp, _ = x.shape
-        
+
         x_windows = window_partition(x, self.window_size)  # nW*B, window_size, window_size, C
         x_windows = x_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
 
@@ -212,12 +213,13 @@ class SABlock_Windows(nn.Module):
         x = shortcut + self.drop_path(x)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         x = x.permute(0, 3, 1, 2).reshape(B, C, H, W)
-        return x 
-             
+        return x
+
 
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
     """
+
     def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
         super().__init__()
         img_size = to_2tuple(img_size)
@@ -237,18 +239,19 @@ class PatchEmbed(nn.Module):
         x = self.norm(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
         return x
-    
 
-@BACKBONES.register_module()   
+
+@BACKBONES.register_module()
 class UniFormer(nn.Module):
     """ Vision Transformer
     A PyTorch impl of : `An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale`  -
         https://arxiv.org/abs/2010.11929
     """
+
     def __init__(self, layers=[3, 4, 8, 3], img_size=224, in_chans=3, num_classes=80, embed_dim=[64, 128, 320, 512],
                  head_dim=64, mlp_ratio=4., qkv_bias=True, qk_scale=None, representation_size=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=partial(nn.LayerNorm, eps=1e-6),
-                 pretrained_path=None, use_checkpoint=False, checkpoint_num=[0, 0, 0, 0], 
+                 pretrained_path=None, use_checkpoint=False, checkpoint_num=[0, 0, 0, 0],
                  windows=False, hybrid=False, window_size=14):
         """
         Args:
@@ -281,8 +284,8 @@ class UniFormer(nn.Module):
         print(f'Use Checkpoint: {self.use_checkpoint}')
         print(f'Checkpoint Number: {self.checkpoint_num}')
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
-        norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6) 
-        
+        norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
+
         self.patch_embed1 = PatchEmbed(
             img_size=img_size, patch_size=4, in_chans=in_chans, embed_dim=embed_dim[0])
         self.patch_embed2 = PatchEmbed(
@@ -300,48 +303,56 @@ class UniFormer(nn.Module):
                 dim=embed_dim[0], num_heads=num_heads[0], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
                 drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer)
             for i in range(layers[0])])
-        self.norm1=norm_layer(embed_dim[0])
+        self.norm1 = norm_layer(embed_dim[0])
         self.blocks2 = nn.ModuleList([
             CBlock(
                 dim=embed_dim[1], num_heads=num_heads[1], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i+layers[0]], norm_layer=norm_layer)
+                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i + layers[0]], norm_layer=norm_layer)
             for i in range(layers[1])])
         self.norm2 = norm_layer(embed_dim[1])
         if self.windows:
             print('Use local window for all blocks in stage3')
             self.blocks3 = nn.ModuleList([
-            SABlock_Windows(
-                dim=embed_dim[2], num_heads=num_heads[2], window_size=window_size, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i+layers[0]+layers[1]], norm_layer=norm_layer)
-            for i in range(layers[2])])
+                SABlock_Windows(
+                    dim=embed_dim[2], num_heads=num_heads[2], window_size=window_size, mlp_ratio=mlp_ratio,
+                    qkv_bias=qkv_bias, qk_scale=qk_scale,
+                    drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i + layers[0] + layers[1]],
+                    norm_layer=norm_layer)
+                for i in range(layers[2])])
         elif hybrid:
             print('Use hybrid window for blocks in stage3')
             block3 = []
             for i in range(layers[2]):
                 if (i + 1) % 4 == 0:
                     block3.append(SABlock(
-                    dim=embed_dim[2], num_heads=num_heads[2], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                    drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i+layers[0]+layers[1]], norm_layer=norm_layer))
+                        dim=embed_dim[2], num_heads=num_heads[2], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias,
+                        qk_scale=qk_scale,
+                        drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i + layers[0] + layers[1]],
+                        norm_layer=norm_layer))
                 else:
                     block3.append(SABlock_Windows(
-                    dim=embed_dim[2], num_heads=num_heads[2], window_size=window_size, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                    drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i+layers[0]+layers[1]], norm_layer=norm_layer))
+                        dim=embed_dim[2], num_heads=num_heads[2], window_size=window_size, mlp_ratio=mlp_ratio,
+                        qkv_bias=qkv_bias, qk_scale=qk_scale,
+                        drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i + layers[0] + layers[1]],
+                        norm_layer=norm_layer))
             self.blocks3 = nn.ModuleList(block3)
         else:
             print('Use global window for all blocks in stage3')
             self.blocks3 = nn.ModuleList([
-            SABlock(
-                dim=embed_dim[2], num_heads=num_heads[2], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i+layers[0]+layers[1]], norm_layer=norm_layer)
-            for i in range(layers[2])])
+                SABlock(
+                    dim=embed_dim[2], num_heads=num_heads[2], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
+                    drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i + layers[0] + layers[1]],
+                    norm_layer=norm_layer)
+                for i in range(layers[2])])
         self.norm3 = norm_layer(embed_dim[2])
         self.blocks4 = nn.ModuleList([
             SABlock(
                 dim=embed_dim[3], num_heads=num_heads[3], mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i+layers[0]+layers[1]+layers[2]], norm_layer=norm_layer)
+                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i + layers[0] + layers[1] + layers[2]],
+                norm_layer=norm_layer)
             for i in range(layers[3])])
         self.norm4 = norm_layer(embed_dim[3])
-        
+
         # Representation layer
         if representation_size:
             self.num_features = representation_size
@@ -351,15 +362,16 @@ class UniFormer(nn.Module):
             ]))
         else:
             self.pre_logits = nn.Identity()
-        
+
         self.apply(self._init_weights)
         self.init_weights(pretrained=pretrained_path)
-        
+
     def init_weights(self, pretrained):
         if isinstance(pretrained, str):
             logger = get_root_logger()
             load_checkpoint(self, pretrained, map_location='cpu', strict=False, logger=logger)
             print(f'Load pretrained model from {pretrained}')
+
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=.02)

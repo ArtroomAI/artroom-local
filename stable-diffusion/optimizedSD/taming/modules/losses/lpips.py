@@ -66,6 +66,7 @@ class ScalingLayer(nn.Module):
 
 class NetLinLayer(nn.Module):
     """ A single linear layer which does a 1x1 conv """
+
     def __init__(self, chn_in, chn_out=1, use_dropout=False):
         super(NetLinLayer, self).__init__()
         layers = [nn.Dropout(), ] if (use_dropout) else []
@@ -113,11 +114,10 @@ class vgg16(torch.nn.Module):
         return out
 
 
-def normalize_tensor(x,eps=1e-10):
-    norm_factor = torch.sqrt(torch.sum(x**2,dim=1,keepdim=True))
-    return x/(norm_factor+eps)
+def normalize_tensor(x, eps=1e-10):
+    norm_factor = torch.sqrt(torch.sum(x ** 2, dim=1, keepdim=True))
+    return x / (norm_factor + eps)
 
 
 def spatial_average(x, keepdim=True):
-    return x.mean([2,3],keepdim=keepdim)
-
+    return x.mean([2, 3], keepdim=keepdim)

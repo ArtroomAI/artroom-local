@@ -33,7 +33,6 @@ class TINShiftFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-
         shift = ctx.saved_tensors[0]
         data_grad_input = grad_output.new(*grad_output.size()).zero_()
         shift_grad_input = shift.new(*shift.size()).zero_()

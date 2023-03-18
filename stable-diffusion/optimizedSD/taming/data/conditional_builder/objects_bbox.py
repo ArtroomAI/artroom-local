@@ -35,9 +35,9 @@ class ObjectsBoundingBoxConditionalBuilder(ObjectsCenterPointsConditionalBuilder
         object_triples = grouper(conditional_list, 3)
         assert conditional.shape[0] == self.embedding_dim
         return [
-            (object_triple[0], self.bbox_from_token_pair(object_triple[1], object_triple[2]))
-            for object_triple in object_triples if object_triple[0] != self.none
-        ], crop_coordinates
+                   (object_triple[0], self.bbox_from_token_pair(object_triple[1], object_triple[2]))
+                   for object_triple in object_triples if object_triple[0] != self.none
+               ], crop_coordinates
 
     def plot(self, conditional: LongTensor, label_for_category_no: Callable[[int], str], figure_size: Tuple[int, int],
              line_width: int = 3, font_size: Optional[int] = None) -> Tensor:

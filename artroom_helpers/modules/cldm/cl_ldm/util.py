@@ -39,7 +39,7 @@ def ismap(x):
 
 
 def isimage(x):
-    if not isinstance(x,torch.Tensor):
+    if not isinstance(x, torch.Tensor):
         return False
     return (len(x.shape) == 4) and (x.shape[1] == 3 or x.shape[1] == 1)
 
@@ -65,7 +65,7 @@ def mean_flat(tensor):
 def count_params(model, verbose=False):
     total_params = sum(p.numel() for p in model.parameters())
     if verbose:
-        print(f"{model.__class__.__name__} has {total_params*1.e-6:.2f} M params.")
+        print(f"{model.__class__.__name__} has {total_params * 1.e-6:.2f} M params.")
     return total_params
 
 
@@ -90,7 +90,7 @@ def get_obj_from_str(string, reload=False):
 class AdamWwithEMAandWings(optim.Optimizer):
     # credit to https://gist.github.com/crowsonkb/65f7265353f403714fce3b2595e0b298
     def __init__(self, params, lr=1.e-3, betas=(0.9, 0.999), eps=1.e-8,  # TODO: check hyperparameters before using
-                 weight_decay=1.e-2, amsgrad=False, ema_decay=0.9999,   # ema decay to match previous code
+                 weight_decay=1.e-2, amsgrad=False, ema_decay=0.9999,  # ema decay to match previous code
                  ema_power=1., param_names=()):
         """AdamW that saves EMA versions of the parameters."""
         if not 0.0 <= lr:
@@ -177,18 +177,18 @@ class AdamWwithEMAandWings(optim.Optimizer):
                 state_steps.append(state['step'])
 
             optim._functional.adamw(params_with_grad,
-                    grads,
-                    exp_avgs,
-                    exp_avg_sqs,
-                    max_exp_avg_sqs,
-                    state_steps,
-                    amsgrad=amsgrad,
-                    beta1=beta1,
-                    beta2=beta2,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    eps=group['eps'],
-                    maximize=False)
+                                    grads,
+                                    exp_avgs,
+                                    exp_avg_sqs,
+                                    max_exp_avg_sqs,
+                                    state_steps,
+                                    amsgrad=amsgrad,
+                                    beta1=beta1,
+                                    beta2=beta2,
+                                    lr=group['lr'],
+                                    weight_decay=group['weight_decay'],
+                                    eps=group['eps'],
+                                    maximize=False)
 
             cur_ema_decay = min(ema_decay, 1 - state['step'] ** -ema_power)
             for param, ema_param in zip(params_with_grad, ema_params_with_grad):

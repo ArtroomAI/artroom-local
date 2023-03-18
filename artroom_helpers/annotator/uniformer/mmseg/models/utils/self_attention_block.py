@@ -148,7 +148,7 @@ class SelfAttentionBlock(nn.Module):
 
         sim_map = torch.matmul(query, key)
         if self.matmul_norm:
-            sim_map = (self.channels**-.5) * sim_map
+            sim_map = (self.channels ** -.5) * sim_map
         sim_map = F.softmax(sim_map, dim=-1)
 
         context = torch.matmul(sim_map, value)

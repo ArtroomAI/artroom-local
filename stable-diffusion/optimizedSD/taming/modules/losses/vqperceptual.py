@@ -26,8 +26,8 @@ def hinge_d_loss(logits_real, logits_fake):
 
 def vanilla_d_loss(logits_real, logits_fake):
     d_loss = 0.5 * (
-        torch.mean(torch.nn.functional.softplus(-logits_real)) +
-        torch.mean(torch.nn.functional.softplus(logits_fake)))
+            torch.mean(torch.nn.functional.softplus(-logits_real)) +
+            torch.mean(torch.nn.functional.softplus(logits_fake)))
     return d_loss
 
 
@@ -83,7 +83,7 @@ class VQLPIPSWithDiscriminator(nn.Module):
             p_loss = torch.tensor([0.0])
 
         nll_loss = rec_loss
-        #nll_loss = torch.sum(nll_loss) / nll_loss.shape[0]
+        # nll_loss = torch.sum(nll_loss) / nll_loss.shape[0]
         nll_loss = torch.mean(nll_loss)
 
         # now the GAN part
