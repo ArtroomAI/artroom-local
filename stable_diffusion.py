@@ -287,7 +287,7 @@ class StableDiffusion:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
+    def inject_controlnet(self, ckpt, controlnet_path):
         print("Injecting controlnet...")
 
         def get_state_dict(d):
@@ -303,40 +303,18 @@ class StableDiffusion:
             state_dict = get_state_dict(state_dict)
             return state_dict
 
-        def get_node_name(name, parent_name):
-            if len(name) <= len(parent_name):
-                return False, ''
-            p = name[:len(parent_name)]
-            if p != parent_name:
-                return False, ''
-            return True, name[len(parent_name):]
-
-        sd15_state_dict = load_state_dict(path_sd15)
-        sd15_with_control_state_dict = load_state_dict(path_sd15_with_control)
+        controlnet_dict = load_state_dict(controlnet_path)
         input_state_dict = load_state_dict(ckpt)
-        keys = sd15_with_control_state_dict.keys()
+        keys = controlnet_dict.keys()
 
-        final_state_dict = {}
         for key in keys:
-            is_first_stage, _ = get_node_name(key, 'first_stage_model')
-            is_cond_stage, _ = get_node_name(key, 'cond_stage_model')
-            if is_first_stage or is_cond_stage:
-                final_state_dict[key] = input_state_dict[key]
-                continue
-            p = sd15_with_control_state_dict[key]
-            is_control, node_name = get_node_name(key, 'control_')
-            if is_control:
-                sd15_key_name = 'model.diffusion_' + node_name
-            else:
-                sd15_key_name = key
-            if sd15_key_name in input_state_dict:
-                p_new = p + input_state_dict[sd15_key_name] - sd15_state_dict[sd15_key_name]
-            else:
-                p_new = p
-            final_state_dict[key] = p_new
-        del sd15_with_control_state_dict, sd15_state_dict, input_state_dict
-
-        return final_state_dict
+            p = controlnet_dict[key]
+            if 'control_model' not in key:
+                key = 'control_model.' + key
+            p_new = p
+            input_state_dict[key] = p_new
+        del controlnet_dict
+        return input_state_dict
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
@@ -480,8 +458,8 @@ class StableDiffusion:
             self.control_model = None
         else:
             self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-            sd = self.inject_controlnet(ckpt, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
-            self.control_model.load_state_dict(sd)
+            sd = self.inject_controlnet(ckpt, controlnet_path)
+            self.control_model.load_state_dict(sd, strict = False)
             self.model = self.control_model  # soft links
             self.modelCS = self.control_model  # soft links
             self.modelFS = self.control_model  # soft links
@@ -605,28 +583,19 @@ class StableDiffusion:
         if loras is None:
             loras = []
         self.show_intermediates = show_intermediates
+        if len(init_image_str) == 0:
+            controlnet = 'none' 
 
         controlnet_ckpts = {
-            "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_canny.pth"),
-            "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_depth.pth"),
-            "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_normal.pth"),
-            "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_openpose.pth"),
-            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_scribble.pth"),
-            "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_hed.pth"),
+            "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
+            "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
+            "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
+            "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
+            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_scribbleV10.safetensors"),
+            "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
             "None": None,
             "none": None
         }
-
-        # controlnet_ckpts = {
-        #     "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
-        #     "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
-        #     "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
-        #     "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
-        #     "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_scribbleV10.safetensors"),
-        #     "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
-        #     "None": None,
-        #     "none": None
-        # }
 
         print(f"Using controlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
