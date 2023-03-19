@@ -21,7 +21,9 @@ interface QueueType {
     lora: Lora[];
     controlnet: string;
     use_preprocessed_controlnet: boolean; 
-    
+    remove_background: string;
+    use_removed_background: boolean; 
+
     // sampler options
     sampler: string;
     steps: number;

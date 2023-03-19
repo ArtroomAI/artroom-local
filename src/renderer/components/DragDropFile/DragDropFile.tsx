@@ -17,7 +17,6 @@ import {
 } from 'react-icons/fa';
 import { aspectRatioState, batchNameState, heightState, imageSavePathState, initImageState, widthState } from '../../SettingsManager';
 import { SocketContext } from '../../socket';
-import { MdOutlineFlipToBack } from 'react-icons/md';
 
 const getImageDimensions = (base64: string) => {
     return new Promise((resolve, reject) => {
@@ -39,10 +38,6 @@ const DragDropFile = () => {
     const setWidth = useSetRecoilState(widthState);
     const setHeight = useSetRecoilState(heightState);
     const setAspectRatio = useSetRecoilState(aspectRatioState);
-
-    // For remove bg
-    const batchName= useRecoilValue(batchNameState);
-    const imageSavePath = useRecoilValue(imageSavePathState);
 
     useEffect(() => {
         if (initImagePath) {
@@ -211,23 +206,12 @@ const DragDropFile = () => {
                     }}
                     />
                 </Tooltip>
-                <Tooltip label="Remove Background (Experimental)">
-                    <IconButton
-                        width="45px"
-                        aria-label="Remove Background (Experimental)"
-                        border="2px"
-                        icon={<MdOutlineFlipToBack />}
-                        onClick={()=>{
-                            socket.emit('remove_bg', {initImage, batchName, imageSavePath, model: 'u2net'})
-                        }}
-                    />
-                </Tooltip>
                 <Tooltip label="Upload">
                     <IconButton
                     border="2px"
                     icon={<FiUpload />}
                     onClick={onButtonClick}
-                    width="45px"
+                    width="90px"
                     aria-label="upload"
                     />
                 </Tooltip>

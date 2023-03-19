@@ -1,45 +1,43 @@
-import React, { useContext} from 'react';
+import React from 'react';
 import { useRecoilState, useRecoilValue} from 'recoil';
-import * as atom from '../../atoms/atoms';
+import * as atom from '../../../atoms/atoms';
 import {
     Box,
     Image,
     IconButton,
     ButtonGroup,
     Tooltip,
-    VStack,
     Flex,
     useToast
 } from '@chakra-ui/react';
 import {
     FaTrashAlt, FaSave
 } from 'react-icons/fa';
-import { batchNameState, controlnetState, imageSavePathState} from '../../SettingsManager';
-import { SocketContext } from '../../socket';
+import { batchNameState, removeBackgroundState, imageSavePathState} from '../../../SettingsManager';
 import path from 'path';
 import fs from 'fs';
 
-const ControlnetPreview = () => {
+const RemoveBackgroundPreview = () => {
     const toast = useToast({});
 
-    const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
-    const controlnet = useRecoilValue(controlnetState);
+    const [removeBackgroundPreview, setRemoveBackgroundPreview] = useRecoilState(atom.removeBackgroundPreviewState);
+    const removeBackground = useRecoilValue(removeBackgroundState);
 
     // For remove bg
     const batchName = useRecoilValue(batchNameState);
     const imageSavePath = useRecoilValue(imageSavePathState);
 
     const savePreview = () => {
-        if (controlnetPreview) {
-            const folderPath = path.join(imageSavePath, batchName, 'ControlNet');
+        if (removeBackgroundPreview) {
+            const folderPath = path.join(imageSavePath, batchName, 'RemovedBackgrounds');
             if (!fs.existsSync(folderPath)) {
                 fs.mkdirSync(folderPath);
             }
             const files = fs.readdirSync(folderPath);
-            const fileNumber = files.filter((file) => file.startsWith(`${controlnet}_`)).length + 1;
-            const fileName = `${controlnet}_${fileNumber}.png`;
+            const fileNumber = files.filter((file) => file.startsWith(`${removeBackground}_`)).length + 1;
+            const fileName = `${removeBackground}_${fileNumber}.png`;
             const filePath = path.join(folderPath, fileName);
-            const data = controlnetPreview.replace(/^data:image\/\w+;base64,/, '');
+            const data = removeBackgroundPreview.replace(/^data:image\/\w+;base64,/, '');
             const buffer = Buffer.from(data, 'base64');
             fs.writeFile(filePath, buffer, (err) => {
             if (err) {
@@ -77,7 +75,7 @@ const ControlnetPreview = () => {
             boxSize="178px"
             fit="contain"
             rounded="md"
-            src={controlnetPreview}
+            src={removeBackgroundPreview}
             />
         </Box>
         <Flex alignItems='center' justifyContent='center'>
@@ -98,7 +96,7 @@ const ControlnetPreview = () => {
                 icon={<FaTrashAlt />}
                 width="90px"
                 onClick={() => {
-                    setControlnetPreview('');
+                    setRemoveBackgroundPreview('');
                 }}
                 />
             </Tooltip>
@@ -108,4 +106,4 @@ const ControlnetPreview = () => {
     );
 };
 
-export default ControlnetPreview;
+export default RemoveBackgroundPreview;

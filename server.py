@@ -9,15 +9,15 @@ try:
     from artroom_helpers import support
     import logging
     import os
-    from PIL import Image
+    from PIL import Image, ImageDraw, ImageOps
+    from scipy.spatial import ConvexHull
     import json
     import ctypes
     from uuid import uuid4
     from glob import glob
     import re
     from model_merger import ModelMerger
-    import random
-    import datetime
+
     import numpy as np
 
     kernel32 = ctypes.windll.kernel32
@@ -134,31 +134,46 @@ try:
         deinit_cnet_stuff()
         return
 
-    @socketio.on('remove_bg')
-    def remove_bg(data):
+    # TODO Implement this in own tab for bulk jobs
+    @socketio.on('preview_remove_background')
+    def preview_remove_background(data):
         print('Removing background...')
         try:
-            from artroom_helpers.rembg import rembg
-        except:
-            print("Background removal failed to import")
-            return 
-        try:
-            input = support.b64_to_image(data["initImage"]).convert("RGBA")
-            session_models = ['u2net', 'u2netp', 'u2net_human_seg', 'u2net_cloth_seg', 'silueta']
-            data['model'] = 'u2net_human_seg'
-            assert data['model'] in session_models, f'Model selection not valid: {session_models}'
-            output = rembg.remove(input, session_model=data['model'])
-            output_path = os.path.join(data["imageSavePath"], data["batchName"], datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".png")
-            output.save(output_path)
-            socketio.emit('get_images', {'b64': support.image_to_b64(output),
-                                                'path': os.path.join(output_path),
-                                                'batch_id': random.randint(1,10000000)})
-            print("Background Removed")
+            if data['remove_background'] == 'face':
+                import face_alignment
+                input = support.b64_to_image(data["initImage"]).convert("RGB")
+                img = np.array(input)
+                h, w, _ = img.shape
+                fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device="cpu")
+                face_idx = 0
+                lmarks = fa.get_landmarks(img)
+                if len(lmarks) > 1:
+                    print(f"Multiple faces found! Selecing: {face_idx}")
+                lmarks = lmarks[face_idx]
+                lmarks = [(int(x[0]), int(x[1])) for x in lmarks]
+
+                hull = ConvexHull(lmarks)
+                lmarks = [lmarks[x] for x in hull.vertices]
+
+                mask = Image.new("L", (w, h), 0)
+                ImageDraw.Draw(mask).polygon(lmarks, outline=1, fill="white")
+                # Convert numpy array back to PIL image object
+                pil_img = Image.fromarray(np.uint8(img))
+
+                # Resize mask to match image size and apply to image
+                mask = mask.resize(pil_img.size, resample=Image.BILINEAR)
+                output = ImageOps.fit(pil_img, mask.size, centering=(0.5, 0.5))
+                output.putalpha(mask)
+            else:
+                from artroom_helpers.rembg import rembg
+                input = support.b64_to_image(data["initImage"]).convert("RGBA")
+                output = rembg.remove(input, session_model=data['remove_background'])
+            socketio.emit('get_remove_background_preview', {'removeBackgroundPreview': support.image_to_b64(output)})
+            print(f"Background Removed using {data['remove_background']}")
         except Exception as e:
-            print(f"Background removal failed {e}")
+            print(f"Failed to remove background {e}")
             return 
         return
-
 
     @socketio.on('generate')
     def generate(data):
@@ -215,6 +230,8 @@ try:
                 show_intermediates=data['show_intermediates'],
                 controlnet = data['controlnet'],
                 use_preprocessed_controlnet = data['use_preprocessed_controlnet'],
+                remove_background = data['remove_background'],
+                use_removed_background = data['use_removed_background'],
                 models_dir = data['models_dir'],
             )
             socketio.emit('job_done')

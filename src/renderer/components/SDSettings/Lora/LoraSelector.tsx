@@ -14,7 +14,7 @@ import {
 import { FaTimes } from "react-icons/fa";
 import { IoMdCloud } from "react-icons/io";
 import { useRecoilState } from "recoil";
-import { loraState } from "../SettingsManager";
+import { loraState } from "../../../SettingsManager";
 
 function LoraSelector({options, cloudMode}: {options: any[], cloudMode: boolean}) {
     const [lora, setLora] = useRecoilState(loraState);

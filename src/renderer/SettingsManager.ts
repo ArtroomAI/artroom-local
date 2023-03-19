@@ -180,6 +180,18 @@ export const usePreprocessedControlnetState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const removeBackgroundState = atom<string>({
+    key: "remove_background",
+    default: "None",
+    effects_UNSTABLE: [persistAtom]
+});
+
+export const useRemovedBackgroundState = atom<boolean>({
+    key: "use_removed_background",
+    default: false,
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const runTypeState = atom<string>({
     key: "run_type",
     default: "regular",
@@ -214,7 +226,8 @@ export const queueSettingsSelector = selector<QueueType>({
             lora: get(loraState),
             controlnet: get(controlnetState),
             use_preprocessed_controlnet: get(usePreprocessedControlnetState),
-
+            remove_background: get(removeBackgroundState),
+            use_removed_background: get(useRemovedBackgroundState),
             // sampler options
             sampler: get(samplerState),
             steps: get(stepsState),

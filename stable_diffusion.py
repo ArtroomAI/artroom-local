@@ -120,6 +120,10 @@ def mask_from_face(img, w, h, face_idx=0):
     ImageDraw.Draw(mask).polygon(lmarks, outline=1, fill="white")
     return mask
 
+def mask_background(img, remove_background):
+    from artroom_helpers.rembg import rembg
+    output = rembg.remove(img, session_model=remove_background, only_mask=True)
+    return output.convert('L')
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
@@ -630,8 +634,9 @@ class StableDiffusion:
             invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
             sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
             image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
-            long_save_path=False, show_intermediates=False, controlnet=None, auto_mask_face=False,
+            long_save_path=False, show_intermediates=False, controlnet=None, 
             use_preprocessed_controlnet = False,
+            remove_background = 'face', use_removed_background=False,
             models_dir = ''
     ):
         self.models_dir = models_dir 
@@ -664,14 +669,21 @@ class StableDiffusion:
             "none": None
         }
 
-        print(f"Using controlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
         old_cnet_path = controlnet_ckpts_old[controlnet]
+    
         if controlnet_path is None:
             deinit_cnet_stuff()
             controlnet = None
         else:
-            init_cnet_stuff(controlnet)
+            if len(mask_b64) > 0 or use_removed_background:
+                print("Masked Images are unsupported with controlnet for now. Removing controlnet")
+                deinit_cnet_stuff()
+                controlnet = None
+                controlnet_path = None
+            else:
+                print(f"Using controlnet {controlnet}")
+                init_cnet_stuff(controlnet)
 
         self.running = True
 
@@ -869,8 +881,11 @@ class StableDiffusion:
                                     ddim_eta,
                                     ddim_steps,
                                 )
-                            if auto_mask_face and image is not None:
-                                mask_image = mask_from_face(image.convert('RGB'), W, H)
+                            if use_removed_background and image is not None:
+                                if remove_background == 'face':
+                                    mask_image = mask_from_face(image.convert('RGB'), W, H)
+                                else:
+                                    mask_image = mask_background(image.convert('RGB'), remove_background=remove_background)
                             elif len(mask_b64) > 0:
                                 if mask_b64[:4] == 'data':
                                     print("Loading mask from b64")

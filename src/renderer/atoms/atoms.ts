@@ -85,5 +85,10 @@ export const controlnetPreviewState = atom({
     default: ''
 });
 
+export const removeBackgroundPreviewState = atom({
+    key: 'removeBackgroundPreview',
+    default: ''
+});
+
 export * from './atoms.modals'
 export * from './atoms.login'

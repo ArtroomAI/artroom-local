@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useContext } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import * as atom from '../atoms/atoms';
+import * as atom from '../../atoms/atoms';
 import {
     Flex,
     Box,
@@ -25,16 +25,16 @@ import {
     AccordionButton,
     AccordionIcon,
     AccordionItem,
-    AccordionPanel,
-    Button
+    AccordionPanel
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
-import { batchNameState, cfgState, ckptState, controlnetState, initImageState, iterationsState, loraState, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, usePreprocessedControlnetState, vaeState } from '../SettingsManager';
-import LoraSelector from './LoraSelector';
-import { AspectRatio } from './SDSettings/AspectRatio';
-import { SocketContext } from '../socket';
-import ControlnetPreview from './ControlnetPreview/ControlnetPreview';
+import { batchNameState, cfgState, ckptState, controlnetState, initImageState, iterationsState, loraState, modelsDirState, randomSeedState, removeBackgroundState, samplerState, seedState, stepsState, strengthState, usePreprocessedControlnetState, useRemovedBackgroundState, vaeState } from '../../SettingsManager';
+import LoraSelector from './Lora/LoraSelector';
+import { AspectRatio } from './AspectRatio';
+import { SocketContext } from '../../socket';
+import Controlnet from './Controlnet/Controlnet';
+import RemoveBackground from './RemoveBackground/RemoveBackground';
 
 function SDSettings () {
     const socket = useContext(SocketContext);
@@ -58,11 +58,10 @@ function SDSettings () {
     const [vae, setVae] = useRecoilState(vaeState);
 
     const [randomSeed, setRandomSeed] = useRecoilState(randomSeedState);
-    const [usePreprocessedControlnet, setUsePreprocessedControlnet] = useRecoilState(usePreprocessedControlnetState);
 
     const lora = useRecoilValue(loraState);
-    const initImage = useRecoilValue(initImageState);
-    const controlnetPreview = useRecoilValue(atom.controlnetPreviewState);
+    const [removeBackground, setRemoveBackground] = useRecoilState(removeBackgroundState);
+    const [useRemovedBackground, setUseRemovedBackground] = useRecoilState(useRemovedBackgroundState);
 
     const getCkpts = useCallback(() => {
         window.api.getCkpts(modelDirs).then(setCkpts);
@@ -155,7 +154,7 @@ function SDSettings () {
                         <AccordionItem border="none">
                             <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
                                 <Box width="100%" flex="1" textAlign="start">
-                                    <h2><b>Advanced Settings</b></h2>
+                                    <h1><b>Advanced Settings</b></h1>
                                 </Box>
                                 <AccordionIcon />
                             </AccordionButton>
@@ -427,7 +426,7 @@ function SDSettings () {
                         <AccordionItem border="none">
                             <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
                                 <Box width="100%" flex="1" textAlign="start">
-                                    <h2><b>{`Loras ${lora.length ? `(${lora.length})` : ``}`}</b></h2>
+                                    <h1><b>{`Loras ${lora.length ? `(${lora.length})` : ``}`}</b></h1>
                                 </Box>
                                 <AccordionIcon />
                             </AccordionButton>
@@ -436,94 +435,35 @@ function SDSettings () {
                             </AccordionPanel>
                         </AccordionItem>
                     </Accordion>
+
                     <Accordion allowToggle border="none" bg="transparent" width="100%">
                         <AccordionItem border="none">
                             <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
                                 <Box width="100%" flex="1" textAlign="start">
-                                    <h2><b>{`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}</b></h2>
+                                    <h1><b>{`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}</b></h1>
                                 </Box>
                                 <AccordionIcon />
                             </AccordionButton>
                             <AccordionPanel p={0} mt={4} mb={2} width="100%" bg="transparent">
-                                <VStack>
-                                    <FormControl className="controlnet-input">
-                                        <HStack>
-                                            <FormLabel htmlFor="Controlnet">
-                                                Choose your controlnet
-                                            </FormLabel>
-                                        </HStack>
-                                        <HStack>
-                                            <Select
-                                                id="controlnet"
-                                                name="controlnet"
-                                                onChange={(event) => setControlnet(event.target.value)}
-                                                value={controlnet}
-                                                variant="outline"
-                                            >
-                                                <option value="none">
-                                                    None
-                                                </option>
-
-                                                <option value="canny">
-                                                    Canny
-                                                </option>
-
-                                                <option value="pose">
-                                                    Pose
-                                                </option>
-
-                                                <option value="depth">
-                                                    Depth
-                                                </option>
-                                                
-                                                <option value="hed">
-                                                    HED
-                                                </option>
-
-                                                <option value="normal">
-                                                    Normal
-                                                </option>
-
-                                                <option value="scribble">
-                                                    Scribble
-                                                </option>
-                                            </Select>
-                                            <Button
-                                                variant='outline'
-                                                disabled={controlnet==='none' || usePreprocessedControlnet}
-                                                onClick={()=>{
-                                                    socket.emit('preview_controlnet', {initImage, controlnet})
-                                                }
-                                            }
-                                        >
-                                            Preview
-                                            </Button>
-                                        </HStack>
-                                    </FormControl>
-                                    <HStack>
-                                    <FormLabel htmlFor="use_random_seed">
-                                        Use Preprocessed ControlNet
-                                    </FormLabel>
-                                    <Checkbox
-                                        id="use_preprocessed_controlnet"
-                                        isChecked={usePreprocessedControlnet}
-                                        name="use_preprocessed_controlnet"
-                                        onChange={() => {
-                                            setUsePreprocessedControlnet((usePreprocessedControlnet) => !usePreprocessedControlnet);
-                                        }}
-                                        pb="12px"
-                                        />
-
-                                    </HStack>
-  
-                                    {controlnetPreview.length > 0 && 
-                                        <ControlnetPreview></ControlnetPreview> 
-                                    }
-                                </VStack>
+                               <Controlnet></Controlnet>
                             </AccordionPanel>
                         </AccordionItem>
                     </Accordion>
-                    
+
+                    <Accordion allowToggle border="none" bg="transparent" width="100%">
+                        <AccordionItem border="none">
+                            <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
+                                <Box width="100%" flex="1" textAlign="start">
+                                    <h1><b>{`Background Removal ${useRemovedBackground ? `(${removeBackground})` : ``}`}</b></h1>
+                                </Box>
+                                <AccordionIcon />
+                            </AccordionButton>
+                            
+                            <AccordionPanel p={0} mt={4} mb={2} width="100%" bg="transparent">
+                              <RemoveBackground></RemoveBackground>  
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>              
                 </VStack>
             </Box>
         </Flex>

@@ -21,7 +21,7 @@ import Sidebar from './Sidebar';
 import Settings from './Settings';
 import Paint from './Paint';
 import Queue from './Queue';
-import SDSettings from './SDSettings';
+import SDSettings from './SDSettings/SDSettings';
 import ImageViewer from './ImageViewer';
 import EquilibriumAI from './EquilibriumAI';
 import ProfileMenu from './ProfileMenu';
@@ -56,7 +56,7 @@ export default function App () {
     const setMainImage = useSetRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
     const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
-
+    const [removeBackgroundPreview, setRemoveBackgroundPreview] = useRecoilState(atom.removeBackgroundPreviewState);
     const socket = useContext(SocketContext);
 
     const handleGetImages = useCallback((data: ImageState) => {
@@ -75,6 +75,10 @@ export default function App () {
     const handleControlnetPreview = useCallback((data: {controlnetPreview: string}) => {
         setControlnetPreview(data.controlnetPreview);
     }, [controlnetPreview])
+
+    const handleRemoveBackgroundPreview = useCallback((data: {removeBackgroundPreview: string}) => {
+        setRemoveBackgroundPreview(data.removeBackgroundPreview);
+    }, [removeBackgroundPreview])
 
     useEffect(() => {
         socket.on('intermediate_image', handleIntermediateImages); 
@@ -98,6 +102,13 @@ export default function App () {
             socket.off('get_controlnet_preview', handleControlnetPreview);
           };
     }, [socket, handleControlnetPreview]);
+
+    useEffect(() => {
+        socket.on('get_remove_background_preview', handleRemoveBackgroundPreview); 
+        return () => {
+            socket.off('get_remove_background_preview', handleRemoveBackgroundPreview);
+          };
+    }, [socket, handleRemoveBackgroundPreview]);
 
     //make sure cloudmode is off, while not signed in
     useEffect(() => {
