@@ -1,3 +1,5 @@
+import gc
+
 import einops
 import torch
 import torch as th
@@ -307,6 +309,7 @@ class ControlLDM(LatentDiffusion):
 
     def __init__(self, control_stage_config, control_key, only_mid_control, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.secondary_device = None
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
         self.only_mid_control = only_mid_control
@@ -424,14 +427,19 @@ class ControlLDM(LatentDiffusion):
         opt = torch.optim.AdamW(params, lr=lr)
         return opt
 
-    def low_vram_shift(self, is_diffusing):
-        if is_diffusing:
-            self.model = self.model.cuda()
-            self.control_model = self.control_model.cuda()
-            self.first_stage_model = self.first_stage_model.cpu()
-            self.cond_stage_model = self.cond_stage_model.cpu()
+    def switch_devices(self, diffusion_loop):
+        device = self.secondary_device
+        if diffusion_loop:
+            self.model.to(device)
+            self.control_model.to(device)
+
+            self.first_stage_model.cpu()
+            self.cond_stage_model.cpu()
         else:
-            self.model = self.model.cpu()
-            self.control_model = self.control_model.cpu()
-            self.first_stage_model = self.first_stage_model.cuda()
-            self.cond_stage_model = self.cond_stage_model.cuda()
+            self.model.cpu()
+            self.control_model.cpu()
+
+            self.first_stage_model.to(device)
+            self.cond_stage_model.to(device)
+        torch.cuda.empty_cache()
+        gc.collect()

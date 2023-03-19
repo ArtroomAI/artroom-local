@@ -153,7 +153,7 @@ class StableDiffusion:
         self.intermediate_path = ''
         # Generation Runtime Parameters
 
-    def load_img(self, image, h0, w0, inpainting=False, controlnet_mode=None, use_preprocessed_controlnet = False):
+    def load_img(self, image, h0, w0, inpainting=False, controlnet_mode=None, use_preprocessed_controlnet=False):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -287,7 +287,7 @@ class StableDiffusion:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def inject_controlnet(self, ckpt, controlnet_path):
+    def inject_controlnet_new(self, ckpt, controlnet_path):
         print("Injecting controlnet...")
 
         def get_state_dict(d):
@@ -315,6 +315,57 @@ class StableDiffusion:
             input_state_dict[key] = p_new
         del controlnet_dict
         return input_state_dict
+
+    def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
+        print("Injecting controlnet..")
+
+        def get_state_dict(d):
+            return d.get('state_dict', d)
+
+        def load_state_dict(ckpt_path, location='cpu'):
+            _, extension = os.path.splitext(ckpt_path)
+            if extension.lower() == ".safetensors":
+                import safetensors.torch
+                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
+            else:
+                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
+            state_dict = get_state_dict(state_dict)
+            return state_dict
+
+        def get_node_name(name, parent_name):
+            if len(name) <= len(parent_name):
+                return False, ''
+            p = name[:len(parent_name)]
+            if p != parent_name:
+                return False, ''
+            return True, name[len(parent_name):]
+
+        sd15_state_dict = load_state_dict(path_sd15)
+        sd15_with_control_state_dict = load_state_dict(path_sd15_with_control)
+        input_state_dict = load_state_dict(ckpt)
+        keys = sd15_with_control_state_dict.keys()
+
+        final_state_dict = {}
+        for key in keys:
+            is_first_stage, _ = get_node_name(key, 'first_stage_model')
+            is_cond_stage, _ = get_node_name(key, 'cond_stage_model')
+            if is_first_stage or is_cond_stage:
+                final_state_dict[key] = input_state_dict[key]
+                continue
+            p = sd15_with_control_state_dict[key]
+            is_control, node_name = get_node_name(key, 'control_')
+            if is_control:
+                sd15_key_name = 'model.diffusion_' + node_name
+            else:
+                sd15_key_name = key
+            if sd15_key_name in input_state_dict:
+                p_new = p + input_state_dict[sd15_key_name] - sd15_state_dict[sd15_key_name]
+            else:
+                p_new = p
+            final_state_dict[key] = p_new
+        del sd15_with_control_state_dict, sd15_state_dict, input_state_dict
+
+        return final_state_dict
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
@@ -458,8 +509,11 @@ class StableDiffusion:
             self.control_model = None
         else:
             self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-            sd = self.inject_controlnet(ckpt, controlnet_path)
-            self.control_model.load_state_dict(sd, strict = False)
+            if "pth" in controlnet_path:
+                sd = self.inject_controlnet(ckpt, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
+            else:
+                sd = self.inject_controlnet_new(ckpt, controlnet_path)
+            self.control_model.load_state_dict(sd, strict=False)
             self.model = self.control_model  # soft links
             self.modelCS = self.control_model  # soft links
             self.modelFS = self.control_model  # soft links
@@ -577,28 +631,40 @@ class StableDiffusion:
             sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
             image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
             long_save_path=False, show_intermediates=False, controlnet=None, auto_mask_face=False,
-            use_preprocessed_controlnet = False,
+            use_preprocessed_controlnet=False,
     ):
 
         if loras is None:
             loras = []
         self.show_intermediates = show_intermediates
         if len(init_image_str) == 0:
-            controlnet = 'none' 
+            controlnet = 'none'
 
         controlnet_ckpts = {
             "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
             "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
             "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
             "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
-            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_scribbleV10.safetensors"),
+            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet",
+                                     "controlnetPreTrained_scribbleV10.safetensors"),
             "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
+            "None": None,
+            "none": None
+        }
+        controlnet_ckpts_old = {
+            "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_canny.pth"),
+            "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_depth.pth"),
+            "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_normal.pth"),
+            "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_openpose.pth"),
+            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_scribble.pth"),
+            "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_hed.pth"),
             "None": None,
             "none": None
         }
 
         print(f"Using controlnet {controlnet}")
         controlnet_path = controlnet_ckpts[controlnet]
+        old_cnet_path = controlnet_ckpts_old[controlnet]
         if controlnet_path is None:
             deinit_cnet_stuff()
             controlnet = None
@@ -643,7 +709,9 @@ class StableDiffusion:
 
         ddim_steps = int(steps / strength)
 
-        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path)
+        if not self.load_ckpt(ckpt, speed, vae, loras, controlnet_path):
+            print(f"Loading new controlnet failed, attempting old")
+            self.load_ckpt(ckpt, speed, vae, loras, old_cnet_path)
         if not self.model:
             print("Setting up model failed")
             return 'Failure'
@@ -677,7 +745,8 @@ class StableDiffusion:
                     print(f"Failed to outpaint the alpha layer {e}")
 
             init_image = self.load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
-                                       controlnet_mode=controlnet, use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
+                                       controlnet_mode=controlnet,
+                                       use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
             if controlnet_path is not None:
                 control = init_image.clone()
             else:
@@ -696,6 +765,7 @@ class StableDiffusion:
             )
         else:
             mode = "default"
+            self.control_model.secondary_device = get_device()
 
         if mode == "pix2pix":
             sampler = "ddim"
@@ -741,8 +811,11 @@ class StableDiffusion:
 
                 for prompts in data:
                     with precision_scope(self.device.type):
-                        if self.v1:
+                        if self.v1 and self.control_model is None:
                             self.modelCS.to(self.device)
+                        if self.control_model is not None:
+                            self.control_model.switch_devices(diffusion_loop=False)
+
                         uc = None
                         if cfg_scale != 1.0:
                             uc = self.modelCS.get_learned_conditioning(negative_prompts_data)
@@ -766,6 +839,8 @@ class StableDiffusion:
                         else:
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
+                        if self.control_model is not None:
+                            self.control_model.switch_devices(diffusion_loop=True)
 
                         x0 = None
                         for ij in range(1, highres_fix_steps + 1):
@@ -842,6 +917,8 @@ class StableDiffusion:
                                     unconditional_guidance_scale=cfg_scale,
                                     callback=self.callback_fn,
                                     unconditional_conditioning=uc)
+                                if self.control_model is not None:
+                                    self.control_model.switch_devices(diffusion_loop=False)
                             else:
                                 x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                                 x0 = init_latent_1stage if mode == "pix2pix" else x0
@@ -886,9 +963,11 @@ class StableDiffusion:
 
                             if ij < highres_fix_steps - 1:
                                 init_image = self.load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(self.device).to(self.dtype)  # we only encode cnet 1 time
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(
+                                    self.device).to(self.dtype)  # we only encode cnet 1 time
                             elif ij == highres_fix_steps - 1:
-                                init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(self.device).to(self.dtype)
+                                init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
+                                    self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size
                                 out_image = out_image.crop((padding, padding, w - padding, h - padding))
