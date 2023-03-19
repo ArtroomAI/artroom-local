@@ -106,6 +106,10 @@ try:
         try:
             print(f'Previewing controlnet {data["controlnet"]}')
             image = support.b64_to_image(data['initImage'])
+            w, h = image.size
+            # resize to integer multiple of 32
+            w, h = map(lambda x: x - x % 64, (w, h))
+            image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
             init_cnet_stuff(data["controlnet"])
             match data["controlnet"]:
@@ -141,6 +145,7 @@ try:
         try:
             input = support.b64_to_image(data["initImage"]).convert("RGBA")
             session_models = ['u2net', 'u2netp', 'u2net_human_seg', 'u2net_cloth_seg', 'silueta']
+            data['model'] = 'u2net_human_seg'
             assert data['model'] in session_models, f'Model selection not valid: {session_models}'
             output = rembg.remove(input, session_model=data['model'])
             output_path = os.path.join(data["imageSavePath"], data["batchName"], datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".png")
