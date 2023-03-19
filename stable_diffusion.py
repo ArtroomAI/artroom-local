@@ -509,8 +509,8 @@ class StableDiffusion:
             self.control_model = None
         else:
             self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-            if "pth" in controlnet_path:
-                sd = self.inject_controlnet(ckpt, os.path.dirname(ckpt) + "/model.ckpt", controlnet_path)
+            if ".pth" in controlnet_path:
+                sd = self.inject_controlnet(ckpt, os.path.join(self.models_dir,"model.ckpt"), controlnet_path)
             else:
                 sd = self.inject_controlnet_new(ckpt, controlnet_path)
             self.control_model.load_state_dict(sd, strict=False)
@@ -631,8 +631,10 @@ class StableDiffusion:
             sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
             image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
             long_save_path=False, show_intermediates=False, controlnet=None, auto_mask_face=False,
-            use_preprocessed_controlnet=False,
+            use_preprocessed_controlnet = False,
+            models_dir = ''
     ):
+        self.models_dir = models_dir 
 
         if loras is None:
             loras = []
@@ -641,23 +643,23 @@ class StableDiffusion:
             controlnet = 'none'
 
         controlnet_ckpts = {
-            "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
-            "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
-            "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
-            "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
-            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet",
+            "canny": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
+            "depth": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
+            "normal": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
+            "pose": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
+            "scribble": os.path.join(self.models_dir, "ControlNet",
                                      "controlnetPreTrained_scribbleV10.safetensors"),
-            "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
+            "hed": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
             "None": None,
             "none": None
         }
         controlnet_ckpts_old = {
-            "canny": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_canny.pth"),
-            "depth": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_depth.pth"),
-            "normal": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_normal.pth"),
-            "pose": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_openpose.pth"),
-            "scribble": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_scribble.pth"),
-            "hed": os.path.join(os.path.dirname(ckpt), "ControlNet", "control_sd15_hed.pth"),
+            "canny": os.path.join(self.models_dir, "ControlNet", "control_sd15_canny.pth"),
+            "depth": os.path.join(self.models_dir, "ControlNet", "control_sd15_depth.pth"),
+            "normal": os.path.join(self.models_dir, "ControlNet", "control_sd15_normal.pth"),
+            "pose": os.path.join(self.models_dir, "ControlNet", "control_sd15_openpose.pth"),
+            "scribble": os.path.join(self.models_dir, "ControlNet", "control_sd15_scribble.pth"),
+            "hed": os.path.join(self.models_dir, "ControlNet", "control_sd15_hed.pth"),
             "None": None,
             "none": None
         }

@@ -214,7 +214,8 @@ try:
                 highres_fix=data['highres_fix'],
                 show_intermediates=data['show_intermediates'],
                 controlnet = data['controlnet'],
-                use_preprocessed_controlnet = data['use_preprocessed_controlnet']
+                use_preprocessed_controlnet = data['use_preprocessed_controlnet'],
+                models_dir = data['models_dir'],
             )
             socketio.emit('job_done')
 
