@@ -153,7 +153,7 @@ class StableDiffusion:
         self.intermediate_path = ''
         # Generation Runtime Parameters
 
-    def load_img(self, image, h0, w0, inpainting=False, controlnet_mode=None):
+    def load_img(self, image, h0, w0, inpainting=False, controlnet_mode=None, use_preprocessed_controlnet = False):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -165,21 +165,22 @@ class StableDiffusion:
 
         if controlnet_mode is not None:
             image = HWC3(np.array(image))
-            match controlnet_mode:
-                case "canny":
-                    image = apply_canny(image)
-                case "pose":
-                    image = apply_pose(image)
-                case "depth":
-                    image = apply_depth(image)
-                case "normal":
-                    image = apply_normal(image)
-                case "scribble":
-                    image = apply_scribble(image)
-                case "hed":
-                    image = apply_hed(image)
-                case _:
-                    print("Unknown control mode:", controlnet_mode)
+            if not use_preprocessed_controlnet:
+                match controlnet_mode:
+                    case "canny":
+                        image = apply_canny(image)
+                    case "pose":
+                        image = apply_pose(image)
+                    case "depth":
+                        image = apply_depth(image)
+                    case "normal":
+                        image = apply_normal(image)
+                    case "scribble":
+                        image = apply_scribble(image)
+                    case "hed":
+                        image = apply_hed(image)
+                    case _:
+                        print("Unknown control mode:", controlnet_mode)
 
             control = torch.from_numpy(image.copy()).float().cuda() / 255.0
             control = torch.stack([control for _ in range(1)], dim=0)
@@ -287,7 +288,7 @@ class StableDiffusion:
         return True
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
-        print("Injecting controlnet..")
+        print("Injecting controlnet...")
 
         def get_state_dict(d):
             return d.get('state_dict', d)
@@ -597,7 +598,8 @@ class StableDiffusion:
             invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
             sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
             image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
-            long_save_path=False, show_intermediates=False, controlnet=None, auto_mask_face=False
+            long_save_path=False, show_intermediates=False, controlnet=None, auto_mask_face=False,
+            use_preprocessed_controlnet = False,
     ):
 
         if loras is None:
@@ -706,7 +708,7 @@ class StableDiffusion:
                     print(f"Failed to outpaint the alpha layer {e}")
 
             init_image = self.load_img(image.convert('RGB'), H, W, inpainting=(len(mask_b64) > 0),
-                                       controlnet_mode=controlnet).to(self.device)
+                                       controlnet_mode=controlnet, use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
             if controlnet_path is not None:
                 control = init_image.clone()
             else:
@@ -855,9 +857,6 @@ class StableDiffusion:
                                 mask = None
                                 x_T = None
 
-                            x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
-                            x0 = init_latent_1stage if mode == "pix2pix" else x0
-
                             if controlnet is not None and controlnet.lower() != "none" and control is not None:
                                 # control = torch.load("control.torch")
                                 c = {"c_concat": [control], "c_crossattn": [c]}
@@ -875,6 +874,8 @@ class StableDiffusion:
                                     callback=self.callback_fn,
                                     unconditional_conditioning=uc)
                             else:
+                                x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
+                                x0 = init_latent_1stage if mode == "pix2pix" else x0
                                 x0 = self.model.sample(
                                     S=steps,
                                     conditioning=c,
@@ -916,11 +917,9 @@ class StableDiffusion:
 
                             if ij < highres_fix_steps - 1:
                                 init_image = self.load_img(
-                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0),
-                                    controlnet_mode=None).to(self.device).to(self.dtype)  # we only encode cnet 1 time
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(self.device).to(self.dtype)  # we only encode cnet 1 time
                             elif ij == highres_fix_steps - 1:
-                                init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0),
-                                                           controlnet_mode=None).to(self.device).to(self.dtype)
+                                init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(self.device).to(self.dtype)
                             if padding > 0:
                                 w, h = out_image.size
                                 out_image = out_image.crop((padding, padding, w - padding, h - padding))

@@ -192,7 +192,7 @@ function Upscale () {
                                 </Button>
 
                                 <IconButton
-                                    aria-label="Clear Init Image"
+                                    aria-label="Clear Upscale Images"
                                     icon={<FaTrashAlt />}
                                     onClick={() => setUpscaleImages([])} />
                             </ButtonGroup>
@@ -225,7 +225,7 @@ function Upscale () {
                                 </Button>
 
                                 <IconButton
-                                    aria-label="Clear Init Image"
+                                    aria-label="Clear Upscale Destination"
                                     icon={<FaTrashAlt />}
                                     onClick={(event) => setUpscaleDest('')} />
                             </ButtonGroup>

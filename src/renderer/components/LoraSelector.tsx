@@ -47,7 +47,7 @@ function LoraSelector({options, cloudMode}: {options: any[], cloudMode: boolean}
         <FormLabel htmlFor="Lora">
             <HStack>
                 <Text>
-                    Lora
+                    Choose Your Lora
                 </Text>
                 {cloudMode
                     ? <Icon as={IoMdCloud} />

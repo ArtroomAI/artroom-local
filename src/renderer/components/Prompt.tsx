@@ -1,7 +1,6 @@
 import React from 'react';
 import { forwardRef } from 'react';
 import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
 import ResizeTextarea from 'react-textarea-autosize';
 import DragDropFile from './DragDropFile/DragDropFile';
 import {
@@ -96,7 +95,7 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
                 h="25px"
                 onClick={() =>
                     setNegativePrompts(
-                    "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry"
+                    "mutated, deformed, amateur drawing, lowres, worst quality, low quality, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship"
                     )
                 }
                 w="150px"

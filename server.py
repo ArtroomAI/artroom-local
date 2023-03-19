@@ -11,14 +11,14 @@ try:
     import os
     from PIL import Image
     import json
-    import shutil
-    import threading
     import ctypes
-    import random
     from uuid import uuid4
     from glob import glob
     import re
     from model_merger import ModelMerger
+    import random
+    import datetime
+    import numpy as np
 
     kernel32 = ctypes.windll.kernel32
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
@@ -100,6 +100,61 @@ try:
                 json.dump(data, outfile, indent=4)
         print("Settings saved")
 
+    @socketio.on('preview_controlnet')
+    def preview_controlnet(data):
+        from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal,  apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+        try:
+            print(f'Previewing controlnet {data["controlnet"]}')
+            image = support.b64_to_image(data['initImage'])
+            image = HWC3(np.array(image))
+            init_cnet_stuff(data["controlnet"])
+            match data["controlnet"]:
+                case "canny":
+                    image = apply_canny(image)
+                case "pose":
+                    image = apply_pose(image)
+                case "depth":
+                    image = apply_depth(image)
+                case "normal":
+                    image = apply_normal(image)
+                case "scribble":
+                    image = apply_scribble(image)
+                case "hed":
+                    image = apply_hed(image)
+            output = support.image_to_b64(Image.fromarray(image))
+            socketio.emit('get_controlnet_preview', {'controlnetPreview': output})
+            print(f"Preview finished")
+        except Exception as e:
+            print(f"ControlNet preview failed {e}")
+            return 
+        deinit_cnet_stuff()
+        return
+
+    @socketio.on('remove_bg')
+    def remove_bg(data):
+        print('Removing background...')
+        try:
+            from artroom_helpers.rembg import rembg
+        except:
+            print("Background removal failed to import")
+            return 
+        try:
+            input = support.b64_to_image(data["initImage"]).convert("RGBA")
+            session_models = ['u2net', 'u2netp', 'u2net_human_seg', 'u2net_cloth_seg', 'silueta']
+            assert data['model'] in session_models, f'Model selection not valid: {session_models}'
+            output = rembg.remove(input, session_model=data['model'])
+            output_path = os.path.join(data["imageSavePath"], data["batchName"], datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".png")
+            output.save(output_path)
+            socketio.emit('get_images', {'b64': support.image_to_b64(output),
+                                                'path': os.path.join(output_path),
+                                                'batch_id': random.randint(1,10000000)})
+            print("Background Removed")
+        except Exception as e:
+            print(f"Background removal failed {e}")
+            return 
+        return
+
+
     @socketio.on('generate')
     def generate(data):
         if not SD.running:
@@ -153,7 +208,8 @@ try:
                 long_save_path=data['long_save_path'],
                 highres_fix=data['highres_fix'],
                 show_intermediates=data['show_intermediates'],
-                controlnet = data['controlnet']
+                controlnet = data['controlnet'],
+                use_preprocessed_controlnet = data['use_preprocessed_controlnet']
             )
             socketio.emit('job_done')
 

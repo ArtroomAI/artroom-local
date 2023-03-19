@@ -9,6 +9,7 @@ interface WithStatus {
 
 export interface SocketOnEvents {
     get_images: (res: ImageState) => void;
+    get_controlnet_preview: (res: {controlnetPreview: string}) => void;
     intermediate_image: (res: ImageState) => void;
     get_server_status: (res: { server_running: boolean }) => void;
     get_progress: (res: { current_step: number; total_steps: number; current_num: number; total_num: number }) => void;
@@ -41,6 +42,16 @@ export interface SocketEmitEvents {
         steps: number;
         start_steps: number;
         end_steps: number;
+    }) => void;
+    remove_bg: (data: {
+        initImage: string;
+        batchName: string;
+        imageSavePath: string;
+        model: string;
+    }) => void;
+    preview_controlnet: (data: {
+        initImage: string;
+        controlnet: string;
     }) => void;
 }
 

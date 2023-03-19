@@ -80,5 +80,10 @@ export const imageViewPathState = atom({
     default: ''
 });
 
+export const controlnetPreviewState = atom({
+    key: 'controlnetPreview',
+    default: ''
+});
+
 export * from './atoms.modals'
 export * from './atoms.login'

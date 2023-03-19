@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useContext } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -21,20 +21,24 @@ import {
     Spacer,
     Text,
     Icon,
-    useToast,
     Accordion,
     AccordionButton,
     AccordionIcon,
     AccordionItem,
-    AccordionPanel
+    AccordionPanel,
+    Button
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
-import { batchNameState, cfgState, ckptState, controlnetState, iterationsState, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, vaeState } from '../SettingsManager';
+import { batchNameState, cfgState, ckptState, controlnetState, initImageState, iterationsState, loraState, modelsDirState, randomSeedState, samplerState, seedState, stepsState, strengthState, usePreprocessedControlnetState, vaeState } from '../SettingsManager';
 import LoraSelector from './LoraSelector';
 import { AspectRatio } from './SDSettings/AspectRatio';
+import { SocketContext } from '../socket';
+import ControlnetPreview from './ControlnetPreview/ControlnetPreview';
 
 function SDSettings () {
+    const socket = useContext(SocketContext);
+
     const cloudMode = useRecoilValue(atom.cloudModeState);
 
     const modelDirs = useRecoilValue(modelsDirState);
@@ -54,11 +58,17 @@ function SDSettings () {
     const [vae, setVae] = useRecoilState(vaeState);
 
     const [randomSeed, setRandomSeed] = useRecoilState(randomSeedState);
+    const [usePreprocessedControlnet, setUsePreprocessedControlnet] = useRecoilState(usePreprocessedControlnetState);
+
+    const lora = useRecoilValue(loraState);
+    const initImage = useRecoilValue(initImageState);
+    const controlnetPreview = useRecoilValue(atom.controlnetPreviewState);
 
     const getCkpts = useCallback(() => {
         window.api.getCkpts(modelDirs).then(setCkpts);
         window.api.getVaes(modelDirs).then(setVaes);
         window.api.getLoras(modelDirs).then(setLoras);
+        
     }, [modelDirs]);
 
     useEffect(getCkpts, [getCkpts]);
@@ -377,65 +387,6 @@ function SDSettings () {
                                         />
                                     </VStack>
                                 </HStack>
-                            </AccordionPanel>
-                        </AccordionItem>
-                    </Accordion>
-
-                    <Accordion allowToggle border="none" bg="transparent" width="100%">
-                        <AccordionItem border="none">
-                            <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
-                                <Box width="100%" flex="1" textAlign="start">
-                                    <h2><b>Advanced Models</b></h2>
-                                </Box>
-                                <AccordionIcon />
-                            </AccordionButton>
-                            <AccordionPanel p={0} mt={4} mb={2} width="100%" bg="transparent">
-
-                                <LoraSelector cloudMode={cloudMode} options={loras} />
-
-                                <FormControl className="controlnet-input">
-                                    <HStack>
-                                        <FormLabel htmlFor="Controlnet">
-                                            Controlnet
-                                        </FormLabel>
-                                    </HStack>
-                                    <Select
-                                        id="controlnet"
-                                        name="controlnet"
-                                        onChange={(event) => setControlnet(event.target.value)}
-                                        value={controlnet}
-                                        variant="outline"
-                                    >
-                                        <option value="none">
-                                            None
-                                        </option>
-
-                                        <option value="canny">
-                                            Canny
-                                        </option>
-
-                                        <option value="pose">
-                                            Pose
-                                        </option>
-
-                                        <option value="depth">
-                                            Depth
-                                        </option>
-                                        
-                                        <option value="hed">
-                                            HED
-                                        </option>
-
-                                        <option value="normal">
-                                            Normal
-                                        </option>
-
-                                        <option value="scribble">
-                                            Scribble
-                                        </option>
-                                    </Select>
-                                </FormControl>
-
                                 <FormControl className="vae-ckpt-input">
                                     <FormLabel htmlFor="Vae">
                                         <HStack>
@@ -472,13 +423,107 @@ function SDSettings () {
                         </AccordionItem>
                     </Accordion>
 
-                    {/* <Button
-                        className="load-settings-button"
-                        onClick={uploadSettings}
-                        w="250px"
-                    >
-                        Load Settings
-                    </Button> */}
+                    <Accordion allowToggle border="none" bg="transparent" width="100%">
+                        <AccordionItem border="none">
+                            <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
+                                <Box width="100%" flex="1" textAlign="start">
+                                    <h2><b>{`Loras ${lora.length ? `(${lora.length})` : ``}`}</b></h2>
+                                </Box>
+                                <AccordionIcon />
+                            </AccordionButton>
+                            <AccordionPanel p={0} mt={4} mb={2} width="100%" bg="transparent">
+                                <LoraSelector cloudMode={cloudMode} options={loras} />
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>
+                    <Accordion allowToggle border="none" bg="transparent" width="100%">
+                        <AccordionItem border="none">
+                            <AccordionButton p={0} bg="transparent" _hover={{ bg: 'transparent' }}>
+                                <Box width="100%" flex="1" textAlign="start">
+                                    <h2><b>{`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}</b></h2>
+                                </Box>
+                                <AccordionIcon />
+                            </AccordionButton>
+                            <AccordionPanel p={0} mt={4} mb={2} width="100%" bg="transparent">
+                                <VStack>
+                                    <FormControl className="controlnet-input">
+                                        <HStack>
+                                            <FormLabel htmlFor="Controlnet">
+                                                Choose your controlnet
+                                            </FormLabel>
+                                        </HStack>
+                                        <HStack>
+                                            <Select
+                                                id="controlnet"
+                                                name="controlnet"
+                                                onChange={(event) => setControlnet(event.target.value)}
+                                                value={controlnet}
+                                                variant="outline"
+                                            >
+                                                <option value="none">
+                                                    None
+                                                </option>
+
+                                                <option value="canny">
+                                                    Canny
+                                                </option>
+
+                                                <option value="pose">
+                                                    Pose
+                                                </option>
+
+                                                <option value="depth">
+                                                    Depth
+                                                </option>
+                                                
+                                                <option value="hed">
+                                                    HED
+                                                </option>
+
+                                                <option value="normal">
+                                                    Normal
+                                                </option>
+
+                                                <option value="scribble">
+                                                    Scribble
+                                                </option>
+                                            </Select>
+                                            <Button
+                                                variant='outline'
+                                                disabled={controlnet==='none' || usePreprocessedControlnet}
+                                                onClick={()=>{
+                                                    socket.emit('preview_controlnet', {initImage, controlnet})
+                                                }
+                                            }
+                                        >
+                                            Preview
+                                            </Button>
+                                        </HStack>
+                                    </FormControl>
+                                    <HStack>
+                                    <FormLabel htmlFor="use_random_seed">
+                                        Use Preprocessed ControlNet
+                                    </FormLabel>
+                                    <Checkbox
+                                        id="use_preprocessed_controlnet"
+                                        isChecked={usePreprocessedControlnet}
+                                        name="use_preprocessed_controlnet"
+                                        onChange={() => {
+                                            setUsePreprocessedControlnet((usePreprocessedControlnet) => !usePreprocessedControlnet);
+                                        }}
+                                        pb="12px"
+                                        />
+
+                                    </HStack>
+  
+                                    {controlnetPreview.length > 0 && 
+                                        <ControlnetPreview></ControlnetPreview> 
+                                    }
+                                </VStack>
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>
+                    
                 </VStack>
             </Box>
         </Flex>

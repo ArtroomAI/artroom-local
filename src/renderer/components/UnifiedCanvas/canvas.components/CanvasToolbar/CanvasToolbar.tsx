@@ -208,8 +208,8 @@ export const CanvasOutpaintingControls: FC = () => {
       <CanvasUpscaleButtonPopover />
       <RemoveBackgroundButtonPopover />
       <IconButton
-          aria-label="Save to Gallery (Shift+S)"
-          tooltip="Save to Gallery (Shift+S)"
+          aria-label="Save (Shift+S)"
+          tooltip="Save (Shift+S)"
           icon={<FaSave />}
           onClick={handleSaveToGallery}
           isDisabled={isStaging}

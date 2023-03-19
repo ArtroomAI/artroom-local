@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
     Box,
@@ -15,7 +15,9 @@ import {
 import {
     FaTrashAlt, FaClipboardList, FaQuestionCircle
 } from 'react-icons/fa';
-import { aspectRatioState, heightState, initImageState, widthState } from '../../SettingsManager';
+import { aspectRatioState, batchNameState, heightState, imageSavePathState, initImageState, widthState } from '../../SettingsManager';
+import { SocketContext } from '../../socket';
+import { MdOutlineFlipToBack } from 'react-icons/md';
 
 const getImageDimensions = (base64: string) => {
     return new Promise((resolve, reject) => {
@@ -27,6 +29,8 @@ const getImageDimensions = (base64: string) => {
 };
 
 const DragDropFile = () => {
+    const socket = useContext(SocketContext);
+
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
@@ -35,6 +39,10 @@ const DragDropFile = () => {
     const setWidth = useSetRecoilState(widthState);
     const setHeight = useSetRecoilState(heightState);
     const setAspectRatio = useSetRecoilState(aspectRatioState);
+
+    // For remove bg
+    const batchName= useRecoilValue(batchNameState);
+    const imageSavePath = useRecoilValue(imageSavePathState);
 
     useEffect(() => {
         if (initImagePath) {
@@ -97,93 +105,91 @@ const DragDropFile = () => {
     };
 
     return (
-        <VStack
-        >
-        <Box
-            bg="#080B16"
-            height="180px"
-            width="180px"
-        >
-            {initImage.length > 0
-                ? <Box
-                    border="1px"
-                    borderStyle="ridge"
-                    height="180px"
-                    onClick={onButtonClick}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                    rounded="md"
-                    style={{ display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        borderColor: '#FFFFFF20' }}
-                    width="180px"
-                >
-                    <ChakraImage
-                        boxSize="180px"
-                        fit="contain"
-                        rounded="md"
-                        src={initImage}
-                    />
-                </Box>
-                : <Box
-                    border="1px"
-                    borderStyle="ridge"
-                    height="180px"
-                    onClick={onButtonClick}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                    px={4}
-                    rounded="md"
-                    style={{ display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        borderColor: '#FFFFFF20' }}
-                    width="180px"
-                >
-                        Click or Drag A Starting Image Here
-                    <Tooltip
-                        fontSize="md"
-                        label="Upload an image to use as the starting point for your generation instead of just random noise"
-                        placement="top"
-                        shouldWrapChildren>
-                        <FaQuestionCircle color="#777" />
-                    </Tooltip>
-                </Box> }
-
-            <form
-                id="form-file-upload"
-                onDragEnter={handleDrag}
-                onSubmit={(e) => e.preventDefault()}
+        <VStack>
+            <Box
+                bg="#080B16"
+                height="180px"
+                width="180px"
             >
-                <input
-                    accept="image/png, image/jpeg"
-                    id="input-file-upload"
-                    multiple={false}
-                    onChange={handleChange}
-                    ref={inputRef}
-                    type="file"
-                />
+                {initImage.length > 0
+                    ? <Box
+                        border="1px"
+                        borderStyle="ridge"
+                        height="180px"
+                        onClick={onButtonClick}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
+                        rounded="md"
+                        style={{ display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            borderColor: '#FFFFFF20' }}
+                        width="180px"
+                    >
+                        <ChakraImage
+                            boxSize="178px"
+                            fit="contain"
+                            rounded="md"
+                            src={initImage}
+                        />
+                    </Box>
+                    : <Box
+                        border="1px"
+                        borderStyle="ridge"
+                        height="180px"
+                        onClick={onButtonClick}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
+                        px={4}
+                        rounded="md"
+                        style={{ display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            borderColor: '#FFFFFF20' }}
+                        width="180px"
+                    >
+                            Click or Drag A Starting Image Here
+                        <Tooltip
+                            fontSize="md"
+                            label="Upload an image to use as the starting point for your generation instead of just random noise"
+                            placement="top"
+                            shouldWrapChildren>
+                            <FaQuestionCircle color="#777" />
+                        </Tooltip>
+                    </Box> }
 
-                <label
-                    htmlFor="input-file-upload"
-                    id="label-file-upload"
+                <form
+                    id="form-file-upload"
+                    onDragEnter={handleDrag}
+                    onSubmit={(e) => e.preventDefault()}
                 >
-                </label>
-            </form>
+                    <input
+                        accept="image/png, image/jpeg"
+                        id="input-file-upload"
+                        multiple={false}
+                        onChange={handleChange}
+                        ref={inputRef}
+                        type="file"
+                    />
 
-        </Box>
+                    <label
+                        htmlFor="input-file-upload"
+                        id="label-file-upload"
+                    >
+                    </label>
+                </form>
+            </Box>
             <ButtonGroup width="100%" isAttached variant="outline">
-                <Tooltip label="Clear Init Image">
+                <Tooltip label="Copy from Clipboard">
                     <IconButton
-                        width="50px"
-                        aria-label="Clear Init Image"
+                        width="45px"
+                        aria-label="Copy from Clipboard"
                         border="2px"
                         icon={<FaClipboardList />}
                         onClick={() => {
@@ -205,22 +211,32 @@ const DragDropFile = () => {
                     }}
                     />
                 </Tooltip>
+                <Tooltip label="Remove Background (Experimental)">
+                    <IconButton
+                        width="45px"
+                        aria-label="Remove Background (Experimental)"
+                        border="2px"
+                        icon={<MdOutlineFlipToBack />}
+                        onClick={()=>{
+                            socket.emit('remove_bg', {initImage, batchName, imageSavePath, model: 'u2net'})
+                        }}
+                    />
+                </Tooltip>
                 <Tooltip label="Upload">
                     <IconButton
                     border="2px"
                     icon={<FiUpload />}
                     onClick={onButtonClick}
-                    width="80px"
+                    width="45px"
                     aria-label="upload"
                     />
                 </Tooltip>
                 <Tooltip label="Clear Init Image">
                     <IconButton
-                    width="50px"
                     aria-label="Clear Init Image"
                     border="2px"
                     icon={<FaTrashAlt />}
-                    width="50px"
+                    width="45px"
                     onClick={() => {
                         inputRef.current.value = null;
                         setInitImagePath("");

@@ -55,6 +55,7 @@ export default function App () {
     const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
     const setMainImage = useSetRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
+    const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
 
     const socket = useContext(SocketContext);
 
@@ -71,6 +72,10 @@ export default function App () {
         setMainImage(data);
     }, [setMainImage])
 
+    const handleControlnetPreview = useCallback((data: {controlnetPreview: string}) => {
+        setControlnetPreview(data.controlnetPreview);
+    }, [controlnetPreview])
+
     useEffect(() => {
         socket.on('intermediate_image', handleIntermediateImages); 
 
@@ -86,6 +91,13 @@ export default function App () {
           socket.off('get_images', handleGetImages);
         };
     }, [socket, handleGetImages]);
+
+    useEffect(() => {
+        socket.on('get_controlnet_preview', handleControlnetPreview); 
+        return () => {
+            socket.off('get_controlnet_preview', handleControlnetPreview);
+          };
+    }, [socket, handleControlnetPreview]);
 
     //make sure cloudmode is off, while not signed in
     useEffect(() => {

@@ -174,6 +174,12 @@ export const controlnetState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const usePreprocessedControlnetState = atom<boolean>({
+    key: "use_preprocessed_controlnet",
+    default: false,
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const runTypeState = atom<string>({
     key: "run_type",
     default: "regular",
@@ -207,6 +213,7 @@ export const queueSettingsSelector = selector<QueueType>({
             vae: get(vaeState),
             lora: get(loraState),
             controlnet: get(controlnetState),
+            use_preprocessed_controlnet: get(usePreprocessedControlnetState),
 
             // sampler options
             sampler: get(samplerState),

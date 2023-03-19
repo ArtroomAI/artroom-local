@@ -43,3 +43,6 @@ resize-right
 open-clip-torch
 timm
 face_alignment
+pymatting #for rembg
+onnxruntime #for rembg
+pooch==1.6.0 #for rembg

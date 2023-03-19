@@ -144,14 +144,10 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
 
 const reinstallPythonDependencies = (artroomPath: string) => () => {
     console.log("RESINSTALLING DEPENDENCIES")
-    console.log(artroomPath);
     const PATH = path.join(artroomPath, "artroom\\miniconda3");
-    console.log(PATH);
     const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
-    console.log(PATH_requirements)
     const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
     
-    console.log(installationCommand)
     installationProcess = spawn(installationCommand, { shell: true, detached: true });
 
     installationProcess.stdout.on('data', function(data) {
@@ -173,7 +169,7 @@ const reinstallPythonDependencies = (artroomPath: string) => () => {
         console.log(`ermsg ${msg}`)
       })
       installationProcess.stdout.on('end', function () {
-        console.log('Finished collecting data chunks.');
+        console.log('Finished collecting data chunks.');        
       });
 }
 

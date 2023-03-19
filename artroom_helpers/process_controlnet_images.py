@@ -61,10 +61,6 @@ def apply_normal(img):
 def apply_hed(img):
     img = apply_hed_d(img)
     img = HWC3(img)
-    img = nms(img, 127, 3.0)
-    img = cv2.GaussianBlur(img, (0, 0), 3.0)
-    img[img > 4] = 255
-    img[img < 255] = 0
     return img
 
 

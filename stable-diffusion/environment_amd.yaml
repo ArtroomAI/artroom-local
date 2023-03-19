@@ -129,4 +129,5 @@ dependencies:
       - torch-directml==0.1.13.1.dev230119
       - torch-fidelity==0.3.0
       - torchvision==0.14.1
+      - onnxruntime-directml
       - -r requirements.txt

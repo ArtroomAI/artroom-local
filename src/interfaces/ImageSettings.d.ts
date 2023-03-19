@@ -20,7 +20,8 @@ interface QueueType {
     vae: string; // absolute path
     lora: Lora[];
     controlnet: string;
-
+    use_preprocessed_controlnet: boolean; 
+    
     // sampler options
     sampler: string;
     steps: number;
