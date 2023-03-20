@@ -288,11 +288,12 @@ class CrossAttention(nn.Module):
                 else int(q_proj.shape[0] * q_proj.shape[1] * q_proj.shape[2] * 8 * 2 * 50)  # the last 50 is for speed
             chunk_split = (required_mem // allocatable_mem) * 2 if required_mem > allocatable_mem else 1
         except Exception as e:
-            chunk_split = 1
-            # print(e)
+            ultimate_shape = q_proj.shape[0] * q_proj.shape[1] * q_proj.shape[2]
+            # print(ultimate_shape)
+            chunk_split = ultimate_shape // 655360
+            chunk_split = chunk_split if chunk_split >= 1 else 1
 
-        # print(f"allocatable_mem: {allocatable_mem}, required_mem: {required_mem}, chunk_split: {chunk_split}")
-        # print(q.shape) torch.Size([1, 4096, 320])
+            # chunk_split *= 2 # if you have 4 gbs of vram uncomment this
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q_proj, k_proj, v_proj))
         del q_proj, k_proj, v_proj
