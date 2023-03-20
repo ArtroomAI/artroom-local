@@ -63,18 +63,23 @@ async function getImage(image_path: string) {
 
 let server: ChildProcessWithoutNullStreams;
 
-const getFiles = async (folder_path: string, ext: string, excludeFolder?: string) => {  return new Promise((resolve, reject) => {
-    if (folder_path.length){
+const getFiles = async (folder_path: string, ext: string, excludeFolders?: string[]) => {
+  return new Promise<string[]>((resolve, reject) => {
+    if (folder_path.length) {
       glob(`${folder_path}/**/*.{${ext}}`, {}, (err, files) => {
         if (err) {
           console.log("ERROR");
           resolve([]);
         }
-        resolve(files.filter((match) => !match.includes(`${excludeFolder}`))?.map((match) => path.relative(folder_path, match)) ?? []);
-      })
+        resolve(
+          files.filter((match) =>
+            excludeFolders ? !excludeFolders.some((folder) => match.includes(folder)) : true
+          ).map((match) => path.relative(folder_path, match))
+        );
+      });
     }
   });
-}
+};
 
 function createWindow() {
 
@@ -118,7 +123,7 @@ function createWindow() {
   });
 
   ipcMain.handle('getCkpts', async (event, data) => {
-    return getFiles(data, 'ckpt,safetensors', 'Loras');
+    return getFiles(data, 'ckpt,safetensors', ['Loras', 'ControlNet']);
   });
 
   ipcMain.handle('getLoras', async (event, data) => {

@@ -1012,7 +1012,9 @@ class StableDiffusion:
                             "seed": seed,
                             "sampler": sampler,
                             "ckpt": os.path.basename(ckpt),
-                            "vae": os.path.basename(vae)
+                            "vae": os.path.basename(vae),
+                            "controlnet": controlnet,
+                            "loras": loras
                         }
                         # 0x9286 Exif Code for UserComment
                         exif_data[0x9286] = json.dumps(settings_data)
