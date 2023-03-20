@@ -131,7 +131,6 @@ try:
         except Exception as e:
             print(f"ControlNet preview failed {e}")
             return 
-        deinit_cnet_stuff()
         return
 
     # TODO Implement this in own tab for bulk jobs

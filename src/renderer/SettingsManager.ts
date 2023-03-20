@@ -35,9 +35,9 @@ export const batchNameState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const stepsState = atom<number>({
+export const stepsState = atom<string>({
     key: "steps",
-    default: 30,
+    default: "30",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -71,9 +71,9 @@ export const randomSeedState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const iterationsState = atom<number>({
+export const iterationsState = atom<string>({
     key: "n_iter",
-    default: 3,
+    default: "3",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -230,7 +230,7 @@ export const queueSettingsSelector = selector<QueueType>({
             use_removed_background: get(useRemovedBackgroundState),
             // sampler options
             sampler: get(samplerState),
-            steps: get(stepsState),
+            steps: isNaN(parseFloat(get(stepsState))) ? 30: parseFloat(get(stepsState)),
             cfg_scale: isNaN(parseFloat(get(cfgState))) ? 7.5 : parseFloat(get(cfgState)),
             seed: get(seedState),
 
@@ -243,7 +243,7 @@ export const queueSettingsSelector = selector<QueueType>({
             image_save_path: path.join(get(imageSavePathState), get(batchNameState)), // absolute path
 
             // generation options
-            n_iter: get(iterationsState),
+            n_iter: isNaN(parseFloat(get(iterationsState))) ? 1 : parseFloat(get(iterationsState)),
             save_grid: get(saveGridState),
             speed: get(speedState),
             device: undefined, // ? CPU / GPU

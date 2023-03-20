@@ -37,6 +37,7 @@ import Controlnet from './Controlnet/Controlnet';
 import RemoveBackground from './RemoveBackground/RemoveBackground';
 
 function SDSettings () {
+
     const socket = useContext(SocketContext);
 
     const cloudMode = useRecoilValue(atom.cloudModeState);
@@ -99,11 +100,9 @@ function SDSettings () {
 
                             <NumberInput
                                 id="n_iter"
-                                min={1}
                                 name="n_iter"
-                                onChange={(v, n) => {
-                                    setIterations(isNaN(n) ? 1 : n);
-                                }}
+                                min={1}
+                                onChange={setIterations}
                                 value={iterations}
                                 variant="outline"
                             >
@@ -222,9 +221,7 @@ function SDSettings () {
                                             id="steps"
                                             min={1}
                                             name="steps"
-                                            onChange={(v, n) => {
-                                                setSteps(isNaN(n) ? 1 : n);
-                                            }}
+                                            onChange={setSteps}
                                             value={steps}
                                             variant="outline"
                                         >
