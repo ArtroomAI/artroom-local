@@ -28,11 +28,11 @@ yarn-error.log*
 
 electron-builder.yml
 
-stable-diffusion/src/clip
-stable-diffusion/src/gfpgan
-stable-diffusion/src/k-diffusion
-stable-diffusion/src/realesrgan
-stable-diffusion/src/taming-transformers
+sd_modules/src/clip
+sd_modules/src/gfpgan
+sd_modules/src/k-diffusion
+sd_modules/src/realesrgan
+sd_modules/src/taming-transformers
 InpaintingTest.ipynb
 .eslintcache
 __pycache__

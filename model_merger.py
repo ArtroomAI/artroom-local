@@ -1,45 +1,33 @@
 import os
-import argparse
 import torch
-from tqdm import tqdm
 import time
 import math
-from safe import load as safe_load
-from safetensors import safe_open
+
+from tqdm import tqdm
 from safetensors.torch import save_file
-import ctypes
+
+from artroom_helpers.generation.preprocess import load_model_from_config
+
 
 def weighted_sum(theta0, theta1, alpha):
     return ((1 - alpha) * theta0) + (alpha * theta1)
+
 
 # Smoothstep (https://en.wikipedia.org/wiki/Smoothstep)
 def sigmoid(theta0, theta1, alpha):
     alpha = alpha * alpha * (3 - (2 * alpha))
     return theta0 + ((theta1 - theta0) * alpha)
 
+
 # Inverse Smoothstep (https://en.wikipedia.org/wiki/Smoothstep)
 def inv_sigmoid(theta0, theta1, alpha):
     alpha = 0.5 - math.sin(math.asin(1.0 - 2.0 * alpha) / 3.0)
     return theta0 + ((theta1 - theta0) * alpha)
 
+
 def add_difference(theta0, theta1, theta2, alpha):
     return theta0 + (theta1 - theta2) * (1.0 - alpha)
 
-def load_model_from_config(ckpt, use_safe_load=True):
-    print(f"Loading model from {ckpt}")
-    if ".safetensors" in ckpt:
-        pl_sd = {}
-        with safe_open(ckpt, framework="pt", device="cpu") as f:
-            for key in f.keys():
-                pl_sd[key] = f.get_tensor(key)
-    elif use_safe_load:
-        pl_sd = safe_load(ckpt)
-    else:
-        pl_sd = torch.load(ckpt, map_location="cpu")
-
-    if "state_dict" in pl_sd:
-        return pl_sd["state_dict"]
-    return pl_sd
 
 class ModelMerger:
     def __init__(self, data):
@@ -136,7 +124,8 @@ class ModelMerger:
             print(f"Start: {self.data['start_steps']} End: {self.data['end_steps']} Increment: {self.data['steps']}")
             time.sleep(5)
             for i in range(self.data['start_steps'], self.data['end_steps'], self.data['steps']):
-                print(f"Merging {self.modelName_0} with {self.modelName_1} at {i}% interpolation with {self.data['method']}")
+                print(
+                    f"Merging {self.modelName_0} with {self.modelName_1} at {i}% interpolation with {self.data['method']}")
                 if self.data['model_2'] != "":
                     names += self.merge_three(i / 100.) + ","
                 else:
@@ -145,7 +134,8 @@ class ModelMerger:
                 # Probably not an issue. Remove if not needed:
                 time.sleep(0.5)  # make extra sure the gc has some extra time to dump torch stuff just in case ??
         else:
-            print(f"Merging {self.modelName_0} with {self.modelName_1} at {self.data['alpha']}% interpolation with {self.data['method']}")
+            print(
+                f"Merging {self.modelName_0} with {self.modelName_1} at {self.data['alpha']}% interpolation with {self.data['method']}")
             if self.data['model_2'] != "":
                 names = self.merge_three(self.data['alpha'] / 100.)
             else:

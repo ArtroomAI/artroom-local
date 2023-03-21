@@ -1,130 +1,49 @@
 import threading
 import warnings
 import random
-
-try:
-    import face_alignment
-except:
-    print("Install face_alignment via `pip install face_alignment`")
-from scipy.spatial import ConvexHull
 import torch
 import gc
 import re
 import time
-import numpy as np
 import json
 import math
 import os
 import sys
 
-from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
+import numpy as np
 
-sys.path.append("stable-diffusion/optimizedSD")
-sys.path.append("artroom_helpers/modules")
-
-from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
-from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-    apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
-from artroom_helpers.modules.cldm.model import create_model, load_state_dict
-
-from safe import load as safe_load
 from torchvision.utils import make_grid
 from transformers import logging
 from torch import autocast
 from pytorch_lightning import seed_everything
 from omegaconf import OmegaConf
-from itertools import islice
 from einops import rearrange, repeat
 from contextlib import nullcontext
-from PIL import Image, ImageOps, ImageDraw
-from safetensors import safe_open
+from PIL import Image, ImageOps
 from safetensors.torch import load_file
 
+from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, \
+    image_grid
+from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
+
+sys.path.append("artroom_helpers/modules")
+
+from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
+from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
+    apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+from artroom_helpers.modules.cldm.model import create_model
 from artroom_helpers import support, inpainting
 from artroom_helpers.prompt_parsing import weights_handling
 from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import HN
 
-from ldm.util import instantiate_from_config
+from sd_modules.optimizedSD.ldm.util import instantiate_from_config
+
+sys.path.append("sd_modules/optimizedSD")
 
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
-def chunk(it, size):
-    it = iter(it)
-    return iter(lambda: tuple(islice(it, size)), ())
-
-
-def load_model_from_config(ckpt, use_safe_load=True):
-    print(f"Loading model from {ckpt}")
-    if ".safetensors" in ckpt:
-        pl_sd = {}
-        with safe_open(ckpt, framework="pt", device="cpu") as f:
-            for key in f.keys():
-                pl_sd[key] = f.get_tensor(key)
-    elif use_safe_load:
-        pl_sd = safe_load(ckpt)
-    else:
-        pl_sd = torch.load(ckpt, map_location="cpu")
-
-    if "state_dict" in pl_sd:
-        return pl_sd["state_dict"]
-    return pl_sd
-
-
-def load_mask(mask, newH, newW):
-    image = np.array(mask)
-    image = Image.fromarray(image).convert("RGB")
-    w, h = image.size
-
-    # resize to integer multiple of 32
-    w, h = map(lambda x: x - x % 64, (w, h))
-    image = image.resize((newW, newH), resample=Image.LANCZOS)
-
-    # image = image.resize((64, 64), resample=Image.LANCZOS)
-    image = np.array(image)
-
-    image = image.astype(np.float32) / 255.0
-    image = image[None].transpose(0, 3, 1, 2)
-    image = torch.from_numpy(image)
-    return image
-
-
-def image_grid(imgs, rows, cols, path):
-    print("Making image grid...")
-    assert len(imgs) <= rows * cols
-    w, h = imgs[0].size
-    grid = Image.new('RGB', size=(cols * w, rows * h))
-    for i, img in enumerate(imgs):
-        grid.paste(img, box=(i % cols * w, i // cols * h))
-    grid.save(path)
-    print("Grid finished")
-
-
-def mask_from_face(img, w, h, face_idx=0):
-    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device="cpu")
-    img = np.array(img.resize((w, h)))
-
-    lmarks = fa.get_landmarks(img)
-    if len(lmarks) > 1:
-        print(f"Multiple faces found! Selecing: {face_idx}")
-    lmarks = lmarks[face_idx]
-    lmarks = [(int(x[0]), int(x[1])) for x in lmarks]
-
-    hull = ConvexHull(lmarks)
-    lmarks = [lmarks[x] for x in hull.vertices]
-
-    mask = Image.new("L", (w, h), 0)
-    ImageDraw.Draw(mask).polygon(lmarks, outline=1, fill="white")
-    return mask
-
-
-def mask_background(img, remove_background):
-    from artroom_helpers.rembg import rembg
-    output = rembg.remove(img, session_model=remove_background, only_mask=True)
-    return output.convert('L')
 
 
 class StableDiffusion:
@@ -406,11 +325,11 @@ class StableDiffusion:
                     # still, there are only two types of configs, the ones with parameterization in them and without
                     if "parameterization" in "".join(open(self.config, "r").readlines()):
                         parameterization = "v"
-                        self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference-v.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference-v.yaml'
                     else:
-                        self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
                 else:
-                    self.config = 'stable-diffusion/optimizedSD/configs/v2/v2-inference.yaml'
+                    self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
                 print(f"v2 conf: {self.config}")
                 config = OmegaConf.load(f"{self.config}")
                 self.model = instantiate_from_config(config.model)
@@ -427,47 +346,47 @@ class StableDiffusion:
                 if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
                     print("Detected runwayml inpainting model")
                     if speed == 'Low':
-                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
                     elif speed == 'Medium':
-                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
                     elif speed == 'High':
-                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference.yaml'
                     elif speed == 'Max':
-                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference_xformer.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_xformer.yaml'
                     else:
                         print(f"Dafuq is {speed}")
-                        self.config = 'stable-diffusion/optimizedSD/configs/runway/v1-inference.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference.yaml'
                 elif sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 8:
                     print("Detected pix2pix model")
                     if speed == 'Low':
-                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
                     elif speed == 'Medium':
-                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
                     elif speed == 'High':
-                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
                     elif speed == 'Max':
-                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
                     else:
                         print(f"Dafuq is {speed}")
-                        self.config = 'stable-diffusion/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
                 else:
                     print("Loading ordinary model")
                     if 60 <= self.cc <= 86 and self.device.type == "cuda":
                         print("Congrats, your gpu supports xformers, autoselecting it")
-                        self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
+                        self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                     else:
                         print("Using speed mode from artroom settings")
                         if speed == 'Low':
-                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
                         elif speed == 'Medium':
-                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
                         elif speed == 'High':
-                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
                         elif speed == 'Max':
-                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference_xformer.yaml'
+                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                         else:
                             print(f"Not recognized speed: {speed}")
-                            self.config = 'stable-diffusion/optimizedSD/configs/v1/v1-inference.yaml'
+                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
                 li = []
                 lo = []
                 for key, value in sd.items():
@@ -514,7 +433,7 @@ class StableDiffusion:
                 self.modelFS.to(torch.float32)
             self.control_model = None
         else:
-            self.control_model = create_model("stable-diffusion/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
             if ".pth" in controlnet_path:
                 sd = self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
             else:
