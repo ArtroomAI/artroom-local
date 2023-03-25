@@ -30,7 +30,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
 
     const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
     console.log(`ARTROOM PATH: ${PATH}`)
-    const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
+    const PATH_requirements = path.resolve('sd_modules/requirements.txt');
     console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`)
 
     const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
@@ -145,7 +145,7 @@ const backupPythonInstallation = (mainWindow: Electron.BrowserWindow, artroomPat
 const reinstallPythonDependencies = (artroomPath: string) => () => {
     console.log("RESINSTALLING DEPENDENCIES")
     const PATH = path.join(artroomPath, "artroom\\miniconda3");
-    const PATH_requirements = path.resolve('stable-diffusion/requirements.txt');
+    const PATH_requirements = path.resolve('sd_modules/requirements.txt');
     const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
     
     installationProcess = spawn(installationCommand, { shell: true, detached: true });

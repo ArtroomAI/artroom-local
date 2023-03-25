@@ -1,24 +1,25 @@
-try:
+from artroom_helpers.generation.preprocess import mask_from_face
 
-    from flask import Flask, request, jsonify, make_response
-    from flask_socketio import SocketIO
-    from werkzeug.utils import secure_filename
+try:
+    import numpy as np
+    import json
+    import ctypes
+    import logging
+    import os
+    import re
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
     from artroom_helpers import support
-    import logging
-    import os
-    from PIL import Image, ImageDraw, ImageOps
-    from scipy.spatial import ConvexHull
-    import json
-    import ctypes
-    from uuid import uuid4
-    from glob import glob
-    import re
     from model_merger import ModelMerger
 
-    import numpy as np
+    from flask import Flask, request, jsonify, make_response
+    from flask_socketio import SocketIO
+    from werkzeug.utils import secure_filename
+    from PIL import Image, ImageDraw, ImageOps
+    from scipy.spatial import ConvexHull
+    from uuid import uuid4
+    from glob import glob
 
     kernel32 = ctypes.windll.kernel32
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
@@ -27,10 +28,12 @@ try:
     log.setLevel(logging.ERROR)
     print('Running in Debug Mode. Please keep CMD window open')
 
+
     def return_output(status, status_message='', content=''):
         if not status_message and status == 'Failure':
             status_message = 'Unknown Error'
         return jsonify({'status': status, 'status_message': status_message, 'content': content})
+
 
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'secret!'
@@ -51,9 +54,10 @@ try:
         artroom_path = artroom_path_raw[:-1]
     else:
         artroom_path = os.environ['USERPROFILE']
-        
+
     os.makedirs(os.path.join(artroom_path, "model_weights/Loras"), exist_ok=True)
     os.makedirs(os.path.join(artroom_path, "model_weights/Vaes"), exist_ok=True)
+
 
     @socketio.on('upscale')
     def upscale(data):
@@ -70,13 +74,16 @@ try:
         if data['upscale_dest'] == '':
             data['upscale_dest'] = data['image_save_path'] + '/upscale_outputs'
 
-        UP.upscale(data['models_dir'], data['upscale_images'], data['upscaler'], data['upscale_factor'], data['upscale_dest'])
+        UP.upscale(data['models_dir'], data['upscale_images'], data['upscaler'], data['upscale_factor'],
+                   data['upscale_dest'])
         socketio.emit('upscale', {'status': 'Success', 'status_message': 'Your upscale has completed'})
         return
+
 
     @socketio.on('merge_models')
     def merge_models(data):
         ModelMerger(data).run()
+
 
     def save_to_settings_folder(data):
         print("Saving settings...")
@@ -96,13 +103,15 @@ try:
             prompt_name = re.sub(
                 r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
             with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
-                    'w') as outfile:
+                      'w') as outfile:
                 json.dump(data, outfile, indent=4)
         print("Settings saved")
 
+
     @socketio.on('preview_controlnet')
     def preview_controlnet(data):
-        from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal,  apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+        from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
+            apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
         try:
             print(f'Previewing controlnet {data["controlnet"]}')
             image = support.b64_to_image(data['initImage'])
@@ -130,49 +139,32 @@ try:
             print(f"Preview finished")
         except Exception as e:
             print(f"ControlNet preview failed {e}")
-            return 
+            return
         return
 
-    # TODO Implement this in own tab for bulk jobs
-    @socketio.on('preview_remove_background')
+
+    @socketio.on('preview_remove_background')  # TODO Implement this in own tab for bulk jobs
     def preview_remove_background(data):
         print('Removing background...')
         try:
             if data['remove_background'] == 'face':
                 import face_alignment
-                input = support.b64_to_image(data["initImage"]).convert("RGB")
-                img = np.array(input)
-                h, w, _ = img.shape
-                fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device="cpu")
-                face_idx = 0
-                lmarks = fa.get_landmarks(img)
-                if len(lmarks) > 1:
-                    print(f"Multiple faces found! Selecing: {face_idx}")
-                lmarks = lmarks[face_idx]
-                lmarks = [(int(x[0]), int(x[1])) for x in lmarks]
+                image = support.b64_to_image(data["initImage"]).convert("RGB")
+                mask = mask_from_face(image, image.width, image.height)
 
-                hull = ConvexHull(lmarks)
-                lmarks = [lmarks[x] for x in hull.vertices]
-
-                mask = Image.new("L", (w, h), 0)
-                ImageDraw.Draw(mask).polygon(lmarks, outline=1, fill="white")
-                # Convert numpy array back to PIL image object
-                pil_img = Image.fromarray(np.uint8(img))
-
-                # Resize mask to match image size and apply to image
-                mask = mask.resize(pil_img.size, resample=Image.BILINEAR)
-                output = ImageOps.fit(pil_img, mask.size, centering=(0.5, 0.5))
+                output = ImageOps.fit(image, mask.size, centering=(0.5, 0.5))
                 output.putalpha(mask)
             else:
                 from artroom_helpers.rembg import rembg
-                input = support.b64_to_image(data["initImage"]).convert("RGBA")
-                output = rembg.remove(input, session_model=data['remove_background'])
+                image = support.b64_to_image(data["initImage"]).convert("RGBA")
+                output = rembg.remove(image, session_model=data['remove_background'])
             socketio.emit('get_remove_background_preview', {'removeBackgroundPreview': support.image_to_b64(output)})
             print(f"Background Removed using {data['remove_background']}")
         except Exception as e:
             print(f"Failed to remove background {e}")
-            return 
+            return
         return
+
 
     @socketio.on('generate')
     def generate(data):
@@ -180,9 +172,9 @@ try:
             try:
                 SD.running = True
                 mask_b64 = data['mask_image']
-                data['mask_image'] = data['mask_image'][:100]+"..."
+                data['mask_image'] = data['mask_image'][:100] + "..."
                 init_image_str = data['init_image']
-                data['init_image'] = data['init_image'][:100]+"..."
+                data['init_image'] = data['init_image'][:100] + "..."
 
                 print("Saving settings to folder...")
                 save_to_settings_folder(data)
@@ -227,11 +219,11 @@ try:
                 long_save_path=data['long_save_path'],
                 highres_fix=data['highres_fix'],
                 show_intermediates=data['show_intermediates'],
-                controlnet = data['controlnet'],
-                use_preprocessed_controlnet = data['use_preprocessed_controlnet'],
-                remove_background = data['remove_background'],
-                use_removed_background = data['use_removed_background'],
-                models_dir = data['models_dir'],
+                controlnet=data['controlnet'],
+                use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
+                remove_background=data['remove_background'],
+                use_removed_background=data['use_removed_background'],
+                models_dir=data['models_dir'],
             )
             socketio.emit('job_done')
 
@@ -245,6 +237,7 @@ try:
     def stop_queue():
         SD.interrupt()
         socketio.emit("stop_queue", {'status': 'Success'}, broadcast=True)
+
 
     @app.route('/shutdown', methods=['GET'])
     def shutdown():
@@ -278,6 +271,7 @@ try:
         socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
 except Exception as e:
     import time
+
     print("Runtime failed")
     print(e)
     time.sleep(120)
