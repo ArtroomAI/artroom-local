@@ -235,7 +235,7 @@ class StableDiffusion:
         hn = HN(hn_sd)
         return hn
 
-    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
+    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4, controlnet=False):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
         du_state_dict = load_file(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
@@ -244,7 +244,7 @@ class StableDiffusion:
         assert text_encoder is not None, "Text encoder is Null"
 
         network, info, state_dict = create_network_and_apply_compvis(
-            du_state_dict, weight_tenc, weight_unet, text_encoder, unet=self.model)
+            du_state_dict, weight_tenc, weight_unet, text_encoder, unet=self.model, controlnet=controlnet)
         self.network = network.to(self.device, dtype=self.dtype)
         self.network.enable_loras(True)
 
@@ -288,7 +288,7 @@ class StableDiffusion:
                 self.deinject_lora()
             if len(loras) > 0:
                 for lora in loras:
-                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
+                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'], controlnet=(controlnet_path is not None))
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
         return True

@@ -3,3 +3,6 @@ g++ py_cuda_install_debug_amd.cpp -o py_cuda_install_amd.exe -static
 
 #cd into rclone Desktop dir and make sure config is setup
 rclone copy C:\Users\artad\artroom\miniconda3_amd.zip artroom:artroom-ai-prod-public
+
+# obfuscate
+pyarmor obfuscate lora_ext.py

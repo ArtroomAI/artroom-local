@@ -181,10 +181,10 @@ const DragDropFile = () => {
                 </form>
             </Box>
             <ButtonGroup width="100%" isAttached variant="outline">
-                <Tooltip label="Copy from Clipboard">
+                <Tooltip label="Paste from Clipboard">
                     <IconButton
                         width="45px"
-                        aria-label="Copy from Clipboard"
+                        aria-label="Paste from Clipboard"
                         border="2px"
                         icon={<FaClipboardList />}
                         onClick={() => {

@@ -75,7 +75,7 @@ class LoRAModule(torch.nn.Module):
         return res
 
 
-def create_network_and_apply_compvis(du_state_dict, multiplier_tenc, multiplier_unet, text_encoder, unet, **kwargs):
+def create_network_and_apply_compvis(du_state_dict, multiplier_tenc, multiplier_unet, text_encoder, unet, controlnet = False, **kwargs):
     # get device and dtype from unet
     for module in unet.modules():
         if module.__class__.__name__ == "Linear":
@@ -107,7 +107,7 @@ def create_network_and_apply_compvis(du_state_dict, multiplier_tenc, multiplier_
     network = LoRANetworkCompvis(text_encoder, unet, multiplier_tenc=multiplier_tenc,
                                  multiplier_unet=multiplier_unet, lora_dim=network_dim, alpha=network_alpha)
     # some weights are applied to text encoder
-    state_dict = network.apply_lora_modules(du_state_dict)
+    state_dict = network.apply_lora_modules(du_state_dict, controlnet = controlnet)
 
     # print("DU_STATE_DICT", du_state_dict)
     # for key, value in du_state_dict.items():
@@ -142,26 +142,36 @@ class LoRANetworkCompvis(torch.nn.Module):
     LORA_PREFIX_TEXT_WRAPPER = 'lora_te_wrapped'
 
     @classmethod
-    def convert_diffusers_name_to_compvis(cls, v2, du_name):
+    def convert_diffusers_name_to_compvis(cls, v2, du_name, controlnet = False):
         """
         convert diffusers's LoRA name to CompVis
         """
-        cv_name = None
         if LoRANetworkCompvis.LORA_PREFIX_UNET in du_name:
             if m := re.search(r"lora_unet_down_blocks_(\d+)_attentions_(\d+)_(.+)", du_name):
                 du_suffix = m[3]
                 cv_index = 1 + int(m[1]) * 3 + int(m[2])
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_input_blocks_{cv_index}_1_{du_suffix}"
+                if controlnet:
+                    model = 'model'
+                else:
+                    model = 'model1'
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_{model}_diffusion_model_input_blocks_{cv_index}_1_{du_suffix}"
             elif m := re.search(r"lora_unet_mid_block_attentions_(\d+)_(.+)", du_name):
                 du_suffix = m[2]
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model1_diffusion_model_middle_block_1_{du_suffix}"
+                if controlnet:
+                    model = 'model'
+                else:
+                    model = 'model1'
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_{model}_diffusion_model_middle_block_1_{du_suffix}"
             elif m := re.search(r"lora_unet_up_blocks_(\d+)_attentions_(\d+)_(.+)", du_name):
                 du_block_index = int(m[1])
                 du_attn_index = int(m[2])
                 du_suffix = m[3]
-
+                if controlnet:
+                    model = 'model'
+                else:
+                    model = 'model2'
                 cv_index = du_block_index * 3 + du_attn_index  # 3,4,5, 6,7,8, 9,10,11
-                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_model2_diffusion_model_output_blocks_{cv_index}_1_{du_suffix}"
+                cv_name = f"{LoRANetworkCompvis.LORA_PREFIX_UNET}_{model}_diffusion_model_output_blocks_{cv_index}_1_{du_suffix}"
 
         elif LoRANetworkCompvis.LORA_PREFIX_TEXT_ENCODER in du_name:
             if m := re.search(r"lora_te_text_model_encoder_layers_(\d+)_(.+)", du_name):
@@ -272,7 +282,7 @@ class LoRANetworkCompvis(torch.nn.Module):
                 del module._lora_org_weights
 
     @classmethod
-    def convert_state_dict_name_to_compvis(cls, v2, state_dict):
+    def convert_state_dict_name_to_compvis(cls, v2, state_dict, controlnet):
         """
         convert keys in state dict to load it by load_state_dict
         """
@@ -281,19 +291,18 @@ class LoRANetworkCompvis(torch.nn.Module):
         for key, value in state_dict.items():
             tokens = key.split('.')
             compvis_name = LoRANetworkCompvis.convert_diffusers_name_to_compvis(
-                v2, tokens[0])
-            # compvis_name = convert_diffusers_name_to_compvis(tokens[0])
+                v2, tokens[0], controlnet)
             new_key = f'{compvis_name}.' + '.'.join(tokens[1:])
             new_sd[new_key] = value
             # Make both old and new key availables for quick access
             convis_dict[new_key] = key
         return new_sd, convis_dict
 
-    def apply_lora_modules(self, lora_modules):
+    def apply_lora_modules(self, lora_modules, controlnet = False):
 
         # conversion 1st step: convert names in state_dict(lora)
         state_dict, convis_dict = LoRANetworkCompvis.convert_state_dict_name_to_compvis(
-            self.v2, lora_modules)
+            self.v2, lora_modules, controlnet)
 
         # check state_dict has text_encoder or unet
         weights_has_text_encoder = weights_has_unet = False
