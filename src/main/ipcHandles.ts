@@ -173,11 +173,83 @@ const reinstallPythonDependencies = (artroomPath: string) => () => {
       });
 }
 
+const downloadStarterModels = (mainWindow: Electron.BrowserWindow, dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => () => {
+  fs.mkdirSync(dir, { recursive: true });
+
+  const bucketPath = "https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/models/models/"
+  const realisticModel = "UmiAIMythologyAndBabes_aphroditeRealisticV1.safetensors"
+  const animeModel = "UmiAIMythologyAndBabes_macrossAnimeUltimate1.safetensors"
+  const landscapesModel = "UmiAIMythologyAndBabes_macrossAnimeUltimate1.safetensors"
+
+  const realisticURL = bucketPath + realisticModel;
+  const animeURL = bucketPath + animeModel;
+  const landscapesURL = bucketPath + landscapesModel;
+
+  const downloadModel = (modelURL: string, callback: () => void) => {
+    https.get(modelURL, (response) => {
+
+      const len = parseInt(response.headers['content-length'], 10);
+      let cur = 0;
+      const toMB = (n: number) => (n / 1048576).toFixed(2);
+
+      const file = fs.createWriteStream(path.join());
+      response.pipe(file);
+
+      const total = toMB(len); //1048576 - bytes in 1 MB
+
+      let chunk_counter = 0;
+
+      response.on("data", (chunk) => {
+          cur += chunk.length;
+          ++chunk_counter;
+          if(chunk_counter === 3000) {
+              console.log(`Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
+              mainWindow.webContents.send('fixButtonProgress', `Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
+              chunk_counter = 0;
+          }
+      });
+
+      file.on("finish", () => {
+          file.close();
+          callback();
+      });
+
+      response.on("error", (e) => {
+          mainWindow.webContents.send('fixButtonProgress', `Error: ${e.message}`);
+          file.close();
+          callback();
+      });
+    })
+  }
+
+  const downloadAllModels = async () => {
+    if (realisticStarter) {
+      console.log(`DOWNLOAINDG FROM ${realisticURL}`)
+      await new Promise<void>((resolve) => downloadModel(realisticURL, resolve));
+    }
+    if (animeStarter) {
+      console.log(`DOWNLOAINDG FROM ${animeStarter}`)
+      await new Promise<void>((resolve) => downloadModel(animeURL, resolve));
+    }
+    if (landscapesStarter) {
+      console.log(`DOWNLOAINDG FROM ${landscapesStarter}`)
+      await new Promise<void>((resolve) => downloadModel(landscapesURL, resolve));
+    }
+    console.log("All downloads complete!");
+  };
+
+  downloadAllModels();
+}
+
+
 export const handlers = (mainWindow: Electron.BrowserWindow) => {
   ipcMain.handle('pythonInstall', (event, artroomPath, gpuType) => {
     backupPythonInstallation(mainWindow, artroomPath, gpuType)();
   });    
   ipcMain.handle('pythonInstallDependencies', (event, artroomPath) => {
     reinstallPythonDependencies(artroomPath)();
+  });    
+  ipcMain.handle('downloadStarterModels', (event, dir, realisticStarter, animeStarter, landscapesStarter) => {
+    downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter)();
   });    
 }

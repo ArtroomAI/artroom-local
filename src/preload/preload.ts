@@ -26,6 +26,7 @@ const api = {
     getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
     pythonInstall: async(artroomPath: string, gpuType: string) => {return await ipcRenderer.invoke('pythonInstall', artroomPath, gpuType);},
     pythonInstallDependencies: async(artroomPath: string) => {return await ipcRenderer.invoke('pythonInstallDependencies', artroomPath);},
+    downloadStarterModels: async(dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {return await ipcRenderer.invoke('downloadStarterModels', dir, realisticStarter, animeStarter, landscapesStarter);},
     fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback);},
     downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);},
     saveQueue: async (queue: string, artroom_path: string) => { ipcRenderer.invoke('saveQueue', queue, artroom_path) },
