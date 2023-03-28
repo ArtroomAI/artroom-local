@@ -229,16 +229,26 @@ class StableDiffusion:
             return state_dict
 
         controlnet_dict = load_state_dict(controlnet_path)
-        input_state_dict = load_state_dict(ckpt)
-        keys = controlnet_dict.keys()
+        input_state_dict = self.model.state_dict()
+        input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
+        input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
-        for key in keys:
-            p = controlnet_dict[key]
-            if 'control_model' not in key:
-                key = 'control_model.' + key
-            p_new = p
-            input_state_dict[key] = p_new
-        del controlnet_dict
+        control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if 'control_model' not in k}
+        input_state_dict.update(control_model_dict)
+
+        first_stage_dict = self.modelFS.first_stage_model.state_dict()
+        for key in first_stage_dict.keys():
+            p = first_stage_dict[key]
+            input_state_dict['first_stage_model.'+key] = p
+        del first_stage_dict, self.modelFS
+        self.modelFS = None 
+
+        cond_stage_dict = self.modelCS.cond_stage_model.state_dict()
+        for key in cond_stage_dict.keys():
+            p = cond_stage_dict[key]
+            input_state_dict['cond_stage_model.'+key] = p
+        del cond_stage_dict, self.modelFS
+        self.modelFS = None 
         return input_state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
@@ -292,6 +302,16 @@ class StableDiffusion:
 
         return final_state_dict
 
+    def deinject_controlnet(self, delete = True):
+        sd = self.control_model.state_dict()
+        new_sd = {k: v for k, v in sd.items() if "control" not in k}
+        self.model.load_state_dict(new_sd, strict=False)
+        self.modelCS = self.model 
+        self.modelFS = self.model
+        if delete:
+            del self.control_model
+            self.control_model = None
+
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('get_status', {'status': "Loading Model"})
@@ -314,125 +334,124 @@ class StableDiffusion:
             print("Model safety check died midways")
             return
 
-        if controlnet_path is None:
-            print("Setting up config...")
-            parameterization = "eps"
-            if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
-                print("Detected v2 model")
-                self.config = os.path.splitext(ckpt)[0] + ".yaml"
-                if os.path.exists(self.config):
-                    # so, we can't select their config because our is modified to our implementation
-                    # still, there are only two types of configs, the ones with parameterization in them and without
-                    if "parameterization" in "".join(open(self.config, "r").readlines()):
-                        parameterization = "v"
-                        self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference-v.yaml'
-                    else:
-                        self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
+        print("Setting up config...")
+        parameterization = "eps"
+        if sd['model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn2.to_k.weight'].shape[1] == 1024:
+            print("Detected v2 model")
+            self.config = os.path.splitext(ckpt)[0] + ".yaml"
+            if os.path.exists(self.config):
+                # so, we can't select their config because our is modified to our implementation
+                # still, there are only two types of configs, the ones with parameterization in them and without
+                if "parameterization" in "".join(open(self.config, "r").readlines()):
+                    parameterization = "v"
+                    self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference-v.yaml'
                 else:
                     self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
-                print(f"v2 conf: {self.config}")
-                config = OmegaConf.load(f"{self.config}")
-                self.model = instantiate_from_config(config.model)
-                _, _ = self.model.load_state_dict(sd, strict=False)
-                self.model.eval()
-                self.model.parameterization = parameterization
-                self.model.cdevice = self.device
-                self.model.to(self.device)
-                self.modelCS = self.model  # just link without a copy
-                self.modelFS = self.model  # just link without a copy
-                self.v1 = False
             else:
-                self.v1 = True
-                if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
-                    print("Detected runwayml inpainting model")
-                    if speed == 'Low':
-                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
-                    elif speed == 'Medium':
-                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
-                    elif speed == 'High':
-                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference.yaml'
-                    elif speed == 'Max':
-                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_xformer.yaml'
-                    else:
-                        print(f"Dafuq is {speed}")
-                        self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference.yaml'
-                elif sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 8:
-                    print("Detected pix2pix model")
-                    if speed == 'Low':
-                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
-                    elif speed == 'Medium':
-                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
-                    elif speed == 'High':
-                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
-                    elif speed == 'Max':
-                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
-                    else:
-                        print(f"Dafuq is {speed}")
-                        self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
+            print(f"v2 conf: {self.config}")
+            config = OmegaConf.load(f"{self.config}")
+            self.model = instantiate_from_config(config.model)
+            _, _ = self.model.load_state_dict(sd, strict=False)
+            self.model.eval()
+            self.model.parameterization = parameterization
+            self.model.cdevice = self.device
+            self.model.to(self.device)
+            self.modelCS = self.model  # just link without a copy
+            self.modelFS = self.model  # just link without a copy
+            self.v1 = False
+        else:
+            self.v1 = True
+            if sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 9:
+                print("Detected runwayml inpainting model")
+                if speed == 'Low':
+                    self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
+                elif speed == 'Medium':
+                    self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_lowvram.yaml'
+                elif speed == 'High':
+                    self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference.yaml'
+                elif speed == 'Max':
+                    self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference_xformer.yaml'
                 else:
-                    print("Loading ordinary model")
-                    if 60 <= self.cc <= 86 and self.device.type == "cuda":
-                        print("Congrats, your gpu supports xformers, autoselecting it")
+                    print(f"Dafuq is {speed}")
+                    self.config = 'sd_modules/optimizedSD/configs/runway/v1-inference.yaml'
+            elif sd['model.diffusion_model.input_blocks.0.0.weight'].shape[1] == 8:
+                print("Detected pix2pix model")
+                if speed == 'Low':
+                    self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                elif speed == 'Medium':
+                    self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_lowvram.yaml'
+                elif speed == 'High':
+                    self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+                elif speed == 'Max':
+                    self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference_xformer.yaml'
+                else:
+                    print(f"Dafuq is {speed}")
+                    self.config = 'sd_modules/optimizedSD/configs/instruct_pix2pix/v1-inference.yaml'
+            else:
+                print("Loading ordinary model")
+                if 60 <= self.cc <= 86 and self.device.type == "cuda":
+                    print("Congrats, your gpu supports xformers, autoselecting it")
+                    self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_xformer.yaml'
+                else:
+                    print("Using speed mode from artroom settings")
+                    if speed == 'Low':
+                        self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                    elif speed == 'Medium':
+                        self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
+                    elif speed == 'High':
+                        self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
+                    elif speed == 'Max':
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_xformer.yaml'
                     else:
-                        print("Using speed mode from artroom settings")
-                        if speed == 'Low':
-                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
-                        elif speed == 'Medium':
-                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_lowvram.yaml'
-                        elif speed == 'High':
-                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
-                        elif speed == 'Max':
-                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference_xformer.yaml'
-                        else:
-                            print(f"Not recognized speed: {speed}")
-                            self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
-                li = []
-                lo = []
-                for key, value in sd.items():
-                    sp = key.split('.')
-                    if (sp[0]) == 'model':
-                        if 'input_blocks' in sp:
-                            li.append(key)
-                        elif 'middle_block' in sp:
-                            li.append(key)
-                        elif 'time_embed' in sp:
-                            li.append(key)
-                        else:
-                            lo.append(key)
-                for key in li:
-                    sd['model1.' + key[6:]] = sd.pop(key)
-                for key in lo:
-                    sd['model2.' + key[6:]] = sd.pop(key)
-                config = OmegaConf.load(f"{self.config}")
-                self.model = instantiate_from_config(config.modelUNet)
-                _, _ = self.model.load_state_dict(sd, strict=False)
-                self.model.eval()
-                self.model.cdevice = self.device
-                self.model.unet_bs = 1  # unet_bs=1
+                        print(f"Not recognized speed: {speed}")
+                        self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
+            li = []
+            lo = []
+            for key, value in sd.items():
+                sp = key.split('.')
+                if (sp[0]) == 'model':
+                    if 'input_blocks' in sp:
+                        li.append(key)
+                    elif 'middle_block' in sp:
+                        li.append(key)
+                    elif 'time_embed' in sp:
+                        li.append(key)
+                    else:
+                        lo.append(key)
+            for key in li:
+                sd['model1.' + key[6:]] = sd.pop(key)
+            for key in lo:
+                sd['model2.' + key[6:]] = sd.pop(key)
+            config = OmegaConf.load(f"{self.config}")
+            self.model = instantiate_from_config(config.modelUNet)
+            _, _ = self.model.load_state_dict(sd, strict=False)
+            self.model.eval()
+            self.model.cdevice = self.device
+            self.model.unet_bs = 1  # unet_bs=1
 
-                self.model.turbo = (speed != 'Low')
+            self.model.turbo = (speed != 'Low')
 
-                self.modelCS = instantiate_from_config(config.modelCondStage)
-                _, _ = self.modelCS.load_state_dict(sd, strict=False)
-                self.modelCS.eval()
-                self.modelCS.cond_stage_model.device = self.device
+            self.modelCS = instantiate_from_config(config.modelCondStage)
+            _, _ = self.modelCS.load_state_dict(sd, strict=False)
+            self.modelCS.eval()
+            self.modelCS.cond_stage_model.device = self.device
 
-                self.modelFS = instantiate_from_config(config.modelFirstStage)
-                _, _ = self.modelFS.load_state_dict(sd, strict=False)
-                self.modelFS.eval()
+            self.modelFS = instantiate_from_config(config.modelFirstStage)
+            _, _ = self.modelFS.load_state_dict(sd, strict=False)
+            self.modelFS.eval()
 
-            if self.can_use_half:
-                self.model.half()
-                self.modelCS.half()
-                self.modelFS.half()
-                # torch.set_default_tensor_type(torch.HalfTensor)
-            else:
-                self.model.to(torch.float32)
-                self.modelCS.to(torch.float32)
-                self.modelFS.to(torch.float32)
-            self.control_model = None
+        if self.can_use_half:
+            self.model.half()
+            self.modelCS.half()
+            self.modelFS.half()
+            # torch.set_default_tensor_type(torch.HalfTensor)
         else:
+            self.model.to(torch.float32)
+            self.modelCS.to(torch.float32)
+            self.modelFS.to(torch.float32)
+
+        if controlnet_path is not None:
             self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
             if ".pth" in controlnet_path:
                 sd = self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
