@@ -24,14 +24,24 @@ axios.get(`${LOCAL_URL}/shutdown`)
 const getPNGEXIF = (png: Buffer) => {
   const png_string = png.toString('utf-8');
 
-  const start = png_string.indexOf(`{"text_prompts"`);
+  const start = png_string.indexOf(`{"text"`);
 
   if(start === -1) return '';
 
-  const end = png_string.indexOf('}', start);
+  let count = 1;
 
-  const exif = png_string.substring(start, end + 1);
-  return exif;
+  for(let i = start; i < png_string.length; ++i) {
+    if(png_string[i] === '{') {
+      count++;
+    } else if (png_string[i] === '}') {
+      count--;
+    }
+
+    if(count === 0) {
+      return png_string.substring(start, i + 1);
+    }
+  }
+  return '';
 }
 
 async function getImage(image_path: string) {
