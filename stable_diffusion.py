@@ -363,9 +363,11 @@ class StableDiffusion:
         sd = {k: v for k, v in sd.items() if "control" not in k}
         config = OmegaConf.load(f"{self.config}")
         self.model = instantiate_from_config(config.modelUNet)
-        self.model.load_state_dict(sd, strict=False)
+        print("TIME MODEL INSTANTIATE:", time.time()-start)
 
-        print("TIME MODEL:", time.time()-start)
+        self.model.load_state_dict(sd, strict=False)
+        print("TIME MODEL LOAD:", time.time()-start)
+
 
         self.model.eval()
         self.model.cdevice = self.device
@@ -373,20 +375,25 @@ class StableDiffusion:
         self.model.turbo = (self.speed != 'Low')
 
         self.modelFS = instantiate_from_config(config.modelFirstStage)
+        print("TIME FS INSTANTIATE:", time.time()-start)
         _, _ = self.modelFS.load_state_dict(sd, strict=False)
+        print("TIME FS LOAD:", time.time()-start)
+
         self.modelFS.eval()
 
-        print("TIME FS:", time.time()-start)
 
         self.modelCS = instantiate_from_config(config.modelCondStage)
+        print("TIME CS INSTANTIATE:", time.time()-start)
         _, _ = self.modelCS.load_state_dict(sd, strict=False)
         self.modelCS.cond_stage_model.device = self.device
+        print("TIME CS LOAD:", time.time()-start)
+
         self.modelCS.eval()
 
-        print("TIME CS:", time.time()-start)
 
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
+        start = time.time()
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
@@ -480,6 +487,9 @@ class StableDiffusion:
                     else:
                         print(f"Not recognized speed: {speed}")
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
+            
+            print("TIME SD:", time.time()-start)
+
             li = []
             lo = []
             for key, value in sd.items():
@@ -505,15 +515,18 @@ class StableDiffusion:
             self.model.unet_bs = 1  # unet_bs=1
 
             self.model.turbo = (speed != 'Low')
+            print("TIME MODEL:", time.time()-start)
 
             self.modelCS = instantiate_from_config(config.modelCondStage)
             _, _ = self.modelCS.load_state_dict(sd, strict=False)
             self.modelCS.eval()
             self.modelCS.cond_stage_model.device = self.device
+            print("TIME MODEL CS:", time.time()-start)
 
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
+            print("TIME MODEL FS:", time.time()-start)
 
         if self.can_use_half:
             self.model.half()
