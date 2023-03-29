@@ -186,26 +186,22 @@ const Body = () => {
         const [keyPressed, setKeyPressed] = useState(false);
 
         useEffect(() => {
-            const leftHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
+            const handler = (isKeyDown: boolean) => ({ key, altKey } : { key: string, altKey: boolean }) => {
                 if (key === targetKey && altKey === useAltKey) {
-                    console.log(key);
-                    console.log(altKey);
-                    setKeyPressed(true);
+                    console.log(`key: ${key}, altKey: ${altKey}, keydown: ${isKeyDown}`);
+                    setKeyPressed(isKeyDown);
                 }
             };
 
-            const rightHandler = ({ key, altKey } : { key: string, altKey: boolean}) => {
-                if (key === targetKey && altKey === useAltKey) {
-                    setKeyPressed(false);
-                }
-            };
+            const keydownHandler = handler(true);
+            const keyupHandler = handler(false);
 
-            window.addEventListener('keydown', leftHandler);
-            window.addEventListener('keyup', rightHandler);
+            window.addEventListener('keydown', keydownHandler);
+            window.addEventListener('keyup', keyupHandler);
 
             return () => {
-                window.removeEventListener('keydown', leftHandler);
-                window.removeEventListener('keyup', rightHandler);
+                window.removeEventListener('keydown', keydownHandler);
+                window.removeEventListener('keyup', keyupHandler);
             };
         }, [targetKey, useAltKey]);
 
