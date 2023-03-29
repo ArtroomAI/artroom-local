@@ -40,6 +40,7 @@ from artroom_helpers.modules import HN
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
 
 sys.path.append("sd_modules/optimizedSD")
+from artroom_helpers.modules.cldm.hack import hack_everything
 
 logging.set_verbosity_error()
 
@@ -187,11 +188,11 @@ class StableDiffusion:
                .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
         self.modelFS.load_state_dict(vae, strict=False)
 
-    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None):
+    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip = 1):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
-        if self.ckpt != ckpt or self.speed != speed or self.vae != vae or self.controlnet_path != controlnet_path:
+        if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
             try:
                 print("Setting up model...")
                 self.set_up_models(ckpt, speed, vae, controlnet_path)
@@ -202,17 +203,35 @@ class StableDiffusion:
                 self.modelCS = None
                 self.modelFS = None
                 return False
+            
+        #try:
+        if self.control_model and self.controlnet_path != controlnet_path:
+            self.deinject_controlnet()
+            self.control_model = None
+        if  controlnet_path is not None:
+            self.inject_controlnet_new(controlnet_path)
+        #except:
+        # print("Controlnet Failed to load")
+
+        self.controlnet_path = controlnet_path
+               
+        try:
+            hack_everything(clip_skip=clip_skip)
+        except:
+            print("Clip skip failed")
+
         try:
             if self.network:
                 self.deinject_lora()
             if len(loras) > 0:
                 for lora in loras:
                     self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'], controlnet=(controlnet_path is not None))
+
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def inject_controlnet_new(self, ckpt, controlnet_path):
+    def inject_controlnet_new(self, controlnet_path):
         print("Injecting controlnet...")
 
         def get_state_dict(d):
@@ -249,7 +268,18 @@ class StableDiffusion:
             input_state_dict['cond_stage_model.'+key] = p
         del cond_stage_dict, self.modelFS
         self.modelFS = None 
-        return input_state_dict
+
+
+        self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+        self.control_model.load_state_dict(input_state_dict, strict=False)
+        self.model = self.control_model  # soft links
+        self.modelCS = self.control_model  # soft links
+        self.modelFS = self.control_model  # soft links
+        if self.can_use_half:
+            self.control_model.half()
+        else:
+            self.control_model.to(torch.float32)
+        del input_state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
@@ -303,14 +333,58 @@ class StableDiffusion:
         return final_state_dict
 
     def deinject_controlnet(self, delete = True):
+        start = time.time()
         sd = self.control_model.state_dict()
-        new_sd = {k: v for k, v in sd.items() if "control" not in k}
-        self.model.load_state_dict(new_sd, strict=False)
-        self.modelCS = self.model 
-        self.modelFS = self.model
         if delete:
             del self.control_model
-            self.control_model = None
+            self.control_model = None 
+        
+        li = []
+        lo = []
+        for key, value in sd.items():
+            sp = key.split('.')
+            if (sp[0]) == 'model':
+                if 'input_blocks' in sp:
+                    li.append(key)
+                elif 'middle_block' in sp:
+                    li.append(key)
+                elif 'time_embed' in sp:
+                    li.append(key)
+                else:
+                    lo.append(key)
+        for key in li:
+            sd['model1.' + key[6:]] = sd.pop(key)
+        for key in lo:
+            sd['model2.' + key[6:]] = sd.pop(key)
+
+        print("TIME SD:", time.time()-start)
+
+        #Remove controlnet pieces
+        sd = {k: v for k, v in sd.items() if "control" not in k}
+        config = OmegaConf.load(f"{self.config}")
+        self.model = instantiate_from_config(config.modelUNet)
+        self.model.load_state_dict(sd, strict=False)
+
+        print("TIME MODEL:", time.time()-start)
+
+        self.model.eval()
+        self.model.cdevice = self.device
+        self.model.unet_bs = 1  # unet_bs=1
+        self.model.turbo = (self.speed != 'Low')
+
+        self.modelFS = instantiate_from_config(config.modelFirstStage)
+        _, _ = self.modelFS.load_state_dict(sd, strict=False)
+        self.modelFS.eval()
+
+        print("TIME FS:", time.time()-start)
+
+        self.modelCS = instantiate_from_config(config.modelCondStage)
+        _, _ = self.modelCS.load_state_dict(sd, strict=False)
+        self.modelCS.cond_stage_model.device = self.device
+        self.modelCS.eval()
+
+        print("TIME CS:", time.time()-start)
+
 
     def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
         speed = speed if self.device.type != 'privateuseone' else "High"
@@ -451,25 +525,7 @@ class StableDiffusion:
             self.modelCS.to(torch.float32)
             self.modelFS.to(torch.float32)
 
-        if controlnet_path is not None:
-            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-            if ".pth" in controlnet_path:
-                sd = self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
-            else:
-                sd = self.inject_controlnet_new(ckpt, controlnet_path)
-            self.control_model.load_state_dict(sd, strict=False)
-            self.model = self.control_model  # soft links
-            self.modelCS = self.control_model  # soft links
-            self.modelFS = self.control_model  # soft links
-            if self.can_use_half:
-                self.control_model.half()
-            else:
-                self.control_model.to(torch.float32)
-
         del sd
-
-        # if self.controlnet_path is not None:
-        #     self.hack_everything(clip_skip=2)
 
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
@@ -571,7 +627,7 @@ class StableDiffusion:
 
     def generate(
             self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
-            invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1,
+            invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, clip_skip=1,
             sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
             image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
             long_save_path=False, show_intermediates=False, controlnet=None,
@@ -663,7 +719,7 @@ class StableDiffusion:
 
         ddim_steps = int(steps / strength)
 
-        if not self.load_ckpt(ckpt, speed, vae, loras, controlnet_path):
+        if not self.load_ckpt(ckpt, speed, vae, loras, controlnet_path, clip_skip):
             print(f"Loading new controlnet failed, attempting old")
             self.load_ckpt(ckpt, speed, vae, loras, old_cnet_path)
         if not self.model:
@@ -901,7 +957,7 @@ class StableDiffusion:
                             if self.v1:
                                 self.modelFS.to(self.device)
 
-                            self.modelFS.to(torch.float32)
+                            # self.modelFS.to(torch.float32)
                             # torch.set_default_tensor_type(torch.FloatTensor)
 
                             x_samples_ddim = self.modelFS.decode_first_stage(

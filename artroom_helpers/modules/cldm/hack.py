@@ -7,10 +7,8 @@ import ldm.modules.attention
 from transformers import logging
 from ldm.modules.attention import default
 
-
 def disable_verbosity():
     logging.set_verbosity_error()
-    print('logging improved.')
     return
 
 
@@ -21,10 +19,9 @@ def enable_sliced_attention():
 
 
 def hack_everything(clip_skip=0):
-    disable_verbosity()
     ldm.modules.encoders.modules.FrozenCLIPEmbedder.forward = _hacked_clip_forward
     ldm.modules.encoders.modules.FrozenCLIPEmbedder.clip_skip = clip_skip
-    print('Enabled clip hacks.')
+    print(f'Enabled clip skip of {clip_skip}')
     return
 
 
@@ -53,6 +50,8 @@ def _hacked_clip_forward(self, text):
     raw_tokens_list = tokenize(text)
     tokens_list = []
 
+    if type(raw_tokens_list[0]) == int:
+        raw_tokens_list = [raw_tokens_list]
     for raw_tokens in raw_tokens_list:
         raw_tokens_123 = split(raw_tokens)
         raw_tokens_123 = [[BOS] + raw_tokens_i + [EOS] for raw_tokens_i in raw_tokens_123]

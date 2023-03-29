@@ -28,6 +28,7 @@ interface QueueType {
     sampler: string;
     steps: number;
 	cfg_scale: number;
+    clip_skip: number;
     seed: number;
 
     // inpainting options

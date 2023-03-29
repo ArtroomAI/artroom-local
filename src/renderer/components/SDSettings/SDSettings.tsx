@@ -29,7 +29,7 @@ import {
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
-import { batchNameState, cfgState, ckptState, controlnetState, initImageState, iterationsState, loraState, modelsDirState, randomSeedState, removeBackgroundState, samplerState, seedState, stepsState, strengthState, usePreprocessedControlnetState, useRemovedBackgroundState, vaeState } from '../../SettingsManager';
+import { batchNameState, cfgState, ckptState, clipSkipState, controlnetState, iterationsState, loraState, modelsDirState, randomSeedState, removeBackgroundState, samplerState, seedState, stepsState, strengthState, usePreprocessedControlnetState, useRemovedBackgroundState, vaeState } from '../../SettingsManager';
 import LoraSelector from './Lora/LoraSelector';
 import { AspectRatio } from './AspectRatio';
 import { SocketContext } from '../../socket';
@@ -51,6 +51,8 @@ function SDSettings () {
     const [iterations, setIterations] = useRecoilState(iterationsState);
     const [steps, setSteps] = useRecoilState(stepsState);
     const [cfg, setCfg] = useRecoilState(cfgState);
+    const [clipSkip, setClipSkip] = useRecoilState(clipSkipState);
+
     const [sampler, setSampler] = useRecoilState(samplerState);
     const [controlnet, setControlnet] = useRecoilState(controlnetState);
     const [strength, setStrength] = useRecoilState(strengthState);
@@ -84,7 +86,6 @@ function SDSettings () {
                             </FormLabel>
 
                             <Input
-                                fontSize="sm"
                                 id="batch_name"
                                 name="batch_name"
                                 onChange={(event) => setBatchName(event.target.value)}
@@ -201,9 +202,9 @@ function SDSettings () {
                                     </Slider>
                                 </FormControl>
                                 <HStack mt={4} alignItems="end">
-                                    <FormControl className="steps-input">
+                                    <FormControl width="60%" className="steps-input">
                                         <HStack>
-                                            <FormLabel fontSize='sm' htmlFor="steps">
+                                            <FormLabel htmlFor="steps">
                                                 № of Steps
                                             </FormLabel>
 
@@ -230,7 +231,7 @@ function SDSettings () {
                                     </FormControl>
                                     <FormControl className="cfg-scale-input">
                                         <HStack>
-                                            <FormLabel fontSize='sm' htmlFor="cfg_scale">
+                                            <FormLabel htmlFor="cfg_scale">
                                                 Prompt Strength:
                                             </FormLabel>
 
@@ -259,74 +260,105 @@ function SDSettings () {
                                     </FormControl>
 
                                 </HStack>
+                                <HStack alignItems="end">
+                                    <FormControl className="samplers-input">
+                                        <HStack>
+                                            <FormLabel htmlFor="Sampler">
+                                                Sampler
+                                            </FormLabel>
 
-                                <FormControl className="samplers-input">
-                                    <HStack>
-                                        <FormLabel htmlFor="Sampler">
-                                            Sampler
-                                        </FormLabel>
+                                            <Spacer />
 
-                                        <Spacer />
+                                            <Tooltip
+                                                fontSize="md"
+                                                label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
+                                                placement="left"
+                                                shouldWrapChildren
+                                            >
+                                                <FaQuestionCircle color="#777" />
+                                            </Tooltip>
 
-                                        <Tooltip
-                                            fontSize="md"
-                                            label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
-                                            placement="left"
-                                            shouldWrapChildren
+                                        </HStack>
+
+                                        <Select
+                                            id="sampler"
+                                            name="sampler"
+                                            onChange={(event) => setSampler(event.target.value)}
+                                            value={sampler}
+                                            variant="outline"
                                         >
-                                            <FaQuestionCircle color="#777" />
-                                        </Tooltip>
+                                            <option value="ddim">
+                                                DDIM
+                                            </option>
 
-                                    </HStack>
+                                            <option value="dpmpp_2m">
+                                                DPM++ 2M Karras
+                                            </option>
 
-                                    <Select
-                                        id="sampler"
-                                        name="sampler"
-                                        onChange={(event) => setSampler(event.target.value)}
-                                        value={sampler}
-                                        variant="outline"
-                                    >
-                                        <option value="ddim">
-                                            DDIM
-                                        </option>
+                                            <option value="dpmpp_2s_ancestral">
+                                                DPM++ 2S Ancestral Karras
+                                            </option>
 
-                                        <option value="dpmpp_2m">
-                                            DPM++ 2M Karras
-                                        </option>
+                                            <option value="euler">
+                                                Euler
+                                            </option>
 
-                                        <option value="dpmpp_2s_ancestral">
-                                            DPM++ 2S Ancestral Karras
-                                        </option>
+                                            <option value="euler_a">
+                                                Euler Ancestral
+                                            </option>
 
-                                        <option value="euler">
-                                            Euler
-                                        </option>
+                                            <option value="dpm_2">
+                                                DPM 2
+                                            </option>
 
-                                        <option value="euler_a">
-                                            Euler Ancestral
-                                        </option>
+                                            <option value="dpm_a">
+                                                DPM 2 Ancestral
+                                            </option>
 
-                                        <option value="dpm_2">
-                                            DPM 2
-                                        </option>
+                                            <option value="lms">
+                                                LMS
+                                            </option>
 
-                                        <option value="dpm_a">
-                                            DPM 2 Ancestral
-                                        </option>
+                                            <option value="heun">
+                                                Heun
+                                            </option>
 
-                                        <option value="lms">
-                                            LMS
-                                        </option>
+                                            <option value="plms">
+                                                PLMS
+                                            </option>
+                                        </Select>
+                                    </FormControl>
+                                    <FormControl width='55%' className="clip-skip-input">
+                                        <HStack>
+                                            <FormLabel htmlFor="clip-skip">
+                                            Clip Skip:
+                                            </FormLabel>
 
-                                        <option value="heun">
-                                            Heun
-                                        </option>
+                                            <Spacer />
 
-                                        <option value="plms">
-                                            PLMS
-                                        </option>
-                                    </Select>
-                                </FormControl>
+                                            <Tooltip
+                                                fontSize="md"
+                                                label="Some anime models/loras prefer to have a clip skip of 2"
+                                                placement="left"
+                                                shouldWrapChildren
+                                            >
+                                                <FaQuestionCircle color="#777" />
+                                            </Tooltip>
+                                        </HStack>
+
+                                        <NumberInput
+                                            id="clip_skip"
+                                            min={0}
+                                            name="clip_skip"
+                                            onChange={setClipSkip}         
+                                            value={clipSkip}
+                                            variant="outline"
+                                        >
+                                            <NumberInputField id="clip_skip" />
+                                        </NumberInput>
+                                    </FormControl>     
+                                </HStack>
+
 
                                 <HStack className="seed-input">
                                     <FormControl>
@@ -383,6 +415,7 @@ function SDSettings () {
                                         />
                                     </VStack>
                                 </HStack>
+                                    
                                 <FormControl className="vae-ckpt-input">
                                     <FormLabel htmlFor="Vae">
                                         <HStack>

@@ -83,6 +83,12 @@ export const cfgState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const clipSkipState = atom<string>({
+    key: "clip_skip",
+    default: "1",
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const samplerState = atom<string>({
     key: "sampler",
     default: "ddim",
@@ -232,6 +238,8 @@ export const queueSettingsSelector = selector<QueueType>({
             sampler: get(samplerState),
             steps: isNaN(parseFloat(get(stepsState))) ? 30: parseFloat(get(stepsState)),
             cfg_scale: isNaN(parseFloat(get(cfgState))) ? 7.5 : parseFloat(get(cfgState)),
+            clip_skip: isNaN(parseFloat(get(clipSkipState))) ? 1 : parseFloat(get(clipSkipState)),
+
             seed: get(seedState),
 
             // inpainting options
