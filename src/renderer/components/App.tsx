@@ -68,10 +68,6 @@ export default function App () {
         setMainImage(data);
     }, [latestImages, setLatestImages, setMainImage])
 
-    const handleIntermediateImages = useCallback((data: ImageState) => {
-        setMainImage(data);
-    }, [setMainImage])
-
     const handleControlnetPreview = useCallback((data: {controlnetPreview: string}) => {
         setControlnetPreview(data.controlnetPreview);
     }, [controlnetPreview])
@@ -79,14 +75,6 @@ export default function App () {
     const handleRemoveBackgroundPreview = useCallback((data: {removeBackgroundPreview: string}) => {
         setRemoveBackgroundPreview(data.removeBackgroundPreview);
     }, [removeBackgroundPreview])
-
-    useEffect(() => {
-        socket.on('intermediate_image', handleIntermediateImages); 
-
-        return () => {
-          socket.off('intermediate_image', handleIntermediateImages);
-        };
-    }, [socket, handleIntermediateImages]);
     
     useEffect(() => {
         socket.on('get_images', handleGetImages); 

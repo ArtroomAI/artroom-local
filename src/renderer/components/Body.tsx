@@ -21,6 +21,7 @@ import { SocketContext, SocketOnEvents } from '../socket';
 import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
+import { ImageState } from '../atoms/atoms.types';
 
 function randomIntFromInterval(min: number, max: number) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
@@ -129,9 +130,15 @@ const Body = () => {
             socket.off('get_status', handleGetStatus);
         };
     }, [socket, handleGetProgress, handleGetStatus]);
+
     
-    const mainImageIndex = { selectedIndex: 0 };
-    const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
+    const computeShardCost = useCallback(() => {
+        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
+        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
+        return estimated_price;
+    }, [imageSettings]);
+
+    const reducer = (state: { selectedIndex: number; }, action: { type: string; payload?: number; }) => {
         switch (action.type) {
         case 'arrowLeft':
             console.log('Arrow Left');
@@ -152,18 +159,28 @@ const Body = () => {
         case 'select':
             console.log('Select');
             return { selectedIndex: action.payload };
+        case 'intermediate':
+            console.log('intermediate');
+            return { selectedIndex: -1 };
         default:
             throw new Error();
         }
     };
+    
+    const [state, dispatch] = useReducer(reducer, { selectedIndex: 0 });
 
-    const [state, dispatch] = useReducer(reducer, mainImageIndex);
+    const handleIntermediateImages = useCallback((data: ImageState) => {
+        dispatch({ type: 'intermediate' });
+        setMainImage(data);
+    }, [setMainImage])
 
-    const computeShardCost = useCallback(() => {
-        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
-        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
-        return estimated_price;
-    }, [imageSettings]);
+    useEffect(() => {
+        socket.on('intermediate_image', handleIntermediateImages); 
+
+        return () => {
+          socket.off('intermediate_image', handleIntermediateImages);
+        };
+    }, [socket, handleIntermediateImages]);
 
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
@@ -201,19 +218,13 @@ const Body = () => {
 
     useEffect(() => {
         if (arrowRightPressed && !focused) {
-            dispatch({
-                type: 'arrowRight',
-                payload: undefined
-            });
+            dispatch({ type: 'arrowRight' });
         }
     }, [arrowRightPressed, focused]);
 
     useEffect(() => {
         if (arrowLeftPressed && !focused) {
-            dispatch({
-                type: 'arrowLeft',
-                payload: undefined
-            });
+            dispatch({ type: 'arrowLeft' });
         }
     }, [arrowLeftPressed, focused]);
 
@@ -224,7 +235,9 @@ const Body = () => {
     }, [addToQueue, altRPressed]);
 
     useEffect(() => {
-        setMainImage(latestImages[state.selectedIndex]);
+        if(state.selectedIndex !== -1) {
+            setMainImage(latestImages[state.selectedIndex]);
+        } 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.selectedIndex]);
 
@@ -295,24 +308,18 @@ const Body = () => {
                         b64={mainImage?.b64}
                         path={mainImage?.path}
                         active />
-                    {
-                        (batchProgress >= 0 && batchProgress !== 100)
-                            ? <Progress
-                                alignContent="left"
-                                hasStripe
-                                width="100%"
-                                value={batchProgress} />
-                            : <></>
-                    }
-                    {
-                        (progress >= 0 && progress !== 100)
-                            ? <Progress
-                                alignContent="left"
-                                hasStripe
-                                width="100%"
-                                value={progress} />
-                            : <></>
-                    }
+                    <Progress
+                        display={batchProgress >= 0 && batchProgress !== 100 ? 'block' : 'none'}
+                        alignContent="left"
+                        hasStripe
+                        width="100%"
+                        value={batchProgress} />
+                    <Progress
+                        display={progress >= 0 && progress !== 100 ? 'block' : 'none'}
+                        alignContent="left"
+                        hasStripe
+                        width="100%"
+                        value={progress} />
                 </Box>
 
                 <Box
@@ -325,8 +332,7 @@ const Body = () => {
                         {latestImages.map((imageData, index) => (<Image
                             h="5vh"
                             key={index}
-                            onClick={() => dispatch({ type: 'select',
-                                payload: index })}
+                            onClick={() => dispatch({ type: 'select', payload: index })}
                             src={imageData?.b64}
                         />))}
                     </SimpleGrid>
