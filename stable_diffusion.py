@@ -176,26 +176,31 @@ class StableDiffusion:
             self.network = None
             torch.cuda.empty_cache()
 
-    def load_vae(self, vae_path: str, safe_load_=True):
-        self.modelFS.to(torch.float32)
+    def load_vae(self, vae_path: str, safe_load_=True, original = False):
+        if original:
+            self.modelFS.load_state_dict(load_model_from_config(vae_path, safe_load_), strict=False)
+            self.modelFS.eval()
+            self.modelFS.to(torch.float32)
+            return 
+        
+        input_state_dict = self.modelFS.state_dict()
         vae = load_model_from_config(vae_path, safe_load_)
-        vae = {k: v for k, v in vae.items() if
-
-               ("loss" not in k) and
-               (k not in ['quant_conv.weight', 'quant_conv.bias', 'post_quant_conv.weight',
-                          'post_quant_conv.bias'])}
-        vae = {k.replace("encoder", "first_stage_model.encoder")
-               .replace("decoder", "first_stage_model.decoder"): v for k, v in vae.items()}
-        self.modelFS.load_state_dict(vae, strict=False)
+        for key in vae.keys():
+            if 'loss' not in key and 'ema' not in key:
+                input_state_dict[f'first_stage_model.{key}'] = vae[key].to(torch.float32)
+        self.modelFS.load_state_dict(input_state_dict, strict=False)
+        self.modelFS.eval()
+        self.modelFS.to(torch.float32)
+        del input_state_dict
 
     def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip = 1):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
-        if self.ckpt != ckpt or self.speed != speed or self.vae != vae:
+        if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae, controlnet_path)
+                self.set_up_models(ckpt, speed, vae)
                 print("Successfully set up model")
             except Exception as e:
                 print(f"Setting up model failed: {e}")
@@ -203,18 +208,30 @@ class StableDiffusion:
                 self.modelCS = None
                 self.modelFS = None
                 return False
-            
-        #try:
-        if self.control_model and self.controlnet_path != controlnet_path:
-            self.deinject_controlnet()
-            self.control_model = None
-        if  controlnet_path is not None:
-            self.inject_controlnet_new(controlnet_path)
-        #except:
-        # print("Controlnet Failed to load")
 
+        try:
+            if self.control_model and self.controlnet_path != controlnet_path:
+                self.deinject_controlnet()
+                self.control_model = None
+            if  controlnet_path is not None:
+                self.inject_controlnet_new(controlnet_path)
+        except:
+            print("Controlnet Failed to load")
         self.controlnet_path = controlnet_path
-               
+
+        print("Loading vae")
+        if vae != self.vae:
+            try:
+                if '.vae' in vae:
+                    self.load_vae(vae)
+                    print("Loading vae finished")
+                else:
+                    self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original = True)
+                    print('Reset vae')
+            except:
+                print("Failed to load vae")
+        self.vae = vae
+
         try:
             hack_everything(clip_skip=clip_skip)
         except:
@@ -333,7 +350,6 @@ class StableDiffusion:
         return final_state_dict
 
     def deinject_controlnet(self, delete = True):
-        start = time.time()
         sd = self.control_model.state_dict()
         if delete:
             del self.control_model
@@ -357,16 +373,11 @@ class StableDiffusion:
         for key in lo:
             sd['model2.' + key[6:]] = sd.pop(key)
 
-        print("TIME SD:", time.time()-start)
-
         #Remove controlnet pieces
         sd = {k: v for k, v in sd.items() if "control" not in k}
         config = OmegaConf.load(f"{self.config}")
         self.model = instantiate_from_config(config.modelUNet)
-        print("TIME MODEL INSTANTIATE:", time.time()-start)
-
         self.model.load_state_dict(sd, strict=False)
-        print("TIME MODEL LOAD:", time.time()-start)
 
 
         self.model.eval()
@@ -375,24 +386,18 @@ class StableDiffusion:
         self.model.turbo = (self.speed != 'Low')
 
         self.modelFS = instantiate_from_config(config.modelFirstStage)
-        print("TIME FS INSTANTIATE:", time.time()-start)
         _, _ = self.modelFS.load_state_dict(sd, strict=False)
-        print("TIME FS LOAD:", time.time()-start)
-
         self.modelFS.eval()
 
 
         self.modelCS = instantiate_from_config(config.modelCondStage)
-        print("TIME CS INSTANTIATE:", time.time()-start)
         _, _ = self.modelCS.load_state_dict(sd, strict=False)
         self.modelCS.cond_stage_model.device = self.device
-        print("TIME CS LOAD:", time.time()-start)
-
         self.modelCS.eval()
 
 
 
-    def set_up_models(self, ckpt, speed, vae, controlnet_path=None):
+    def set_up_models(self, ckpt, speed, vae):
         start = time.time()
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('get_status', {'status': "Loading Model"})
@@ -542,17 +547,12 @@ class StableDiffusion:
 
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed
-        self.vae = vae
-        self.controlnet_path = controlnet_path
+
+        # Saves original VAE
+        input_vae = os.path.join(os.path.dirname(vae), 'original_vae.vae.pth')
+        torch.save(self.modelFS.state_dict(), input_vae)
 
         print("Model loading finished")
-        print("Loading vae")
-        if '.vae' in vae:
-            try:
-                self.load_vae(vae)
-                print("Loading vae finished")
-            except:
-                print("Failed to load vae")
         self.socketio.emit('get_status', {'status': "Finished Loading Model"})
 
     def get_image(self, init_image_str, mask_b64):
