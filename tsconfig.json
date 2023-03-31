@@ -8,7 +8,6 @@
     "sourceMap": true,
     "declaration": true,
     "emitDeclarationOnly": true,
-    "suppressImplicitAnyIndexErrors": true,
     "lib": ["ESNext", "dom"],
     "moduleResolution": "Node",
     "jsx": "react-jsx",
