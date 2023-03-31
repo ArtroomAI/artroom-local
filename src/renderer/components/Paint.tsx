@@ -25,28 +25,7 @@ import { SocketContext, SocketOnEvents } from '../socket';
 import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
-
-function randomIntFromInterval(min: number, max: number) { // min and max included 
-    return Math.floor(Math.random() * (max - min + 1) + min)
-}
-
-function parseSettings(settings: QueueType, useRandom: boolean) {
-    settings.seed = useRandom ? randomIntFromInterval(1, 4294967295) : settings.seed;
-
-    const sampler_format_mapping = {
-        'k_euler': 'euler',
-        'k_euler_ancestral': 'euler_a',
-        'k_dpm_2': 'dpm',
-        'k_dpm_2_ancestral': 'dpm_a',
-        'k_lms': 'lms',
-        'k_heun': 'heun'
-    }
-    if (settings.sampler in sampler_format_mapping) {
-        settings.sampler = sampler_format_mapping[settings.sampler]
-    }
-
-    return settings;
-}
+import { parseSettings } from './Utils/utils';
 
 function Paint () {
     const toast = useToast({});
@@ -263,8 +242,7 @@ function Paint () {
         setFutureLayerStates([]);
     }
 
-    const mainImageIndex = { selectedIndex: 0 };
-    const reducer = (state: { selectedIndex: number; }, action: { type: any; payload: any; }) => {
+    const reducer = (state: { selectedIndex: number; }, action: { type: string; payload?: number; }) => {
         switch (action.type) {
         case 'arrowLeft':
             return {
@@ -287,10 +265,7 @@ function Paint () {
         }
     };
 
-    const [state, dispatch] = useReducer(
-        reducer,
-        mainImageIndex
-    );
+    const [state, dispatch] = useReducer(reducer, { selectedIndex: 0 });
 
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
@@ -338,38 +313,25 @@ function Paint () {
     const arrowRightPressed = useKeyPress('ArrowRight');
     const arrowLeftPressed = useKeyPress('ArrowLeft');
 
-    useEffect(
-        () => {
-            if (arrowRightPressed && !focused) {
-                dispatch({
-                    type: 'arrowRight',
-                    payload: undefined
-                });
-            }
-        },
-        [arrowRightPressed]
-    );
+    useEffect(() => {
+        if (arrowRightPressed && !focused) {
+            dispatch({ type: 'arrowRight' });
+        }
+    }, [arrowRightPressed, focused]);
 
-    useEffect(
-        () => {
-            if (arrowLeftPressed && !focused) {
-                dispatch({
-                    type: 'arrowLeft',
-                    payload: undefined
-                });
-            }
-        },
-        [arrowLeftPressed]
-    );
+    useEffect(() => {
+        if (arrowLeftPressed && !focused) {
+            dispatch({ type: 'arrowLeft' });
+        }
+    }, [arrowLeftPressed, focused]);
 
     const prevSelectedIndex = useRef(0);
     useEffect(() => {
-        if (latestImages.length > 0 && prevSelectedIndex.current !== state.selectedIndex){
+        if (latestImages.length > 0 && prevSelectedIndex.current !== state.selectedIndex) {
             addToCanvas(latestImages[state?.selectedIndex]);
             prevSelectedIndex.current = state.selectedIndex;
         }
-        },[state?.selectedIndex]
-    );
+    }, [state?.selectedIndex]);
 
     return (
         <Box
@@ -380,24 +342,19 @@ function Paint () {
                 <Box
                     className="paint-output">
                     <UnifiedCanvas />
-                    {
-                        (batchProgress >= 0 && batchProgress !== 100)
-                            ? <Progress
-                                alignContent="left"
-                                hasStripe
-                                width="100%"
-                                value={batchProgress} />
-                            : <></>
-                    }
-                    {
-                        (progress >= 0 && progress !== 100)
-                            ? <Progress
-                                alignContent="left"
-                                hasStripe
-                                width="100%"
-                                value={progress} />
-                            : <></>
-                    }
+
+                    <Progress
+                        display={(batchProgress >= 0 && batchProgress !== 100) ? "block" : "none"}
+                        alignContent="left"
+                        hasStripe
+                        width="100%"
+                        value={batchProgress} />
+                    <Progress
+                        display={(progress >= 0 && progress !== 100) ? "block" : "none"}
+                        alignContent="left"
+                        hasStripe
+                        width="100%"
+                        value={progress} />
                 </Box>
                 
                 <Box

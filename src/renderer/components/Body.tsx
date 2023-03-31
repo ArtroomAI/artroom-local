@@ -22,30 +22,7 @@ import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
 import { ImageState } from '../atoms/atoms.types';
-
-function randomIntFromInterval(min: number, max: number) { // min and max included 
-    return Math.floor(Math.random() * (max - min + 1) + min)
-}
-
-function parseSettings(settings: QueueType, useRandom: boolean) {
-    settings.seed = useRandom ? randomIntFromInterval(1, 4294967295) : settings.seed;
-
-    const sampler_format_mapping = {
-        'k_euler': 'euler',
-        'k_euler_ancestral': 'euler_a',
-        'k_dpm_2': 'dpm',
-        'k_dpm_2_ancestral': 'dpm_a',
-        'k_lms': 'lms',
-        'k_heun': 'heun'
-    }
-    if (settings.sampler in sampler_format_mapping) {
-        settings.sampler = sampler_format_mapping[settings.sampler]
-    }
-
-    return settings;
-}
-
-
+import { parseSettings } from './Utils/utils';
 
 const Body = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
