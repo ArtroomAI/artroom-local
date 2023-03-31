@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
     VStack,
     Icon,
@@ -20,6 +20,45 @@ import { useRecoilState, useRecoilValue } from "recoil";
 import { aspectRatioSelectionState } from "../../atoms/atoms";
 import { aspectRatioState, heightState, initImageState, widthState } from "../../SettingsManager";
 
+const MAX_VALUE = 2048;
+const MIN_VALUE = 256;
+const STEP = 64;
+
+const ASPECT_RATIOS = [
+    '1:1',
+    '1:2',
+    '2:1',
+    '4:3',
+    '3:4',
+    '16:9',
+    '9:16',
+    'Custom'
+];
+
+const getRatio = (aspectRatio: string) => {
+    try {
+        const values = aspectRatio.split(':');
+        const widthRatio = parseFloat(values[0]);
+        const heightRatio = parseFloat(values[1]);
+
+        if (isNaN(widthRatio) || isNaN(heightRatio)) {
+            return 1;
+        }
+
+        return heightRatio / widthRatio;
+    } catch {
+        return 1;
+    }
+}
+
+const getValue = (value: number, aspectRatio: string) => {
+    let newValue = Math.floor(value * getRatio(aspectRatio) / STEP) * STEP;
+    newValue = Math.min(MAX_VALUE, newValue);
+    newValue = Math.max(MIN_VALUE, newValue);
+
+    return newValue;
+}
+
 export const AspectRatio = () => {
     const toast = useToast({});
 
@@ -30,49 +69,47 @@ export const AspectRatio = () => {
     const [aspectRatio, setAspectRatio] = useRecoilState(aspectRatioState);
     const initImage = useRecoilValue(initImageState);
 
-    useEffect(() => {
-        if (width > 0) {
-            let newHeight = height;
+    const handleWidthChange = useCallback((value: number) => {
+        if (value > 0) {
             if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
-                try {
-                    const values = aspectRatio.split(':');
-                    const widthRatio = parseFloat(values[0]);
-                    const heightRatio = parseFloat(values[1]);
-                    if (!isNaN(widthRatio) && !isNaN(heightRatio)) {
-                        newHeight = Math.min(
-                            1920,
-                            Math.floor(width * heightRatio / widthRatio / 64) * 64
-                        );
-                    }
-                } catch {
-
-                }
-                setHeight(newHeight);
+                setHeight(getValue(value, aspectRatio));
             }
+            setWidth(value);
         }
-    }, [width, aspectRatio]);
+    }, [aspectRatio, aspectRatioSelection]);
+
+    const handleHeightChange = useCallback((value: number) => {
+        if (value > 0) {
+            if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
+                setWidth(getValue(value, aspectRatio));
+            }
+            setHeight(value);
+        }
+    }, [aspectRatio, aspectRatioSelection]);
+
+    useEffect(() => {
+        if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
+            setHeight(getValue(width, aspectRatio));
+        }
+    }, [aspectRatio, aspectRatioSelection])
 
     return (
         <Box className="size-input" width="100%">
             <HStack>
                 <VStack width="100%">
                     <FormControl className="width-input">
-                        <FormLabel justifyContent="center" htmlFor="Width">
-                            Width:
-                        </FormLabel>
+                        <FormLabel htmlFor="width">Width:</FormLabel>
 
                         <Slider
-                            colorScheme="teal"
                             defaultValue={512}
                             id="width"
                             isReadOnly={aspectRatio === 'Init Image'}
-                            max={2048}
-                            min={256}
+                            max={MAX_VALUE}
+                            min={MIN_VALUE}
                             name="width"
-                            onChange={setWidth}                                
-                            step={64}
+                            onChange={handleWidthChange}                                
+                            step={STEP}
                             value={width}
-                            variant="outline"
                         >
                             <SliderTrack bg="#EEEEEE">
                                 <Box
@@ -96,17 +133,15 @@ export const AspectRatio = () => {
                     </FormControl>
 
                     <FormControl className="height-input">
-                        <FormLabel htmlFor="Height">
-                            Height:
-                        </FormLabel>
+                        <FormLabel htmlFor="Height">Height:</FormLabel>
 
                         <Slider
                             defaultValue={512}
                             isReadOnly={aspectRatio === 'Init Image'}
-                            max={2048}
-                            min={256}
-                            onChange={setHeight}                                        
-                            step={64}
+                            max={MAX_VALUE}
+                            min={MIN_VALUE}
+                            onChange={handleHeightChange}                                        
+                            step={STEP}
                             value={height}
                         >
                             <SliderTrack bg="#EEEEEE">
@@ -138,8 +173,10 @@ export const AspectRatio = () => {
                             id="aspect_ratio_selection"
                             name="aspect_ratio_selection"
                             onChange={(event) => {
-                                setAspectRatioSelection(event.target.value);
-                                if (event.target.value === "Init Image" && !initImage) {
+                                const aspectRatio = event.target.value;
+
+                                setAspectRatioSelection(aspectRatio);
+                                if (aspectRatio === "Init Image" && !initImage) {
                                     //Switch to aspect ratio to none and print warning that no init image is set
                                     setAspectRatioSelection("None");
                                     setAspectRatio("None");
@@ -151,11 +188,11 @@ export const AspectRatio = () => {
                                         duration: 3000,
                                         isClosable: true,
                                         containerStyle: {
-                                        pointerEvents: "none",
+                                            pointerEvents: "none",
                                         },
                                     });
-                                } else if (event.target.value !== "Custom") {
-                                    setAspectRatio(event.target.value);
+                                } else if (aspectRatio !== "Custom") {
+                                    setAspectRatio(aspectRatio);
                                 }
                             }}
                             value={aspectRatioSelection}
@@ -171,49 +208,19 @@ export const AspectRatio = () => {
                                 </option>
                             )}
 
-                            <option value="1:1">
-                                1:1
-                            </option>
-
-                            <option value="1:2">
-                                1:2
-                            </option>
-
-                            <option value="2:1">
-                                2:1
-                            </option>
-
-                            <option value="4:3">
-                                4:3
-                            </option>
-
-                            <option value="3:4">
-                                3:4
-                            </option>
-
-                            <option value="16:9">
-                                16:9
-                            </option>
-
-                            <option value="9:16">
-                                9:16
-                            </option>
-
-                            <option value="Custom">
-                                Custom
-                            </option>
+                            { ASPECT_RATIOS.map(ratio => <option value={ratio} key={ratio}>{ratio}</option>) }
                         </Select>
 
                         {aspectRatioSelection === "Custom" ? (
-                        <Input
-                            id="aspect_ratio"
-                            name="aspect_ratio"
-                            onChange={(event) => setAspectRatio(event.target.value)}
-                            value={aspectRatio}
-                            variant="outline"
-                        />
+                            <Input
+                                id="aspect_ratio"
+                                name="aspect_ratio"
+                                onChange={(event) => setAspectRatio(event.target.value)}
+                                value={aspectRatio}
+                                variant="outline"
+                            />
                         ) : (
-                        <></>
+                            <></>
                         )}
                     </VStack>
                 </FormControl>
