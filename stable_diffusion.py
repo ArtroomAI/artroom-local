@@ -176,8 +176,8 @@ class StableDiffusion:
             self.network = None
             torch.cuda.empty_cache()
 
-    def load_vae(self, vae_path: str, safe_load_=True, original = False):
-        if original:
+    def load_vae(self, vae_path: str, safe_load_=True, original = False, controlnet = False):
+        if original and not controlnet:
             self.modelFS.load_state_dict(load_model_from_config(vae_path, safe_load_), strict=False)
             self.modelFS.eval()
             self.modelFS.to(torch.float32)
@@ -210,23 +210,23 @@ class StableDiffusion:
                 return False
 
         try:
-            if self.control_model and self.controlnet_path != controlnet_path:
+            if self.control_model and controlnet_path is None:
                 self.deinject_controlnet()
                 self.control_model = None
-            if  controlnet_path is not None:
-                self.inject_controlnet_new(controlnet_path)
+            if controlnet_path is not None and self.controlnet_path != controlnet_path:
+                self.inject_controlnet_new(controlnet_path, existing = (self.control_model is not None))
         except:
             print("Controlnet Failed to load")
         self.controlnet_path = controlnet_path
 
-        print("Loading vae")
         if vae != self.vae:
+            print("Loading vae")
             try:
                 if '.vae' in vae:
                     self.load_vae(vae)
                     print("Loading vae finished")
                 else:
-                    self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original = True)
+                    self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original = True, controlnet = (controlnet_path is not None))
                     print('Reset vae')
             except:
                 print("Failed to load vae")
@@ -248,9 +248,7 @@ class StableDiffusion:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def inject_controlnet_new(self, controlnet_path):
-        print("Injecting controlnet...")
-
+    def inject_controlnet_new(self, controlnet_path, existing = False):
         def get_state_dict(d):
             return d.get('state_dict', d)
 
@@ -264,29 +262,38 @@ class StableDiffusion:
             state_dict = get_state_dict(state_dict)
             return state_dict
 
+        print("Injecting controlnet...")
         controlnet_dict = load_state_dict(controlnet_path)
-        input_state_dict = self.model.state_dict()
-        input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
-        input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
-        control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if 'control_model' not in k}
-        input_state_dict.update(control_model_dict)
+        if existing:
+            input_state_dict = self.control_model.state_dict()
+            input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
+            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if 'control_model' not in k}
+            input_state_dict.update(control_model_dict)
+        else:
+            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+        
+            input_state_dict = self.model.state_dict()
+            input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
+            input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
-        first_stage_dict = self.modelFS.first_stage_model.state_dict()
-        for key in first_stage_dict.keys():
-            p = first_stage_dict[key]
-            input_state_dict['first_stage_model.'+key] = p
-        del first_stage_dict, self.modelFS
-        self.modelFS = None 
+            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if 'control_model' not in k}
+            input_state_dict.update(control_model_dict)
 
-        cond_stage_dict = self.modelCS.cond_stage_model.state_dict()
-        for key in cond_stage_dict.keys():
-            p = cond_stage_dict[key]
-            input_state_dict['cond_stage_model.'+key] = p
-        del cond_stage_dict, self.modelFS
-        self.modelFS = None 
+            first_stage_dict = self.modelFS.first_stage_model.state_dict()
+            for key in first_stage_dict.keys():
+                p = first_stage_dict[key]
+                input_state_dict['first_stage_model.'+key] = p
+            del first_stage_dict, self.modelFS
+            self.modelFS = None 
 
-        self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            cond_stage_dict = self.modelCS.cond_stage_model.state_dict()
+            for key in cond_stage_dict.keys():
+                p = cond_stage_dict[key]
+                input_state_dict['cond_stage_model.'+key] = p
+            del cond_stage_dict, self.modelFS
+            self.modelFS = None 
+
         self.control_model.load_state_dict(input_state_dict, strict=False)
         self.model = self.control_model  # soft links
         self.modelCS = self.control_model  # soft links
@@ -393,8 +400,6 @@ class StableDiffusion:
         _, _ = self.modelCS.load_state_dict(sd, strict=False)
         self.modelCS.cond_stage_model.device = self.device
         self.modelCS.eval()
-
-
 
     def set_up_models(self, ckpt, speed, vae):
         speed = speed if self.device.type != 'privateuseone' else "High"
@@ -921,7 +926,7 @@ class StableDiffusion:
                                 mask = None
                                 x_T = None
 
-                            if controlnet is not None and controlnet.lower() != "none" and control is not None:
+                            if self.control_model is not None and controlnet is not None and controlnet.lower() != "none" and control is not None:
                                 # control = torch.load("control.torch")
                                 c = {"c_concat": [control], "c_crossattn": [c]}
                                 uc = {"c_concat": [control], "c_crossattn": [uc]}
