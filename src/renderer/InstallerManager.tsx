@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import {
     Modal,
@@ -16,7 +16,6 @@ import {
     Spacer,
     useToast,
     Checkbox,
-    HStack,
     Link,
     VStack
 } from '@chakra-ui/react';
@@ -60,34 +59,12 @@ export const InstallerManager = () => {
     }, [artroomPath]);
 
     useEffect(() => {
-        window.api.fixButtonProgress((_, str) => {
-            if (str.includes("Finished!")) {
-                if (realisticStarter || animeStarter || landscapesStarter){
-                    setDownloadMessage('Downloading models....');
-                    let dir;
-                    if (sameModelDirAndArtroomPath) {
-                        dir = path.join(artroomPath, 'artroom', 'model_weights')
-                    }
-                    else {
-                        dir = modelsDir;
-                    }
-                    window.api.downloadStarterModels(dir, realisticStarter, animeStarter, landscapesStarter);
-                }
-                else{
-                    setDownloading(false);
-                    setShowArtroomInstaller(false);
-                    window.api.startArtroom(artroomPath, debugMode);
-                }
-            }
-            if (str.includes("Finished downloading")) {
-                setDownloading(false);
-                setShowArtroomInstaller(false);
-                window.api.startArtroom(artroomPath, debugMode);
-            }
+        window.api.fixButtonProgress((_: any, str: string) => {
+            setDownloadMessage(str);
         });
     }, []);
 
-    const handleRunClick = () => {
+    const handleRunClick = async () => {
         toast({
             title: 'Reinstalling Artroom Backend',
             status: 'success',
@@ -100,10 +77,16 @@ export const InstallerManager = () => {
         });
         setDownloading(true);
         try {
+            let dir = modelsDir;
             if (sameModelDirAndArtroomPath) {
-                setModelsDir(path.join(artroomPath, 'artroom', 'model_weights'))
+                dir = path.join(artroomPath, 'artroom', 'model_weights')
+                setModelsDir(dir)
             }
-            window.api.pythonInstall(artroomPath, gpuType);
+            await window.api.pythonInstall(artroomPath, gpuType);
+            await window.api.downloadStarterModels(dir, realisticStarter, animeStarter, landscapesStarter);
+            setDownloading(false);
+            setShowArtroomInstaller(false);
+            window.api.startArtroom(artroomPath, debugMode);
         } catch (error) {
             console.error(error);
             setDownloading(false);
@@ -174,11 +157,11 @@ export const InstallerManager = () => {
                     </VStack>
                     {
                     downloadMessage && (
-                    <Flex width="100%">
-                        <Flex width="100%">Installation progress</Flex>
-                        <Spacer/>
-                        <Flex width="100%">{downloadMessage}</Flex>
-                    </Flex>)
+                        <Flex width="100%">
+                            <Flex width="100%">Installation progress</Flex>
+                            <Spacer/>
+                            <Flex width="100%">{downloadMessage}</Flex>
+                        </Flex>)
                     }
                 </ModalBody>
 

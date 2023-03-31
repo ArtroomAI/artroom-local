@@ -146,14 +146,14 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
         installationProcess = spawn(installationCommand, { shell: true, detached: true });
         installationProcess.stdout.on("data", (data) => {
           console.log(`stdout: ${data}`);
-          mainWindow.webContents.send('fixButtonProgress', `Finished! Please try reopening the app`);
+          mainWindow.webContents.send('fixButtonProgress', `Installing....`);
         });
         installationProcess.stderr.on("data", (data) => {
           console.error(`stderr: ${data}`);
         });
         installationProcess.on("close", (code) => {
           console.log(`child process exited with code ${code}`);
-          mainWindow.webContents.send('fixButtonProgress', `Finished! Please try reopening the app`);
+          mainWindow.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
         });
       });
     });
@@ -211,11 +211,11 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
     await download_via_https(realisticURL, realisticPath, mainWindow);
   }
   if (animeStarter) {
-    console.log(`DOWNLOAINDG FROM ${animeStarter}`)
+    console.log(`DOWNLOAINDG FROM ${animeURL}`)
     await download_via_https(animeURL, animePath, mainWindow);
   }
   if (landscapesStarter) {
-    console.log(`DOWNLOAINDG FROM ${landscapesStarter}`)
+    console.log(`DOWNLOAINDG FROM ${landscapesURL}`)
     await download_via_https(landscapesURL, landscapesPath, mainWindow);
   }
   console.log("All downloads complete!");
@@ -223,12 +223,12 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
 
 export const handlers = (mainWindow: Electron.BrowserWindow) => {
   ipcMain.handle('pythonInstall', (event, artroomPath, gpuType) => {
-    backupPythonInstallation(mainWindow, artroomPath, gpuType);
+    return backupPythonInstallation(mainWindow, artroomPath, gpuType);
   });    
   ipcMain.handle('pythonInstallDependencies', (event, artroomPath) => {
-    reinstallPythonDependencies(artroomPath)();
+    return reinstallPythonDependencies(artroomPath)();
   });    
   ipcMain.handle('downloadStarterModels', (event, dir, realisticStarter, animeStarter, landscapesStarter) => {
-    downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);
+    return downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);
   });    
 }
