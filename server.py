@@ -209,6 +209,7 @@ try:
                 seed=int(data['seed']),
                 sampler=data['sampler'],
                 cfg_scale=float(data['cfg_scale']),
+                clip_skip=int(data['clip_skip']),
                 palette_fix=data['palette_fix'],
                 ckpt=ckpt_path,
                 vae=vae_path,
