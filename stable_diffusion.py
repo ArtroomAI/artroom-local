@@ -286,7 +286,6 @@ class StableDiffusion:
         del cond_stage_dict, self.modelFS
         self.modelFS = None 
 
-
         self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
         self.control_model.load_state_dict(input_state_dict, strict=False)
         self.model = self.control_model  # soft links
@@ -398,7 +397,6 @@ class StableDiffusion:
 
 
     def set_up_models(self, ckpt, speed, vae):
-        start = time.time()
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
@@ -493,8 +491,6 @@ class StableDiffusion:
                         print(f"Not recognized speed: {speed}")
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
             
-            print("TIME SD:", time.time()-start)
-
             li = []
             lo = []
             for key, value in sd.items():
@@ -520,18 +516,15 @@ class StableDiffusion:
             self.model.unet_bs = 1  # unet_bs=1
 
             self.model.turbo = (speed != 'Low')
-            print("TIME MODEL:", time.time()-start)
 
             self.modelCS = instantiate_from_config(config.modelCondStage)
             _, _ = self.modelCS.load_state_dict(sd, strict=False)
             self.modelCS.eval()
             self.modelCS.cond_stage_model.device = self.device
-            print("TIME MODEL CS:", time.time()-start)
 
             self.modelFS = instantiate_from_config(config.modelFirstStage)
             _, _ = self.modelFS.load_state_dict(sd, strict=False)
             self.modelFS.eval()
-            print("TIME MODEL FS:", time.time()-start)
 
         if self.can_use_half:
             self.model.half()
