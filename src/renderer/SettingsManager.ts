@@ -210,6 +210,15 @@ export const debugModeState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
+const parseAndCheckFloat = (num: string, def: number) => {
+    const parsed = parseFloat(num);
+    return isFinite(parsed) ? parsed : def; 
+}
+
+const floatBetween = (num: number, min: number, max: number) => {
+    return Math.max(Math.min(num, max), min);
+}
+
 export const queueSettingsSelector = selector<QueueType>({
     key: "queue.settings",
     get: ({ get }) => {
@@ -219,7 +228,7 @@ export const queueSettingsSelector = selector<QueueType>({
             negative_prompts: get(negativePromptsState),
 
             // image to image options
-            strength: get(strengthState),
+            strength: floatBetween(get(strengthState), 0.03, 0.96),
             init_image: get(initImageState), // replaced in Paint.tsx
 
             width: get(widthState),
@@ -236,9 +245,9 @@ export const queueSettingsSelector = selector<QueueType>({
             use_removed_background: get(useRemovedBackgroundState),
             // sampler options
             sampler: get(samplerState),
-            steps: isNaN(parseFloat(get(stepsState))) ? 30: parseFloat(get(stepsState)),
-            cfg_scale: isNaN(parseFloat(get(cfgState))) ? 7.5 : parseFloat(get(cfgState)),
-            clip_skip: isNaN(parseFloat(get(clipSkipState))) ? 1 : parseFloat(get(clipSkipState)),
+            steps: floatBetween(parseAndCheckFloat(get(stepsState), 30), 5, 1000),
+            cfg_scale: floatBetween(parseAndCheckFloat(get(cfgState), 7.5), 2, 30),
+            clip_skip: parseAndCheckFloat(get(clipSkipState), 1),
 
             seed: get(seedState),
 
@@ -251,7 +260,7 @@ export const queueSettingsSelector = selector<QueueType>({
             image_save_path: path.join(get(imageSavePathState), get(batchNameState)), // absolute path
 
             // generation options
-            n_iter: isNaN(parseFloat(get(iterationsState))) ? 1 : parseFloat(get(iterationsState)),
+            n_iter: parseAndCheckFloat(get(iterationsState), 1),
             save_grid: get(saveGridState),
             speed: get(speedState),
             device: undefined, // ? CPU / GPU
