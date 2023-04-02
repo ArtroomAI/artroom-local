@@ -23,9 +23,10 @@ export const textPromptsState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const DEFAULT_NEGATIVE_PROMPT = "mutated, deformed, amateur drawing, lowres, worst quality, low quality, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship";
 export const negativePromptsState = atom<string>({
     key: "negative_prompts",
-    default: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+    default: DEFAULT_NEGATIVE_PROMPT,
     effects_UNSTABLE: [persistAtom]
 });
 
