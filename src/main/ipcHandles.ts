@@ -192,11 +192,14 @@ const reinstallPythonDependencies = (artroomPath: string) => () => {
 
 const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {
   fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Vaes'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'ControlNet'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Loras'), { recursive: true });
 
   const bucketPath = "https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/models/models/"
   const realisticModel = "UmiAIMythologyAndBabes_aphroditeRealisticV1.safetensors"
   const animeModel = "UmiAIMythologyAndBabes_macrossAnimeUltimate1.safetensors"
-  const landscapesModel = "UmiAIMythologyAndBabes_macrossAnimeUltimate1.safetensors"
+  const landscapesModel = "UmiAIMythologyAndBabes_olympusLandscapesV10.safetensors"
 
   const realisticURL = path.join(bucketPath, realisticModel);
   const animeURL = path.join(bucketPath, animeModel);

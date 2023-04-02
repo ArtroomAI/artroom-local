@@ -210,7 +210,7 @@ class StableDiffusion:
                 return False
 
         try:
-            if self.control_model and controlnet_path is None:
+            if self.control_model is not None and controlnet_path is None:
                 self.deinject_controlnet()
                 self.control_model = None
             if controlnet_path is not None and self.controlnet_path != controlnet_path:
@@ -547,6 +547,7 @@ class StableDiffusion:
         self.speed = speed
 
         # Saves original VAE
+        os.makedirs(os.path.dirname(vae), exist_ok=True)
         input_vae = os.path.join(os.path.dirname(vae), 'original_vae.vae.pth')
         torch.save(self.modelFS.state_dict(), input_vae)
 

@@ -50,7 +50,7 @@ def _hacked_clip_forward(self, text):
     raw_tokens_list = tokenize(text)
     tokens_list = []
 
-    if type(raw_tokens_list[0]) == int:
+    if len(raw_tokens_list) > 0 and type(raw_tokens_list[0]) == int:
         raw_tokens_list = [raw_tokens_list]
     for raw_tokens in raw_tokens_list:
         raw_tokens_123 = split(raw_tokens)

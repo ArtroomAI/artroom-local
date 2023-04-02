@@ -25,7 +25,7 @@ export const textPromptsState = atom<string>({
 
 export const negativePromptsState = atom<string>({
     key: "negative_prompts",
-    default: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+    default: "mutated, deformed, amateur drawing, lowres, worst quality, low quality, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -164,7 +164,7 @@ export const ckptState = atom<string>({
 
 export const vaeState = atom<string>({
     key: "vae",
-    default: "vae.ckpt",
+    default: "",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -206,7 +206,7 @@ export const runTypeState = atom<string>({
 
 export const debugModeState = atom<boolean>({
     key: 'debug_mode',
-    default: false,
+    default: true,
     effects_UNSTABLE: [persistAtom]
 });
 
