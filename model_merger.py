@@ -34,8 +34,8 @@ class ModelMerger:
         print(data)
         self.data = data
         self.output_path = os.path.dirname(data["model_0"])
-        self.output_ext = os.path.splitext(data["model_0"])[1]
-
+        #self.output_ext = os.path.splitext(data["model_0"])[1]
+        self.output_ext = 'ckpt'
         self.modelName_0 = os.path.basename(data["model_0"]).split('.')[0]
         self.modelName_1 = os.path.basename(data["model_1"]).split('.')[0]
         self.modelName_2 = ""
@@ -51,10 +51,10 @@ class ModelMerger:
     def save_file(self, new_model, output_file):
         print(f"Saving as {output_file}\n")
 
-        if self.output_ext == 'safetensors':
-            save_file(new_model, output_file)
-        else:
-            torch.save(new_model, output_file)
+        # if self.output_ext == 'safetensors':
+        #     save_file(new_model, output_file)
+        # else:
+        torch.save(new_model, output_file)
         return output_file.rsplit("/", 1)[-1]
 
     def merge_models(self, alpha):
