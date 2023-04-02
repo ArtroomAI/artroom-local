@@ -57,6 +57,7 @@ try:
 
     os.makedirs(os.path.join(artroom_path, "model_weights/Loras"), exist_ok=True)
     os.makedirs(os.path.join(artroom_path, "model_weights/Vaes"), exist_ok=True)
+    os.makedirs(os.path.join(artroom_path, "model_weights/ControlNet"), exist_ok=True)
 
 
     @socketio.on('upscale')
