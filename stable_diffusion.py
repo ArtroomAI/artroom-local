@@ -25,6 +25,7 @@ from safetensors.torch import load_file
 from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, \
     image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
+from artroom_helpers.tomesd import apply_patch
 
 sys.path.append("artroom_helpers/modules")
 
@@ -176,13 +177,13 @@ class StableDiffusion:
             self.network = None
             torch.cuda.empty_cache()
 
-    def load_vae(self, vae_path: str, safe_load_=True, original = False, controlnet = False):
+    def load_vae(self, vae_path: str, safe_load_=True, original=False, controlnet=False):
         if original and not controlnet:
             self.modelFS.load_state_dict(load_model_from_config(vae_path, safe_load_), strict=False)
             self.modelFS.eval()
             self.modelFS.to(torch.float32)
-            return 
-        
+            return
+
         input_state_dict = self.modelFS.state_dict()
         vae = load_model_from_config(vae_path, safe_load_)
         for key in vae.keys():
@@ -193,7 +194,7 @@ class StableDiffusion:
         self.modelFS.to(torch.float32)
         del input_state_dict
 
-    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip = 1):
+    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip=1):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
@@ -214,7 +215,7 @@ class StableDiffusion:
                 self.deinject_controlnet()
                 self.control_model = None
             if controlnet_path is not None and self.controlnet_path != controlnet_path:
-                self.inject_controlnet_new(controlnet_path, existing = (self.control_model is not None))
+                self.inject_controlnet_new(controlnet_path, existing=(self.control_model is not None))
         except:
             print("Controlnet Failed to load")
         self.controlnet_path = controlnet_path
@@ -226,7 +227,8 @@ class StableDiffusion:
                     self.load_vae(vae)
                     print("Loading vae finished")
                 else:
-                    self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original = True, controlnet = (controlnet_path is not None))
+                    self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original=True,
+                                  controlnet=(controlnet_path is not None))
                     print('Reset vae')
             except:
                 print("Failed to load vae")
@@ -242,13 +244,14 @@ class StableDiffusion:
                 self.deinject_lora()
             if len(loras) > 0:
                 for lora in loras:
-                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'], controlnet=(controlnet_path is not None))
+                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'],
+                                     controlnet=(controlnet_path is not None))
 
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
         return True
 
-    def inject_controlnet_new(self, controlnet_path, existing = False):
+    def inject_controlnet_new(self, controlnet_path, existing=False):
         def get_state_dict(d):
             return d.get('state_dict', d)
 
@@ -268,31 +271,33 @@ class StableDiffusion:
         if existing:
             input_state_dict = self.control_model.state_dict()
             input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if 'control_model' not in k}
+            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
+                                  'control_model' not in k}
             input_state_dict.update(control_model_dict)
         else:
             self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-        
+
             input_state_dict = self.model.state_dict()
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
             input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if 'control_model' not in k}
+            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
+                                  'control_model' not in k}
             input_state_dict.update(control_model_dict)
 
             first_stage_dict = self.modelFS.first_stage_model.state_dict()
             for key in first_stage_dict.keys():
                 p = first_stage_dict[key]
-                input_state_dict['first_stage_model.'+key] = p
+                input_state_dict['first_stage_model.' + key] = p
             del first_stage_dict, self.modelFS
-            self.modelFS = None 
+            self.modelFS = None
 
             cond_stage_dict = self.modelCS.cond_stage_model.state_dict()
             for key in cond_stage_dict.keys():
                 p = cond_stage_dict[key]
-                input_state_dict['cond_stage_model.'+key] = p
+                input_state_dict['cond_stage_model.' + key] = p
             del cond_stage_dict, self.modelFS
-            self.modelFS = None 
+            self.modelFS = None
 
         self.control_model.load_state_dict(input_state_dict, strict=False)
         self.model = self.control_model  # soft links
@@ -355,12 +360,12 @@ class StableDiffusion:
 
         return final_state_dict
 
-    def deinject_controlnet(self, delete = True):
+    def deinject_controlnet(self, delete=True):
         sd = self.control_model.state_dict()
         if delete:
             del self.control_model
-            self.control_model = None 
-        
+            self.control_model = None
+
         li = []
         lo = []
         for key, value in sd.items():
@@ -379,12 +384,11 @@ class StableDiffusion:
         for key in lo:
             sd['model2.' + key[6:]] = sd.pop(key)
 
-        #Remove controlnet pieces
+        # Remove controlnet pieces
         sd = {k: v for k, v in sd.items() if "control" not in k}
         config = OmegaConf.load(f"{self.config}")
         self.model = instantiate_from_config(config.modelUNet)
         self.model.load_state_dict(sd, strict=False)
-
 
         self.model.eval()
         self.model.cdevice = self.device
@@ -394,7 +398,6 @@ class StableDiffusion:
         self.modelFS = instantiate_from_config(config.modelFirstStage)
         _, _ = self.modelFS.load_state_dict(sd, strict=False)
         self.modelFS.eval()
-
 
         self.modelCS = instantiate_from_config(config.modelCondStage)
         _, _ = self.modelCS.load_state_dict(sd, strict=False)
@@ -495,7 +498,7 @@ class StableDiffusion:
                     else:
                         print(f"Not recognized speed: {speed}")
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
-            
+
             li = []
             lo = []
             for key, value in sd.items():
@@ -542,6 +545,8 @@ class StableDiffusion:
             self.modelFS.to(torch.float32)
 
         del sd
+
+        # self.model = apply_patch(self.model, ratio=0.5)
 
         self.ckpt = ckpt.replace(os.sep, '/')
         self.speed = speed

@@ -19,7 +19,7 @@ import {
 import {
     FaQuestionCircle
 } from 'react-icons/fa';
-import { negativePromptsState, textPromptsState } from '../SettingsManager';
+import { DEFAULT_NEGATIVE_PROMPT, negativePromptsState, textPromptsState } from '../SettingsManager';
 
 export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, TextareaProps>((props, ref) => (
     <Textarea
@@ -94,9 +94,7 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
                 className="defualt-negative-prompt"
                 h="25px"
                 onClick={() =>
-                    setNegativePrompts(
-                    "mutated, deformed, amateur drawing, lowres, worst quality, low quality, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship"
-                    )
+                    setNegativePrompts(DEFAULT_NEGATIVE_PROMPT)
                 }
                 w="150px"
                 >

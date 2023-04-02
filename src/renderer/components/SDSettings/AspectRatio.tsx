@@ -35,7 +35,7 @@ const ASPECT_RATIOS = [
     'Custom'
 ];
 
-const getRatio = (aspectRatio: string) => {
+const getRatio = (aspectRatio: string, invert: boolean) => {
     try {
         const values = aspectRatio.split(':');
         const widthRatio = parseFloat(values[0]);
@@ -45,14 +45,14 @@ const getRatio = (aspectRatio: string) => {
             return 1;
         }
 
-        return heightRatio / widthRatio;
+        return invert ? widthRatio / heightRatio : heightRatio / widthRatio;
     } catch {
         return 1;
     }
 }
 
-const getValue = (value: number, aspectRatio: string) => {
-    let newValue = Math.floor(value * getRatio(aspectRatio) / STEP) * STEP;
+const getValue = (value: number, aspectRatio: string, invert: boolean) => {
+    let newValue = Math.floor(value * getRatio(aspectRatio, invert) / STEP) * STEP;
     newValue = Math.min(MAX_VALUE, newValue);
     newValue = Math.max(MIN_VALUE, newValue);
 
@@ -72,7 +72,7 @@ export const AspectRatio = () => {
     const handleWidthChange = useCallback((value: number) => {
         if (value > 0) {
             if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
-                setHeight(getValue(value, aspectRatio));
+                setHeight(getValue(value, aspectRatio, false));
             }
             setWidth(value);
         }
@@ -81,7 +81,7 @@ export const AspectRatio = () => {
     const handleHeightChange = useCallback((value: number) => {
         if (value > 0) {
             if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
-                setWidth(getValue(value, aspectRatio));
+                setWidth(getValue(value, aspectRatio, true));
             }
             setHeight(value);
         }
@@ -89,7 +89,7 @@ export const AspectRatio = () => {
 
     useEffect(() => {
         if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
-            setHeight(getValue(width, aspectRatio));
+            setHeight(getValue(width, aspectRatio, false));
         }
     }, [aspectRatio, aspectRatioSelection])
 

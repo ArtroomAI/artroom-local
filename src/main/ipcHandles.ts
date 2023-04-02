@@ -63,37 +63,9 @@ function download_via_https(URL: string, file_path: string, mainWindow: Electron
     });
   });
 }
-  
-const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => {
-    console.log("REINSTALL BACKEND")
-    console.log(`VANILLA PATH: ${artroomPath}`)
-    const URL = gpuType === 'AMD' ? 
-      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
-      : 
-      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
 
-    const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
-    console.log(`ARTROOM PATH: ${PATH}`)
-    const PATH_requirements = path.resolve('sd_modules/requirements.txt');
-    console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`)
-
-    const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
-    console.log(`ARTROOM ZIP PATH: ${PATH_zip}`)
-
-    const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
-
-    removeDirectoryIfExists(PATH);
-
-    if (fs.existsSync(PATH_zip)) {
-      fs.unlinkSync(PATH_zip);
-    }
-  
-    fs.mkdirSync(path.join(artroomPath, "artroom", "settings"), { recursive: true });
-
-    const success = await download_via_https(URL, PATH_zip, mainWindow);
-
-    if(!success) return;
-
+function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.BrowserWindow) {
+  return new Promise<string>((resolve) => {
     yauzl.open(PATH_zip, { lazyEntries: true }, (error, zipFile) => {
       if (error) {
         console.error(`Error opening ZIP archive: ${error}`);
@@ -137,29 +109,53 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
     
       zipFile.on("error", (error) => {
         mainWindow.webContents.send('fixButtonProgress', `Error reading ZIP archive: ${error}`);
+        resolve('');
       });
     
       zipFile.on("end", () => {
         mainWindow.webContents.send('fixButtonProgress', "Extraction complete. Updating packages...");
         // Delete the ZIP file
         fs.unlinkSync(PATH_zip);
-        installationProcess = spawn(installationCommand, { shell: true, detached: true });
-        installationProcess.stdout.on("data", (data) => {
-          console.log(`stdout: ${data}`);
-          mainWindow.webContents.send('fixButtonProgress', `Installing....`);
-        });
-        installationProcess.stderr.on("data", (data) => {
-          console.error(`stderr: ${data}`);
-        });
-        installationProcess.on("close", (code) => {
-          console.log(`child process exited with code ${code}`);
-          mainWindow.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
-        });
+        resolve('');
       });
     });
+  })
+}
+
+const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => {
+    console.log("REINSTALL BACKEND")
+    console.log(`VANILLA PATH: ${artroomPath}`)
+    const URL = gpuType === 'AMD' ? 
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
+      : 
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
+
+    const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
+    console.log(`ARTROOM PATH: ${PATH}`)
+    const PATH_requirements = path.resolve('sd_modules/requirements.txt');
+    console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`);
+
+    const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
+    console.log(`ARTROOM ZIP PATH: ${PATH_zip}`)
+
+    removeDirectoryIfExists(PATH);
+
+    if (fs.existsSync(PATH_zip)) {
+      fs.unlinkSync(PATH_zip);
+    }
+  
+    fs.mkdirSync(path.join(artroomPath, "artroom", "settings"), { recursive: true });
+
+    const success = await download_via_https(URL, PATH_zip, mainWindow);
+
+    if(!success) return;
+
+    await unzipFile(PATH_zip, artroomPath, mainWindow);
+    await reinstallPythonDependencies(artroomPath, mainWindow);
 };
 
-const reinstallPythonDependencies = (artroomPath: string) => () => {
+const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.BrowserWindow) => {
+  return new Promise<string>((resolve) => {
     console.log("RESINSTALLING DEPENDENCIES")
     const PATH = path.join(artroomPath, "artroom\\miniconda3");
     const PATH_requirements = path.resolve('sd_modules/requirements.txt');
@@ -172,9 +168,12 @@ const reinstallPythonDependencies = (artroomPath: string) => () => {
     });
     installationProcess.on('error', function () {
       console.log("Failed to start child.");
+      resolve('');
     });
     installationProcess.on('close', function (code) {
       console.log('Child process exited with code ' + code);
+      mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
+      resolve('');
     });
     installationProcess.stderr.on('data', function (err) {
       console.log(`error: ${err}`);
@@ -186,8 +185,11 @@ const reinstallPythonDependencies = (artroomPath: string) => () => {
       console.log(`ermsg ${msg}`)
     })
     installationProcess.stdout.on('end', function () {
-      console.log('Finished collecting data chunks.');        
+      console.log('Finished collecting data chunks.');
+      mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
+      resolve('');
     });
+  });
 }
 
 const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {
@@ -229,7 +231,7 @@ export const handlers = (mainWindow: Electron.BrowserWindow) => {
     return backupPythonInstallation(mainWindow, artroomPath, gpuType);
   });    
   ipcMain.handle('pythonInstallDependencies', (event, artroomPath) => {
-    return reinstallPythonDependencies(artroomPath)();
+    return reinstallPythonDependencies(artroomPath);
   });    
   ipcMain.handle('downloadStarterModels', (event, dir, realisticStarter, animeStarter, landscapesStarter) => {
     return downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);
