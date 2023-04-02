@@ -109,7 +109,7 @@ export default function Sidebar () {
 
                     <Discord />
 
-                    <Tour />
+                    {/* <Tour /> */}
 
                     <NavItem
                         className="settings-nav"
