@@ -191,7 +191,7 @@ export const usePreprocessedControlnetState = atom<boolean>({
 
 export const removeBackgroundState = atom<string>({
     key: "remove_background",
-    default: "None",
+    default: "face",
     effects_UNSTABLE: [persistAtom]
 });
 
