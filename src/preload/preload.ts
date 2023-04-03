@@ -11,6 +11,7 @@ const api = {
     uploadSettings: async () => {return await ipcRenderer.invoke('uploadSettings');},
     chooseImages: async (): Promise<string[]> => {return await ipcRenderer.invoke('chooseImages');},
     openDiscord: async () => {return await ipcRenderer.invoke('openDiscord');},
+    openCivitai: async () => {return await ipcRenderer.invoke('openCivitai');},
     openEquilibrium: async () => {return await ipcRenderer.invoke('openEquilibrium');},
     uploadInitImage: async (data: any) => {return await ipcRenderer.invoke('uploadInitImage',data);},
     getImageFromPath: async (data: any) => {return await ipcRenderer.invoke('getImageFromPath',data);},

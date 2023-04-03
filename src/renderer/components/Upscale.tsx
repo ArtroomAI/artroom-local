@@ -69,7 +69,7 @@ function Upscale () {
             borderRadius="md"
             p="5"
             my="5"
-            backgroundColor="gray.200"
+            backgroundColor="#080B16"
             {...getRootProps()}
           >
             <input multiple {...getInputProps()} />

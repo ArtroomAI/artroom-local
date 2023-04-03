@@ -229,6 +229,12 @@ function createWindow() {
     });
   });
 
+  ipcMain.handle("openCivitai", (event, argx = 0) => {
+    return new Promise((resolve, reject) => {
+      shell.openExternal(`https://civitai.com/`);
+    });
+  });
+
   ipcMain.handle("openEquilibrium", (event) => {
     return new Promise((resolve, reject) => {
       shell.openExternal(`https://equilibriumai.com/`);

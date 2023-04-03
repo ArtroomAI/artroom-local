@@ -23,7 +23,7 @@ export default function ImageEditor () {
         <Tabs isFitted >
             <TabList>
                 <Tab>Upscaler</Tab>
-                <Tab>Remove Background</Tab>
+                {/* <Tab>Remove Background</Tab> */}
                 {/* <Tab>Image to Prompt</Tab> CLIP requires RUST, probably not worth the install unless on cloud */} 
             </TabList>
 
@@ -31,9 +31,9 @@ export default function ImageEditor () {
                 <TabPanel>
                     <Upscale></Upscale>
                 </TabPanel>
-                <TabPanel>
+                {/* <TabPanel>
                 <p>Placeholder</p>
-                </TabPanel>
+                </TabPanel> */}
                 {/* <TabPanel>
                 <p>three!</p>
                 </TabPanel> */}

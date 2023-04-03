@@ -22,7 +22,7 @@ function removeDirectoryIfExists(PATH: fs.PathLike) {
   }
 }
 
-function download_via_https(URL: string, file_path: string, mainWindow: Electron.BrowserWindow) {
+function download_via_https(name: string, URL: string, file_path: string, mainWindow: Electron.BrowserWindow) {
   return new Promise<boolean>((resolve) => {
     const request = https.get(URL, (response) => {
       const len = parseInt(response.headers['content-length'], 10);
@@ -39,8 +39,8 @@ function download_via_https(URL: string, file_path: string, mainWindow: Electron
         cur += chunk.length;
         ++chunk_counter;
         if(chunk_counter === 5000) {
-          console.log(`Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
-          mainWindow.webContents.send('fixButtonProgress', `Downloading ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
+          console.log(`Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
+          mainWindow.webContents.send('fixButtonProgress', `Downloading  ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
           chunk_counter = 0;
         }
       });
@@ -146,7 +146,7 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
   
     fs.mkdirSync(path.join(artroomPath, "artroom", "settings"), { recursive: true });
 
-    const success = await download_via_https(URL, PATH_zip, mainWindow);
+    const success = await download_via_https('Artroom', URL, PATH_zip, mainWindow);
 
     if(!success) return;
 
@@ -165,6 +165,7 @@ const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.
 
     installationProcess.stdout.on('data', function(data) {
       console.log("Child data: " + data);
+      resolve('');
     });
     installationProcess.on('error', function () {
       console.log("Failed to start child.");
@@ -177,12 +178,15 @@ const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.
     });
     installationProcess.stderr.on('data', function (err) {
       console.log(`error: ${err}`);
+      resolve('');
     });
     installationProcess.on('message', (msg) => {
       console.log(`msg ${msg}`)
+      resolve('');
     })
     installationProcess.stderr.on('message', (msg) => {
       console.log(`ermsg ${msg}`)
+      resolve('');
     })
     installationProcess.stdout.on('end', function () {
       console.log('Finished collecting data chunks.');
@@ -212,16 +216,16 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
   const landscapesPath = path.join(dir, landscapesModel);
 
   if (realisticStarter) {
-    console.log(`DOWNLOAINDG FROM ${realisticURL}`)
-    await download_via_https(realisticURL, realisticPath, mainWindow);
+    console.log(`DOWNLOADING FROM ${realisticURL}`)
+    await download_via_https('Realistic Model', realisticURL, realisticPath, mainWindow);
   }
   if (animeStarter) {
-    console.log(`DOWNLOAINDG FROM ${animeURL}`)
-    await download_via_https(animeURL, animePath, mainWindow);
+    console.log(`DOWNLOADING FROM ${animeURL}`)
+    await download_via_https('Anime Model', animeURL, animePath, mainWindow);
   }
   if (landscapesStarter) {
-    console.log(`DOWNLOAINDG FROM ${landscapesURL}`)
-    await download_via_https(landscapesURL, landscapesPath, mainWindow);
+    console.log(`DOWNLOADING FROM ${landscapesURL}`)
+    await download_via_https('Landscape Model', landscapesURL, landscapesPath, mainWindow);
   }
   console.log("All downloads complete!");
 }

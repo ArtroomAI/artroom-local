@@ -208,7 +208,7 @@ export default function App () {
                             "nav main main"
                             "nav main main"`}
             >
-                {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
+                {/* {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
                 <GridItem
                     area="header"
                     justifySelf="center"
@@ -242,7 +242,7 @@ export default function App () {
                             {' '}
                         </Button>
                     }
-                </GridItem>
+                </GridItem> */}
 
                 <GridItem
                     area="nav"

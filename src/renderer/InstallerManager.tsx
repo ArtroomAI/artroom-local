@@ -157,11 +157,11 @@ export const InstallerManager = () => {
                     </VStack>
                     {
                     downloadMessage && (
-                        <Flex width="100%">
-                            <Flex width="100%">Installation progress</Flex>
-                            <Spacer/>
-                            <Flex width="100%">{downloadMessage}</Flex>
-                        </Flex>)
+                        <Flex width="100%" justifyContent="space-between">
+                            <Text>Installation progress</Text>
+                            <Text pr='80px'>{downloadMessage}</Text>
+                        </Flex>
+                    )
                     }
                 </ModalBody>
 

@@ -24,6 +24,7 @@ import NavItem from './NavItem';
 import Tour from './ProjectTour/Tour';
 import Discord from './Discord';
 import EquilibriumAI from './EquilibriumAI';
+import Civitai from './Civitai';
 
 export default function Sidebar () {
     const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
@@ -89,12 +90,12 @@ export default function Sidebar () {
                         linkTo="#/merge"
                         navSize={navSize}
                         title="Merge models" />
-                    <NavItem
+                    {/* <NavItem
                         className="image-viewer"
                         icon={FaFileImage}
                         linkTo="#/imageviewer"
                         navSize={navSize}
-                        title="Image Viewer" />
+                        title="Image Viewer" /> */}
 
                 </Flex>
 
@@ -105,10 +106,11 @@ export default function Sidebar () {
                     p="5%"
                     pb="20px"
                     w="100%">
-                    <EquilibriumAI />
-
                     <Discord />
 
+                    <EquilibriumAI />
+
+                    <Civitai />
                     {/* <Tour /> */}
 
                     <NavItem
