@@ -229,7 +229,7 @@ class StableDiffusion:
                     print("Loading vae finished")
                 else:
                     self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original=True,
-                                    controlnet=(controlnet_path is not None))
+                                  controlnet=(controlnet_path is not None))
                     print('Reset vae')
             except Exception as e:
                 print(f"Failed to load vae {e}")
@@ -288,7 +288,7 @@ class StableDiffusion:
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
             input_state_dict.update(control_model_dict)
-            del control_model_dict 
+            del control_model_dict
 
             for key in self.modelFS.first_stage_model.state_dict().keys():
                 p = self.modelFS.first_stage_model.state_dict()[key]
@@ -987,11 +987,16 @@ class StableDiffusion:
                             if self.v1:
                                 self.modelFS.to(self.device)
 
-                            # self.modelFS.to(torch.float32)
-                            # torch.set_default_tensor_type(torch.FloatTensor)
-
                             x_samples_ddim = self.modelFS.decode_first_stage(
                                 x0[0].unsqueeze(0))
+                            if x_samples_ddim.sum().isnan():  # hires fix
+                                # print("A black square")
+                                d = x0[0].unsqueeze(0).to(torch.float32)
+                                d += 0.5
+                                x_samples_ddim = self.modelFS.to(torch.float32).decode_first_stage(d) - 0.5
+                                if self.can_use_half:
+                                    self.modelFS.half()
+                                    x_samples_ddim = x_samples_ddim.half()
 
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
