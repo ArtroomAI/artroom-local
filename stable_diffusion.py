@@ -181,17 +181,19 @@ class StableDiffusion:
         if original and not controlnet:
             self.modelFS.load_state_dict(load_model_from_config(vae_path, safe_load_), strict=False)
             self.modelFS.eval()
-            self.modelFS.to(torch.float32)
             return
 
+        for key in list(self.modelFS.state_dict().keys()):
+            if 'first_stage_model' in key:
+                del self.modelFS.state_dict()[key]
         input_state_dict = self.modelFS.state_dict()
         vae = load_model_from_config(vae_path, safe_load_)
         for key in vae.keys():
             if 'loss' not in key and 'ema' not in key:
                 input_state_dict[f'first_stage_model.{key}'] = vae[key].to(torch.float32)
+        del vae[key]
         self.modelFS.load_state_dict(input_state_dict, strict=False)
         self.modelFS.eval()
-        self.modelFS.to(torch.float32)
         del input_state_dict
 
     def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip=1):
@@ -214,13 +216,12 @@ class StableDiffusion:
             if self.control_model is not None and controlnet_path is None:
                 self.deinject_controlnet()
                 self.control_model = None
-            if controlnet_path is not None and self.controlnet_path != controlnet_path:
+            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
                 self.inject_controlnet_new(controlnet_path, existing=(self.control_model is not None))
-        except:
-            print("Controlnet Failed to load")
-        self.controlnet_path = controlnet_path
+        except Exception as e:
+            print(f"Controlnet Failed to load {e}")
 
-        if vae != self.vae:
+        if vae != self.vae or self.ckpt != ckpt:
             print("Loading vae")
             try:
                 if '.vae' in vae:
@@ -228,11 +229,15 @@ class StableDiffusion:
                     print("Loading vae finished")
                 else:
                     self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original=True,
-                                  controlnet=(controlnet_path is not None))
+                                    controlnet=(controlnet_path is not None))
                     print('Reset vae')
-            except:
-                print("Failed to load vae")
+            except Exception as e:
+                print(f"Failed to load vae {e}")
+
+        self.ckpt = ckpt.replace(os.sep, '/')
         self.vae = vae
+        self.speed = speed
+        self.controlnet_path = controlnet_path
 
         try:
             hack_everything(clip_skip=clip_skip)
@@ -266,38 +271,36 @@ class StableDiffusion:
             return state_dict
 
         print("Injecting controlnet...")
-        controlnet_dict = load_state_dict(controlnet_path)
-
         if existing:
-            input_state_dict = self.control_model.state_dict()
             input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
+            controlnet_dict = load_state_dict(controlnet_path)
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
             input_state_dict.update(control_model_dict)
         else:
+            input_state_dict = self.model.state_dict()
+            controlnet_dict = load_state_dict(controlnet_path)
             self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
 
-            input_state_dict = self.model.state_dict()
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
             input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
             input_state_dict.update(control_model_dict)
+            del control_model_dict 
 
-            first_stage_dict = self.modelFS.first_stage_model.state_dict()
-            for key in first_stage_dict.keys():
-                p = first_stage_dict[key]
+            for key in self.modelFS.first_stage_model.state_dict().keys():
+                p = self.modelFS.first_stage_model.state_dict()[key]
                 input_state_dict['first_stage_model.' + key] = p
-            del first_stage_dict, self.modelFS
+            del self.modelFS
             self.modelFS = None
 
-            cond_stage_dict = self.modelCS.cond_stage_model.state_dict()
-            for key in cond_stage_dict.keys():
-                p = cond_stage_dict[key]
+            for key in self.modelCS.cond_stage_model.state_dict().keys():
+                p = self.modelCS.cond_stage_model.state_dict()[key]
                 input_state_dict['cond_stage_model.' + key] = p
-            del cond_stage_dict, self.modelFS
-            self.modelFS = None
+            del self.modelCS
+            self.modelCS = None
 
         self.control_model.load_state_dict(input_state_dict, strict=False)
         self.model = self.control_model  # soft links
@@ -361,7 +364,10 @@ class StableDiffusion:
         return final_state_dict
 
     def deinject_controlnet(self, delete=True):
-        sd = self.control_model.state_dict()
+        print("Deinjecting controlnet...")
+        # Remove controlnet pieces
+        sd = {k: v for k, v in self.control_model.state_dict().items() if "control" not in k}
+
         if delete:
             del self.control_model
             self.control_model = None
@@ -384,8 +390,6 @@ class StableDiffusion:
         for key in lo:
             sd['model2.' + key[6:]] = sd.pop(key)
 
-        # Remove controlnet pieces
-        sd = {k: v for k, v in sd.items() if "control" not in k}
         config = OmegaConf.load(f"{self.config}")
         self.model = instantiate_from_config(config.modelUNet)
         self.model.load_state_dict(sd, strict=False)
@@ -403,6 +407,18 @@ class StableDiffusion:
         _, _ = self.modelCS.load_state_dict(sd, strict=False)
         self.modelCS.cond_stage_model.device = self.device
         self.modelCS.eval()
+
+        if self.can_use_half:
+            self.model.half()
+            self.modelCS.half()
+            self.modelFS.half()
+            # torch.set_default_tensor_type(torch.HalfTensor)
+        else:
+            self.model.to(torch.float32)
+            self.modelCS.to(torch.float32)
+            self.modelFS.to(torch.float32)
+
+        del sd
 
     def set_up_models(self, ckpt, speed, vae):
         speed = speed if self.device.type != 'privateuseone' else "High"
@@ -547,9 +563,6 @@ class StableDiffusion:
         del sd
 
         # self.model = apply_patch(self.model, ratio=0.5)
-
-        self.ckpt = ckpt.replace(os.sep, '/')
-        self.speed = speed
 
         # Saves original VAE
         os.makedirs(os.path.dirname(vae), exist_ok=True)
@@ -978,7 +991,7 @@ class StableDiffusion:
                             # torch.set_default_tensor_type(torch.FloatTensor)
 
                             x_samples_ddim = self.modelFS.decode_first_stage(
-                                x0[0].to(torch.float32).unsqueeze(0))
+                                x0[0].unsqueeze(0))
 
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
