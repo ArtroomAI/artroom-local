@@ -24,32 +24,48 @@ import { FaStop } from 'react-icons/fa';
 import { ImageState } from '../atoms/atoms.types';
 import { parseSettings } from './Utils/utils';
 
-const Body = () => {
+const QueueButtons = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+
     const toast = useToast({});
 
-    const imageSettings = useRecoilValue(queueSettingsSelector);
+    const socket = useContext(SocketContext);
+
+    const cloudMode = useRecoilValue(atom.cloudModeState);
     const useRandomSeed = useRecoilValue(randomSeedState);
     const [queue, setQueue] = useRecoilState(atom.queueState);
     const setAddToQueue = useSetRecoilState(addToQueueState);
-
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
-    const latestImages = useRecoilValue(atom.latestImageState);
+    const imageSettings = useRecoilValue(queueSettingsSelector);
     const setCloudRunning = useSetRecoilState(atom.cloudRunningState);
-    
-    const [progress, setProgress] = useState(-1);
-    const [batchProgress, setBatchProgress] = useState(-1);
-
-    const [focused, setFocused] = useState(false);
-
-    const cloudMode = useRecoilValue(atom.cloudModeState);
     const setShard = useSetRecoilState(atom.shardState);
-    
-    const socket = useContext(SocketContext);
-    
-    const stopQueue = useCallback(() => {
-        socket.emit('stop_queue');
-    }, [socket]);
+
+    const useKeyPress = (targetKey: string, useAltKey = false) => {
+        const [keyPressed, setKeyPressed] = useState(false);
+
+        useEffect(() => {
+            const handler = (isKeyDown: boolean) => ({ key, altKey } : { key: string, altKey: boolean }) => {
+                if (key === targetKey && altKey === useAltKey) {
+                    console.log(`key: ${key}, altKey: ${altKey}, keydown: ${isKeyDown}`);
+                    setKeyPressed(isKeyDown);
+                }
+            };
+
+            const keydownHandler = handler(true);
+            const keyupHandler = handler(false);
+
+            window.addEventListener('keydown', keydownHandler);
+            window.addEventListener('keyup', keyupHandler);
+
+            return () => {
+                window.removeEventListener('keydown', keydownHandler);
+                window.removeEventListener('keyup', keyupHandler);
+            };
+        }, [targetKey, useAltKey]);
+
+        return keyPressed;
+    };
+
+    const altRPressed = useKeyPress('r', true);
 
     const addToQueue = useCallback(() => {
         toast({
@@ -74,6 +90,101 @@ const Body = () => {
             ];
         });
     }, [imageSettings, queue, toast]);
+
+    const submitCloud = useCallback(() => {
+        ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
+            setShard(response.data.shard_balance);
+            toast({
+                title: 'Job Submission Success',
+                status: 'success',
+                position: 'top',
+                duration: 5000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+            setCloudRunning(true);
+        }).catch((err: any) => {
+            console.log(err);
+            toast({
+                title: 'Error',
+                status: 'error',
+                description: err.response.data.detail,
+                position: 'top',
+                duration: 5000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });
+        });
+    }, [ARTROOM_URL, imageSettings, toast]);
+
+    const stopQueue = useCallback(() => {
+        socket.emit('stop_queue');
+    }, [socket]);
+
+    const computeShardCost = useCallback(() => {
+        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
+        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
+        return estimated_price;
+    }, [imageSettings]);
+
+    
+    useEffect(() => {
+        if (altRPressed) {
+            addToQueue();
+        }
+    }, [addToQueue, altRPressed]);
+
+    if(cloudMode) {
+        return (
+            <Button
+                className="run-button"
+                ml={2}
+                onClick={submitCloud}
+                variant="outline"
+                width="200px">
+                <Text pr={2}>Run</Text>
+
+                <Image src={Shards} width="12px" />
+
+                <Text pl={1}>{computeShardCost()}</Text>
+            </Button>
+        )
+    }
+    return (
+        <HStack>
+            <Button
+                className="run-button"
+                ml={2}
+                onClick={addToQueue}
+                width="200px"> 
+                Run
+            </Button>
+        <IconButton
+            aria-label="Stop Queue"
+            colorScheme="red"
+            icon={<FaStop />}
+            onClick={stopQueue} />
+        </HStack>
+    );
+}
+
+const Body = () => {
+    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const toast = useToast({});
+
+    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
+    const latestImages = useRecoilValue(atom.latestImageState);
+    
+    const [progress, setProgress] = useState(-1);
+    const [batchProgress, setBatchProgress] = useState(-1);
+
+    const [focused, setFocused] = useState(false);
+    
+    const socket = useContext(SocketContext);
 
     const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
         setProgress((100 * data.current_step / data.total_steps));
@@ -107,13 +218,6 @@ const Body = () => {
             socket.off('get_status', handleGetStatus);
         };
     }, [socket, handleGetProgress, handleGetStatus]);
-
-    
-    const computeShardCost = useCallback(() => {
-        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
-        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
-        return estimated_price;
-    }, [imageSettings]);
 
     const reducer = (state: { selectedIndex: number; }, action: { type: string; payload?: number; }) => {
         switch (action.type) {
@@ -187,7 +291,6 @@ const Body = () => {
 
     const arrowRightPressed = useKeyPress('ArrowRight');
     const arrowLeftPressed = useKeyPress('ArrowLeft');
-    const altRPressed = useKeyPress('r', true);
 
     useEffect(() => {
         if (arrowRightPressed && !focused) {
@@ -201,11 +304,6 @@ const Body = () => {
         }
     }, [arrowLeftPressed, focused]);
 
-    useEffect(() => {
-        if (altRPressed) {
-            addToQueue();
-        }
-    }, [addToQueue, altRPressed]);
 
     useEffect(() => {
         if(state.selectedIndex !== -1) {
@@ -213,37 +311,6 @@ const Body = () => {
         } 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.selectedIndex]);
-
-    const submitCloud = () => {
-        ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
-            setShard(response.data.shard_balance);
-            toast({
-                title: 'Job Submission Success',
-                status: 'success',
-                position: 'top',
-                duration: 5000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-            setCloudRunning(true);
-        }).catch((err: any) => {
-            console.log(err);
-            toast({
-                title: 'Error',
-                status: 'error',
-                description: err.response.data.detail,
-                position: 'top',
-                duration: 5000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        });
-    };
-
 
     const getProfile = () => {
         ProtectedReqManager.make_get_request(`${ARTROOM_URL}/users/me`).then((response: { data: { email: string; }; }) => {
@@ -311,40 +378,7 @@ const Body = () => {
                     </SimpleGrid>
                 </Box>
 
-                {cloudMode
-                    ? <Button
-                        className="run-button"
-                        ml={2}
-                        onClick={submitCloud}
-                        variant="outline"
-                        width="200px">
-                        <Text pr={2}>
-                            Run
-                        </Text>
-
-                        <Image
-                            src={Shards}
-                            width="12px" />
-
-                        <Text pl={1}>
-                            {computeShardCost()}
-                        </Text>
-                    </Button>
-                    : 
-                    <HStack>
-                        <Button
-                            className="run-button"
-                            ml={2}
-                            onClick={addToQueue}
-                            width="200px"> 
-                            Run
-                        </Button>
-                    <IconButton
-                        aria-label="Stop Queue"
-                        colorScheme="red"
-                        icon={<FaStop />}
-                        onClick={stopQueue} />
-                    </HStack>}
+                <QueueButtons />
 
                 <Box width="80%">
                     <Prompt setFocused={setFocused} />
