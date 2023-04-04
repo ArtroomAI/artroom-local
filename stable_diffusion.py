@@ -877,6 +877,9 @@ class StableDiffusion:
                                         self.device)
                                     c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
                         else:
+                            #For the empty prompt people
+                            if len(prompts) == 0:
+                                prompts = '-'
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
                         if self.control_model is not None:

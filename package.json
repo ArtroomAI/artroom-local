@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/artmamedov/artroom-stable-diffusion.git"
+    "url": "https://github.com/ArtroomAI/artroomai.git"
   },
   "build": {
     "extends": null,
@@ -26,8 +26,8 @@
       "publish": [
         {
           "provider": "github",
-          "owner": "artmamedov",
-          "repo": "artroom-stable-diffusion"
+          "owner": "ArtroomAI",
+          "repo": "artroomai"
         }
       ],
       "target": "nsis",

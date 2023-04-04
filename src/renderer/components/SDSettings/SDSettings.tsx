@@ -234,7 +234,7 @@ function SDSettings () {
                             <FormControl className="cfg-scale-input">
                                 <HStack>
                                     <FormLabel htmlFor="cfg_scale">
-                                        Prompt Strength:
+                                        Prompt Strength (CFG):
                                     </FormLabel>
 
                                     <Spacer />

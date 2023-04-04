@@ -210,7 +210,7 @@ try:
                     seed=int(data['seed']),
                     sampler=data['sampler'],
                     cfg_scale=float(data['cfg_scale']),
-                    clip_skip=int(data['clip_skip']),
+                    clip_skip=max(int(data['clip_skip']),1),
                     palette_fix=data['palette_fix'],
                     ckpt=ckpt_path,
                     vae=vae_path,
