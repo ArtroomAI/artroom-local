@@ -1,5 +1,3 @@
-from artroom_helpers.generation.preprocess import mask_from_face
-
 try:
     import numpy as np
     import json
@@ -11,6 +9,7 @@ try:
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
     from artroom_helpers import support
+    from artroom_helpers.generation.preprocess import mask_from_face
     from model_merger import ModelMerger
 
     from flask import Flask, request, jsonify, make_response
@@ -99,7 +98,7 @@ try:
                     json.dump(data, outfile, indent=4)
             else:
                 image_folder = os.path.join(data['image_save_path'], 'settings').replace(os.sep, '/')
-                sd_settings_count = len(glob(f'{image_folder}/*.json')))
+                sd_settings_count = len(glob(f'{image_folder}/*.json'))
                 prompt_name = re.sub(
                     r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
                 with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
@@ -278,7 +277,6 @@ try:
         socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
 except Exception as e:
     import time
-
     print("Runtime failed")
     print(e)
     time.sleep(120)
