@@ -13,7 +13,6 @@ import { initImageState } from '../../SettingsManager';
 
 export default function ImageObj ({ b64 = '', path = '', active } : { b64: string; path: string; active: boolean }) {
     const queueRunning = useRecoilValue(atom.queueRunningState);
-    const setInitImagePath = useSetRecoilState(atom.initImagePathState);
 
     const setInitImage = useSetRecoilState(initImageState);
 

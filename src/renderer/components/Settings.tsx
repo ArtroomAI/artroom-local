@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
 import {
     Box,
     Button,
