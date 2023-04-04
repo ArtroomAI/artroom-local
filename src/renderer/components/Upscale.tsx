@@ -61,7 +61,7 @@ function Upscale () {
             });
         }, [toast]);
       
-        const { getRootProps, getInputProps } = useDropzone({ onDrop });
+        const { getRootProps, getInputProps } = useDropzone({ onDrop, useFsAccessApi: false });
       
         return (
           <Box
@@ -154,7 +154,7 @@ function Upscale () {
                     align="flex-start"
                     className="upscale"
                     spacing={5}>
-                    <Dropzone></Dropzone>
+                    <Dropzone />
                     <FormControl
                         className="upscale-images-input"
                         width="full">
