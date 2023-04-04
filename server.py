@@ -88,26 +88,26 @@ try:
 
     def save_to_settings_folder(data):
         print("Saving settings...")
-        if data['long_save_path']:
-            image_folder = os.path.join(data['image_save_path'], re.sub(
-                r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
-            os.makedirs(image_folder, exist_ok=True)
-            os.makedirs(image_folder + '/settings', exist_ok=True)
-            sd_settings_count = len(glob(image_folder + '/settings/*.json'))
-            with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
-                json.dump(data, outfile, indent=4)
-        else:
-            image_folder = data['image_save_path']
-            os.makedirs(image_folder, exist_ok=True)
-            os.makedirs(image_folder + '/settings', exist_ok=True)
-            sd_settings_count = len(glob(image_folder + '/settings/*.json'))
-            prompt_name = re.sub(
-                r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
-            with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
-                      'w') as outfile:
-                json.dump(data, outfile, indent=4)
-        print("Settings saved")
-
+        try:
+            if data['long_save_path']:
+                image_folder = os.path.join(data['image_save_path'], re.sub(
+                    r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
+                os.makedirs(image_folder, exist_ok=True)
+                os.makedirs(os.path.join(image_folder,'/settings'), exist_ok=True)
+                sd_settings_count = len(glob(image_folder + '/settings/*.json'))
+                with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
+                    json.dump(data, outfile, indent=4)
+            else:
+                image_folder = os.path.join(data['image_save_path'], 'settings').replace(os.sep, '/')
+                sd_settings_count = len(glob(f'{image_folder}/*.json')))
+                prompt_name = re.sub(
+                    r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
+                with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
+                        'w') as outfile:
+                    json.dump(data, outfile, indent=4)
+            print("Settings saved")
+        except Exception as e:
+            print(f"Settings failed to save! {e}")
 
     @socketio.on('preview_controlnet')
     def preview_controlnet(data):
@@ -188,8 +188,8 @@ try:
                             'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
                             'weight': lora['weight']
                         })
-            except:
-                print("Failed to add to queue")
+            except Exception as e:
+                print(f"Failed to add to queue {e}")
                 SD.running = False
                 socketio.emit('job_done')
                 return
