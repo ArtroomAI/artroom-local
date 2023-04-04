@@ -989,15 +989,15 @@ class StableDiffusion:
 
                             x_samples_ddim = self.modelFS.decode_first_stage(
                                 x0[0].unsqueeze(0))
-                            if x_samples_ddim.sum().isnan():  # hires fix
-                                # print("A black square")
-                                d = x0[0].unsqueeze(0).to(torch.float32)
-                                d += 0.5
-                                x_samples_ddim = self.modelFS.to(torch.float32).decode_first_stage(d) - 0.5
-                                if self.can_use_half:
-                                    self.modelFS.half()
-                                    x_samples_ddim = x_samples_ddim.half()
-
+                            
+                            # if x_samples_ddim.sum().isnan():  # hires fix
+                            #     # print("A black square")
+                            #     d = x0[0].unsqueeze(0).to(torch.float32)
+                            #     d += 0.5
+                            #     x_samples_ddim = self.modelFS.to(torch.float32).decode_first_stage(d) - 0.5
+                            #     if self.can_use_half:
+                            #         self.modelFS.half()
+                            #         x_samples_ddim = x_samples_ddim.half()
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                             x_sample = 255. * \
