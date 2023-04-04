@@ -71,7 +71,7 @@ export const AspectRatio = () => {
 
     const handleWidthChange = useCallback((value: number) => {
         if (value > 0) {
-            if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
+            if (aspectRatioSelection !== 'None') {
                 setHeight(getValue(value, aspectRatio, false));
             }
             setWidth(value);
@@ -80,7 +80,7 @@ export const AspectRatio = () => {
 
     const handleHeightChange = useCallback((value: number) => {
         if (value > 0) {
-            if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
+            if (aspectRatioSelection !== 'None') {
                 setWidth(getValue(value, aspectRatio, true));
             }
             setHeight(value);
@@ -88,10 +88,22 @@ export const AspectRatio = () => {
     }, [aspectRatio, aspectRatioSelection]);
 
     useEffect(() => {
-        if (aspectRatioSelection !== 'Init Image' && aspectRatioSelection !== 'None') {
+        if (aspectRatioSelection !== 'None') {
             setHeight(getValue(width, aspectRatio, false));
         }
     }, [aspectRatio, aspectRatioSelection])
+
+    useEffect(() => {
+        if(aspectRatioSelection === 'Init Image') {
+            const img = new Image();
+            img.src = "myImage.png";
+            img.decode().then(() => {
+                const width = img.width;
+                const height = img.height;
+                setAspectRatio(`${width / height}`);
+            });
+        }
+    }, [aspectRatioSelection]);
 
     return (
         <Box className="size-input" width="100%">
@@ -103,7 +115,6 @@ export const AspectRatio = () => {
                         <Slider
                             defaultValue={512}
                             id="width"
-                            isReadOnly={aspectRatio === 'Init Image'}
                             max={MAX_VALUE}
                             min={MIN_VALUE}
                             name="width"
@@ -123,7 +134,7 @@ export const AspectRatio = () => {
                             <Tooltip
                                 bg="#4f8ff8"
                                 color="white"
-                                isOpen={!(aspectRatio === 'Init Image')}
+                                isOpen={true}
                                 label={`${width}`}
                                 placement="left"
                             >
@@ -137,7 +148,6 @@ export const AspectRatio = () => {
 
                         <Slider
                             defaultValue={512}
-                            isReadOnly={aspectRatio === 'Init Image'}
                             max={MAX_VALUE}
                             min={MIN_VALUE}
                             onChange={handleHeightChange}                                        
@@ -156,7 +166,7 @@ export const AspectRatio = () => {
                             <Tooltip
                                 bg="#4f8ff8"
                                 color="white"
-                                isOpen={!(aspectRatio === 'Init Image')}
+                                isOpen={true}
                                 label={`${height}`}
                                 placement="left"
                             >
