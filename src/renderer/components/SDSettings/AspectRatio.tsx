@@ -96,7 +96,7 @@ export const AspectRatio = () => {
     useEffect(() => {
         if(aspectRatioSelection === 'Init Image') {
             const img = new Image();
-            img.src = "myImage.png";
+            img.src = initImage;
             img.decode().then(() => {
                 const width = img.width;
                 const height = img.height;
