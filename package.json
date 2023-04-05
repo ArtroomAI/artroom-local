@@ -1,6 +1,6 @@
 {
   "name": "artroom",
-  "version": "1.2.1",
+  "version": "1.2.2-beta.1",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -16,12 +16,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtroomAI/artroomai.git"
+    "url": "https://github.com/ArtroomAI/artroom-beta.git"
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom",
-    "productName": "Artroom",
+    "appId": "com.example.Artroom-beta",
+    "productName": "Artroom-beta",
     "win": {
       "publish": [
         {

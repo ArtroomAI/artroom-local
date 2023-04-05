@@ -217,7 +217,7 @@ class StableDiffusion:
                 self.deinject_controlnet()
                 self.control_model = None
             if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
-                self.inject_controlnet_new(controlnet_path, existing=(self.control_model is not None))
+                self.inject_controlnet_new(controlnet_path, existing=(self.control_model is not None and self.ckpt == ckpt))
         except Exception as e:
             print(f"Controlnet Failed to load {e}")
 
@@ -427,9 +427,12 @@ class StableDiffusion:
             del self.model
             del self.modelFS
             del self.modelCS
+            if self.control_model is not None:
+                del self.control_model
             self.model = None
             self.modelFS = None
             self.modelCS = None
+            self.control_model = None
         except:
             pass
         torch.cuda.empty_cache()

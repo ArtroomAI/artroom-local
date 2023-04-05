@@ -98,10 +98,11 @@ try:
                     json.dump(data, outfile, indent=4)
             else:
                 image_folder = os.path.join(data['image_save_path'], 'settings').replace(os.sep, '/')
+                os.makedirs(image_folder, exist_ok=True)
                 sd_settings_count = len(glob(f'{image_folder}/*.json'))
                 prompt_name = re.sub(
                     r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
-                with open(f'{image_folder}/settings/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
+                with open(f'{image_folder}/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
                         'w') as outfile:
                     json.dump(data, outfile, indent=4)
             print("Settings saved")

@@ -249,7 +249,7 @@ export const queueSettingsSelector = selector<QueueType>({
             // sampler options
             sampler: get(samplerState),
             steps: floatBetween(parseAndCheckFloat(get(stepsState), 30), 5, 1000),
-            cfg_scale: floatBetween(parseAndCheckFloat(get(cfgState), 7.5), 2, 30),
+            cfg_scale: floatBetween(parseAndCheckFloat(get(cfgState), 7.5), 1.01, 50),
             clip_skip: parseAndCheckFloat(get(clipSkipState), 1),
 
             seed: get(seedState),
