@@ -4,6 +4,10 @@ import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { ipcMain } from "electron";
 import yauzl from "yauzl";
+import axios from 'axios';
+import { pipeline as _pipeline } from 'stream';
+import { promisify } from 'util';
+const pipeline = promisify(_pipeline);
 
 let installationProcess: ChildProcessWithoutNullStreams;
 
@@ -22,47 +26,68 @@ function removeDirectoryIfExists(PATH: fs.PathLike) {
   }
 }
 
-function download_via_https(name: string, URL: string, file_path: string, mainWindow: Electron.BrowserWindow) {
-  return new Promise<boolean>((resolve) => {
-    const request = https.get(URL, (response) => {
-      const len = parseInt(response.headers['content-length'], 10);
+async function download_via_https(name: string, URL: string, file_path: string, mainWindow: Electron.BrowserWindow, retries = 5): Promise<boolean> {
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function downloadWithRetry(retryCount: number): Promise<boolean> {
+    if (retryCount === 0) {
+      throw new Error(`Failed to download ${name} after ${retries} retries`);
+    }
+
+    try {
+      const response = await axios.get(URL, {
+        responseType: "stream",
+        timeout: 10000, // 10 seconds timeout
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
+      const len = parseInt(response.headers["content-length"], 10);
       let cur = 0;
-
-      const file = fs.createWriteStream(file_path);
-      response.pipe(file);
-
-      const total = toMB(len);
-
       let chunk_counter = 0;
 
-      response.on("data", (chunk) => {
+      response.data.on("data", (chunk: any) => {
         cur += chunk.length;
         ++chunk_counter;
-        if(chunk_counter === 5000) {
-          console.log(`Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
-          mainWindow.webContents.send('fixButtonProgress', `Downloading  ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${total}mb`);
+        if (chunk_counter === 5000) {
+          console.log(`Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`);
+          mainWindow.webContents.send(
+            "fixButtonProgress",
+            `Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`
+          );
           chunk_counter = 0;
         }
       });
 
-      file.on("finish", () => {
-        file.close();
-        resolve(true);
-      });
+      await pipeline(
+        response.data,
+        (function () {
+          const file = fs.createWriteStream(file_path);
+          file.on("finish", () => {
+            mainWindow.webContents.send("fixButtonProgress", `Downloaded ${name} successfully.`);
+          });
+          file.on("error", (e) => {
+            throw e;
+          });
+          return file;
+        })()
+      );
 
-      file.on("error", () => {
-        file.close();
-        resolve(false);
-      })
-      
-      request.on("error", (e) => {
-        mainWindow.webContents.send('fixButtonProgress', `Error: ${e.message}`);
-        file.close();
-        resolve(false);
-      });
-    });
-  });
+      return true;
+    } catch (error) {
+      mainWindow.webContents.send("fixButtonProgress", `Error: ${error.message}`);
+      console.error(`Error downloading ${name}: ${error.message}`);
+      await delay(1000 * Math.pow(2, retries - retryCount)); // Exponential backoff
+      return downloadWithRetry(retryCount - 1);
+    }
+  }
+
+  return downloadWithRetry(retries);
 }
+
+
+
 
 function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.BrowserWindow) {
   return new Promise<string>((resolve) => {
