@@ -15,6 +15,7 @@ require("dotenv").config();
 import { exposeMenuFunctions } from './menu-functions';
 import { handlers } from './ipcHandles';
 import { setupQueueHandles } from './ipcFileHandles';
+import { setupImageViewer } from './imageViewer';
 
 let win: BrowserWindow;
 let LOCAL_URL = process.env.LOCAL_URL;
@@ -336,6 +337,7 @@ function createWindow() {
   
   exposeMenuFunctions(ipcMain, win, app);
   handlers(win);
+  setupImageViewer(app, ipcMain);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   

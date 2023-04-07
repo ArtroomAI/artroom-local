@@ -13,7 +13,9 @@ a {
 #menu-bar {
     z-index: 9500;
     top: 0;
-    position: sticky;
+    left: 0;
+    right: 0;
+    position: fixed;
     align-self: flex-start; 
     display: flex;
     justify-content: space-between;

@@ -1,79 +1,96 @@
 import React, { useState, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
-import ImageObject from './Reusable/ImageObject';
-import {
-    Box
-} from '@chakra-ui/react';
+import { Box, Icon, Button } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
 import ImageModal from './Modals/ImageModal/ImageModal';
 import path from 'path';
 import { batchNameState, imageSavePathState } from '../SettingsManager';
+import { GoFileDirectory } from 'react-icons/go';
 
-interface ImageData {
-    imagePath: string;
-    b64: string;
-    metadata: string;
+const ImageComponent = ({ image_path } : { image_path: string }) => {
+    return <Box py={2} px={1}><img loading='lazy' src={image_path}/></Box>
 }
+
+const FolderComponent = ({ directory_path, directory_full_path } : { directory_path: string; directory_full_path: string }) => {
+    const setImageViewPath = useSetRecoilState(atom.imageViewPathState);
+    return <Box py={2} px={1}>
+        { directory_path }
+        <Icon
+            as={GoFileDirectory}
+            fontSize="xl"
+            justifyContent="center"
+            onClick={() => setImageViewPath(directory_full_path)} />
+    </Box>
+}
+
+const PathButtons = () => {
+    const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
+
+    let absPath = '';
+
+    const paths = imageViewPath.split(path.sep).map((el, index) => {
+        absPath += index === 0 ? el : path.sep + el;
+        return [el, absPath];
+    });
+  
+    return <Box width="100%" pos="sticky" top="40px" bgColor='#000'>
+        { paths.map(([relPath, absPath], index) => (
+            <Button key={index} onClick={() => setImageViewPath(absPath)}>
+                {relPath}
+            </Button>
+        )) }
+    </Box>
+};
 
 function ImageViewer () {
     const imageSavePath = useRecoilValue(imageSavePathState);
     const batchName = useRecoilValue(batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
-    const [imagePreviews, setImagePreviews] = useState<ImageData[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<ImageViewerElementType[]>([]);
 
     const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
 
     useEffect(() => {
-        if(imageViewPath.length <= 1){
+        if(imageViewPath === '') {
             setImageViewPath(path.join(imageSavePath, batchName));
+        } else {
+            window.api.imageViewer(imageViewPath, path.join(imageSavePath, batchName)).then((result) => {
+                if(result.error) {
+                    setImageViewPath(result.error.path);
+                    return;
+                }
+                setImagePreviews(result.results);
+            });
         }
-    }, []);
-
-    useEffect(() => {
-        if (imageViewPath.length > 1) {
-            window.api.getImages(imageViewPath).then((result) => {
-                let imagesData: Promise<ImageData>[] = [];
-
-                result.forEach((resultPath) => {
-                  const imagePath = path.join(imageViewPath, resultPath);
-                  imagesData.push(new Promise(async (resolve, reject) => {
-                    window.api.getImageFromPath(imagePath).then((output) => {
-                      resolve({imagePath, b64: output.b64, metadata: output.metadata});
-                    });
-                  }));
-                });
-
-                Promise.all(imagesData).then((results)=>{
-                    console.log(results);
-                    setImagePreviews(results);
-                })    
-            })
-        }
-    },[imageViewPath]);
+    }, [batchName, imageSavePath, imageViewPath]);
 
     return (
         <>
-        {showImageModal && <ImageModal/>}
-        <Box 
-            height="90%"
-            ml="50px"
-            p={5}
-            rounded="md"
-            width="75%" >
-            <Masonry
-                breakpointCols={breakpoints}
-                className="my-masonry-grid"
-                columnClassName="my-masonry-grid_column"
-            >
-            {imagePreviews.map((image, index) => (
-                <Box py={2} px={1} key={index}>
-                    <ImageObject b64={image.b64} metadata={image.metadata}/>
-                </Box>
-            ))}
-            </Masonry>
-        </Box>
+            {showImageModal && <ImageModal/>}
+            <Box
+                height="90%"
+                ml="50px"
+                p={5}
+                rounded="md"
+                width="75%"
+                pos="relative">
+
+                <PathButtons />
+
+                <Masonry
+                    breakpointCols={breakpoints}
+                    className="my-masonry-grid"
+                    columnClassName="my-masonry-grid_column"
+                >
+                    {imagePreviews.map((image) => (
+                        image.isFolder
+                            ? <FolderComponent directory_path={image.name} directory_full_path={image.fullPath} />
+                            : <ImageComponent image_path={image.fullPath} />
+                    ))}
+                </Masonry>
+            </Box>
         </>
     );
 }

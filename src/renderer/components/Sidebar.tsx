@@ -32,9 +32,10 @@ export default function Sidebar () {
     return (
         <Flex
             alignItems="center"
-            h="95%"
-            m="15px"
             pos="fixed"
+            top="45px"
+            left="15px"
+            bottom="15px"
             w={navSize === 'large'
                 ? '250px'
                 : '75px'}
@@ -90,12 +91,12 @@ export default function Sidebar () {
                         linkTo="#/merge"
                         navSize={navSize}
                         title="Merge models" />
-                    {/* <NavItem
+                    <NavItem
                         className="image-viewer"
                         icon={FaFileImage}
                         linkTo="#/imageviewer"
                         navSize={navSize}
-                        title="Image Viewer" /> */}
+                        title="Image Viewer" />
 
                 </Flex>
 

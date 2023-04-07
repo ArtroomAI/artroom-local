@@ -8,6 +8,7 @@ const api = {
     getLoras: async (data: any) => {return await ipcRenderer.invoke('getLoras',data);},
     getVaes: async (data: any) => {return await ipcRenderer.invoke('getVaes',data);},
     getImages: async (data: any): Promise<string[]> => {return await ipcRenderer.invoke('getImages',data);},
+    imageViewer: async (folder_path: string, batch_path: string): Promise<ImageViewerResultType> => { return await ipcRenderer.invoke('imageViewer', folder_path, batch_path); },
     uploadSettings: async () => {return await ipcRenderer.invoke('uploadSettings');},
     chooseImages: async (): Promise<string[]> => {return await ipcRenderer.invoke('chooseImages');},
     openDiscord: async () => {return await ipcRenderer.invoke('openDiscord');},
