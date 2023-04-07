@@ -1,5 +1,5 @@
 import { atom } from 'recoil';
-import { ImageMetadata } from '../components/Modals/ImageModal/ImageModal';
+
 export const imageModalB64State = atom({
     key: 'imageModalB64',
     default: ''

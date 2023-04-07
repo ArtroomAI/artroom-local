@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -14,25 +14,24 @@ import {
 } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
-import ImageModal from './Modals/ImageModal/ImageModal';
+import ImageModal from './Modals/ImageModal';
 import path from 'path';
 import { batchNameState, imageSavePathState } from '../SettingsManager';
 import { GoFileDirectory } from 'react-icons/go';
 import { BiArrowToLeft, BiArrowToRight, BiChevronLeft, BiChevronRight } from 'react-icons/bi';
 
-const ImageComponent = ({ image_path } : { image_path: string }) => {
-    return <Box py={2} px={1}><img loading='lazy' src={image_path}/></Box>
+const ImageComponent = ({ image_path, onClick } : { image_path: string, onClick: () => void }) => {
+    return <Box onClick={onClick} py={2} px={1}><img loading='lazy' src={image_path}/></Box>
 }
 
 const FolderComponent = ({ directory_path, directory_full_path } : { directory_path: string; directory_full_path: string }) => {
     const setImageViewPath = useSetRecoilState(atom.imageViewPathState);
-    return <Box py={2} px={1}>
+    return <Box py={2} px={1} onClick={() => setImageViewPath(directory_full_path)}>
         { directory_path }
         <Icon
             as={GoFileDirectory}
             fontSize="xl"
-            justifyContent="center"
-            onClick={() => setImageViewPath(directory_full_path)} />
+            justifyContent="center" />
     </Box>
 }
 
@@ -131,10 +130,20 @@ function ImageViewer () {
     const batchName = useRecoilValue(batchNameState);
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
     const [imagePreviews, setImagePreviews] = useState<ImageViewerElementType[]>([]);
-
-    const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
-
+    const [imagePath, imageSetPath] = useState("");
+    const setImageModalB64 = useSetRecoilState(atom.imageModalB64State);
+    const setImageModalMetadata = useSetRecoilState(atom.imageModalMetadataState);
+    const setShowImageModal = useSetRecoilState(atom.showImageModalState);
     const [pageIndex, gotoPage] = useState(0);
+
+    const setImage = (image_path: string) => () => {
+        window.api.getImageFromPath(image_path).then(result => {
+            setImageModalB64(result.b64);
+            setImageModalMetadata(JSON.parse(result.metadata));
+            imageSetPath(image_path);
+            setShowImageModal(true);
+        })
+    }
 
     useEffect(() => {
         if(imageViewPath === '') {
@@ -152,7 +161,7 @@ function ImageViewer () {
 
     return (
         <>
-            {showImageModal && <ImageModal/>}
+            <ImageModal imagePath={imagePath} />
             <Box
                 height="90%"
                 ml="50px"
@@ -171,7 +180,7 @@ function ImageViewer () {
                     {imagePreviews.slice(pageIndex * 100, (pageIndex + 1) * 100).map((image, index) => (
                         image.isFolder
                             ? <FolderComponent directory_path={image.name} directory_full_path={image.fullPath} key={index} />
-                            : <ImageComponent image_path={image.fullPath} key={index} />
+                            : <ImageComponent image_path={image.fullPath} key={index} onClick={setImage(image.fullPath)} />
                     ))}
                 </Masonry>
             </Box>

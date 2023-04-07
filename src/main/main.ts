@@ -25,13 +25,13 @@ axios.get(`${LOCAL_URL}/shutdown`)
 const getPNGEXIF = (png: Buffer) => {
   const png_string = png.toString('utf-8');
 
-  const start = png_string.indexOf(`{"text"`);
+  const start = png_string.indexOf(`{"text`);
 
   if(start === -1) return '';
 
   let count = 1;
 
-  for(let i = start; i < png_string.length; ++i) {
+  for(let i = start + 5; i < png_string.length; ++i) {
     if(png_string[i] === '{') {
       count++;
     } else if (png_string[i] === '}') {
@@ -169,8 +169,12 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle('copyToClipboard', async (event, b64) => {
-    clipboard.writeImage(nativeImage.createFromDataURL(b64));
+  ipcMain.handle('copyToClipboard', async (event, text, type = 'image') => {
+    if(type === 'image') {
+      clipboard.writeImage(nativeImage.createFromDataURL(text));
+    } else {
+      clipboard.writeText(text);
+    }
   });
 
   ipcMain.handle("uploadSettings", () => {

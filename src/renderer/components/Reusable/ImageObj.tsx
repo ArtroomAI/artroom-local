@@ -42,7 +42,6 @@ export default function ImageObj ({ b64 = '', path = '', active } : { b64: strin
             <ContextMenuTrigger>
                 {active
                     ? <Image
-                        alignSelf="center"
                         fallbackSrc={queueRunning
                             ? LoadingGif
                             : Logo}
@@ -51,7 +50,6 @@ export default function ImageObj ({ b64 = '', path = '', active } : { b64: strin
                         src={b64}
                         onClick={handleOpen} />
                     : <Image
-                        alignSelf="center"
                         fit="scale-down"
                         h="55vh"
                         src={b64}

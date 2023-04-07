@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import { Image } from '@chakra-ui/react';
 
@@ -20,7 +20,7 @@ export default function ImageModalObj ({b64} : { b64: string }) {
     return (
         <ContextMenu>
             <ContextMenuTrigger>
-                 <Image
+                <Image
                     maxHeight="600px"
                     maxWidth="600px"
                     borderRadius="5"

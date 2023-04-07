@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../../atoms/atoms';
+import React from 'react';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import {
     Modal,
     ModalOverlay,
     ModalContent,
-    ModalHeader,
     ModalBody,
     ModalFooter,
     Flex,
@@ -14,162 +12,142 @@ import {
     Button,
     Icon,
     Divider,
+    useToast,
 } from '@chakra-ui/react';
-import {BiImages, BiCopy} from 'react-icons/bi'
-import {GoSettings} from 'react-icons/go'
-import {AiFillFolderOpen} from 'react-icons/ai'
-import ImageModalObj from '../Reusable/ImageModalObj';
+import { BiImages, BiCopy } from 'react-icons/bi';
+import { GoSettings } from 'react-icons/go';
+import { AiFillFolderOpen } from 'react-icons/ai';
+import * as atom from '../../atoms/atoms';
+import { initImageState } from '../../SettingsManager';
+import ImageObj from '../Reusable/ImageObj';
+import { initImagePathState } from '../../atoms/atoms';
 
-export interface ImageMetadata {
-    text_prompts: string;
-    negative_prompts: string;
-    W: string;
-    H: string;
-    seed: string;
-    sampler: string;
-    steps: string;
-    strength: string;
-    cfg_scale: string;
-    ckpt: string;
+const ImageModalField = ({ data, header }: { data: string; header: string}) => {
+    const toast = useToast({});
+    const copyToClipboard = () => {
+        window.api.copyToClipboard(data, 'text').then(() => {
+            toast({
+                title: 'Copied to clipboard',
+                status: 'success',
+                position: 'top',
+                duration: 500
+            });
+        });
+    }
+
+    return (
+        <>
+            <Box display="flex" alignItems="center" mt={2}>
+                <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm' onClick={copyToClipboard}><Icon as={BiCopy} /></Button>
+                <Text fontWeight="bold" color="white.800">{ header }</Text>
+            </Box>
+            <Text pl="8">{ data }</Text>
+        </>
+    )
 }
 
-function ImageModal () {
 
-    const [imageModalB64, setImageModalB64] = useRecoilState(atom.imageModalB64State);
-    const [imageModalMetadata, setImageModalMetadata] = useRecoilState(atom.imageModalMetadataState);
+// TODO: ADD PATH
+function ImageModal ({ imagePath }: { imagePath: string }) {
+    const imageModalB64 = useRecoilValue(atom.imageModalB64State);
+    const imageModalMetadata = useRecoilValue(atom.imageModalMetadataState);
     const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
+    const setInitImagePath = useSetRecoilState(initImagePathState);
+    const setInitImage = useSetRecoilState(initImageState);
 
     function handleClose() {
         setShowImageModal(false)
-      }
+    }
     
     return (
-    <Modal 
-        size = '6xl'
-        isOpen={showImageModal} 
-        onClose={handleClose}
-        scrollBehavior='outside'>
-        <ModalOverlay bg='blackAlpha.900'/>
-        <ModalContent>
-        <ModalHeader>
-        </ModalHeader>
-        <ModalBody>
-            <Flex>
-                <Box>
-                    <Box>
-                    <ImageModalObj b64={imageModalB64}></ImageModalObj>
-                    <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14"  fontWeight="normal">
-                        <Icon mr={2} as={BiImages} />
-                        Copy Image
-                    </Button>
-                    <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal">
-                        <Icon mr={2} as={BiImages} />
-                        Set Starting Image
-                    </Button>
-                    <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal">
-                        <Icon mr={2} as={AiFillFolderOpen} />
-                        View in Files
-                    </Button>
-                    </Box>
-                </Box>
-                <Box px="10" flexDirection="column">   
+        <Modal 
+            size = '6xl'
+            isOpen={showImageModal} 
+            onClose={handleClose}
+            scrollBehavior='outside'>
 
-                <Box display="flex" alignItems="center" mt={2}>
-                    <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy} /></Button>
-                    <Text fontWeight="bold" color="white.800">Prompt:</Text>
-                </Box>
-                <Text pl="8"> {imageModalMetadata.text_prompts}</Text>
+            <ModalOverlay bg='blackAlpha.900'/>
+            <ModalContent>
+                <ModalBody>
+                    <Flex>
+                        <Box w="100%">
+                            <ImageObj b64={imageModalB64} path={imagePath} active />
+                            <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal"
+                                onClick={() => window.api.copyToClipboard(imageModalB64)}>
+                                <Icon mr={2} as={BiImages} />
+                                Copy Image
+                            </Button>
+                            <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal"
+                                onClick={() => {
+                                    setInitImagePath(imagePath);
+                                    setInitImage(imageModalB64);
+                                }}>
+                                <Icon mr={2} as={BiImages} />
+                                Set Starting Image
+                            </Button>
+                            <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal"
+                                onClick={() => window.api.showInExplorer(imagePath)}>
+                                <Icon mr={2} as={AiFillFolderOpen} />
+                                View in Files
+                            </Button>
+                        </Box>
+                        <Box px="10" flexDirection="column">
+                            <ImageModalField data={imageModalMetadata.text_prompts} header="Prompt:" />
+                            <ImageModalField data={imageModalMetadata.negative_prompts} header="Negative Prompt:" />
 
-                <Box display="flex" alignItems="center" mt={2}>
-                    <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy} /></Button>
-                    <Text fontWeight="bold" color="white.800">Negative Prompt:</Text>
-                </Box>
-                <Text pl="8"> {imageModalMetadata.negative_prompts}</Text>
+                            <Divider pt="5"></Divider>
+                            <Flex>
+                                <Box flexDirection="column" width="50%">
+                                    <ImageModalField data={`${imageModalMetadata.W}x${imageModalMetadata.H}`} header="Dimensions (WxH)" />
+                                </Box>
+                                <Box>
+                                    <ImageModalField data={imageModalMetadata.seed} header="Seed:" />
+                                </Box>
+                            </Flex>
+                        
+                            <Flex>
+                                <Box flexDirection="column" width="50%">
+                                    <ImageModalField data={imageModalMetadata.sampler} header="Sampler:" />
+                                </Box>
+                                <Box>
+                                    <ImageModalField data={imageModalMetadata.steps} header="Steps:" />
+                                </Box>
+                            </Flex>
 
-                <Divider pt="5"></Divider>
-                <Flex>
-                    <Box flexDirection="column" width="50%">
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy} /></Button>
-                            <Text fontWeight="bold" color="white.800">{`Dimensions (WxH)`}:</Text>
-                        </Box>
-                        <Text pl="8"> {`${imageModalMetadata.W}x${imageModalMetadata.H}`}</Text>
-                    </Box>
-                    <Box>
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy} /></Button>
-                            <Text fontWeight="bold" color="white.800">Seed:</Text>
-                        </Box>
-                        <Text pl="8"> {imageModalMetadata.seed}</Text>
-                    </Box>
+                            <Flex>
+                                <Box flexDirection="column" width="50%">
+                                    <ImageModalField data={imageModalMetadata.strength} header="Starting Image Strength:" />
+                                </Box>
+                                <Box>
+                                    <ImageModalField data={imageModalMetadata.cfg_scale} header="Prompt Strength (CFG):" />
+                                </Box>
+                            </Flex>
 
-                </Flex>
-                
-                <Flex>
-                    <Box flexDirection="column" width="50%">
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy} /></Button>
-                            <Text fontWeight="bold" color="white.800">Sampler:</Text>
+                            <Flex>
+                                <Box flexDirection="column" width="50%">
+                                    <ImageModalField data={imageModalMetadata.ckpt} header="Model:" />
+                                </Box>
+                                <Box>
+                                    <ImageModalField data={imageModalMetadata.vae} header="VAE:" />
+                                </Box>
+                            </Flex>
+                            
+                            <Box pt="5" width="100%" display="flex" justifyContent="center">
+                                <Button borderRadius="10" variant="ghost" colorScheme="blue" fontSize="14" fontWeight="normal"
+                                    isDisabled={!('text_prompts' in imageModalMetadata)}
+                                    onClick={() => window.api.copyToClipboard(JSON.stringify(imageModalMetadata, null, 2), 'text')}>
+                                    <Icon mr={2} as={GoSettings} />
+                                    Copy All Settings
+                                </Button>
+                            </Box>
                         </Box>
-                        <Text pl="8"> {imageModalMetadata.sampler}</Text>
-                    </Box>
-                    <Box>
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy}/></Button>
-                            <Text fontWeight="bold" color="white.800">Steps:</Text>
-                        </Box>
-                        <Text pl="8"> {imageModalMetadata.steps}</Text>
-                    </Box>
-                </Flex>
-
-                <Flex>
-                    <Box flexDirection="column" width="50%">
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy}/></Button>
-                            <Text fontWeight="bold" color="white.800">Starting Image Strength:</Text>
-                        </Box>
-                        <Text pl="8"> {imageModalMetadata.strength}</Text>
-                    </Box>
-                    <Box>
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy}/></Button>
-                            <Text fontWeight="bold" color="white.800">{`Prompt Strength (CFG)`}:</Text>
-                        </Box>
-                        <Text pl="8"> {imageModalMetadata.cfg_scale}</Text>
-                    </Box>
-                </Flex>
-
-                <Flex>
-                    <Box flexDirection="column" width="50%">
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy}/></Button>
-                            <Text fontWeight="bold" color="white.800">Model:</Text>
-                        </Box>
-                        <Text pl="8"> {imageModalMetadata.ckpt}</Text>
-                    </Box>
-                    <Box>
-                        <Box display="flex" alignItems="center" mt={2}>
-                            <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm'><Icon as={BiCopy}/></Button>
-                            <Text fontWeight="bold" color="white.800">VAE:</Text>
-                        </Box>
-                        <Text pl="8"> TBD</Text>
-                    </Box>
-                </Flex>
-                
-                <Box pt="5" width="100%" display="flex" justifyContent="center">
-                    <Button borderRadius="10" variant="ghost" colorScheme="blue" fontSize="14" fontWeight="normal" isDisabled={!('text_prompts' in imageModalMetadata)}>
-                        <Icon mr={2} as={GoSettings} />
-                        Copy All Settings
-                    </Button>
-                </Box>
-                </Box>
-            </Flex>
-        </ModalBody>
-        <ModalFooter>
-            <Button onClick={handleClose}>Cancel</Button>
-        </ModalFooter>
-        </ModalContent>
-    </Modal>
+                    </Flex>
+                </ModalBody>
+                <ModalFooter>
+                    <Button onClick={handleClose}>Cancel</Button>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
     )
 }
 
