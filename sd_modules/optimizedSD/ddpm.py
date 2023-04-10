@@ -769,7 +769,7 @@ class UNet(DDPM):
 
         # sampling
         if sampler == "plms":
-            self.make_schedule_plms(ddim_num_steps=S, ddim_eta=eta, verbose=False)
+            # self.make_schedule_plms(ddim_num_steps=S, ddim_eta=eta, verbose=False)
             print(f'Data shape for PLMS sampling is {shape}')
             samples = self.plms_sampling(conditioning, batch_size, x_latent,
                                          callback=callback, mode=mode,
@@ -907,10 +907,15 @@ class UNet(DDPM):
         e_t = get_model_output(x, t)
         if self.parameterization == "v":
             e_t = self.predict_eps_from_z_and_v(x, t, e_t)
+
         if len(old_eps) == 0:
             # Pseudo Improved Euler (2nd order)
             x_prev, pred_x0 = get_x_prev_and_pred_x0(e_t, index)
             e_t_next = get_model_output(x_prev, t_next)
+
+            if self.parameterization == "v":
+                e_t_next = self.predict_eps_from_z_and_v(x_prev, t_next, e_t_next)
+
             e_t_prime = (e_t + e_t_next) / 2
         elif len(old_eps) == 1:
             # 2nd order Pseudo Linear Multistep (Adams-Bashforth)
@@ -1293,6 +1298,7 @@ class UNet(DDPM):
                                        unconditional_guidance_scale=unconditional_guidance_scale,
                                        unconditional_conditioning=unconditional_conditioning,
                                        model_wrap_sigmas=model_wrap_sigmas, ds=ds)
+
             if callback:
                 callback(x_latent)
             if self.interrupted_state:
