@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
@@ -35,7 +35,7 @@ const FolderComponent = ({ directory_path, directory_full_path } : { directory_p
     </Box>
 }
 
-const PathButtons = ({ pageIndex, maxLength, gotoPage } : { pageIndex: number; maxLength: number; gotoPage: React.Dispatch<React.SetStateAction<number>>}) => {
+const PathButtons = () => {
     const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
 
     let absPath = '';
@@ -44,14 +44,20 @@ const PathButtons = ({ pageIndex, maxLength, gotoPage } : { pageIndex: number; m
         absPath += index === 0 ? el : path.sep + el;
         return [el, absPath];
     });
-  
-    return <Box width="100%" pos="sticky" top="40px" bgColor='#000'>
-        { paths.map(([relPath, absPath], index) => (
-            <Button key={index} onClick={() => setImageViewPath(absPath)}>
-                {relPath}
-            </Button>
-        )) }
+    return (
+        <Box m={4}>
+            { paths.map(([relPath, absPath], index) => (
+                <Button key={index} onClick={() => setImageViewPath(absPath)}>
+                    {relPath}
+                </Button>
+            )) }
+        </Box>
+    )
+}
 
+const Controls = ({ pageIndex, maxLength, gotoPage } : { pageIndex: number; maxLength: number; gotoPage: React.Dispatch<React.SetStateAction<number>>}) => {
+    return <Box width="100%" pos="sticky" top="30px" p="2" bgColor="#080B16">
+        <PathButtons />
         <Flex justifyContent="space-between" m={4} alignItems="center">
             <Flex>
                 <Tooltip label="First Page">
@@ -164,13 +170,11 @@ function ImageViewer () {
             <ImageModal imagePath={imagePath} />
             <Box
                 height="90%"
-                ml="50px"
                 p={5}
-                rounded="md"
-                width="75%"
+                width="100%"
                 pos="relative">
 
-                <PathButtons pageIndex={pageIndex} gotoPage={gotoPage} maxLength={imagePreviews.length} />
+                <Controls pageIndex={pageIndex} gotoPage={gotoPage} maxLength={imagePreviews.length} />
 
                 <Masonry
                     breakpointCols={breakpoints}
