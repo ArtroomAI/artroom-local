@@ -5,6 +5,7 @@ try:
     import logging
     import os
     import re
+    import math
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
@@ -193,9 +194,86 @@ try:
                 SD.running = False
                 socketio.emit('job_done')
                 return
+            #try:
+            print("Starting gen...")
+            SD.generate(
+                text_prompts=data['text_prompts'],
+                negative_prompts=data['negative_prompts'],
+                init_image_str=init_image_str,
+                strength=data['strength'],
+                mask_b64=mask_b64,
+                invert=data['invert'],
+                n_iter=int(data['n_iter']),
+                steps=int(data['steps']),
+                H=int(data['height']),
+                W=int(data['width']),
+                seed=int(data['seed']),
+                sampler=data['sampler'],
+                cfg_scale=float(data['cfg_scale']),
+                clip_skip=max(int(data['clip_skip']),1),
+                palette_fix=data['palette_fix'],
+                ckpt=ckpt_path,
+                vae=vae_path,
+                loras=lora_paths,
+                image_save_path=data['image_save_path'],
+                speed=data['speed'],
+                skip_grid=not data['save_grid'],
+                long_save_path=data['long_save_path'],
+                highres_fix=data['highres_fix'],
+                show_intermediates=data['show_intermediates'],
+                controlnet=data['controlnet'],
+                use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
+                remove_background=data['remove_background'],
+                use_removed_background=data['use_removed_background'],
+                models_dir=data['models_dir'],
+            )
+            socketio.emit('job_done')
+
+            # except Exception as e:
+            #     print(f"Generation failed! {e}")
+            #     SD.clean_up()
+            #     socketio.emit('job_done')
+
+
+    @socketio.on('/get_server_status')
+    def get_server_status():
+        socketio.emit("get_server_status", {'server_running': SD.running}, broadcast=True)
+
+
+    @socketio.on('stop_queue')
+    def stop_queue():
+        SD.interrupt()
+        socketio.emit("stop_queue", {'status': 'Success'}, broadcast=True)
+
+    @app.route('/generate', methods=['POST'])
+    def generate():
+        data = json.loads(request.data)
+        if not SD.running:
+            try:
+                SD.running = True
+                mask_b64 = data['mask_image']
+                data['mask_image'] = data['mask_image'][:100] + "..."
+                init_image_str = data['init_image']
+                data['init_image'] = data['init_image'][:100] + "..."
+
+                print("Saving settings to folder...")
+                save_to_settings_folder(data)
+                ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
+                vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
+                lora_paths = []
+                if len(data['lora']) > 0:
+                    for lora in data['lora']:
+                        lora_paths.append({
+                            'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                            'weight': lora['weight']
+                        })
+            except Exception as e:
+                print(f"Failed to add to queue {e}")
+                SD.running = False
+                socketio.emit('job_done')
+                return
             try:
                 print("Starting gen...")
-                print(data)
                 SD.generate(
                     text_prompts=data['text_prompts'],
                     negative_prompts=data['negative_prompts'],
@@ -233,18 +311,127 @@ try:
                 print(f"Generation failed! {e}")
                 SD.clean_up()
                 socketio.emit('job_done')
+        return "Finished"
 
+    @app.route('/xyplot', methods=['POST'])
+    def xyplot():
+        import matplotlib.pyplot as plt
+        from matplotlib.gridspec import GridSpec
 
-    @socketio.on('/get_server_status')
-    def get_server_status():
-        socketio.emit("get_server_status", {'server_running': SD.running}, broadcast=True)
+        xyplot_data = json.loads(request.data)
+        x_key = xyplot_data["x_key"]
+        x_values = xyplot_data["x_values"]
+        y_key = xyplot_data["y_key"]
+        y_values = xyplot_data["y_values"]
+        if x_key == "lora":
+            x_values = [os.path.basename(x["name"]) + ", weight: " + str(x["weight"]) for x in x_values]
 
+        if y_key == "lora":
+            y_values = [os.path.basename(y["name"]) + ", weight: " + str(y["weight"]) for y in y_values]
 
-    @socketio.on('stop_queue')
-    def stop_queue():
-        SD.interrupt()
-        socketio.emit("stop_queue", {'status': 'Success'}, broadcast=True)
+        x_path = '_'.join(list(map(str, x_values)))
+        y_path = '_'.join(list(map(str, y_values)))
+        xy_path = f"xyplot_{x_key}_{x_path}_{y_key}_{y_path}"[:100]
+        # Replace invalid characters with an empty string
+        invalid_pattern = re.compile(r'[<>:"/\\|?*\x00-\x1f\s]')
+        xy_path = invalid_pattern.sub('', xy_path)
+        image_save_path = os.path.join(xyplot_data["xyplots"][0]['image_save_path'], xy_path)
 
+        for data in xyplot_data["xyplots"]:
+            if not SD.running:
+                try:
+                    SD.running = True
+                    mask_b64 = data['mask_image']
+                    data['mask_image'] = data['mask_image'][:100] + "..."
+                    init_image_str = data['init_image']
+                    data['init_image'] = data['init_image'][:100] + "..."
+
+                    print("Saving settings to folder...")
+                    save_to_settings_folder(data)
+                    ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
+                    vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
+                    lora_paths = []
+                    if len(data['lora']) > 0:
+                        for lora in data['lora']:
+                            lora_paths.append({
+                                'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                                'weight': lora['weight']
+                            })
+                except Exception as e:
+                    print(f"Failed to add to queue {e}")
+                    SD.running = False
+                    socketio.emit('job_done')
+                    return
+                try:
+                    print("Starting gen...")
+                    SD.generate(
+                        text_prompts=data['text_prompts'],
+                        negative_prompts=data['negative_prompts'],
+                        init_image_str=init_image_str,
+                        strength=data['strength'],
+                        mask_b64=mask_b64,
+                        invert=data['invert'],
+                        n_iter=int(data['n_iter']),
+                        steps=int(data['steps']),
+                        H=int(data['height']),
+                        W=int(data['width']),
+                        seed=int(data['seed']),
+                        sampler=data['sampler'],
+                        cfg_scale=float(data['cfg_scale']),
+                        clip_skip=max(int(data['clip_skip']),1),
+                        palette_fix=data['palette_fix'],
+                        ckpt=ckpt_path,
+                        vae=vae_path,
+                        loras=lora_paths,
+                        image_save_path=image_save_path,
+                        speed=data['speed'],
+                        skip_grid=not data['save_grid'],
+                        long_save_path=data['long_save_path'],
+                        highres_fix=data['highres_fix'],
+                        show_intermediates=data['show_intermediates'],
+                        controlnet=data['controlnet'],
+                        use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
+                        remove_background=data['remove_background'],
+                        use_removed_background=data['use_removed_background'],
+                        models_dir=data['models_dir'],
+                    )
+                    socketio.emit('job_done')
+
+                except Exception as e:
+                    print(f"Generation failed! {e}")
+                    SD.clean_up()
+                    socketio.emit('job_done')
+      
+        # Load the images into a list
+        image_files = sorted(os.listdir(image_save_path))
+        images = [plt.imread(os.path.join(image_save_path, f)) for f in image_files]
+
+        # Calculate the number of rows and columns for the grid
+        n_cols = len(x_values)
+        n_rows = len(y_values)
+
+        # Calculate the figure size based on the image size and grid layout
+        fig_width = n_cols * 5
+        fig_height = n_rows * 5
+
+        # Create figure and subplots
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(fig_width, fig_height), sharex='col', sharey='row')
+
+        # Add the images to the subplots
+        for i, ax in enumerate(axs.flat):
+            ax.imshow(images[i])
+            ax.set_xticks([])
+            ax.set_yticks([])
+            row = i // n_cols
+            col = i % n_cols
+            ax.set_xlabel(f"{x_key}: {x_values[col]}", fontsize=10)
+            ax.set_ylabel(f"{y_key}: {y_values[row]}", fontsize=10, rotation=90, labelpad=10)
+
+        # Save the figure
+        fig.tight_layout()
+        plt.savefig(os.path.join(image_save_path, "xyplot.png"))
+
+        return "Finished"
 
     @app.route('/shutdown', methods=['GET'])
     def shutdown():
