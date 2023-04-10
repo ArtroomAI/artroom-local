@@ -217,7 +217,8 @@ class StableDiffusion:
                 self.deinject_controlnet()
                 self.control_model = None
             if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
-                self.inject_controlnet_new(controlnet_path, existing=(self.control_model is not None and self.ckpt == ckpt))
+                self.inject_controlnet_new(controlnet_path,
+                                           existing=(self.control_model is not None and self.ckpt == ckpt))
         except Exception as e:
             print(f"Controlnet Failed to load {e}")
 
@@ -880,7 +881,7 @@ class StableDiffusion:
                                         self.device)
                                     c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
                         else:
-                            #For the empty prompt people
+                            # For the empty prompt people
                             if len(prompts.strip()) == 0:
                                 prompts = '-'
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
@@ -972,38 +973,44 @@ class StableDiffusion:
                             else:
                                 x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                                 x0 = init_latent_1stage if mode == "pix2pix" else x0
-                                x0 = self.model.sample(
-                                    S=steps,
-                                    conditioning=c,
-                                    x0=x0,
-                                    S_ddim_steps=ddim_steps,
-                                    unconditional_guidance_scale=cfg_scale,
-                                    txt_scale=txt_cfg_scale,
-                                    unconditional_conditioning=uc,
-                                    eta=ddim_eta,
-                                    sampler=sampler,
-                                    shape=shape,
-                                    batch_size=batch_size,
-                                    seed=seed,
-                                    mask=mask,
-                                    x_T=x_T,
-                                    callback=self.callback_fn,
-                                    mode=mode
-                                )
+                                gen_kwargs = {
+                                    "S": steps,
+                                    "conditioning": c,
+                                    "x0": x0,
+                                    "S_ddim_steps": ddim_steps,
+                                    "unconditional_guidance_scale": cfg_scale,
+                                    "txt_scale": txt_cfg_scale,
+                                    "unconditional_conditioning": uc,
+                                    "eta": ddim_eta,
+                                    "sampler": sampler,
+                                    "shape": shape,
+                                    "batch_size": batch_size,
+                                    "seed": seed,
+                                    "mask": mask,
+                                    "x_T": x_T,
+                                    "callback": self.callback_fn,
+                                    "mode": mode}
+                                x0 = self.model.sample(**gen_kwargs)
                             if self.v1:
                                 self.modelFS.to(self.device)
 
                             x_samples_ddim = self.modelFS.decode_first_stage(
                                 x0[0].unsqueeze(0))
-                            
-                            # if x_samples_ddim.sum().isnan():  # hires fix
-                            #     # print("A black square")
-                            #     d = x0[0].unsqueeze(0).to(torch.float32)
-                            #     d += 0.5
-                            #     x_samples_ddim = self.modelFS.to(torch.float32).decode_first_stage(d) - 0.5
-                            #     if self.can_use_half:
-                            #         self.modelFS.half()
-                            #         x_samples_ddim = x_samples_ddim.half()
+
+                            if x_samples_ddim.sum().isnan():  # black square fix
+                                print("Black square detected, repeating on full precision")
+                                self.model.to(torch.float32)
+                                self.modelFS.to(torch.float32)
+
+                                gen_kwargs["conditioning"] = gen_kwargs["conditioning"].to(torch.float32)
+                                gen_kwargs["x0"] = x0.to(torch.float32)
+
+                                x0 = self.model.sample(**gen_kwargs)
+                                x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
+                                if self.can_use_half:
+                                    self.modelFS.half()
+                                    self.model.half()
+                                    x_samples_ddim = x_samples_ddim.half()
                             x_sample = torch.clamp(
                                 (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                             x_sample = 255. * \
