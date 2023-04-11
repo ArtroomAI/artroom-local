@@ -1,330 +1,18 @@
-import { app, BrowserWindow, ipcMain, clipboard, shell, dialog, nativeImage, OpenDialogOptions, MessageBoxOptions, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, MessageBoxOptions, session } from 'electron';
 import { autoUpdater } from "electron-updater";
 autoUpdater.autoDownload = false;
-import os from 'os';
 import path from 'path';
 import isDev from 'electron-is-dev';
-import fs from "fs";
-import glob from 'glob';
-import axios from 'axios';
-import kill from 'tree-kill';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
-const ExifParser = require('exif-parser');
 
 require("dotenv").config();
-import { exposeMenuFunctions } from './menu-functions';
-import { handlers } from './ipcHandles';
-import { setupQueueHandles } from './ipcFileHandles';
-import { setupImageViewer } from './imageViewer';
+import { setupHandles } from './ipcMainHandles';
+import { Server } from './handles/serverHandles';
 
 let win: BrowserWindow;
-let LOCAL_URL = process.env.LOCAL_URL;
-//Start with cleanup
-axios.get(`${LOCAL_URL}/shutdown`)
 
-const getPNGEXIF = (png: Buffer) => {
-  const png_string = png.toString('utf-8');
-
-  const start = png_string.indexOf(`{"text`);
-
-  if(start === -1) return '';
-
-  let count = 1;
-
-  for(let i = start + 5; i < png_string.length; ++i) {
-    if(png_string[i] === '{') {
-      count++;
-    } else if (png_string[i] === '}') {
-      count--;
-    }
-
-    if(count === 0) {
-      return png_string.substring(start, i + 1);
-    }
-  }
-  return '';
-}
-
-async function getImage(image_path: string) {
-  return fs.promises.readFile(image_path).then(buffer => {
-    let userComment = '';
-
-    const ext = path.extname(image_path).toLowerCase();
-    let mimeType;
-    if (ext === '.png') {
-      mimeType = 'image/png';
-      userComment = getPNGEXIF(buffer);
-    } else if (ext === '.jpg' || ext === '.jpeg') {
-      mimeType = 'image/jpeg';
-      try {
-        const parser = ExifParser.create(buffer);
-        const exifData = parser.parse();
-        userComment = exifData.tags.UserComment;
-      } catch (error) {
-        console.log("No exif data found")  
-      }
-    } else {
-      mimeType = '';
-    }
-    const b64 = `data:${mimeType};base64,${buffer.toString('base64')}`;
-
-    return [b64, userComment] as [string, any];
-  });
-}
-
-let server: ChildProcessWithoutNullStreams;
-
-const getFiles = async (folder_path: string, ext: string, excludeFolders?: string[]) => {
-  return new Promise<string[]>((resolve, reject) => {
-    if (folder_path.length) {
-      glob(`${folder_path}/**/*.{${ext}}`, {}, (err, files) => {
-        if (err) {
-          console.log("ERROR");
-          resolve([]);
-        }
-        resolve(
-          files.filter((match) =>
-            excludeFolders ? !excludeFolders.some((folder) => match.includes(folder)) : true
-          ).map((match) => path.relative(folder_path, match))
-        );
-      });
-    }
-  });
-};
+const server = new Server();
 
 function createWindow() {
-
-  ipcMain.handle('saveFromDataURL', async (event, data) => {
-    const json = JSON.parse(data);
-    const dataUrl = json.dataURL;
-    const imagePath = json.imagePath;
-
-    let imagePathDirName = path.dirname(imagePath);
-
-    fs.mkdirSync(imagePathDirName, { recursive: true });
-
-    // convert dataURL to a buffer
-    try{
-      const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-      try {
-        // write the buffer to the specified image path
-        fs.writeFileSync(imagePath, buffer);
-      } catch (err) {
-        console.error(err);
-        return;
-      }
-    } catch (err) {
-      axios.get(dataUrl, {
-        responseType: "arraybuffer",
-      }).then((raw) => {
-        // create a base64 encoded string
-        try {
-          // write the buffer to the specified image path
-          const buffer = Buffer.from(raw.data, "binary").toString("base64");
-          //fs.writeFileSync(imagePath, buffer);
-          fs.writeFile(imagePath, buffer, 'base64', function(err) {
-            console.log(err);
-          });
-        } catch (err) {
-          console.error(err);
-          return;
-        }
-      });
-    }
-  });
-
-  ipcMain.handle('getCkpts', async (event, data) => {
-    return getFiles(data, 'ckpt,safetensors', ['Loras', 'ControlNet']);
-  });
-
-  ipcMain.handle('getLoras', async (event, data) => {
-    return getFiles(path.join(data, 'Loras'), 'ckpt,safetensors');
-  });
-
-  ipcMain.handle('getVaes', async (event, data) => {
-    return getFiles(path.join(data, 'Vaes'), 'vae.pt,vae.ckpt,vae.safetensors');
-  });
-
-  ipcMain.handle('getImages', async (event, data) => {
-    return getFiles(data, 'jpg,png,jpeg');
-  });
-
-  ipcMain.handle('showInExplorer', async (event, data) => {
-    const p = path.resolve(data);
-    shell.showItemInFolder(p);
-  });
-
-  ipcMain.handle('getImageFromPath', async (event, data) => {
-    return new Promise((resolve, reject) => {
-      if (data && data.length > 0) {
-        getImage(data).then(([b64, metadata]) => {
-          resolve({b64, metadata});
-        }).catch(err => {
-          console.log(err);
-          reject(err);
-        });
-      } else {
-        resolve("");
-      }
-    });
-  });
-
-  ipcMain.handle('copyToClipboard', async (event, text, type = 'image') => {
-    if(type === 'image') {
-      clipboard.writeImage(nativeImage.createFromDataURL(text));
-    } else {
-      clipboard.writeText(text);
-    }
-  });
-
-  ipcMain.handle("uploadSettings", () => {
-    return new Promise((resolve, reject) => {
-      let properties: OpenDialogOptions['properties'];
-      if (os.platform() === 'linux' || os.platform() === 'win32') {
-        properties = ['openFile', 'multiSelections'];
-      }
-      else {
-        properties = ['openFile', 'openDirectory', 'multiSelections'];
-      }
-      dialog.showOpenDialog({
-        properties: properties,
-        filters: [
-          { name: 'Settings', extensions: ['json'] },
-        ]
-      }).then(result => {
-        if (result.filePaths.length > 0) {
-          fs.readFile(result.filePaths[0], "utf8", function (err, data) {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve(data);
-          });
-        }
-        else {
-          resolve("");
-        }
-      }).catch(err => {
-        resolve("");
-      })
-    });
-  });
-
-  ipcMain.handle("chooseImages", async () => {
-    let properties: OpenDialogOptions['properties'];
-    if (os.platform() === 'linux' || os.platform() === 'win32') {
-      properties = ['openFile', 'multiSelections'];
-    } else {
-      properties = ['openFile', 'openDirectory', 'multiSelections'];
-    }
-
-    const results = await dialog.showOpenDialog({
-      properties: properties,
-      filters: [
-        { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
-      ]
-    });
-
-    return results.filePaths;
-  });
-
-  ipcMain.handle("openDiscord", (event, argx = 0) => {
-    return new Promise((resolve, reject) => {
-      shell.openExternal(`https://discord.gg/XNEmesgTFy`);
-    });
-  });
-
-  ipcMain.handle("openCivitai", (event, argx = 0) => {
-    return new Promise((resolve, reject) => {
-      shell.openExternal(`https://civitai.com/`);
-    });
-  });
-
-  ipcMain.handle("openEquilibrium", (event) => {
-    return new Promise((resolve, reject) => {
-      shell.openExternal(`https://equilibriumai.com/`);
-    });
-  });
-
-  ipcMain.handle('chooseUploadPath', (event) => {
-    return new Promise((resolve, reject) => {
-      dialog.showOpenDialog({
-        properties: ['openDirectory'],
-      }).then(result => {
-        if (result.filePaths.length > 0) {
-          resolve(result.filePaths[0]);
-        }
-        else {
-          resolve("");
-        }
-      }).catch(err => {
-        resolve("");
-      })
-
-    });
-  });
-
-  setupQueueHandles(ipcMain);
-
-  ipcMain.handle('startArtroom', async (event, artroomPath, debug_mode) => {
-    const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
-    if (server && server.pid){
-      kill(server.pid);
-      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-    }
-    server = spawn(serverCommand, { detached: debug_mode, shell: true });
-  });
-
-  //startup test logic
-  function runPyTests(artroomPath: string) {
-    return new Promise((resolve, reject) => {
-      const pyTestCmd = `${artroomPath}\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe`;
-      let childPython = spawn(pyTestCmd, ['pytest.py']);
-      var result = '';
-      childPython.stdout.on(`data`, (data) => {
-        result += data.toString();
-      });
-
-      childPython.on('close', function (code) {
-        resolve(result)
-      });
-      childPython.on('error', function (err) {
-        reject(err)
-      });
-
-    })
-  };
-
-  async function runTest(artroomPath: string) {
-    try {
-      const res = await runPyTests(artroomPath);
-      return res
-    } catch (err) {
-      return err
-    }
-  }
-
-  ipcMain.handle('runPyTests', async (event, artroomPath) => {
-    let python_path = `${artroomPath}\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe`;
-    if (!(fs.existsSync(python_path))) {
-      return "cannot find python in " + python_path;
-    } else {
-      let res = runTest(artroomPath);
-      return res;
-      //return "success";
-    }
-  });
-
-  ipcMain.handle('restartServer', async (event, artroomPath, debug_mode) => {
-    const serverCommand = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
-    console.log(`debug mode: ${debug_mode}`)
-    if (server && server.pid){
-      kill(server.pid);
-      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-    }
-    server = spawn(serverCommand, { detached: debug_mode, shell: true });
-  });
-
   // Create the browser window.
   win = new BrowserWindow({
     width: 1350,
@@ -339,9 +27,8 @@ function createWindow() {
     }
   })
   
-  exposeMenuFunctions(ipcMain, win, app);
-  handlers(win);
-  setupImageViewer(app, ipcMain);
+  setupHandles(win);
+  server.serverHandles(ipcMain);
 
   win.setTitle("ArtroomAI v" + app.getVersion());
   
@@ -387,11 +74,7 @@ function createWindow() {
     dialog.showMessageBox(dialogOpts).then((returnValue) => {
       if (returnValue.response === 0) {
         if (process.platform !== 'darwin') {
-          if (server && server.pid){
-            kill(server.pid);
-            spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-          }
-          axios.get(`${LOCAL_URL}/shutdown`)
+          server.kill();
         }  
         autoUpdater.quitAndInstall();
       }
@@ -420,11 +103,7 @@ app.on('window-all-closed', function () {
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
-    if (server && server.pid){
-      kill(server.pid);
-      spawn("taskkill", ["/pid", `${server.pid}`, '/f', '/t']);
-    }
-    axios.get(`${LOCAL_URL}/shutdown`)
+    server.kill();
     app.quit()
   }
 })
@@ -433,4 +112,4 @@ app.on('activate', function () {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
-})
+});

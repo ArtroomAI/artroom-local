@@ -1,4 +1,3 @@
-import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
@@ -85,9 +84,6 @@ async function download_via_https(name: string, URL: string, file_path: string, 
 
   return downloadWithRetry(retries);
 }
-
-
-
 
 function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.BrowserWindow) {
   return new Promise<string>((resolve) => {
@@ -255,14 +251,14 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
   console.log("All downloads complete!");
 }
 
-export const handlers = (mainWindow: Electron.BrowserWindow) => {
-  ipcMain.handle('pythonInstall', (event, artroomPath, gpuType) => {
+export const installerHandles = (mainWindow: Electron.BrowserWindow) => {
+  ipcMain.handle('pythonInstall', (_, artroomPath, gpuType) => {
     return backupPythonInstallation(mainWindow, artroomPath, gpuType);
   });    
-  ipcMain.handle('pythonInstallDependencies', (event, artroomPath) => {
+  ipcMain.handle('pythonInstallDependencies', (_, artroomPath) => {
     return reinstallPythonDependencies(artroomPath);
   });    
-  ipcMain.handle('downloadStarterModels', (event, dir, realisticStarter, animeStarter, landscapesStarter) => {
+  ipcMain.handle('downloadStarterModels', (_, dir, realisticStarter, animeStarter, landscapesStarter) => {
     return downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);
   });    
 }

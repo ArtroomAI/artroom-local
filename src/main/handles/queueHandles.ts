@@ -1,8 +1,8 @@
+import { ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
-export const setupQueueHandles = (ipcMain: Electron.IpcMain) => {
-
+export const setupQueueHandles = () => {
   ipcMain.handle('saveQueue', (_, queue, artroom_path) => {
     const queue_path = path.join(artroom_path, 'artroom', 'settings', 'queue.json');
     fs.writeFileSync(queue_path, queue, 'utf-8');

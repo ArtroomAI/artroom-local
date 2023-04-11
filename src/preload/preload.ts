@@ -7,7 +7,6 @@ const api = {
     getCkpts: async (data: any) => {return await ipcRenderer.invoke('getCkpts',data);},
     getLoras: async (data: any) => {return await ipcRenderer.invoke('getLoras',data);},
     getVaes: async (data: any) => {return await ipcRenderer.invoke('getVaes',data);},
-    getImages: async (data: any): Promise<string[]> => {return await ipcRenderer.invoke('getImages',data);},
     imageViewer: async (folder_path: string, batch_path: string): Promise<ImageViewerResultType> => { return await ipcRenderer.invoke('imageViewer', folder_path, batch_path); },
     getDisks: async(): Promise<string[]> => { return await ipcRenderer.invoke('getDisks')},
     uploadSettings: async () => {return await ipcRenderer.invoke('uploadSettings');},

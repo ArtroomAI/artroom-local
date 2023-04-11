@@ -1,4 +1,6 @@
-export const exposeMenuFunctions = (ipcMain: Electron.IpcMain, browserWindow: Electron.BrowserWindow, app: Electron.App) => {
+import { ipcMain, app } from "electron";
+
+export const exposeMenuFunctions = (browserWindow: Electron.BrowserWindow) => {
     ipcMain.handle('minimizeWindow', async () => {
         if (browserWindow.minimizable) {
             browserWindow.minimize();
