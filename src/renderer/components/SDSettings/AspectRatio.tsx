@@ -100,10 +100,10 @@ export const AspectRatio = () => {
             img.decode().then(() => {
                 const width = img.width;
                 const height = img.height;
-                setAspectRatio(`${width / height}`);
+                setAspectRatio(`${width}:${height}`);
             });
         }
-    }, [aspectRatioSelection]);
+    }, [aspectRatioSelection, initImage]);
 
     return (
         <Box className="size-input" width="100%">
