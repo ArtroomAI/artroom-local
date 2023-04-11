@@ -1,7 +1,15 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 export const setupImageViewer = (app: Electron.App, ipcMain: Electron.IpcMain) => {
+
+  ipcMain.handle('getDisks', () => {
+    return execSync('wmic logicaldisk get deviceid /value', { encoding: 'utf-8' })
+        .split('\r\r\n')
+        .filter(Boolean)
+        .map(s => s.replace('DeviceID=', ''));
+  });
 
   ipcMain.handle('imageViewer', (_, folder_path: string, batch_path: string): ImageViewerResultType => {
     if(!fs.existsSync(folder_path)) {

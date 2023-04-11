@@ -10,7 +10,8 @@ import {
     NumberInput,
     NumberInputField,
     Text,
-    Tooltip
+    Tooltip,
+    Select
 } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
@@ -40,8 +41,8 @@ const PathButtons = () => {
 
     let absPath = '';
 
-    const paths = imageViewPath.split(path.sep).map((el, index) => {
-        absPath += index === 0 ? el : path.sep + el;
+    const paths = imageViewPath.split(path.sep).filter(Boolean).map((el) => {
+        absPath += el + path.sep;
         return [el, absPath];
     });
     return (
@@ -55,9 +56,26 @@ const PathButtons = () => {
     )
 }
 
+const SelectDisks = () => {
+    const setImageViewPath = useSetRecoilState(atom.imageViewPathState);
+    const [disks, setDisks] = useState(['C:']);
+
+    useEffect(() => {
+        window.api.getDisks().then(setDisks)
+    }, []);
+
+    return <Select onChange={(e) => setImageViewPath(e.target.value)}>
+        { disks.map((disk) => {
+            return <option key={disk} value={disk}>{disk}</option>
+        }) }
+    </Select>
+}
+
 const Controls = ({ pageIndex, maxLength, gotoPage } : { pageIndex: number; maxLength: number; gotoPage: React.Dispatch<React.SetStateAction<number>>}) => {
     return <Box width="100%" pos="sticky" top="30px" p="2" bgColor="#080B16">
+        <SelectDisks />
         <PathButtons />
+    
         <Flex justifyContent="space-between" m={4} alignItems="center">
             <Flex>
                 <Tooltip label="First Page">
