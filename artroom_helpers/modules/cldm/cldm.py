@@ -1,6 +1,5 @@
 import gc
 
-import einops
 import torch
 import torch as th
 import torch.nn as nn
@@ -17,32 +16,6 @@ from artroom_helpers.modules.cldm.cl_ldm.modules.diffusionmodules.openaimodel im
     ResBlock, Downsample, AttentionBlock
 from artroom_helpers.modules.cldm.cl_ldm.models.diffusion.ddpm import LatentDiffusion
 from artroom_helpers.modules.cldm.cl_ldm.util import exists, instantiate_from_config
-
-
-class ControlledUnetModel(UNetModel):
-    def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
-        hs = []
-        with torch.no_grad():
-            t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
-            emb = self.time_embed(t_emb)
-            h = x.type(self.dtype)
-            for module in self.input_blocks:
-                h = module(h, emb, context)
-                hs.append(h)
-            h = self.middle_block(h, emb, context)
-
-        if control is not None:
-            h += control.pop()
-
-        for i, module in enumerate(self.output_blocks):
-            if only_mid_control or control is None:
-                h = torch.cat([h, hs.pop()], dim=1)
-            else:
-                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
-            h = module(h, emb, context)
-
-        h = h.type(x.dtype)
-        return self.out(h)
 
 
 class ControlNet(nn.Module):
@@ -302,12 +275,38 @@ class ControlNet(nn.Module):
         return outs
 
 
+class ControlledUnetModel(UNetModel):
+    def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
+        hs = []
+        with torch.no_grad():
+            t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
+            emb = self.time_embed(t_emb)
+            h = x.type(self.dtype)
+            for module in self.input_blocks:
+                h = module(h, emb, context)
+                hs.append(h)
+            h = self.middle_block(h, emb, context)
+
+        if control is not None:
+            h += control.pop()
+
+        for i, module in enumerate(self.output_blocks):
+            if only_mid_control or control is None:
+                h = torch.cat([h, hs.pop()], dim=1)
+            else:
+                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
+            h = module(h, emb, context)
+
+        h = h.type(x.dtype)
+        return self.out(h)
+
+
 class ControlLDM(LatentDiffusion):
 
     def __init__(self, control_stage_config, control_key, only_mid_control, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.secondary_device = None
-        self.control_model = instantiate_from_config(control_stage_config)
+        self.control_model = instantiate_from_config(control_stage_config)  # non-interchangeable
         self.control_key = control_key
         self.only_mid_control = only_mid_control
         self.control_scales = [1.0] * 13
@@ -316,7 +315,7 @@ class ControlLDM(LatentDiffusion):
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         # print("keys: ", c_concat, c_crossattn, self.conditioning_key)
         assert isinstance(cond, dict)
-        diffusion_model = self.model.diffusion_model
+        diffusion_model = self.diffusion_model
 
         cond_txt = torch.cat(cond['c_crossattn'], 1)
 
@@ -334,16 +333,10 @@ class ControlLDM(LatentDiffusion):
     def switch_devices(self, diffusion_loop):
         device = self.secondary_device
         if diffusion_loop:
-            self.model.to(device)
+            self.diffusion_model.to(device)
             self.control_model.to(device)
-
-            self.first_stage_model.cpu()
-            self.cond_stage_model.cpu()
         else:
-            self.model.cpu()
+            self.diffusion_model.cpu()
             self.control_model.cpu()
-
-            self.first_stage_model.to(device)
-            self.cond_stage_model.to(device)
         torch.cuda.empty_cache()
         gc.collect()

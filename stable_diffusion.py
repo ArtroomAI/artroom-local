@@ -272,7 +272,7 @@ class StableDiffusion:
 
         print("Injecting controlnet...")
         if existing:
-            input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
+            input_state_dict = {k: v for k, v in self.model.state_dict().items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
@@ -280,7 +280,8 @@ class StableDiffusion:
         else:
             input_state_dict = self.model.state_dict()
             controlnet_dict = load_state_dict(controlnet_path)
-            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            del self.model
+            self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
 
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
             input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
@@ -290,26 +291,20 @@ class StableDiffusion:
             input_state_dict.update(control_model_dict)
             del control_model_dict
 
-            for key in self.modelFS.first_stage_model.state_dict().keys():
-                p = self.modelFS.first_stage_model.state_dict()[key]
-                input_state_dict['first_stage_model.' + key] = p
-            del self.modelFS
-            self.modelFS = None
+            # for key in self.modelCS.cond_stage_model.state_dict().keys():  condstage part
+            #     p = self.modelCS.cond_stage_model.state_dict()[key]
+            #     input_state_dict['cond_stage_model.' + key] = p
+            # del self.modelCS
+            # self.modelCS = None
 
-            for key in self.modelCS.cond_stage_model.state_dict().keys():
-                p = self.modelCS.cond_stage_model.state_dict()[key]
-                input_state_dict['cond_stage_model.' + key] = p
-            del self.modelCS
-            self.modelCS = None
+        input_state_dict = {k.replace("model.diffusion_model",
+                                      "diffusion_model"): v for k, v in input_state_dict.items()}
 
-        self.control_model.load_state_dict(input_state_dict, strict=False)
-        self.model = self.control_model  # soft links
-        self.modelCS = self.control_model  # soft links
-        self.modelFS = self.control_model  # soft links
-        if self.can_use_half:
-            self.control_model.half()
-        else:
-            self.control_model.to(torch.float32)
+        control_keys_missing = self.model.load_state_dict(input_state_dict, strict=False)
+        self.control_model = True  # just bool
+
+        print(f"Missing control keys: {control_keys_missing}")
+        self.model.to(self.device)
         del input_state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
@@ -366,11 +361,11 @@ class StableDiffusion:
     def deinject_controlnet(self, delete=True):
         print("Deinjecting controlnet...")
         # Remove controlnet pieces
-        sd = {k: v for k, v in self.control_model.state_dict().items() if "control" not in k}
+        sd = {k: v for k, v in self.model.state_dict().items() if "control" not in k}
 
         if delete:
-            del self.control_model
-            self.control_model = None
+            del self.model
+            self.model = None
 
         li = []
         lo = []
@@ -808,7 +803,7 @@ class StableDiffusion:
             )
         else:
             mode = "default"
-            self.control_model.secondary_device = get_device()
+            self.model.secondary_device = get_device()
 
         if mode == "pix2pix":
             sampler = "ddim"
@@ -833,7 +828,7 @@ class StableDiffusion:
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
-            if self.v1 or self.control_model is not None:
+            if self.v1:
                 self.modelFS.to(self.device)
 
         self.total_num = n_iter * highres_fix_steps
@@ -841,7 +836,7 @@ class StableDiffusion:
         precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
-                if not self.running and self.control_model is None:
+                if not self.running:
                     self.clean_up()
                     return
 
@@ -854,10 +849,10 @@ class StableDiffusion:
 
                 for prompts in data:
                     with precision_scope(self.device.type):
-                        if self.v1 and self.control_model is None:
+                        if self.v1:
                             self.modelCS.to(self.device)
                         if self.control_model is not None:
-                            self.control_model.switch_devices(diffusion_loop=False)
+                            self.model.switch_devices(diffusion_loop=False)
 
                         uc = None
                         if cfg_scale != 1.0:
@@ -886,7 +881,8 @@ class StableDiffusion:
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
                         if self.control_model is not None:
-                            self.control_model.switch_devices(diffusion_loop=True)
+                            self.model.switch_devices(diffusion_loop=True)
+                            self.modelCS.cpu()
 
                         x0 = None
                         for ij in range(1, highres_fix_steps + 1):
@@ -955,8 +951,8 @@ class StableDiffusion:
                                 # control = torch.load("control.torch")
                                 c = {"c_concat": [control], "c_crossattn": [c]}
                                 uc = {"c_concat": [control], "c_crossattn": [uc]}
-                                self.control_model.control_scales = [1.0] * 13
-                                ddim_sampler = DDIMSampler(self.control_model)
+                                self.model.control_scales = [1.0] * 13
+                                ddim_sampler = DDIMSampler(self.model)
                                 x0 = ddim_sampler.sample(
                                     steps - 1,
                                     batch_size,
@@ -968,7 +964,7 @@ class StableDiffusion:
                                     callback=self.callback_fn,
                                     unconditional_conditioning=uc)
                                 if self.control_model is not None:
-                                    self.control_model.switch_devices(diffusion_loop=False)
+                                    self.model.switch_devices(diffusion_loop=False)
                             else:
                                 x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                                 x0 = init_latent_1stage if mode == "pix2pix" else x0
