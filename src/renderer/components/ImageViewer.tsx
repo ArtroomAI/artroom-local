@@ -27,13 +27,15 @@ const ImageComponent = ({ image_path, onClick } : { image_path: string, onClick:
 
 const FolderComponent = ({ directory_path, directory_full_path } : { directory_path: string; directory_full_path: string }) => {
     const setImageViewPath = useSetRecoilState(atom.imageViewPathState);
-    return <Box py={2} px={1} onClick={() => setImageViewPath(directory_full_path)}>
-        { directory_path }
+    return <Flex py={2} px={1} onClick={() => setImageViewPath(directory_full_path)}
+        justifyContent="center" flexDir="column" alignItems="center">
         <Icon
             as={GoFileDirectory}
-            fontSize="xl"
-            justifyContent="center" />
-    </Box>
+            fontSize="9xl"
+            justifyContent="center"
+            display="block" />
+        <Box>{ directory_path }</Box>
+    </Flex>
 }
 
 const PathButtons = () => {
