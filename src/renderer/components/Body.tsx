@@ -18,7 +18,7 @@ import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { SocketContext, SocketOnEvents } from '../socket';
-import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
+import { queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
 import { ImageState } from '../atoms/atoms.types';
@@ -38,6 +38,7 @@ const QueueButtons = () => {
     const imageSettings = useRecoilValue(queueSettingsSelector);
     const setCloudRunning = useSetRecoilState(atom.cloudRunningState);
     const setShard = useSetRecoilState(atom.shardState);
+    const setSeed = useSetRecoilState(seedState);
 
     const useKeyPress = (targetKey: string, useAltKey = false) => {
         const [keyPressed, setKeyPressed] = useState(false);
@@ -80,15 +81,14 @@ const QueueButtons = () => {
             }
         });
         setAddToQueue(true);
-        setQueue((queue) => {
-            return [
-                ...queue,
-                parseSettings(
-                    {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
-                    useRandomSeed
-                )
-            ];
-        });
+        const settings = parseSettings(
+            {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
+            useRandomSeed
+        );
+
+        if(useRandomSeed) setSeed(settings.seed);
+
+        setQueue((queue) => [...queue, settings]);
     }, [imageSettings, queue, toast]);
 
     const submitCloud = useCallback(() => {

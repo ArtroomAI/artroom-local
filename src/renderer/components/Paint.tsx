@@ -22,7 +22,7 @@ import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
 import { SocketContext, SocketOnEvents } from '../socket';
-import { queueSettingsSelector, randomSeedState } from '../SettingsManager';
+import { queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
 import { parseSettings } from './Utils/utils';
@@ -49,6 +49,7 @@ function Paint () {
     const shouldPreserveMaskedArea = useRecoilValue(shouldPreserveMaskedAreaAtom)
     const stageScale = useRecoilValue(stageScaleAtom);   
     const useRandomSeed = useRecoilValue(randomSeedState);
+    const setSeed = useSetRecoilState(seedState);
 
     const addOutpaintingLayer = (imageDataURL: string, maskDataURL: string, width?: number, height?: number) => {
         // Create a new canvas element
@@ -140,15 +141,13 @@ function Paint () {
                 }
             });
             setAddToQueue(true);
-            setQueue((queue) => {
-                return [
-                    ...queue,
-                    parseSettings(
-                        {...body, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
-                        useRandomSeed
-                    )
-                ];
-            });
+            const settings = parseSettings(
+                {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
+                useRandomSeed
+            );
+    
+            if(useRandomSeed) setSeed(settings.seed);
+            setQueue((queue) => [...queue, settings]);
         }).catch(err =>{
            console.log(err);
         })        
