@@ -5,7 +5,6 @@ import numpy as np
 import pytorch_lightning as pl
 
 from einops import rearrange
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from scipy import integrate
 from tqdm import tqdm
 from tqdm.auto import trange, tqdm
@@ -571,7 +570,6 @@ class UNet(DDPM):
         ids = torch.round(torch.linspace(0, self.num_timesteps - 1, self.num_timesteps_cond)).long()
         self.cond_ids[:self.num_timesteps_cond] = ids
 
-    @rank_zero_only
     @torch.no_grad()
     def on_train_batch_start(self, batch, batch_idx):
         # only for very first batch
