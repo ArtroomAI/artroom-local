@@ -1,5 +1,5 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
     Box,
@@ -15,11 +15,10 @@ import {
 import {
     FaTrashAlt, FaClipboardList, FaQuestionCircle
 } from 'react-icons/fa';
-import { aspectRatioState, batchNameState, heightState, imageSavePathState, initImageState, widthState } from '../../SettingsManager';
-import { SocketContext } from '../../socket';
+import { aspectRatioState, heightState, initImageState, widthState } from '../../SettingsManager';
 
 const getImageDimensions = (base64: string) => {
-    return new Promise((resolve, reject) => {
+    return new Promise<{ width: number; height: number }>((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
         img.onerror = reject;
@@ -28,9 +27,6 @@ const getImageDimensions = (base64: string) => {
 };
 
 const DragDropFile = () => {
-    const socket = useContext(SocketContext);
-
-    const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
@@ -60,18 +56,12 @@ const DragDropFile = () => {
     const handleDrag: React.DragEventHandler<HTMLElement> = function (e) {
         e.preventDefault();
         e.stopPropagation();
-        if (e.type === 'dragenter' || e.type === 'dragover') {
-            setDragActive(true);
-        } else if (e.type === 'dragleave') {
-            setDragActive(false);
-        }
     };
 
     // Triggers when file is dropped
     const handleDrop: React.DragEventHandler<HTMLDivElement> = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
-        setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             handleFile(e.dataTransfer.files[0]);
         }
@@ -189,30 +179,30 @@ const DragDropFile = () => {
                         icon={<FaClipboardList />}
                         onClick={() => {
                         navigator.clipboard.read().then((data) => {
-                        for (let i = 0; i < data.length; i++) {
-                            if (data[i].types.includes('image/png') || data[i].types.includes('image/jpeg')) {
-                            data[i].getType('image/png').then((blob) => {
-                                const reader = new FileReader();
-                                reader.readAsDataURL(blob);
-                                reader.onloadend = () => {
-                                const base64data = reader.result;
-                                setInitImage(base64data);
-                                };
-                            });
-                            break;
+                            for (let i = 0; i < data.length; i++) {
+                                if (data[i].types.includes('image/png') || data[i].types.includes('image/jpeg')) {
+                                    data[i].getType('image/png').then((blob) => {
+                                        const reader = new FileReader();
+                                        reader.readAsDataURL(blob);
+                                        reader.onloadend = () => {
+                                            const base64data = reader.result;
+                                            setInitImage(base64data);
+                                        };
+                                    });
+                                    break;
+                                }
                             }
-                        }
-                        });
-                    }}
+                            });
+                        }}
                     />
                 </Tooltip>
                 <Tooltip label="Upload">
                     <IconButton
-                    border="2px"
-                    icon={<FiUpload />}
-                    onClick={onButtonClick}
-                    width="90px"
-                    aria-label="upload"
+                        border="2px"
+                        icon={<FiUpload />}
+                        onClick={onButtonClick}
+                        width="90px"
+                        aria-label="upload"
                     />
                 </Tooltip>
                 <Tooltip label="Clear Init Image">

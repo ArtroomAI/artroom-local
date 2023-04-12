@@ -1,9 +1,22 @@
 import { extname } from 'path';
 
-export const IMAGE_EXTENSIONS = ['.jpg', '.png', '.jpeg'];
-export const JSON_EXTENSIONS = ['.json'];
-export const MODELS_EXTENSIONS = ['.ckpt', '.safetensor', '.pt', '.pth'];
+export enum EXTENSION {
+    JPG = 'jpg',
+    PNG = 'png',
+    JPEG = 'jpeg',
+
+    JSON = 'json',
+
+    CKPT = 'ckpt',
+    SAFETENSORS = 'safetensors',
+    PT = 'pt',
+    PTH = 'pth',
+}
+
+export const IMAGE_EXTENSIONS = [EXTENSION.JPG, EXTENSION.PNG, EXTENSION.JPEG];
+export const JSON_EXTENSIONS = [EXTENSION.JSON];
+export const MODELS_EXTENSIONS = [EXTENSION.CKPT, EXTENSION.SAFETENSORS, EXTENSION.PT, EXTENSION.PTH];
 
 export const getExtname = (name: string) => {
-    return extname(name).toLowerCase();
+    return extname(name).toLowerCase().replace('.', '');
 }

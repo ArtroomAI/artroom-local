@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
     Flex,
@@ -20,9 +20,12 @@ import {
     Select,
     Spacer,
     Text,
-    Icon
+    Icon,
+    Button,
+    IconButton,
+    useToast
 } from '@chakra-ui/react';
-import { FaQuestionCircle } from 'react-icons/fa';
+import { FaClipboardList, FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 import {
     batchNameState,
@@ -31,8 +34,10 @@ import {
     clipSkipState,
     controlnetState,
     iterationsState,
+    checkSettings,
     loraState,
     modelsDirState,
+    exifDataSelector,
     randomSeedState,
     removeBackgroundState,
     samplerState,
@@ -49,6 +54,7 @@ import RemoveBackground from './RemoveBackground/RemoveBackground';
 import { SDSettingsAccordion } from './SDSettingsAccordion';
 
 function SDSettings () {
+    const toast = useToast({});
     const cloudMode = useRecoilValue(atom.cloudModeState);
 
     const modelDirs = useRecoilValue(modelsDirState);
@@ -74,6 +80,7 @@ function SDSettings () {
     const lora = useRecoilValue(loraState);
     const removeBackground = useRecoilValue(removeBackgroundState);
     const useRemovedBackground = useRecoilValue(useRemovedBackgroundState);
+    const setSettings = useSetRecoilState(exifDataSelector);
 
     const getCkpts = useCallback(() => {
         window.api.getCkpts(modelDirs).then(setCkpts);
@@ -459,7 +466,39 @@ function SDSettings () {
 
                     <SDSettingsAccordion header={`Background Removal ${useRemovedBackground ? `(${removeBackground})` : ``}`}>
                         <RemoveBackground />
-                    </SDSettingsAccordion>             
+                    </SDSettingsAccordion>
+
+                    <Box>
+                        <Tooltip label="Upload">
+                            <Button
+                                onClick={() => {
+                                    window.api.uploadSettings().then(checkSettings).then(results => {
+                                        if(results[1].status === 'success') {
+                                            setSettings(results[0]);
+                                        }
+                                        toast(results[1]);
+                                    });
+                                }}
+                                aria-label="upload"
+                            >
+                                Load SDSettings from file
+                            </Button>
+                        </Tooltip>
+                        <Tooltip label="Paste from Clipboard">
+                            <IconButton
+                                aria-label="Paste from Clipboard"
+                                icon={<FaClipboardList />}
+                                onClick={() => {
+                                    navigator.clipboard.readText().then(checkSettings).then(results => {
+                                        if(results[1].status === 'success') {
+                                            setSettings(results[0]);
+                                        }
+                                        toast(results[1]);
+                                    });
+                                }}
+                            />
+                        </Tooltip>
+                    </Box>         
                 </VStack>
             </Box>
         </Flex>

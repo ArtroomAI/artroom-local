@@ -55,3 +55,19 @@ interface QueueTypeWithIndex extends QueueType {
     index: number;
     lastItem: boolean;
 }
+
+interface ExifDataType {
+    H: number;
+    W: number;
+    cfg_scale: number;
+    ckpt: string;
+    controlnet: null | string;
+    loras: Lora[];
+    negative_prompts: string;
+    sampler: string;
+    seed: number;
+    steps: number;
+    strength: number;
+    text_prompts: string;
+    vae: string;
+}

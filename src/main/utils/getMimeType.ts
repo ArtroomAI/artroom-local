@@ -1,8 +1,10 @@
+import { EXTENSION } from "./extensions";
+
 export const getMimeType = (ext: string) => {
-  if (ext === '.png') {
+  if (ext === EXTENSION.PNG) {
     return 'image/png';
   }
-  if (ext === '.jpg' || ext === '.jpeg') {
+  if (ext === EXTENSION.JPG || ext === EXTENSION.JPEG) {
     return 'image/jpeg';
   }
   return '';

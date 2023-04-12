@@ -9,7 +9,7 @@ import { getExifData } from "../utils/exifData";
 import { getMimeType } from "../utils/getMimeType";
 
 const getFiles = async (folder_path: string, ext: string[], excludeFolders?: string[]) => {
-  const exts = ext.map(el => el.replace('.', '')).join(',');
+  const exts = ext.join(',');
 
   return new Promise<string[]>((resolve) => {
     if (folder_path.length) {
@@ -42,7 +42,7 @@ async function getImage(image_path: string) {
 
 export const filesHandles = () => {
   ipcMain.handle('getCkpts', async (_, data) => {
-    return getFiles(data, MODELS_EXTENSIONS, ['Loras', 'ControlNet', 'Vaes']);
+    return getFiles(data, MODELS_EXTENSIONS, ['Loras', 'ControlNet', 'Vaes', 'upscalers']);
   });
 
   ipcMain.handle('getLoras', async (_, data) => {

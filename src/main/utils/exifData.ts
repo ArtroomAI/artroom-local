@@ -24,10 +24,10 @@ const getPNGEXIF = (png: Buffer) => {
 }
 
 export const getExifData = (buffer: Buffer, ext: string): string => {
-  if (ext === '.png') {
+  if (ext === 'png') {
     return getPNGEXIF(buffer);
   }
-  if (ext === '.jpg' || ext === '.jpeg') {
+  if (ext === 'jpg' || ext === 'jpeg') {
     try {
       const parser = ExifParser.create(buffer);
       const exifData = parser.parse();

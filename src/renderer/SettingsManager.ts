@@ -2,6 +2,7 @@ import path from 'path';
 import os from 'os';
 import { atom, selector } from "recoil";
 import { recoilPersist } from 'recoil-persist';
+import { UseToastOptions } from '@chakra-ui/react';
 
 const { persistAtom } = recoilPersist();
 
@@ -276,5 +277,70 @@ export const queueSettingsSelector = selector<QueueType>({
     }
 });
 
-export const loadSettingsFromFile = (json: QueueType) => {
+// SET ONLY
+export const exifDataSelector = selector<Partial<ExifDataType>>({
+    key: "exif.settings",
+    get: () => {
+        return {};
+    },
+    set: ({ set }, queue) => {
+        const exif = queue as Partial<ExifDataType>;
+
+        // @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
+        if('W' in exif) {
+            set(widthState, exif.W);
+        } else if ('width' in exif) {
+            set(widthState, exif.width);
+        }
+
+        if('H' in exif) {
+            set(heightState, exif.H);
+        } else if ('height' in exif) {
+            set(heightState, exif.height);
+        }
+
+        set(cfgState, `${exif.cfg_scale}`);
+        set(controlnetState, exif.controlnet ?? "none");
+        set(loraState, exif.loras ?? []);
+        set(negativePromptsState, exif.negative_prompts);
+
+        set(samplerState, exif.sampler);
+        set(seedState, exif.seed);
+        set(stepsState, `${exif.steps}`);
+        set(strengthState, exif.strength);
+        set(textPromptsState, exif.text_prompts);
+        set(vaeState, exif.vae);
+
+        // load specific
+        set(randomSeedState, false);
+        set(aspectRatioState, 'None');
+    }
+});
+
+export const checkSettings = (clipboard: string): [Partial<ExifDataType>, UseToastOptions] => {
+    try {
+        if(clipboard === '') {
+            return [null, {
+                title: "Settings not loaded",
+                status: "info",
+                duration: 500,
+                position: 'top'
+            }]
+        }
+        const json = JSON.parse(clipboard);
+        return [json, {
+            title: "Settings loaded successfully",
+            status: "success",
+            duration: 500,
+            position: 'top'
+        }];
+    } catch(err) {
+        return [null, {
+            title: `Error during loading settings`,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+            position: 'top'
+        }];
+    }
 }
