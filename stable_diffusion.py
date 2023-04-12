@@ -28,6 +28,7 @@ from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
 
 sys.path.append("artroom_helpers/modules")
+sys.path.append("sd_modules/optimizedSD")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
@@ -39,8 +40,6 @@ from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import HN
 
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
-
-sys.path.append("sd_modules/optimizedSD")
 from artroom_helpers.modules.cldm.hack import hack_everything
 
 logging.set_verbosity_error()
