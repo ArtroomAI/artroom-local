@@ -46,9 +46,16 @@ const ImageModalField = ({ data, header }: { data: string; header: string}) => {
     )
 }
 
-
-// TODO: ADD PATH
 function ImageModal ({ imagePath }: { imagePath: string }) {
+    const toast = useToast({
+        status: 'success',
+        position: 'top',
+        duration: 500,
+        isClosable: false,
+        containerStyle: {
+            pointerEvents: 'none'
+        }
+    });
     const imageModalB64 = useRecoilValue(atom.imageModalB64State);
     const imageModalMetadata = useRecoilValue(atom.imageModalMetadataState);
     const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
@@ -64,7 +71,8 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
             size = '6xl'
             isOpen={showImageModal} 
             onClose={handleClose}
-            scrollBehavior='outside'>
+            scrollBehavior='outside'
+            blockScrollOnMount={false}>
 
             <ModalOverlay bg='blackAlpha.900'/>
             <ModalContent>
@@ -73,7 +81,10 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                         <Box w="100%">
                             <ImageObj b64={imageModalB64} path={imagePath} active />
                             <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal"
-                                onClick={() => window.api.copyToClipboard(imageModalB64)}>
+                                onClick={() => {
+                                    window.api.copyToClipboard(imageModalB64);
+                                    toast({ title: 'copied to clipboard' });
+                                }}>
                                 <Icon mr={2} as={BiImages} />
                                 Copy Image
                             </Button>
@@ -81,6 +92,7 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                                 onClick={() => {
                                     setInitImagePath(imagePath);
                                     setInitImage(imageModalB64);
+                                    toast({ title: 'init image set' });
                                 }}>
                                 <Icon mr={2} as={BiImages} />
                                 Set Starting Image
@@ -135,7 +147,10 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                             <Box pt="5" width="100%" display="flex" justifyContent="center">
                                 <Button borderRadius="10" variant="ghost" colorScheme="blue" fontSize="14" fontWeight="normal"
                                     isDisabled={!('text_prompts' in imageModalMetadata)}
-                                    onClick={() => window.api.copyToClipboard(JSON.stringify(imageModalMetadata, null, 2), 'text')}>
+                                    onClick={() => {
+                                        window.api.copyToClipboard(JSON.stringify(imageModalMetadata, null, 2), 'text');
+                                        toast({ title: 'copied to clipboard' });
+                                    }}>
                                     <Icon mr={2} as={GoSettings} />
                                     Copy All Settings
                                 </Button>
