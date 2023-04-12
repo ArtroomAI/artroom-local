@@ -248,9 +248,9 @@ export const queueSettingsSelector = selector<QueueType>({
             use_removed_background: get(useRemovedBackgroundState),
             // sampler options
             sampler: get(samplerState),
-            steps: floatBetween(parseAndCheckFloat(get(stepsState), 30), 5, 1000),
+            steps: floatBetween(parseAndCheckFloat(get(stepsState), 30), 5, 500),
             cfg_scale: floatBetween(parseAndCheckFloat(get(cfgState), 7.5), 1.01, 50),
-            clip_skip: parseAndCheckFloat(get(clipSkipState), 1),
+            clip_skip: floatBetween(parseAndCheckFloat(get(clipSkipState), 1), 1, 12),
 
             seed: get(seedState),
 
