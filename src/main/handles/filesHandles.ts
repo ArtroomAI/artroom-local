@@ -11,6 +11,10 @@ import { getMimeType } from "../utils/getMimeType";
 const getFiles = async (folder_path: string, ext: string[], excludeFolders?: string[]) => {
   const exts = ext.join(',');
 
+  if(!fs.existsSync(folder_path)) {
+    fs.mkdirSync(folder_path, { recursive: true });
+  }
+
   return new Promise<string[]>((resolve) => {
     if (folder_path.length) {
       glob(`${folder_path}/**/*.{${exts}}`, {}, (err, files) => {
