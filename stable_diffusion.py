@@ -972,7 +972,7 @@ class StableDiffusion:
                 mask_b64 = mask_b64, #TO BE IMPLEMENTED
                 invert = invert,
                 padding = padding,
-                steps= 5, #10 steps
+                steps= 10, #10 steps
                 H = highres_H,
                 W = highres_W,
                 oldH = highres_H,
@@ -980,7 +980,7 @@ class StableDiffusion:
                 cfg_scale=cfg_scale,
                 seed=seed,
                 sampler=sampler,
-                ddim_steps= int(5/0.15),
+                ddim_steps= int(10/0.15),
                 batch_size=batch_size,
                 mode=mode,
                 controlnet=controlnet,
@@ -1016,7 +1016,7 @@ class StableDiffusion:
                 mask_b64 = mask_b64, #TO BE IMPLEMENTED
                 invert = invert,
                 padding = padding,
-                steps= 5, #10 steps
+                steps= 10, #10 steps
                 H = highres_H,
                 W = highres_W,
                 oldH = highres_H,
@@ -1024,7 +1024,7 @@ class StableDiffusion:
                 cfg_scale=cfg_scale,
                 seed=seed,
                 sampler=sampler,
-                ddim_steps= int(5/0.15),
+                ddim_steps= int(10/0.15),
                 batch_size=batch_size,
                 mode=mode,
                 controlnet=controlnet,
