@@ -195,14 +195,36 @@ class StableDiffusion:
         self.modelFS.eval()
         del input_state_dict
 
+    def load_state_dict_sd(self, ckpt):
+        sd = load_model_from_config(f"{ckpt}")
+        return sd
+
     def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip=1):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
+
+        state_dict = self.load_state_dict_sd(ckpt)
+
+        try:
+            controlnet_loaded = False
+            if self.control_model is not None and controlnet_path is None:
+                self.deinject_controlnet(sd=state_dict)
+                self.control_model = None
+            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
+                self.inject_controlnet_new(controlnet_path,
+                                           existing=(self.control_model is not None and self.ckpt == ckpt),
+                                           state_dict=state_dict)
+                self.control_model = True
+                controlnet_loaded = True
+        except Exception as e:
+            print(f"Controlnet Failed to load {e}")
+            controlnet_loaded = False
+
         if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae)
+                self.set_up_models(ckpt, speed, vae, sd=state_dict, controlnet_loaded=controlnet_loaded)
                 print("Successfully set up model")
             except Exception as e:
                 print(f"Setting up model failed: {e}")
@@ -210,16 +232,6 @@ class StableDiffusion:
                 self.modelCS = None
                 self.modelFS = None
                 return False
-
-        try:
-            if self.control_model is not None and controlnet_path is None:
-                self.deinject_controlnet()
-                self.control_model = None
-            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
-                self.inject_controlnet_new(controlnet_path,
-                                           existing=(self.control_model is not None and self.ckpt == ckpt))
-        except Exception as e:
-            print(f"Controlnet Failed to load {e}")
 
         if vae != self.vae or self.ckpt != ckpt:
             print("Loading vae")
@@ -254,9 +266,11 @@ class StableDiffusion:
 
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
+
+        gc.collect()  # clean up state dicts
         return True
 
-    def inject_controlnet_new(self, controlnet_path, existing=False):
+    def inject_controlnet_new(self, controlnet_path, state_dict, existing=False):
         def get_state_dict(d):
             return d.get('state_dict', d)
 
@@ -272,24 +286,21 @@ class StableDiffusion:
 
         print("Injecting controlnet...")
         if existing:
-            input_state_dict = {k: v for k, v in self.model.state_dict().items() if 'control_model' not in k}
+            state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
-            input_state_dict.update(control_model_dict)
+            state_dict.update(control_model_dict)
         else:
-            input_state_dict = self.model.state_dict()
             controlnet_dict = load_state_dict(controlnet_path)
-            del self.model
-            gc.collect()
             self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
 
-            input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
-            input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
+            state_dict = {k.replace("model1.", "model."): v for k, v in state_dict.items()}
+            state_dict = {k.replace("model2.", "model."): v for k, v in state_dict.items()}
 
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
-            input_state_dict.update(control_model_dict)
+            state_dict.update(control_model_dict)
             del control_model_dict
 
             # for key in self.modelCS.cond_stage_model.state_dict().keys():  condstage part
@@ -298,17 +309,16 @@ class StableDiffusion:
             # del self.modelCS
             # self.modelCS = None
 
-        input_state_dict = {k.replace("model.diffusion_model",
-                                      "diffusion_model"): v for k, v in input_state_dict.items()}
+        state_dict = {k.replace("model.diffusion_model", "diffusion_model"): v for k, v in state_dict.items()}
 
-        control_keys_missing = self.model.load_state_dict(input_state_dict, strict=False)
+        control_keys_missing = self.model.load_state_dict(state_dict, strict=False)
         self.control_model = True  # just bool
 
-        print(f"Missing control keys: {control_keys_missing}")
+        # print(f"Missing control keys: {control_keys_missing}")
         if self.can_use_half:
             self.model.half()
         self.model.to(self.device)
-        del input_state_dict
+        del state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
@@ -361,10 +371,9 @@ class StableDiffusion:
 
         return final_state_dict
 
-    def deinject_controlnet(self, delete=True):
+    def deinject_controlnet(self, sd, delete=True):
         print("Deinjecting controlnet...")
         # Remove controlnet pieces
-        sd = {k: v for k, v in self.model.state_dict().items() if "control" not in k}
 
         if delete:
             del self.model
@@ -397,15 +406,6 @@ class StableDiffusion:
         self.model.unet_bs = 1  # unet_bs=1
         self.model.turbo = (self.speed != 'Low')
 
-        self.modelFS = instantiate_from_config(config.modelFirstStage)
-        _, _ = self.modelFS.load_state_dict(sd, strict=False)
-        self.modelFS.eval()
-
-        self.modelCS = instantiate_from_config(config.modelCondStage)
-        _, _ = self.modelCS.load_state_dict(sd, strict=False)
-        self.modelCS.cond_stage_model.device = self.device
-        self.modelCS.eval()
-
         if self.can_use_half:
             self.model.half()
             self.modelCS.half()
@@ -418,25 +418,25 @@ class StableDiffusion:
 
         del sd
 
-    def set_up_models(self, ckpt, speed, vae):
+    def set_up_models(self, ckpt, speed, vae, sd, controlnet_loaded=False):
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
-            del self.model
+            if not controlnet_loaded:
+                del self.model
+                self.model = None
+                self.control_model = None
             del self.modelFS
             del self.modelCS
-            if self.control_model is not None:
+            if self.control_model is not None and not controlnet_loaded:
                 del self.control_model
-            self.model = None
             self.modelFS = None
             self.modelCS = None
-            self.control_model = None
         except:
             pass
         torch.cuda.empty_cache()
         gc.collect()
 
-        sd = load_model_from_config(f"{ckpt}")
         if sd:
             print("Model safety check passed")
         else:
@@ -460,14 +460,15 @@ class StableDiffusion:
                 self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
             print(f"v2 conf: {self.config}")
             config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.model)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.parameterization = parameterization
-            self.model.cdevice = self.device
-            self.model.to(self.device)
-            self.modelCS = self.model  # just link without a copy
-            self.modelFS = self.model  # just link without a copy
+            if not controlnet_loaded:  # won't work
+                self.model = instantiate_from_config(config.model)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.parameterization = parameterization
+                self.model.cdevice = self.device
+                self.model.to(self.device)
+                self.modelCS = self.model  # just link without a copy
+                self.modelFS = self.model  # just link without a copy
             self.v1 = False
         else:
             self.v1 = True
@@ -516,6 +517,7 @@ class StableDiffusion:
                         print(f"Not recognized speed: {speed}")
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
 
+            config = OmegaConf.load(f"{self.config}")
             li = []
             lo = []
             for key, value in sd.items():
@@ -533,14 +535,14 @@ class StableDiffusion:
                 sd['model1.' + key[6:]] = sd.pop(key)
             for key in lo:
                 sd['model2.' + key[6:]] = sd.pop(key)
-            config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.modelUNet)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.cdevice = self.device
-            self.model.unet_bs = 1  # unet_bs=1
+            if not controlnet_loaded:
+                self.model = instantiate_from_config(config.modelUNet)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.cdevice = self.device
+                self.model.unet_bs = 1  # unet_bs=1
 
-            self.model.turbo = (speed != 'Low')
+                self.model.turbo = (speed != 'Low')
 
             self.modelCS = instantiate_from_config(config.modelCondStage)
             _, _ = self.modelCS.load_state_dict(sd, strict=False)
