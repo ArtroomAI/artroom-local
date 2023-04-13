@@ -221,10 +221,11 @@ try:
                 ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
                 vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
                 lora_paths = []
-                if len(data['lora']) > 0:
-                    for lora in data['lora']:
+                if len(data['loras']) > 0:
+                    for lora in data['loras']:
                         lora_paths.append({
                             'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                            'name': lora['name'],
                             'weight': lora['weight']
                         })
             except Exception as e:
@@ -267,83 +268,10 @@ try:
             )
             socketio.emit('job_done')
 
-            # except Exception as e:
-            #     print(f"Generation failed! {e}")
-            #     SD.clean_up()
-            #     socketio.emit('job_done')
-
     @socketio.on('stop_queue')
     def stop_queue():
         SD.interrupt()
         socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
-
-    @app.route('/generate', methods=['POST'])
-    def generate():
-        data = json.loads(request.data)
-        if not SD.running:
-            try:
-                SD.running = True
-                mask_b64 = data['mask_image']
-                data['mask_image'] = data['mask_image'][:100] + "..."
-                init_image_str = data['init_image']
-                data['init_image'] = data['init_image'][:100] + "..."
-
-                print("Saving settings to folder...")
-                save_to_settings_folder(data)
-                ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-                vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
-                lora_paths = []
-                if len(data['lora']) > 0:
-                    for lora in data['lora']:
-                        lora_paths.append({
-                            'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
-                            'weight': lora['weight']
-                        })
-            except Exception as e:
-                print(f"Failed to add to queue {e}")
-                SD.running = False
-                socketio.emit('job_done')
-                return
-            try:
-                print("Starting gen...")
-                SD.generate(
-                    text_prompts=data['text_prompts'],
-                    negative_prompts=data['negative_prompts'],
-                    init_image_str=init_image_str,
-                    strength=data['strength'],
-                    mask_b64=mask_b64,
-                    invert=data['invert'],
-                    n_iter=int(data['n_iter']),
-                    steps=int(data['steps']),
-                    H=int(data['height']),
-                    W=int(data['width']),
-                    seed=int(data['seed']),
-                    sampler=data['sampler'],
-                    cfg_scale=float(data['cfg_scale']),
-                    clip_skip=max(int(data['clip_skip']),1),
-                    palette_fix=data['palette_fix'],
-                    ckpt=ckpt_path,
-                    vae=vae_path,
-                    loras=lora_paths,
-                    image_save_path=data['image_save_path'],
-                    speed=data['speed'],
-                    skip_grid=not data['save_grid'],
-                    long_save_path=data['long_save_path'],
-                    highres_fix=data['highres_fix'],
-                    show_intermediates=data['show_intermediates'],
-                    controlnet=data['controlnet'],
-                    use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
-                    remove_background=data['remove_background'],
-                    use_removed_background=data['use_removed_background'],
-                    models_dir=data['models_dir'],
-                )
-                socketio.emit('job_done')
-
-            except Exception as e:
-                print(f"Generation failed! {e}")
-                SD.clean_up()
-                socketio.emit('job_done')
-        return "Finished"
 
     @app.route('/xyplot', methods=['POST'])
     def xyplot():

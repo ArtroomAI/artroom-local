@@ -5,20 +5,23 @@ export const imageModalB64State = atom({
     default: ''
 });
 
-export const imageModalMetadataState = atom<ImageMetadata>({
+export const imageModalMetadataState = atom<ExifDataType>({
     key: 'imageModalMetadata',
     default: {
         text_prompts: '',
         negative_prompts: '',
-        W: '',
-        H: '',
-        seed: '',
+        width: 0,
+        heigth: 0,
+        seed: 0,
         sampler: '',
-        steps: '',
-        strength: '',
-        cfg_scale: '',
+        steps: 0,
+        strength: 0,
+        cfg_scale: 0,
         ckpt: '',
-        vae: ''
+        vae: '',
+        loras: [],
+        controlnet: 'none',
+        clip_skip: 0
     }
 });
 

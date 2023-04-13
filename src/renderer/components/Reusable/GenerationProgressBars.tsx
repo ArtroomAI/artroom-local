@@ -42,12 +42,14 @@ export const GenerationProgressBars = () => {
 
     const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
         const current = 100 * data.current_step / data.total_steps;
-        const batch = 100 * (data.current_num * data.total_steps + data.current_step) / (data.total_steps * data.total_num);
+        const totalStepsDone = data.current_num * data.total_steps + data.current_step;
+        const totalSteps = data.total_steps * data.total_num;
+        const batch = 100 * totalStepsDone / totalSteps;
         
         const perSecond = parseIterations(data.iterations_per_sec);
         const timeSpent = data.time_spent;
         const currentEta = data.eta;
-        const batchEta = parseToTime(data.total_steps * data.total_num / perSecond);
+        const batchEta = parseToTime((totalSteps - totalStepsDone) / perSecond);
 
         setProgress({ current, batch, timeSpent, currentEta, batchEta });
     }, []);

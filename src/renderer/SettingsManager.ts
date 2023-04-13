@@ -242,7 +242,7 @@ export const queueSettingsSelector = selector<QueueType>({
             models_dir: get(modelsDirState),
             ckpt: get(ckptState),
             vae: get(vaeState),
-            lora: get(loraState),
+            loras: get(loraState),
             controlnet: get(controlnetState),
             use_preprocessed_controlnet: get(usePreprocessedControlnetState),
             remove_background: get(removeBackgroundState),
@@ -301,7 +301,14 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
 
         set(cfgState, `${exif.cfg_scale}`);
         set(controlnetState, exif.controlnet ?? "none");
-        set(loraState, exif.loras ?? []);
+        if('loras' in exif) {
+            set(loraState, exif.loras.map(el => {
+                // @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
+                return { name: el.name ?? path.basename((el as any).path), weight: el.weight };
+            }));
+        } else {
+            set(loraState, []);
+        }
         set(negativePromptsState, exif.negative_prompts);
 
         set(samplerState, exif.sampler);
@@ -310,6 +317,7 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
         set(strengthState, exif.strength);
         set(textPromptsState, exif.text_prompts);
         set(vaeState, exif.vae);
+        set(clipSkipState, `${exif.clip_skip ?? 1}`);
 
         // load specific
         set(randomSeedState, false);
