@@ -26,9 +26,9 @@ from artroom_helpers.generation.preprocess import load_model_from_config, mask_f
     image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
-from artroom_helpers.toast_status import toast_status
 
 sys.path.append("artroom_helpers/modules")
+sys.path.append("sd_modules/optimizedSD")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
@@ -40,8 +40,6 @@ from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import HN
 
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
-
-sys.path.append("sd_modules/optimizedSD")
 from artroom_helpers.modules.cldm.hack import hack_everything
 
 logging.set_verbosity_error()
@@ -253,7 +251,6 @@ class StableDiffusion:
                 for lora in loras:
                     self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'],
                                      controlnet=(controlnet_path is not None))
-                self.network.half()
 
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
@@ -275,7 +272,7 @@ class StableDiffusion:
 
         print("Injecting controlnet...")
         if existing:
-            input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
+            input_state_dict = {k: v for k, v in self.model.state_dict().items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
@@ -283,7 +280,8 @@ class StableDiffusion:
         else:
             input_state_dict = self.model.state_dict()
             controlnet_dict = load_state_dict(controlnet_path)
-            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            del self.model
+            self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
 
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
             input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
@@ -293,26 +291,20 @@ class StableDiffusion:
             input_state_dict.update(control_model_dict)
             del control_model_dict
 
-            for key in self.modelFS.first_stage_model.state_dict().keys():
-                p = self.modelFS.first_stage_model.state_dict()[key]
-                input_state_dict['first_stage_model.' + key] = p
-            del self.modelFS
-            self.modelFS = None
+            # for key in self.modelCS.cond_stage_model.state_dict().keys():  condstage part
+            #     p = self.modelCS.cond_stage_model.state_dict()[key]
+            #     input_state_dict['cond_stage_model.' + key] = p
+            # del self.modelCS
+            # self.modelCS = None
 
-            for key in self.modelCS.cond_stage_model.state_dict().keys():
-                p = self.modelCS.cond_stage_model.state_dict()[key]
-                input_state_dict['cond_stage_model.' + key] = p
-            del self.modelCS
-            self.modelCS = None
+        input_state_dict = {k.replace("model.diffusion_model",
+                                      "diffusion_model"): v for k, v in input_state_dict.items()}
 
-        self.control_model.load_state_dict(input_state_dict, strict=False)
-        self.model = self.control_model  # soft links
-        self.modelCS = self.control_model  # soft links
-        self.modelFS = self.control_model  # soft links
-        if self.can_use_half:
-            self.control_model.half()
-        else:
-            self.control_model.to(torch.float32)
+        control_keys_missing = self.model.load_state_dict(input_state_dict, strict=False)
+        self.control_model = True  # just bool
+
+        print(f"Missing control keys: {control_keys_missing}")
+        self.model.to(self.device)
         del input_state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
@@ -369,11 +361,11 @@ class StableDiffusion:
     def deinject_controlnet(self, delete=True):
         print("Deinjecting controlnet...")
         # Remove controlnet pieces
-        sd = {k: v for k, v in self.control_model.state_dict().items() if "control" not in k}
+        sd = {k: v for k, v in self.model.state_dict().items() if "control" not in k}
 
         if delete:
-            del self.control_model
-            self.control_model = None
+            del self.model
+            self.model = None
 
         li = []
         lo = []
@@ -425,9 +417,7 @@ class StableDiffusion:
 
     def set_up_models(self, ckpt, speed, vae):
         speed = speed if self.device.type != 'privateuseone' else "High"
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title="Loading model...", status="info",
-            position="bottom-right", duration=None, isClosable=False))
+        self.socketio.emit('get_status', {'status': "Loading Model"})
         try:
             del self.model
             del self.modelFS
@@ -578,9 +568,7 @@ class StableDiffusion:
         torch.save(self.modelFS.state_dict(), input_vae)
 
         print("Model loading finished")
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title="Finished Loading Model",
-            status="info", position="bottom-right", duration=2000))
+        self.socketio.emit('get_status', {'status': "Finished Loading Model"})
 
     def get_image(self, init_image_str, mask_b64):
         if len(init_image_str) == 0:
@@ -600,11 +588,36 @@ class StableDiffusion:
                 print(f"Failed to outpaint the alpha layer {e}")
         return init_image.convert("RGB")
 
+    def load_image(self, image, h0, w0, inpainting=False):
+        w, h = image.size
+        if not inpainting and h0 != 0 and w0 != 0:
+            h, w = h0, w0
+
+        # resize to integer multiple of 32
+        w, h = map(lambda x: x - x % 64, (w, h))
+        print(f"New image size ({w}, {h})")
+        image = image.resize((w, h), resample=Image.LANCZOS)
+
+        image = np.array(image).astype(np.float32) / 255.0
+        image = image[None].transpose(0, 3, 1, 2)
+        image = torch.from_numpy(image)
+        init_image = 2. * image - 1.
+        init_image = init_image.to(self.device)
+        _, _, H, W = image.shape
+        if self.can_use_half:
+            init_image = init_image.half()
+
+        return init_image, H, W
+
     def callback_fn(self, x, enabled=True):
         if not enabled:
             return
 
         current_num, total_num, current_step, total_steps = self.get_steps()
+
+        self.socketio.emit('get_progress',
+                           {'current_step': current_step + 1, 'total_steps': total_steps, 'current_num': current_num,
+                            'total_num': total_num})
 
         def send_intermediates(x):
             def float_tensor_to_pil(tensor: torch.Tensor):
@@ -640,437 +653,17 @@ class StableDiffusion:
             self.model.interrupted_state = True
             self.running = False
 
-    @torch.no_grad()
-    def generate_image(
-            self,
-            n = 0,
-            data=None,
-            negative_prompts_data=None,
-            image = None,
-            init_image=None,
-            init_image_str = "",
-            mask_b64 = "",
-            invert = False,
-            padding = 0,
-            steps=50,
-            H=512,
-            W=512,
-            oldH = 512,
-            oldW = 512,
-            cfg_scale=7.5,
-            txt_cfg_scale=1.5,
-            seed=-1,
-            sampler="ddim",
-            C=4,
-            ddim_eta=0.0,
-            f=8,
-            ddim_steps=0,
-            batch_size=1,
-            mode="default",
-            controlnet="none",
-            control=None,
-            precision_scope = None,
-            highres_fix_steps = 1,
-            use_removed_background = False,
-            remove_background = "none",
-            ):
-
-
-        for prompts in data:
-            with precision_scope(self.device.type):
-                if self.v1 and self.control_model is None:
-                    self.modelCS.to(self.device)
-                if self.control_model is not None:
-                    self.control_model.switch_devices(diffusion_loop=False)
-
-                uc = None
-                if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data)
-                if isinstance(prompts, tuple):
-                    prompts = list(prompts)
-                weighted_prompt = weights_handling(prompts)
-                if type(weighted_prompt) == str:
-                    weighted_prompt = [prompts]
-                print(f"Weighted prompts: {weighted_prompt}")
-                if len(weighted_prompt) > 1:
-                    weights_greater_than_zero = sum([wp[1] - 1 for wp in weighted_prompt if wp[1] > 1]) + 1
-                    weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
-                    c = self.modelCS.get_learned_conditioning(weighted_prompt_joined).to(self.device)
-                    c /= weights_greater_than_zero
-                    for i in range(len(weighted_prompt)):
-                        weight = weighted_prompt[i][1]
-                        if weight > 1:
-                            c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0]).to(
-                                self.device)
-                            c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
-                else:
-                    # For the empty prompt people
-                    if len(prompts.strip()) == 0:
-                        prompts = '-'
-                    c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
-                shape = [batch_size, C, H // f, W // f]
-                if self.control_model is not None:
-                    self.control_model.switch_devices(diffusion_loop=True)
-
-                x0 = None
-                for ij in range(1, highres_fix_steps + 1):
-                    self.current_num = n * highres_fix_steps + ij - 1
-                    self.model.current_step = 0
-                    self.model.total_steps = steps * highres_fix_steps
-
-                    if ij > 1:
-                        strength = 0.15
-                        steps = 5
-                        ddim_steps = int(steps / strength)
-                    if init_image is not None and self.control_model is None:
-                        init_image = init_image.to(self.device)
-                        init_image = repeat(
-                            init_image, '1 ... -> b ...', b=batch_size)
-                        init_latent_1stage = self.modelFS.encode_first_stage(init_image)
-                        init_latent_1stage = init_latent_1stage.mode() if mode == "pix2pix" else init_latent_1stage
-                        init_latent = self.modelFS.get_first_stage_encoding(init_latent_1stage).to(self.device)
-
-                        x0 = self.model.stochastic_encode(
-                            init_latent,
-                            torch.tensor(
-                                [steps] * batch_size).to(self.device),
-                            seed,
-                            ddim_eta,
-                            ddim_steps,
-                        )
-                    
-                    if use_removed_background and image is not None:
-                        if remove_background == 'face':
-                            mask_image = mask_from_face(image.convert('RGB'), W, H)
-                        else:
-                            mask_image = mask_background(image.convert('RGB'),
-                                                            remove_background=remove_background)
-                    elif len(mask_b64) > 0:
-                        if mask_b64[:4] == 'data':
-                            print("Loading mask from b64")
-                            mask_image = support.b64_to_image(mask_b64).convert('L')
-                        elif os.path.exists(mask_b64):
-                            mask_image = Image.open(mask_b64).convert("L")
-                    else:
-                        mask_image = None
-
-                    if mask_image is not None:
-                        if invert:
-                            mask_image = ImageOps.invert(mask_image)
-
-                        if padding > 0:
-                            w, h = mask_image.size
-
-                            # Create a white image with the desired padding size
-                            padding_img = Image.new("RGB", (w + 2 * padding, h + 2 * padding), (255, 255, 255))
-                            # Paste the original image onto the white image
-                            padding_img.paste(mask_image, (padding, padding))
-                            # Update the image variable to be the padded image
-                            mask_image = padding_img
-
-                        mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]) \
-                            .to(self.device)
-                        mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
-                        mask = repeat(mask, '1 ... -> b ...', b=batch_size)
-                        x_T = init_latent
-                    else:
-                        mask = None
-                        x_T = None
-
-                    if self.control_model is not None and controlnet is not None and controlnet.lower() != "none" and control is not None:
-                        # control = torch.load("control.torch")
-                        c = {"c_concat": [control], "c_crossattn": [c]}
-                        uc = {"c_concat": [control], "c_crossattn": [uc]}
-                        self.control_model.control_scales = [1.0] * 13
-                        ddim_sampler = DDIMSampler(self.control_model)
-                        x0 = ddim_sampler.sample(
-                            steps,
-                            batch_size,
-                            tuple(shape[1:]),
-                            c,
-                            verbose=False,
-                            eta=ddim_eta,
-                            unconditional_guidance_scale=cfg_scale,
-                            callback=self.callback_fn,
-                            unconditional_conditioning=uc)
-                        if self.control_model is not None:
-                            self.control_model.switch_devices(diffusion_loop=False)
-                    else:
-                        x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
-                        x0 = init_latent_1stage if mode == "pix2pix" else x0
-                        gen_kwargs = {
-                            "S": steps,
-                            "conditioning": c,
-                            "x0": x0,
-                            "S_ddim_steps": ddim_steps,
-                            "unconditional_guidance_scale": cfg_scale,
-                            "txt_scale": txt_cfg_scale,
-                            "unconditional_conditioning": uc,
-                            "eta": ddim_eta,
-                            "sampler": sampler,
-                            "shape": shape,
-                            "batch_size": batch_size,
-                            "seed": seed,
-                            "mask": mask,
-                            "x_T": x_T,
-                            "callback": self.callback_fn,
-                            "mode": mode}
-                        x0 = self.model.sample(**gen_kwargs)
-                    if self.v1:
-                        self.modelFS.to(self.device)
-
-                    x_samples_ddim = self.modelFS.decode_first_stage(
-                        x0[0].unsqueeze(0))
-
-                    if x_samples_ddim.sum().isnan():  # black square fix
-                        print("Black square detected, repeating on full precision")
-                        self.model.to(torch.float32)
-                        self.modelFS.to(torch.float32)
-
-                        gen_kwargs["conditioning"] = gen_kwargs["conditioning"].to(torch.float32)
-                        gen_kwargs["x0"] = x0.to(torch.float32)
-
-                        x0 = self.model.sample(**gen_kwargs)
-                        x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
-                        if self.can_use_half:
-                            self.modelFS.half()
-                            self.model.half()
-                            x_samples_ddim = x_samples_ddim.half()
-                    x_sample = torch.clamp(
-                        (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
-                    x_sample = 255. * \
-                                rearrange(
-                                    x_sample[0].cpu().numpy(), 'c h w -> h w c')
-                    out_image = Image.fromarray(
-                        x_sample.astype(np.uint8))
-
-                    if self.can_use_half:
-                        self.modelFS.half()
-                        # torch.set_default_tensor_type(torch.HalfTensor)
-
-                    if ij < highres_fix_steps - 1:
-                        init_image = self.load_img(
-                            out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(
-                            self.device).to(self.dtype)  # we only encode cnet 1 time
-                    elif ij == highres_fix_steps - 1:
-                        init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
-                            self.device).to(self.dtype)
-                    if padding > 0:
-                        w, h = out_image.size
-                        out_image = out_image.crop((padding, padding, w - padding, h - padding))
-                    elif mask is not None:
-                        if init_image_str[:4] == 'data':
-                            original_init_image = support.b64_to_image(init_image_str).convert('RGB')
-                        else:
-                            original_init_image = Image.open(init_image_str).convert('RGB')
-                        out_image = support.repaste_and_color_correct(result=out_image,
-                                                                        init_image=original_init_image,
-                                                                        init_mask=mask_image, mask_blur_radius=8)
-                    if not self.running:
-                        break        
-            return out_image
-
-    def diffusion_upscale(self,
-            n = 0,
-            data=None,
-            negative_prompts_data=None,
-            image = None,
-            init_image=None,
-            init_image_str = "",
-            mask_b64 = "",
-            invert = False,
-            padding = 0,
-            steps=50,
-            H=512,
-            W=512,
-            oldH = 512,
-            oldW = 512,
-            cfg_scale=7.5,
-            seed=-1,
-            sampler="ddim",
-            ddim_steps=0,
-            batch_size=1,
-            mode="default",
-            controlnet="none",
-            control=None,
-            use_preprocessed_controlnet = False,
-            precision_scope = None,
-            use_removed_background = False,
-            remove_background = "none",             
-        ):
-
-        temp_save_path = os.path.join(self.models_dir,"highres_temp.png")
-
-        print("Running experimental highres fix")
-        # Calculate the scaling factor for both dimensions
-        scale_factor = max(W / 768, H / 768)
-        
-        # Calculate the new dimensions while maintaining aspect ratio
-        highres_W = int(round(W / scale_factor / 64) * 64)
-        highres_H = int(round(H / scale_factor / 64) * 64)
-        print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
-        
-        # First pass
-        starting_version = self.generate_image(
-            n = n,
-            data=data,
-            negative_prompts_data=negative_prompts_data,
-            image = image,
-            init_image=init_image,
-            init_image_str = init_image_str,
-            mask_b64=mask_b64,
-            invert = invert,
-            padding = padding,
-            steps=steps,
-            H=highres_H,
-            W=highres_W,
-            oldH = oldH, #Unused if not other highres fix
-            oldW = oldW, #Unused if not other highres fix
-            cfg_scale=cfg_scale,
-            seed=seed,
-            sampler=sampler,
-            ddim_steps=ddim_steps,
-            batch_size=batch_size,
-            mode=mode,
-            controlnet=controlnet,
-            control = control,
-            precision_scope=precision_scope,
-            highres_fix_steps = 1,
-            use_removed_background = use_removed_background,
-            remove_background = remove_background
-        )
-        
-        # Does highres fix at 1.5x intervals
-        while highres_W*1.5 < oldW and highres_H*1.5 < oldH:   
-            print("Saving upscaled image")
-            starting_version.save(temp_save_path)
-            
-            print("Upscaling image")
-            upscaled_image = self.Upscaler.upscale(self.models_dir, [temp_save_path], "RealESRGAN-Anime", 1.5, os.path.join(self.models_dir, "upscale_test"))['content']['output_images'][0]
-
-            highres_W = int(highres_W*1.5)
-            highres_H = int(highres_H*1.5)
-
-            # generate the next version using the upscaled image as the new input
-            highres_init_image = self.load_img(upscaled_image.convert('RGB'), highres_H, highres_W, inpainting=(len(mask_b64) > 0),
-                    controlnet_mode=controlnet,
-                    use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-            
-            
-            
-            if self.v1 or self.control_model is not None:
-                self.modelFS.to(self.device)
-            
-            print("Generating upscaled image")
-            starting_version = self.generate_image(
-                n = n,
-                data=data,
-                negative_prompts_data=negative_prompts_data,
-                image = upscaled_image,
-                init_image= highres_init_image,
-                init_image_str = "upscaled",
-                mask_b64 = mask_b64, #TO BE IMPLEMENTED
-                invert = invert,
-                padding = padding,
-                steps= 5, #10 steps
-                H = highres_H,
-                W = highres_W,
-                oldH = highres_H,
-                oldW = highres_W,
-                cfg_scale=cfg_scale,
-                seed=seed,
-                sampler=sampler,
-                ddim_steps= int(5/0.15),
-                batch_size=batch_size,
-                mode=mode,
-                controlnet=controlnet,
-                control = control,
-                precision_scope=precision_scope,
-                highres_fix_steps = 1,
-                use_removed_background = use_removed_background,
-                remove_background = remove_background
-            )
-        print("Doing final run")
-        print("Saving upscaled image")
-        starting_version.save(temp_save_path)
-        # save the upscaled image as the starting version for the next iteration           
-        # upscale the starting version by x1.5
-        print("Upscaling image")
-        upscaled_image = self.Upscaler.upscale(self.models_dir, [temp_save_path], "RealESRGAN-Anime", max(1,min(oldW / highres_W, oldH / highres_H, 1.5)), os.path.join(self.models_dir, "upscale_test"))['content']['output_images'][0]
-
-        # generate the next version using the upscaled image as the new input
-        highres_init_image = self.load_img(upscaled_image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0),
-                controlnet_mode=controlnet,
-                use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-        if self.v1 or self.control_model is not None:
-            self.modelFS.to(self.device)
-
-        # generate the final version using the original image as the input
-        out_image = self.generate_image(
-                n = n,
-                data=data,
-                negative_prompts_data=negative_prompts_data,
-                image = upscaled_image,
-                init_image= highres_init_image,
-                init_image_str = "upscaled",
-                mask_b64 = mask_b64, #TO BE IMPLEMENTED
-                invert = invert,
-                padding = padding,
-                steps= 5, #10 steps
-                H = highres_H,
-                W = highres_W,
-                oldH = highres_H,
-                oldW = highres_W,
-                cfg_scale=cfg_scale,
-                seed=seed,
-                sampler=sampler,
-                ddim_steps= int(5/0.15),
-                batch_size=batch_size,
-                mode=mode,
-                controlnet=controlnet,
-                control = control,
-                precision_scope=precision_scope,
-                highres_fix_steps = 1,
-                use_removed_background = use_removed_background,
-                remove_background = remove_background
-            )
-        return out_image
     def generate(
-            self, 
-            text_prompts="", 
-            negative_prompts="",
-            init_image_str="", 
-            mask_b64="",
-            invert=False, 
-            txt_cfg_scale=1.5, 
-            steps=50, 
-            H=512, 
-            W=512, 
-            strength=0.75, 
-            cfg_scale=7.5, 
-            seed=-1, 
-            clip_skip=1,
-            sampler="ddim",
-            n_iter=4, 
-            batch_size=1, 
-            ckpt="", 
-            vae="", 
-            loras=None,
-            image_save_path="",
-            speed="High", 
-            skip_grid=False, 
-            palette_fix=False, 
-            batch_id=0, 
-            highres_fix=False,
-            long_save_path=False, 
-            show_intermediates=False, 
-            controlnet=None,
+            self, text_prompts="", negative_prompts="", init_image_str="", mask_b64="",
+            invert=False, txt_cfg_scale=1.5, steps=50, H=512, W=512, strength=0.75, cfg_scale=7.5, seed=-1, clip_skip=1,
+            sampler="ddim", C=4, ddim_eta=0.0, f=8, n_iter=4, batch_size=1, ckpt="", vae="", loras=None,
+            image_save_path="", speed="High", skip_grid=False, palette_fix=False, batch_id=0, highres_fix=False,
+            long_save_path=False, show_intermediates=False, controlnet=None,
             use_preprocessed_controlnet=False,
             remove_background='face', use_removed_background=False,
             models_dir=''
     ):
         self.models_dir = models_dir
-        highres_fix_experimental = True 
 
         if loras is None:
             loras = []
@@ -1134,7 +727,7 @@ class StableDiffusion:
         oldW, oldH = W, H
 
         if W * H >= 1024 * 1024 and highres_fix:
-            highres_fix_steps = math.ceil((W * H) / (768 * 768) / 4)
+            highres_fix_steps = math.ceil((W * H) / (512 * 512) / 4)
             W, H = W // highres_fix_steps, H // highres_fix_steps
             W = math.floor(W / 64) * 64
             H = math.floor(H / 64) * 64
@@ -1162,9 +755,7 @@ class StableDiffusion:
             return 'Failure'
 
         print("Generating...")
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title="Generating",
-            status="info", position="bottom-right", duration=2000))
+        self.socketio.emit('get_status', {'status': "Generating"})
         os.makedirs(image_save_path, exist_ok=True)
 
         if len(init_image_str) > 0:
@@ -1212,7 +803,7 @@ class StableDiffusion:
             )
         else:
             mode = "default"
-            self.control_model.secondary_device = get_device()
+            self.model.secondary_device = get_device()
 
         if mode == "pix2pix":
             sampler = "ddim"
@@ -1237,7 +828,7 @@ class StableDiffusion:
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
-            if self.v1 or self.control_model is not None:
+            if self.v1:
                 self.modelFS.to(self.device)
 
         self.total_num = n_iter * highres_fix_steps
@@ -1245,7 +836,7 @@ class StableDiffusion:
         precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
-                if not self.running and self.control_model is None:
+                if not self.running:
                     self.clean_up()
                     return
 
@@ -1255,99 +846,232 @@ class StableDiffusion:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
-                if highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
-                   out_image = self.diffusion_upscale(
-                        n = n,
-                        data=data,
-                        negative_prompts_data=negative_prompts_data,
-                        image = image,
-                        init_image=init_image,
-                        init_image_str = init_image_str,
-                        mask_b64=mask_b64,
-                        invert = invert,
-                        padding = padding,
-                        steps=steps,
-                        H=H,
-                        W=W,
-                        oldH = oldH,
-                        oldW = oldW,
-                        cfg_scale=cfg_scale,
-                        seed=seed,
-                        sampler=sampler,
-                        ddim_steps=ddim_steps,
-                        batch_size=batch_size,
-                        mode=mode,
-                        controlnet=controlnet,
-                        control = control,
-                        use_preprocessed_controlnet=use_preprocessed_controlnet,
-                        precision_scope=precision_scope,
-                        use_removed_background = use_removed_background,
-                        remove_background = remove_background     
-                   )
 
-                else:
-                    out_image = self.generate_image(
-                        n = n,
-                        data=data,
-                        negative_prompts_data=negative_prompts_data,
-                        image = image,
-                        init_image=init_image,
-                        init_image_str = init_image_str,
-                        mask_b64=mask_b64,
-                        invert = invert,
-                        padding = padding,
-                        steps=steps,
-                        H=H,
-                        W=W,
-                        oldH = oldH,
-                        oldW = oldW,
-                        cfg_scale=cfg_scale,
-                        seed=seed,
-                        sampler=sampler,
-                        ddim_steps=ddim_steps,
-                        batch_size=batch_size,
-                        mode=mode,
-                        controlnet=controlnet,
-                        control = control,
-                        precision_scope=precision_scope,
-                        highres_fix_steps = highres_fix_steps,
-                        use_removed_background = use_removed_background,
-                        remove_background = remove_background
-                    )
+                for prompts in data:
+                    with precision_scope(self.device.type):
+                        if self.v1:
+                            self.modelCS.to(self.device)
+                        if self.control_model is not None:
+                            self.model.switch_devices(diffusion_loop=False)
 
-                exif_data = out_image.getexif()
-                # Does not include Mask, ImageB64, or if Inverted. Only settings for now
-                settings_data = {
-                    "text_prompts": text_prompts,
-                    "negative_prompts": negative_prompts,
-                    "steps": steps,
-                    "H": H,
-                    "W": W,
-                    "strength": strength,
-                    "cfg_scale": cfg_scale,
-                    "seed": seed,
-                    "sampler": sampler,
-                    "ckpt": os.path.basename(ckpt),
-                    "vae": os.path.basename(vae),
-                    "controlnet": controlnet,
-                    "loras": loras
-                }
-                # 0x9286 Exif Code for UserComment
-                exif_data[0x9286] = json.dumps(settings_data)
-                if not self.model.interrupted_state:
-                    out_image.save(
-                        os.path.join(sample_path, save_name), "PNG", exif=exif_data)
+                        uc = None
+                        if cfg_scale != 1.0:
+                            uc = self.modelCS.get_learned_conditioning(negative_prompts_data)
+                        if isinstance(prompts, tuple):
+                            prompts = list(prompts)
+                        weighted_prompt = weights_handling(prompts)
+                        if type(weighted_prompt) == str:
+                            weighted_prompt = [prompts]
+                        print(f"Weighted prompts: {weighted_prompt}")
+                        if len(weighted_prompt) > 1:
+                            weights_greater_than_zero = sum([wp[1] - 1 for wp in weighted_prompt if wp[1] > 1]) + 1
+                            weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
+                            c = self.modelCS.get_learned_conditioning(weighted_prompt_joined).to(self.device)
+                            c /= weights_greater_than_zero
+                            for i in range(len(weighted_prompt)):
+                                weight = weighted_prompt[i][1]
+                                if weight > 1:
+                                    c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0]).to(
+                                        self.device)
+                                    c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
+                        else:
+                            # For the empty prompt people
+                            if len(prompts.strip()) == 0:
+                                prompts = '-'
+                            c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
+                        shape = [batch_size, C, H // f, W // f]
+                        if self.control_model is not None:
+                            self.model.switch_devices(diffusion_loop=True)
+                            self.modelCS.cpu()
 
-                    self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                        'path': os.path.join(sample_path, save_name),
-                                                        'batch_id': batch_id})
+                        x0 = None
+                        for ij in range(1, highres_fix_steps + 1):
+                            self.current_num = n * highres_fix_steps + ij - 1
+                            self.model.current_step = 0
+                            self.model.total_steps = steps * highres_fix_steps
 
-                base_count += 1
-                seed += 1
-                if len(init_image_str) == 0:  # Resets highres_fix starting image
-                    init_image = None
-                if not skip_grid and n_iter > 1:
-                    all_samples.append(out_image)
+                            if ij > 1:
+                                strength = 0.1
+                                ddim_steps = int(steps / strength)
+                            if init_image is not None and self.control_model is None:
+                                init_image = init_image.to(self.device)
+                                init_image = repeat(
+                                    init_image, '1 ... -> b ...', b=batch_size)
+                                init_latent_1stage = self.modelFS.encode_first_stage(init_image)
+                                init_latent_1stage = init_latent_1stage.mode() if mode == "pix2pix" else init_latent_1stage
+                                init_latent = self.modelFS.get_first_stage_encoding(init_latent_1stage).to(self.device)
+
+                                x0 = self.model.stochastic_encode(
+                                    init_latent,
+                                    torch.tensor(
+                                        [steps] * batch_size).to(self.device),
+                                    seed,
+                                    ddim_eta,
+                                    ddim_steps,
+                                )
+                            if use_removed_background and image is not None:
+                                if remove_background == 'face':
+                                    mask_image = mask_from_face(image.convert('RGB'), W, H)
+                                else:
+                                    mask_image = mask_background(image.convert('RGB'),
+                                                                 remove_background=remove_background)
+                            elif len(mask_b64) > 0:
+                                if mask_b64[:4] == 'data':
+                                    print("Loading mask from b64")
+                                    mask_image = support.b64_to_image(mask_b64).convert('L')
+                                elif os.path.exists(mask_b64):
+                                    mask_image = Image.open(mask_b64).convert("L")
+                            else:
+                                mask_image = None
+
+                            if mask_image is not None:
+                                if invert:
+                                    mask_image = ImageOps.invert(mask_image)
+
+                                if padding > 0:
+                                    w, h = mask_image.size
+
+                                    # Create a white image with the desired padding size
+                                    padding_img = Image.new("RGB", (w + 2 * padding, h + 2 * padding), (255, 255, 255))
+                                    # Paste the original image onto the white image
+                                    padding_img.paste(mask_image, (padding, padding))
+                                    # Update the image variable to be the padded image
+                                    mask_image = padding_img
+
+                                mask = load_mask(mask_image, init_latent.shape[2], init_latent.shape[3]) \
+                                    .to(self.device)
+                                mask = mask[0][0].unsqueeze(0).repeat(4, 1, 1).unsqueeze(0)
+                                mask = repeat(mask, '1 ... -> b ...', b=batch_size)
+                                x_T = init_latent
+                            else:
+                                mask = None
+                                x_T = None
+
+                            if self.control_model is not None and controlnet is not None and controlnet.lower() != "none" and control is not None:
+                                # control = torch.load("control.torch")
+                                c = {"c_concat": [control], "c_crossattn": [c]}
+                                uc = {"c_concat": [control], "c_crossattn": [uc]}
+                                self.model.control_scales = [1.0] * 13
+                                ddim_sampler = DDIMSampler(self.model)
+                                x0 = ddim_sampler.sample(
+                                    steps - 1,
+                                    batch_size,
+                                    tuple(shape[1:]),
+                                    c,
+                                    verbose=False,
+                                    eta=ddim_eta,
+                                    unconditional_guidance_scale=cfg_scale,
+                                    callback=self.callback_fn,
+                                    unconditional_conditioning=uc)
+                                if self.control_model is not None:
+                                    self.model.switch_devices(diffusion_loop=False)
+                            else:
+                                x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
+                                x0 = init_latent_1stage if mode == "pix2pix" else x0
+                                gen_kwargs = {
+                                    "S": steps,
+                                    "conditioning": c,
+                                    "x0": x0,
+                                    "S_ddim_steps": ddim_steps,
+                                    "unconditional_guidance_scale": cfg_scale,
+                                    "txt_scale": txt_cfg_scale,
+                                    "unconditional_conditioning": uc,
+                                    "eta": ddim_eta,
+                                    "sampler": sampler,
+                                    "shape": shape,
+                                    "batch_size": batch_size,
+                                    "seed": seed,
+                                    "mask": mask,
+                                    "x_T": x_T,
+                                    "callback": self.callback_fn,
+                                    "mode": mode}
+                                x0 = self.model.sample(**gen_kwargs)
+                            if self.v1:
+                                self.modelFS.to(self.device)
+
+                            x_samples_ddim = self.modelFS.decode_first_stage(
+                                x0[0].unsqueeze(0))
+
+                            if x_samples_ddim.sum().isnan():  # black square fix
+                                print("Black square detected, repeating on full precision")
+                                self.model.to(torch.float32)
+                                self.modelFS.to(torch.float32)
+
+                                gen_kwargs["conditioning"] = gen_kwargs["conditioning"].to(torch.float32)
+                                gen_kwargs["x0"] = x0.to(torch.float32)
+
+                                x0 = self.model.sample(**gen_kwargs)
+                                x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
+                                if self.can_use_half:
+                                    self.modelFS.half()
+                                    self.model.half()
+                                    x_samples_ddim = x_samples_ddim.half()
+                            x_sample = torch.clamp(
+                                (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                            x_sample = 255. * \
+                                       rearrange(
+                                           x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                            out_image = Image.fromarray(
+                                x_sample.astype(np.uint8))
+
+                            if self.can_use_half:
+                                self.modelFS.half()
+                                # torch.set_default_tensor_type(torch.HalfTensor)
+
+                            if ij < highres_fix_steps - 1:
+                                init_image = self.load_img(
+                                    out_image, H * (ij + 1), W * (ij + 1), inpainting=(len(mask_b64) > 0)).to(
+                                    self.device).to(self.dtype)  # we only encode cnet 1 time
+                            elif ij == highres_fix_steps - 1:
+                                init_image = self.load_img(out_image, oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
+                                    self.device).to(self.dtype)
+                            if padding > 0:
+                                w, h = out_image.size
+                                out_image = out_image.crop((padding, padding, w - padding, h - padding))
+                            elif mask is not None:
+                                if init_image_str[:4] == 'data':
+                                    original_init_image = support.b64_to_image(init_image_str).convert('RGB')
+                                else:
+                                    original_init_image = Image.open(init_image_str).convert('RGB')
+                                out_image = support.repaste_and_color_correct(result=out_image,
+                                                                              init_image=original_init_image,
+                                                                              init_mask=mask_image, mask_blur_radius=8)
+                            if not self.running:
+                                break
+
+                        exif_data = out_image.getexif()
+                        # Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                        settings_data = {
+                            "text_prompts": text_prompts,
+                            "negative_prompts": negative_prompts,
+                            "steps": steps,
+                            "H": H,
+                            "W": W,
+                            "strength": strength,
+                            "cfg_scale": cfg_scale,
+                            "seed": seed,
+                            "sampler": sampler,
+                            "ckpt": os.path.basename(ckpt),
+                            "vae": os.path.basename(vae),
+                            "controlnet": controlnet,
+                            "loras": loras
+                        }
+                        # 0x9286 Exif Code for UserComment
+                        exif_data[0x9286] = json.dumps(settings_data)
+                        if not self.model.interrupted_state:
+                            out_image.save(
+                                os.path.join(sample_path, save_name), "PNG", exif=exif_data)
+
+                            self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
+                                                              'path': os.path.join(sample_path, save_name),
+                                                              'batch_id': batch_id})
+
+                        base_count += 1
+                        seed += 1
+                        if len(init_image_str) == 0:  # Resets highres_fix starting image
+                            init_image = None
+                        if not skip_grid and n_iter > 1:
+                            all_samples.append(out_image)
 
             if not skip_grid and n_iter > 1:
                 # additionally, save as grid
