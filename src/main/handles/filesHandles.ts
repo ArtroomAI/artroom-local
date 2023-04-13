@@ -108,5 +108,8 @@ export const filesHandles = () => {
 
   ipcMain.handle("chooseImages", () => electronDialog('Files', IMAGE_EXTENSIONS));
 
-  ipcMain.handle('chooseUploadPath', () => electronDialog('Directory'));
+  ipcMain.handle('chooseUploadPath', async () => {
+    const dirs = await electronDialog('Directory');
+    return dirs[0];
+  });
 }
