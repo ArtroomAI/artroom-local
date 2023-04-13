@@ -281,6 +281,7 @@ class StableDiffusion:
             input_state_dict = self.model.state_dict()
             controlnet_dict = load_state_dict(controlnet_path)
             del self.model
+            gc.collect()
             self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
 
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
@@ -304,6 +305,8 @@ class StableDiffusion:
         self.control_model = True  # just bool
 
         print(f"Missing control keys: {control_keys_missing}")
+        if self.can_use_half:
+            self.model.half()
         self.model.to(self.device)
         del input_state_dict
 
