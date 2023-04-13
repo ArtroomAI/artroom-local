@@ -1321,8 +1321,8 @@ class StableDiffusion:
                     "text_prompts": text_prompts,
                     "negative_prompts": negative_prompts,
                     "steps": steps,
-                    "H": H,
-                    "W": W,
+                    "height": H,
+                    "width": W,
                     "strength": strength,
                     "cfg_scale": cfg_scale,
                     "seed": seed,
@@ -1330,7 +1330,8 @@ class StableDiffusion:
                     "ckpt": os.path.basename(ckpt),
                     "vae": os.path.basename(vae),
                     "controlnet": controlnet,
-                    "loras": loras
+                    "loras": list(map(lambda lora: { 'name': lora.name, 'weight': lora.weight } , loras)),
+                    "clip_skip": clip_skip
                 }
                 # 0x9286 Exif Code for UserComment
                 exif_data[0x9286] = json.dumps(settings_data)

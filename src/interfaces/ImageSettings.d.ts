@@ -18,7 +18,7 @@ interface QueueType {
     models_dir: string;
     ckpt: string; // absolute path
     vae: string; // absolute path
-    lora: Lora[];
+    loras: Lora[];
     controlnet: string;
     use_preprocessed_controlnet: boolean; 
     remove_background: string;
@@ -51,23 +51,6 @@ interface QueueType {
 }
 
 interface QueueTypeWithIndex extends QueueType {
-    key: number;
     index: number;
     lastItem: boolean;
-}
-
-interface ExifDataType {
-    H: number;
-    W: number;
-    cfg_scale: number;
-    ckpt: string;
-    controlnet: null | string;
-    loras: Lora[];
-    negative_prompts: string;
-    sampler: string;
-    seed: number;
-    steps: number;
-    strength: number;
-    text_prompts: string;
-    vae: string;
 }

@@ -1,17 +1,10 @@
-import {
-    Flex,
-    Td,
-    Text,
-    Tr
-} from '@chakra-ui/react';
 import React from 'react';
+import { Flex, Td, Text, Tr, Image } from '@chakra-ui/react';
 
-function QueueModalRow (props: { name: string, value: string | number }) {
+function QueueModalRow (props: { name: string, value: string | number | typeof Image}) {
     return (
         <Tr>
-            <Td
-                border="none"
-                borderBottomColor="#56577A">
+            <Td border="none">
                 <Flex
                     align="center"
                     flexWrap="nowrap"
@@ -27,23 +20,19 @@ function QueueModalRow (props: { name: string, value: string | number }) {
                 </Flex>
             </Td>
 
-            <Td
-                border="none"
-                borderBottomColor="#56577A"
-                minWidth={{ sm: '250px' }}
-                ps="0px">
+            <Td border="none" minWidth={{ sm: '250px' }} ps="0px">
                 <Flex
                     align="center"
                     flexWrap="nowrap"
                     minWidth="100%"
                     py=".8rem">
-                    <Text
+                    {typeof props.value !== 'object' ? <Text
                         color="#fff"
                         fontSize="sm"
                         fontWeight="normal"
                         minWidth="100%">
-                        {props.value}
-                    </Text>
+                        { props.value as number | string }
+                    </Text> : props.value}
                 </Flex>
             </Td>
         </Tr>

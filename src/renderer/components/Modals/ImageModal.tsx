@@ -1,4 +1,5 @@
 import React from 'react';
+import path from 'path';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import {
     Modal,
@@ -22,10 +23,10 @@ import { initImageState } from '../../SettingsManager';
 import ImageObj from '../Reusable/ImageObj';
 import { initImagePathState } from '../../atoms/atoms';
 
-const ImageModalField = ({ data, header }: { data: string; header: string}) => {
+const ImageModalField = ({ data, header }: { data: string | number | Lora[]; header: string}) => {
     const toast = useToast({});
     const copyToClipboard = () => {
-        window.api.copyToClipboard(data, 'text').then(() => {
+        window.api.copyToClipboard(`${data}`, 'text').then(() => {
             toast({
                 title: 'Copied to clipboard',
                 status: 'success',
@@ -35,13 +36,20 @@ const ImageModalField = ({ data, header }: { data: string; header: string}) => {
         });
     }
 
+    const parseArray = (arr: Lora[]) => {
+        // @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
+        return arr.map(el => ({ name: el.name ?? path.basename((el as any).path), weight: el.weight })).map(el => `${el.name} : ${el.weight}`).join('\n');
+    }
+
+    const toDisplay = Array.isArray(data) ? parseArray(data) : data;
+
     return (
         <>
             <Box display="flex" alignItems="center" mt={2}>
                 <Button borderRadius="10" variant="ghost" p={0} m={0} size='sm' onClick={copyToClipboard}><Icon as={BiCopy} /></Button>
                 <Text fontWeight="bold" color="white.800">{ header }</Text>
             </Box>
-            <Text pl="8">{ data }</Text>
+            <Text pl="8">{ toDisplay }</Text>
         </>
     )
 }
@@ -61,7 +69,7 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
     const [showImageModal, setShowImageModal] = useRecoilState(atom.showImageModalState);
     const setInitImagePath = useSetRecoilState(initImagePathState);
     const setInitImage = useSetRecoilState(initImageState);
-
+    console.log(imageModalMetadata)
     function handleClose() {
         setShowImageModal(false)
     }
@@ -110,7 +118,7 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                             <Divider pt="5"></Divider>
                             <Flex>
                                 <Box flexDirection="column" width="50%">
-                                    <ImageModalField data={`${imageModalMetadata.W}x${imageModalMetadata.H}`} header="Dimensions (WxH)" />
+                                    <ImageModalField data={`${imageModalMetadata.width}x${imageModalMetadata.heigth}`} header="Dimensions (WxH)" />
                                 </Box>
                                 <Box>
                                     <ImageModalField data={imageModalMetadata.seed} header="Seed:" />
@@ -134,6 +142,12 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                                     <ImageModalField data={imageModalMetadata.cfg_scale} header="Prompt Strength (CFG):" />
                                 </Box>
                             </Flex>
+                            <Flex>
+                                <Box flexDirection="column" width="50%">
+                                    <ImageModalField data={imageModalMetadata.clip_skip} header="Clip skip:" />
+                                </Box>
+                                <Box></Box>
+                            </Flex>
 
                             <Flex>
                                 <Box flexDirection="column" width="50%">
@@ -141,6 +155,15 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                                 </Box>
                                 <Box>
                                     <ImageModalField data={imageModalMetadata.vae} header="VAE:" />
+                                </Box>
+                            </Flex>
+
+                            <Flex>
+                                <Box flexDirection="column" width="50%">
+                                    <ImageModalField data={imageModalMetadata.loras} header="Loras:" />
+                                </Box>
+                                <Box>
+                                    <ImageModalField data={imageModalMetadata.controlnet} header="Controlnet:" />
                                 </Box>
                             </Flex>
                             

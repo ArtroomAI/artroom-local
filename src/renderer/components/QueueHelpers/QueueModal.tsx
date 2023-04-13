@@ -9,7 +9,8 @@ import {
     ModalBody,
     Table,
     IconButton,
-    Image
+    Image,
+    Tbody
 } from '@chakra-ui/react';
 import {
     BsInfoCircle
@@ -44,69 +45,79 @@ function QueueModal (props: QueueTypeWithIndex) {
                     <ModalCloseButton />
 
                     <ModalBody>
-                        <Table
-                            color="#fff"
-                            size="sm"
-                            variant="simple">
-                            <QueueModalRow
-                                name="Prompt:"
-                                value={props.text_prompts} />
+                        <Table color="#fff" size="sm" variant="simple">
+                            <Tbody>
+                                <QueueModalRow
+                                    name="Prompt:"
+                                    value={props.text_prompts} />
 
-                            <QueueModalRow
-                                name="Negative Prompt:"
-                                value={props.negative_prompts} />
+                                <QueueModalRow
+                                    name="Negative Prompt:"
+                                    value={props.negative_prompts} />
 
-                            <QueueModalRow
-                                name="Number of images:"
-                                value={props.n_iter} />
+                                <QueueModalRow
+                                    name="Number of images:"
+                                    value={props.n_iter} />
 
-                            <QueueModalRow
-                                name="Model:"
-                                value={props.ckpt} />
+                                <QueueModalRow
+                                    name="Model:"
+                                    value={props.ckpt} />
 
-                            <QueueModalRow
-                                name="Dimensions:"
-                                value={`${props.width}x${props.height}`} />
+                                <QueueModalRow
+                                    name="Vae:"
+                                    value={props.vae} />
 
-                            <QueueModalRow
-                                name="Seed:"
-                                value={props.seed} />
+                                <QueueModalRow
+                                    name="Loras:"
+                                    value={props.loras.map(lora => `${lora.name} : ${lora.weight}`).join('\n')} />
 
-                            <QueueModalRow
-                                name="Steps:"
-                                value={props.steps} />
+                                <QueueModalRow
+                                    name="Controlnet:"
+                                    value={props.controlnet} />
 
-                            <QueueModalRow
-                                name="Sampler:"
-                                value={props.sampler} />
+                                <QueueModalRow
+                                    name="Dimensions:"
+                                    value={`${props.width}x${props.height}`} />
 
-                            <QueueModalRow
-                                name="CFG Scale:"
-                                value={props.cfg_scale} />
+                                <QueueModalRow
+                                    name="Seed:"
+                                    value={props.seed} />
 
-                            {props.init_image.length > 0
-                                ? <QueueModalRow
-                                    name="Strength:"
-                                    value={props.strength} />
-                                : <></>}
+                                <QueueModalRow
+                                    name="Steps:"
+                                    value={props.steps} />
 
-                            {props.mask_image?.length > 0
-                                ? <QueueModalRow
-                                    name="Mask:"
-                                    value={props.mask_image} />
-                                : <></>}
+                                <QueueModalRow
+                                    name="Sampler:"
+                                    value={props.sampler} />
 
-                            <QueueModalRow
-                                name="Image:"
-                                value={props.init_image.length > 0 && props.init_image.length < 250
-                                    ? props.init_image
-                                    : ''} />
+                                <QueueModalRow
+                                    name="CFG Scale:"
+                                    value={props.cfg_scale} />
 
-                            <Image
-                                maxHeight={256}
-                                maxWidth={256}
-                                src={props.init_image} />
+                                <QueueModalRow
+                                    name="Clip skip:"
+                                    value={props.clip_skip} />
 
+                                {props.init_image.length > 0 ? <>
+                                    <QueueModalRow
+                                        name="Strength:"
+                                        value={props.strength} />   
+                                    <QueueModalRow
+                                    name="Image:"
+                                    value={<Image
+                                        maxHeight={256}
+                                        maxWidth={256}
+                                        src={props.init_image} />} />
+                                </> : <></>}
+
+                                {props.mask_image?.length > 0
+                                    ? <QueueModalRow
+                                        name="Mask:"
+                                        value={props.mask_image} />
+                                    : <></>}
+
+                            </Tbody>
                         </Table>
                     </ModalBody>
                 </ModalContent>
