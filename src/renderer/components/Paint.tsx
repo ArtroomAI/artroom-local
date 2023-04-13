@@ -11,7 +11,6 @@ import {
     Image as ChakraImage,
     Button,
     useToast,
-    Progress,
     HStack,
     IconButton
 } from '@chakra-ui/react';
@@ -21,19 +20,18 @@ import _ from 'lodash';
 import { v4 } from 'uuid';
 import { generateMask, getCanvasBaseLayer, getScaledBoundingBoxDimensions } from './UnifiedCanvas/util';
 import { CanvasImage, isCanvasMaskLine } from './UnifiedCanvas/atoms/canvasTypes';
-import { SocketContext, SocketOnEvents } from '../socket';
+import { SocketContext } from '../socket';
 import { queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
 import { parseSettings } from './Utils/utils';
+import { GenerationProgressBars } from './Reusable/GenerationProgressBars';
 
 function Paint () {
     const toast = useToast({});
 
     const latestImages = useRecoilValue(atom.latestImageState);
 
-    const [progress, setProgress] = useState(-1);
-    const [batchProgress, setBatchProgress] = useState(-1);
     const [focused, setFocused] = useState(false);
     const cloudMode = useRecoilValue(atom.cloudModeState);
     const [queue, setQueue] = useRecoilState(atom.queueState);
@@ -123,12 +121,6 @@ function Paint () {
     
         canvasBaseLayer.scale(tempScale);
         addOutpaintingLayer(imageDataURL, maskDataURL, boundingBox.width, boundingBox.height).then(combinedMask => {
-            const body = {
-                ...imageSettings,
-                init_image: imageDataURL,
-                mask_image: combinedMask,
-                invert: shouldPreserveMaskedArea
-            }
             toast({
                 title: 'Added to Queue!',
                 description: `Currently ${queue.length + 1} elements in queue`,
@@ -153,39 +145,6 @@ function Paint () {
         })        
 
     }, [boundingBoxCoordinates, boundingBoxDimensions, layerState.objects, stageScale, imageSettings, socket, shouldPreserveMaskedArea]);
-
-    const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
-        setProgress((100 * data.current_step / data.total_steps));
-        setBatchProgress(100 * (data.current_num * data.total_steps + data.current_step) / (data.total_steps * data.total_num));
-    }, []);
-
-    const handleGetStatus: SocketOnEvents['get_status'] = useCallback((data) => {
-        if (data.status === 'Loading Model') {
-            toast({
-                id: 'loading-model',
-                title: 'Loading model...',
-                status: 'info',
-                position: 'bottom-right',
-                duration: null,
-                isClosable: false
-            });
-        } else if (data.status === 'Finished Loading Model') {
-            if (toast.isActive('loading-model')) {
-                toast.close('loading-model');
-            }
-        }
-    }, [toast]);
-
-    // on socket message
-    useEffect(() => {
-        socket.on('get_progress', handleGetProgress);
-        socket.on('get_status', handleGetStatus);
-    
-        return () => {
-            socket.off('get_progress', handleGetProgress);
-            socket.off('get_status', handleGetStatus);
-        };
-    }, [socket, handleGetProgress, handleGetStatus]);
 
     const computeShardCost = () => {
         //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
@@ -342,18 +301,7 @@ function Paint () {
                     className="paint-output">
                     <UnifiedCanvas />
 
-                    <Progress
-                        display={(batchProgress >= 0 && batchProgress !== 100) ? "block" : "none"}
-                        alignContent="left"
-                        hasStripe
-                        width="100%"
-                        value={batchProgress} />
-                    <Progress
-                        display={(progress >= 0 && progress !== 100) ? "block" : "none"}
-                        alignContent="left"
-                        hasStripe
-                        width="100%"
-                        value={progress} />
+                    <GenerationProgressBars />
                 </Box>
                 
                 <Box

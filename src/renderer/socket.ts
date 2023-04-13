@@ -1,6 +1,7 @@
 import React from 'react';
 import { io, Socket } from 'socket.io-client';
 import { ImageState } from './atoms/atoms.types';
+import { UseToastOptions } from '@chakra-ui/react';
 
 interface WithStatus {
     status: 'Success' | 'Failure';
@@ -12,16 +13,21 @@ export interface SocketOnEvents {
     get_controlnet_preview: (res: {controlnetPreview: string}) => void;
     get_remove_background_preview: (res: {removeBackgroundPreview: string}) => void;
     intermediate_image: (res: ImageState) => void;
-    get_server_status: (res: { server_running: boolean }) => void;
-    get_progress: (res: { current_step: number; total_steps: number; current_num: number; total_num: number }) => void;
-    get_status: (res: { status: 'Loading Model' | 'Finished Loading Model' | 'Generating' }) => void;
+    get_progress: (res: {
+        current_step: number;
+        total_steps: number;
+        current_num: number;
+        total_num: number;
+        eta: string; // mm:ss
+        iterations_per_sec: string; // x.xx it/s s/it
+        time_spent: string; // mm:ss
+    }) => void;
     stop_queue: (res: WithStatus) => void;
-    upscale: (res: WithStatus) => void;
     job_done: () => void;
+    status: (res: UseToastOptions) => void;
 }
 
 export interface SocketEmitEvents {
-    get_server_status: () => void;
     stop_queue: () => void;
     generate: (data: QueueType) => void;
     upscale: (data: {

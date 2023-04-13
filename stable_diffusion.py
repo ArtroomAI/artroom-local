@@ -26,6 +26,7 @@ from artroom_helpers.generation.preprocess import load_model_from_config, mask_f
     image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
+from artroom_helpers.toast_status import toast_status
 
 sys.path.append("artroom_helpers/modules")
 
@@ -424,7 +425,9 @@ class StableDiffusion:
 
     def set_up_models(self, ckpt, speed, vae):
         speed = speed if self.device.type != 'privateuseone' else "High"
-        self.socketio.emit('get_status', {'status': "Loading Model"})
+        self.socketio.emit('status', toast_status(
+            id="loading-model", title="Loading model...", status="info",
+            position="bottom-right", duration=None, isClosable=False))
         try:
             del self.model
             del self.modelFS
@@ -575,7 +578,9 @@ class StableDiffusion:
         torch.save(self.modelFS.state_dict(), input_vae)
 
         print("Model loading finished")
-        self.socketio.emit('get_status', {'status': "Finished Loading Model"})
+        self.socketio.emit('status', toast_status(
+            id="loading-model", title="Finished Loading Model",
+            status="info", position="bottom-right", duration=2000))
 
     def get_image(self, init_image_str, mask_b64):
         if len(init_image_str) == 0:
@@ -600,10 +605,6 @@ class StableDiffusion:
             return
 
         current_num, total_num, current_step, total_steps = self.get_steps()
-
-        self.socketio.emit('get_progress',
-                           {'current_step': current_step + 1, 'total_steps': total_steps, 'current_num': current_num,
-                            'total_num': total_num})
 
         def send_intermediates(x):
             def float_tensor_to_pil(tensor: torch.Tensor):
@@ -1161,7 +1162,9 @@ class StableDiffusion:
             return 'Failure'
 
         print("Generating...")
-        self.socketio.emit('get_status', {'status': "Generating"})
+        self.socketio.emit('status', toast_status(
+            id="loading-model", title="Generating",
+            status="info", position="bottom-right", duration=2000))
         os.makedirs(image_save_path, exist_ok=True)
 
         if len(init_image_str) > 0:

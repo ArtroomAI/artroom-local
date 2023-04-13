@@ -5,15 +5,13 @@ import {
     Box,
     Flex,
     Text,
-    Grid,
     Table,
     Thead,
     Th,
     Tr,
     Tbody,
     HStack,
-    IconButton,
-    useToast
+    IconButton
 } from '@chakra-ui/react';
 import {
     FaPlay,
@@ -42,7 +40,6 @@ import {
 } from '@dnd-kit/sortable';
 
 function Queue () {
-    const toast = useToast({});
     const [queue, setQueue] = useRecoilState(atom.queueState);
     const [isQueuePaused, setIsQueuePaused] = useRecoilState(atom.queuePausedState);
     const socket = useContext(SocketContext);

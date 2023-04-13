@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import {
     Box,
     Button,
@@ -23,7 +23,7 @@ import {
     FaQuestionCircle,
     FaTrashAlt
 } from 'react-icons/fa';
-import { SocketContext, SocketOnEvents } from '../socket';
+import { SocketContext } from '../socket';
 import { useDropzone } from 'react-dropzone';
 import { useRecoilValue } from 'recoil';
 import { imageSavePathState, modelsDirState } from '../SettingsManager';
@@ -106,42 +106,6 @@ function Upscale () {
         socket.emit('upscale', output);
     }, [socket, toast, upscale_dest, upscale_factor, upscale_images, upscale_strength, upscaler, imageSavePath, modelsDir]);
     
-    const handleUpscale: SocketOnEvents['upscale']  = useCallback((data) => {
-        if (data.status === 'Success') {
-            toast({
-                title: 'Upscale Completed',
-                status: 'success',
-                position: 'top',
-                duration: 2000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        } else {
-            toast({
-                title: 'Upscale Failed',
-                description: data.status_message,
-                status: 'error',
-                position: 'top',
-                duration: 5000,
-                isClosable: false,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
-            });
-        }
-    }, [toast]);
-
-    // on socket message
-    useEffect(() => {
-        socket.on('upscale', handleUpscale);
-    
-        return () => {
-            socket.off('upscale', handleUpscale);
-        };
-    }, [socket, handleUpscale]);
-
     return (
         <Box
             height="90%"

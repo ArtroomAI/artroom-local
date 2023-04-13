@@ -11,7 +11,8 @@ import {
     HStack,
     Switch,
     Icon,
-    Button
+    Button,
+    UseToastOptions
 } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
 import { useInterval } from './Reusable/useInterval/useInterval';
@@ -47,7 +48,11 @@ export default function App () {
     const image_save_path = useRecoilValue(imageSavePathState);
     const batch_name = useRecoilValue(batchNameState);
 
-    const toast = useToast({});
+    const toast = useToast({
+        containerStyle: {
+            pointerEvents: 'none'
+        }
+    });
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
     const setShard = useSetRecoilState(atom.shardState);
     const navSize = useRecoilValue(atom.navSizeState);
@@ -75,6 +80,20 @@ export default function App () {
     const handleRemoveBackgroundPreview = useCallback((data: {removeBackgroundPreview: string}) => {
         setRemoveBackgroundPreview(data.removeBackgroundPreview);
     }, [removeBackgroundPreview])
+
+    useEffect(() => {
+        const log = (options: UseToastOptions) => {
+            if (options.id && toast.isActive(options.id)) {
+                toast.update(options.id, options);
+            } else {
+                toast(options);
+            }
+        };
+        socket.on('status', log); 
+        return () => {
+          socket.off('status', log); 
+        };
+    }, [socket, toast]);
     
     useEffect(() => {
         socket.on('get_images', handleGetImages); 
@@ -143,10 +162,7 @@ export default function App () {
                                     status: 'error',
                                     position: 'top',
                                     duration: 10000,
-                                    isClosable: true,
-                                    containerStyle: {
-                                        pointerEvents: 'none'
-                                    }
+                                    isClosable: true
                                 });
                             } else if (job_list[i].images[j].status == 'SUCCESS') {
                                 //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
@@ -157,10 +173,7 @@ export default function App () {
                                     status: 'info',
                                     position: 'top',
                                     duration: 5000,
-                                    isClosable: true,
-                                    containerStyle: {
-                                        pointerEvents: 'none'
-                                    }
+                                    isClosable: true
                                 });
                                 //const timestamp = new Date().getTime();
                                 console.log(imagePath);

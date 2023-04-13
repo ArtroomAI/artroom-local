@@ -12,18 +12,6 @@ function parseSocketMessage<T extends keyof SocketOnEvents>(type: T, message: Me
         const typed = message as MessageType<'get_images'>;
         return;
     }
-    if(type === 'get_server_status') {
-        const typed = message as MessageType<'get_server_status'>;
-        return;
-    }
-    if(type === 'stop_queue') {
-        const typed = message as MessageType<'stop_queue'>;
-        return;
-    }
-    if(type === 'upscale') {
-        const typed = message as MessageType<'upscale'>;
-        return;
-    }
 }
 
 export const Console = () => {

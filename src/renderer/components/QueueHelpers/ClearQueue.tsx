@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
     useDisclosure,
@@ -11,18 +11,20 @@ import {
     AlertDialogFooter,
     Button
 } from '@chakra-ui/react';
+import { artroomPathState } from '../../SettingsManager';
 
 function ClearQueue () {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = React.useRef();
 
     const [queue, setQueue] = useRecoilState(atom.queueState);
+    const artroomPath = useRecoilValue(artroomPathState);
 
     const clearQueue = useCallback(() => {
         setQueue([]);
-        window.api.saveQueue(JSON.stringify([]))
+        window.api.saveQueue(JSON.stringify([]), artroomPath);
         onClose();
-    }, [onClose, queue]);
+    }, [onClose, queue, artroomPath]);
 
     return (
         <>

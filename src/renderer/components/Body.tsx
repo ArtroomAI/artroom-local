@@ -5,7 +5,6 @@ import {
     Box,
     Button,
     VStack,
-    Progress,
     SimpleGrid,
     Image,
     Text,
@@ -17,17 +16,22 @@ import ImageObj from './Reusable/ImageObj';
 import Prompt from './Prompt';
 import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
-import { SocketContext, SocketOnEvents } from '../socket';
+import { SocketContext } from '../socket';
 import { queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
 import { addToQueueState } from '../atoms/atoms';
 import { FaStop } from 'react-icons/fa';
 import { ImageState } from '../atoms/atoms.types';
 import { parseSettings } from './Utils/utils';
+import { GenerationProgressBars } from './Reusable/GenerationProgressBars';
 
 const QueueButtons = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
 
-    const toast = useToast({});
+    const toast = useToast({
+        containerStyle: {
+            pointerEvents: 'none'
+        }
+    });
 
     const socket = useContext(SocketContext);
 
@@ -75,10 +79,7 @@ const QueueButtons = () => {
             status: 'success',
             position: 'top',
             duration: 2000,
-            isClosable: false,
-            containerStyle: {
-                pointerEvents: 'none'
-            }
+            isClosable: false
         });
         setAddToQueue(true);
         const settings = parseSettings(
@@ -99,10 +100,7 @@ const QueueButtons = () => {
                 status: 'success',
                 position: 'top',
                 duration: 5000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
+                isClosable: true
             });
             setCloudRunning(true);
         }).catch((err: any) => {
@@ -113,10 +111,7 @@ const QueueButtons = () => {
                 description: err.response.data.detail,
                 position: 'top',
                 duration: 5000,
-                isClosable: true,
-                containerStyle: {
-                    pointerEvents: 'none'
-                }
+                isClosable: true
             });
         });
     }, [ARTROOM_URL, imageSettings, toast]);
@@ -178,46 +173,10 @@ const Body = () => {
 
     const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
     const latestImages = useRecoilValue(atom.latestImageState);
-    
-    const [progress, setProgress] = useState(-1);
-    const [batchProgress, setBatchProgress] = useState(-1);
 
     const [focused, setFocused] = useState(false);
     
     const socket = useContext(SocketContext);
-
-    const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
-        setProgress((100 * data.current_step / data.total_steps));
-        setBatchProgress(100 * (data.current_num * data.total_steps + data.current_step) / (data.total_steps * data.total_num));
-    }, []);
-
-    const handleGetStatus: SocketOnEvents['get_status'] = useCallback((data) => {
-        if (data.status === 'Loading Model') {
-            toast({
-                id: 'loading-model',
-                title: 'Loading model...',
-                status: 'info',
-                position: 'bottom-right',
-                duration: null,
-                isClosable: false
-            });
-        } else if (data.status === 'Finished Loading Model') {
-            if (toast.isActive('loading-model')) {
-                toast.close('loading-model');
-            }
-        }
-    }, [toast]);
-
-    // on socket message
-    useEffect(() => {
-        socket.on('get_progress', handleGetProgress);
-        socket.on('get_status', handleGetStatus);
-    
-        return () => {
-            socket.off('get_progress', handleGetProgress);
-            socket.off('get_status', handleGetStatus);
-        };
-    }, [socket, handleGetProgress, handleGetStatus]);
 
     const reducer = (state: { selectedIndex: number; }, action: { type: string; payload?: number; }) => {
         switch (action.type) {
@@ -348,18 +307,7 @@ const Body = () => {
                         b64={mainImage?.b64}
                         path={mainImage?.path}
                         active />
-                    <Progress
-                        display={batchProgress >= 0 && batchProgress !== 100 ? 'block' : 'none'}
-                        alignContent="left"
-                        hasStripe
-                        width="100%"
-                        value={batchProgress} />
-                    <Progress
-                        display={progress >= 0 && progress !== 100 ? 'block' : 'none'}
-                        alignContent="left"
-                        hasStripe
-                        width="100%"
-                        value={progress} />
+                    <GenerationProgressBars />
                 </Box>
 
                 <Box

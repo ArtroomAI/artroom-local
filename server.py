@@ -6,11 +6,14 @@ try:
     import os
     import re
     import math
+    import sys
+    from functools import partial
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
     from artroom_helpers import support
     from artroom_helpers.generation.preprocess import mask_from_face
+    from artroom_helpers.toast_status import toast_status
     from model_merger import ModelMerger
 
     from flask import Flask, request, jsonify, make_response
@@ -44,20 +47,49 @@ try:
     UP = Upscaler()
     SD = StableDiffusion(socketio=socketio, Upscaler=UP)
 
-    user_profile = os.environ['USERPROFILE']
-    artroom_install_log = f'{user_profile}/AppData/Local/artroom_install.log'
-    if os.path.exists(artroom_install_log):
-        # artroom_path = f'{user_profile}/AppData/Local/artroom_install.log'
-        f = open(artroom_install_log, 'r')
-        artroom_path_raw = f.readline()
-        f.close()
-        artroom_path = artroom_path_raw[:-1]
-    else:
-        artroom_path = os.environ['USERPROFILE']
+    class InterceptedStdout:
+        def __init__(self, original_stdout, callback):
+            self.original_stdout = original_stdout
+            self.callback = callback
 
-    os.makedirs(os.path.join(artroom_path, "model_weights/Loras"), exist_ok=True)
-    os.makedirs(os.path.join(artroom_path, "model_weights/Vaes"), exist_ok=True)
-    os.makedirs(os.path.join(artroom_path, "model_weights/ControlNet"), exist_ok=True)
+        def write(self, text):
+            processed_text = self.callback(text)
+            self.original_stdout.write(processed_text)
+
+        def flush(self):
+            self.original_stdout.flush()
+
+    def your_callback_function(text: str):
+        socketio.emit('messagesss', text)
+        if 'OutOfMemoryError' in text:
+            socketio.emit('status', toast_status(title="Cuda out of memory", status="error"))
+        elif 'Decoding image:' in text:
+            current_num, total_num, current_step, total_steps = SD.get_steps()
+            match = re.search(r'\[(.*?)\]', text)
+            time_spent = ""
+            eta = ""
+            iterations_per_sec = ""
+            if match:
+                parts = match.group(1).split(',')
+                time_spent = parts[0].split('<')[0].strip()
+                eta = parts[0].split('<')[1].strip()
+                iterations_per_sec = parts[1].strip()
+
+            socketio.emit('get_progress', {
+                'current_step': current_step + 1,
+                'total_steps': total_steps,
+                'current_num': current_num,
+                'total_num': total_num,
+                'time_spent': time_spent,
+                'eta': eta,
+                'iterations_per_sec': iterations_per_sec
+            })
+        return text
+
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    sys.stderr = InterceptedStdout(original_stderr, your_callback_function)
+    sys.stdout = InterceptedStdout(original_stdout, your_callback_function)
 
 
     @socketio.on('upscale')
@@ -65,11 +97,15 @@ try:
         print('Running upscale...')
         if UP.running:
             print('Failure to upscale, upscale is already running')
-            socketio.emit('upscale', {'status': 'Failure', 'status_message': 'Upscale is already running'})
+            socketio.emit('status', toast_status(
+                title='Upscale Failed', description='Upscale is already running',
+                status='error', duration=5000, isClosable=False))
             return
         if len(data['upscale_images']) == 0:
             print('Failure to upscale, please select an image')
-            socketio.emit('upscale', {'status': 'Failure', 'status_message': 'Please select an image'})
+            socketio.emit('status', toast_status(
+                title='Upscale Failed', description='Please select an image',
+                status='error', duration=5000, isClosable=False))
             return
 
         if data['upscale_dest'] == '':
@@ -77,7 +113,9 @@ try:
 
         UP.upscale(data['models_dir'], data['upscale_images'], data['upscaler'], data['upscale_factor'],
                    data['upscale_dest'])
-        socketio.emit('upscale', {'status': 'Success', 'status_message': 'Your upscale has completed'})
+        socketio.emit('status', toast_status(
+            title='Upscale Completed', description='Your upscale has completed',
+            status='success', duration=2000, isClosable=False))
         return
 
 
@@ -234,16 +272,10 @@ try:
             #     SD.clean_up()
             #     socketio.emit('job_done')
 
-
-    @socketio.on('/get_server_status')
-    def get_server_status():
-        socketio.emit("get_server_status", {'server_running': SD.running}, broadcast=True)
-
-
     @socketio.on('stop_queue')
     def stop_queue():
         SD.interrupt()
-        socketio.emit("stop_queue", {'status': 'Success'}, broadcast=True)
+        socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
 
     @app.route('/generate', methods=['POST'])
     def generate():

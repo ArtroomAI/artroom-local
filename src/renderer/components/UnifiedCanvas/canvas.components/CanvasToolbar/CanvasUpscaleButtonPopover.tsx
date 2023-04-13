@@ -1,12 +1,11 @@
-import React, { FC, useCallback, useContext, useEffect, useState } from 'react';
+import React, { FC, useCallback, useContext, useState } from 'react';
 import { Button, Flex, useToast } from '@chakra-ui/react';
 import { useRecoilValue } from 'recoil';
 import { Popover, IconButton, Slider, Select } from '../../components';
 import { GiResize } from 'react-icons/gi';
-import axios from 'axios';
 import { getCanvasBaseLayer, layerToDataURL } from '../../util';
 import {stageScaleAtom, stageCoordinatesAtom } from '../../atoms/canvas.atoms';
-import { SocketContext, SocketOnEvents } from '../../../../socket';
+import { SocketContext } from '../../../../socket';
 import { imageSavePathState, modelsDirState } from '../../../../SettingsManager';
 
 export const CanvasUpscaleButtonPopover: FC = () => {
@@ -18,42 +17,6 @@ export const CanvasUpscaleButtonPopover: FC = () => {
   const socket = useContext(SocketContext);
   const imageSavePath = useRecoilValue(imageSavePathState);
   const modelsDir = useRecoilValue(modelsDirState);
-
-  const handleUpscale: SocketOnEvents['upscale']  = useCallback((data) => {
-    if (data.status === 'Success') {
-      toast({
-        title: 'Upscale Completed',
-        status: 'success',
-        position: 'top',
-        duration: 2000,
-        isClosable: false,
-        containerStyle: {
-          pointerEvents: 'none'
-        }
-      });
-    } else {
-      toast({
-        title: 'Upscale Failed',
-        description: data.status_message,
-        status: 'error',
-        position: 'top',
-        duration: 5000,
-        isClosable: false,
-        containerStyle: {
-          pointerEvents: 'none'
-        }
-      });
-    }
-  }, [toast]);
-  
-  // on socket message
-  useEffect(() => {
-    socket.on('upscale', handleUpscale);
-
-    return () => {
-      socket.off('upscale', handleUpscale);
-    };
-  }, [socket, handleUpscale]);
 
   const sendUpscale = useCallback(() => {
     toast({
