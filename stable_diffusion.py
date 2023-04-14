@@ -1330,7 +1330,7 @@ class StableDiffusion:
                     "ckpt": os.path.basename(ckpt),
                     "vae": os.path.basename(vae),
                     "controlnet": controlnet,
-                    "loras": [{'name': lora['name'], 'weight': lora['weight']} for lora in loras],
+                    "loras": [{'name': os.path.basename(lora['path']), 'weight': lora['weight']} for lora in loras],
                     "clip_skip": clip_skip
                 }
                 # 0x9286 Exif Code for UserComment
