@@ -159,9 +159,6 @@ class StableDiffusion:
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4, controlnet=False):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title=f"Loading Lora file :{path} with weight {weight_tenc}",
-            status="info", position="bottom-right", duration=2000))
         
         du_state_dict = load_file(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
@@ -211,9 +208,7 @@ class StableDiffusion:
                 self.set_up_models(ckpt, speed, vae)
                 print("Successfully set up model")
             except Exception as e:
-                self.socketio.emit('status', toast_status(
-                    id="loading-model", title="Setting up model failed",
-                    status="error", position="bottom-right", duration=5000))
+                self.socketio.emit('status', toast_status(title="Setting up model failed", status="error"))
                 print(f"Setting up model failed: {e}")
                 self.model = None
                 self.modelCS = None
@@ -229,12 +224,10 @@ class StableDiffusion:
                                            existing=(self.control_model is not None and self.ckpt == ckpt))
         except Exception as e:
             print(f"Controlnet Failed to load {e}")
+            self.socketio.emit('status', toast_status(title=f"Controlnet Failed to load {e}", status="error"))
 
         if vae != self.vae or self.ckpt != ckpt:
             print("Loading vae")
-            self.socketio.emit('status', toast_status(
-                id="loading-model", title="Loading vae",
-                status="info", position="bottom-right", duration=2000))
             try:
                 if '.vae' in vae:
                     self.load_vae(vae)
@@ -243,14 +236,9 @@ class StableDiffusion:
                     self.load_vae(os.path.join(os.path.dirname(vae), 'original_vae.vae.pth'), original=True,
                                   controlnet=(controlnet_path is not None))
                     print('Reset vae')
-                self.socketio.emit('status', toast_status(
-                    id="loading-model", title="Loading vae finished",
-                    status="info", position="bottom-right", duration=2000))
             except Exception as e:
                 print(f"Failed to load vae {e}")
-                self.socketio.emit('status', toast_status(
-                    id="loading-model", title="Failed to load vae",
-                    status="error", position="bottom-right", duration=5000))
+                self.socketio.emit('status', toast_status(title=f"Failed to load vae {e}", status="error"))
 
         self.ckpt = ckpt.replace(os.sep, '/')
         self.vae = vae
@@ -273,9 +261,7 @@ class StableDiffusion:
 
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
-            self.socketio.emit('status', toast_status(
-                id="loading-model", title="Failed to load in Lora!",
-                status="error", position="bottom-right", duration=5000))
+            self.socketio.emit('status', toast_status(title="Failed to load in Lora!", status="error"))
         return True
 
     def inject_controlnet_new(self, controlnet_path, existing=False):
@@ -293,9 +279,6 @@ class StableDiffusion:
             return state_dict
 
         print("Injecting controlnet...")
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title="Injecting controlnet...",
-            status="info", position="bottom-right", duration=2000))
         if existing:
             input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
@@ -339,9 +322,6 @@ class StableDiffusion:
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title="Injecting controlnet...",
-            status="info", position="bottom-right", duration=2000))
 
         def get_state_dict(d):
             return d.get('state_dict', d)
@@ -393,9 +373,6 @@ class StableDiffusion:
 
     def deinject_controlnet(self, delete=True):
         print("Deinjecting controlnet...")
-        self.socketio.emit('status', toast_status(
-            id="loading-model", title="Deinjecting controlnet...",
-            status="info", position="bottom-right", duration=2000))
         # Remove controlnet pieces
         sd = {k: v for k, v in self.control_model.state_dict().items() if "control" not in k}
 
