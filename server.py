@@ -62,7 +62,7 @@ try:
     def your_callback_function(text: str):
         socketio.emit('messagesss', text)
         if 'OutOfMemoryError' in text:
-            socketio.emit('status', toast_status(title="Cuda out of memory", status="error"))
+            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller image or change speed in settings", status="error"))
         elif 'Decoding image:' in text:
             current_num, total_num, current_step, total_steps = SD.get_steps()
             match = re.search(r'\[(.*?)\]', text)
