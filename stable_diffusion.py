@@ -200,9 +200,10 @@ class StableDiffusion:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
 
+        # load state dict
         state_dict = load_model_from_config(ckpt)
 
-        try:
+        try:  # load controlnet with state dict
             if self.control_model is not None and controlnet_path is None:
                 self.deinject_controlnet(sd=state_dict)
                 self.control_model = None
@@ -215,6 +216,8 @@ class StableDiffusion:
             print(f"Controlnet Failed to load {e}")
             self.control_model = None
 
+        # reload models
+        # in case we have a controlnet, we only load modelCS and modelFS
         if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
@@ -305,7 +308,7 @@ class StableDiffusion:
 
         state_dict = {k.replace("model.diffusion_model", "diffusion_model"): v for k, v in state_dict.items()}
 
-        control_keys_missing = self.model.load_state_dict(state_dict, strict=False)
+        self.model.load_state_dict(state_dict, strict=False)
         self.control_model = True  # just bool
 
         # print(f"Missing control keys: {control_keys_missing}")
