@@ -1,14 +1,13 @@
 import os
 
-from annotator.uniformer.mmseg.apis import init_segmentor, inference_segmentor, show_result_pyplot
-from annotator.uniformer.mmseg.core.evaluation import get_palette
-from annotator.util import annotator_ckpts_path
+from artroom_helpers.annotator.uniformer.mmseg.apis import init_segmentor, inference_segmentor, show_result_pyplot
+from artroom_helpers.annotator.uniformer.mmseg.core.evaluation import get_palette
 
 checkpoint_file = "https://huggingface.co/lllyasviel/ControlNet/resolve/main/annotator/ckpts/upernet_global_small.pth"
 
 
 class UniformerDetector:
-    def __init__(self):
+    def __init__(self, annotator_ckpts_path):
         modelpath = os.path.join(annotator_ckpts_path, "upernet_global_small.pth")
         if not os.path.exists(modelpath):
             from basicsr.utils.download_util import load_file_from_url

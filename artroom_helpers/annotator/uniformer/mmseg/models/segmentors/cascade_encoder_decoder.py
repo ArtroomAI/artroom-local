@@ -1,7 +1,7 @@
 from torch import nn
 
-from annotator.uniformer.mmseg.core import add_prefix
-from annotator.uniformer.mmseg.ops import resize
+from artroom_helpers.annotator.uniformer.mmseg.core import add_prefix
+from artroom_helpers.annotator.uniformer.mmseg.ops import resize
 from .. import builder
 from ..builder import SEGMENTORS
 from .encoder_decoder import EncoderDecoder

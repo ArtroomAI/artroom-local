@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 
-from annotator.uniformer.mmcv.image import imread, imwrite
+from artroom_helpers.annotator.uniformer.mmcv.image import imread, imwrite
 from .color import color_val
 
 

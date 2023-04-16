@@ -7,8 +7,8 @@ import annotator.uniformer.mmcv as mmcv
 import numpy as np
 import torch
 import torch.distributed as dist
-from annotator.uniformer.mmcv.image import tensor2imgs
-from annotator.uniformer.mmcv.runner import get_dist_info
+from artroom_helpers.annotator.uniformer.mmcv.image import tensor2imgs
+from artroom_helpers.annotator.uniformer.mmcv.runner import get_dist_info
 
 
 def np2tmp(array, temp_file_name=None):

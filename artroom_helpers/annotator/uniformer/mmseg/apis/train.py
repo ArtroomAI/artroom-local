@@ -3,12 +3,12 @@ import warnings
 
 import numpy as np
 import torch
-from annotator.uniformer.mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from annotator.uniformer.mmcv.runner import build_optimizer, build_runner
+from artroom_helpers.annotator.uniformer.mmcv.parallel import MMDataParallel, MMDistributedDataParallel
+from artroom_helpers.annotator.uniformer.mmcv.runner import build_optimizer, build_runner
 
-from annotator.uniformer.mmseg.core import DistEvalHook, EvalHook
-from annotator.uniformer.mmseg.datasets import build_dataloader, build_dataset
-from annotator.uniformer.mmseg.utils import get_root_logger
+from artroom_helpers.annotator.uniformer.mmseg.core import DistEvalHook, EvalHook
+from artroom_helpers.annotator.uniformer.mmseg.datasets import build_dataloader, build_dataset
+from artroom_helpers.annotator.uniformer.mmseg.utils import get_root_logger
 
 
 def set_random_seed(seed, deterministic=False):

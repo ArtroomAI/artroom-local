@@ -7,10 +7,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd.function import Function, once_differentiable
 
-from annotator.uniformer.mmcv import deprecated_api_warning
-from annotator.uniformer.mmcv.cnn import constant_init, xavier_init
-from annotator.uniformer.mmcv.cnn.bricks.registry import ATTENTION
-from annotator.uniformer.mmcv.runner import BaseModule
+from artroom_helpers.annotator.uniformer.mmcv import deprecated_api_warning
+from artroom_helpers.annotator.uniformer.mmcv.cnn import constant_init, xavier_init
+from artroom_helpers.annotator.uniformer.mmcv.cnn.bricks.registry import ATTENTION
+from artroom_helpers.annotator.uniformer.mmcv.runner import BaseModule
 from ..utils import ext_loader
 
 ext_module = ext_loader.load_ext(

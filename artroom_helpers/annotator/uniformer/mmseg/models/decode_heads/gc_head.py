@@ -1,5 +1,5 @@
 import torch
-from annotator.uniformer.mmcv.cnn import ContextBlock
+from artroom_helpers.annotator.uniformer.mmcv.cnn import ContextBlock
 
 from ..builder import HEADS
 from .fcn_head import FCNHead

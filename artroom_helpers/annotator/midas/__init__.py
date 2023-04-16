@@ -7,10 +7,10 @@ from .api import MiDaSInference
 
 
 class MidasDetector:
-    def __init__(self, device=torch.device(0), dtype=torch.float32):
+    def __init__(self, annotator_ckpts_path, device=torch.device(0), dtype=torch.float32):
         self.device = device
         self.dtype = dtype
-        self.model = MiDaSInference(model_type="dpt_hybrid").to(dtype).to(device)
+        self.model = MiDaSInference(model_type="dpt_hybrid", annotator_ckpts_path=annotator_ckpts_path).to(dtype).to(device)
 
     def __call__(self, input_image, a=np.pi * 2.0, bg_th=0.1):
         assert input_image.ndim == 3

@@ -1,5 +1,5 @@
-from annotator.uniformer.mmcv.utils import collect_env as collect_base_env
-from annotator.uniformer.mmcv.utils import get_git_hash
+from artroom_helpers.annotator.uniformer.mmcv.utils import collect_env as collect_base_env
+from artroom_helpers.annotator.uniformer.mmcv.utils import get_git_hash
 
 import annotator.uniformer.mmseg as mmseg
 

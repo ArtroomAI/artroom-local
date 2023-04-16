@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
-from annotator.uniformer.mmcv.cnn import (ConvModule, build_conv_layer, build_norm_layer,
+from artroom_helpers.annotator.uniformer.mmcv.cnn import (ConvModule, build_conv_layer, build_norm_layer,
                                           constant_init, kaiming_init)
-from annotator.uniformer.mmcv.runner import load_checkpoint
-from annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
+from artroom_helpers.annotator.uniformer.mmcv.runner import load_checkpoint
+from artroom_helpers.annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 
-from annotator.uniformer.mmseg.utils import get_root_logger
+from artroom_helpers.annotator.uniformer.mmseg.utils import get_root_logger
 from ..builder import BACKBONES
 
 

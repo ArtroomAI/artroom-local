@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-from annotator.uniformer.mmcv.runner import auto_fp16
+from artroom_helpers.annotator.uniformer.mmcv.runner import auto_fp16
 
 
 class BaseSegmentor(nn.Module):

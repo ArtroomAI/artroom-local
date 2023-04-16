@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from annotator.uniformer.mmcv.cnn import PLUGIN_LAYERS, Scale
+from artroom_helpers.annotator.uniformer.mmcv.cnn import PLUGIN_LAYERS, Scale
 
 
 def NEG_INF_DIAG(n, device):

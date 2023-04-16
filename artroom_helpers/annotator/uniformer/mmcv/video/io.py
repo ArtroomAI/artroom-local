@@ -7,7 +7,7 @@ from cv2 import (CAP_PROP_FOURCC, CAP_PROP_FPS, CAP_PROP_FRAME_COUNT,
                  CAP_PROP_FRAME_HEIGHT, CAP_PROP_FRAME_WIDTH,
                  CAP_PROP_POS_FRAMES, VideoWriter_fourcc)
 
-from annotator.uniformer.mmcv.utils import (check_file_exist, mkdir_or_exist, scandir,
+from artroom_helpers.annotator.uniformer.mmcv.utils import (check_file_exist, mkdir_or_exist, scandir,
                                             track_progress)
 
 

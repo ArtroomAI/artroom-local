@@ -1,6 +1,6 @@
 import annotator.uniformer.mmcv as mmcv
 import torch.nn as nn
-from annotator.uniformer.mmcv.cnn import ConvModule
+from artroom_helpers.annotator.uniformer.mmcv.cnn import ConvModule
 
 from .make_divisible import make_divisible
 
