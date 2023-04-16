@@ -19,7 +19,7 @@ import { BiImages, BiCopy } from 'react-icons/bi';
 import { GoSettings } from 'react-icons/go';
 import { AiFillFolderOpen } from 'react-icons/ai';
 import * as atom from '../../atoms/atoms';
-import { initImageState } from '../../SettingsManager';
+import { initImageState, parseHeigth, parseLoras, parseWidth } from '../../SettingsManager';
 import ImageObj from '../Reusable/ImageObj';
 import { initImagePathState } from '../../atoms/atoms';
 
@@ -37,8 +37,7 @@ const ImageModalField = ({ data, header }: { data: string | number | Lora[]; hea
     }
 
     const parseArray = (arr: Lora[]) => {
-        // @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
-        return arr.map(el => ({ name: el.name ?? path.basename((el as any).path), weight: el.weight })).map(el => `${el.name} : ${el.weight}`).join('\n');
+        return parseLoras(arr).map(el => `${el.name} : ${el.weight}`).join('\n');
     }
 
     const toDisplay = Array.isArray(data) ? parseArray(data) : data;
@@ -118,7 +117,7 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                             <Divider pt="5"></Divider>
                             <Flex>
                                 <Box flexDirection="column" width="50%">
-                                    <ImageModalField data={`${imageModalMetadata.width}x${imageModalMetadata.heigth}`} header="Dimensions (WxH)" />
+                                    <ImageModalField data={`${parseWidth(imageModalMetadata)}x${parseHeigth(imageModalMetadata)}`} header="Dimensions (WxH)" />
                                 </Box>
                                 <Box>
                                     <ImageModalField data={imageModalMetadata.seed} header="Seed:" />
