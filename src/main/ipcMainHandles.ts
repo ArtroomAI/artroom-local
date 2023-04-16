@@ -11,7 +11,7 @@ import { pytestHandles } from "./handles/pytestHandles";
 export const setupHandles = (browserWindow: Electron.BrowserWindow) => {
     exposeMenuFunctions(browserWindow);
     installerHandles(browserWindow);
-    setupImageViewer();
+    setupImageViewer(browserWindow);
     settingsLoading();
     setupQueueHandles();
     clipboardHandles();

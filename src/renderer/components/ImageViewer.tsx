@@ -181,6 +181,16 @@ function ImageViewer () {
     }
 
     useEffect(() => {
+        window.api.imageViewerChange((_, result) => {
+            if(result.error) {
+                setImageViewPath(result.error.path);
+                return;
+            }
+            setImagePreviews(result.results);
+        })
+    }, []);
+
+    useEffect(() => {
         if(imageViewPath === '') {
             setImageViewPath(path.join(imageSavePath, batchName));
         } else {
