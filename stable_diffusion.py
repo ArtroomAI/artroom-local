@@ -195,19 +195,14 @@ class StableDiffusion:
         self.modelFS.eval()
         del input_state_dict
 
-    def load_state_dict_sd(self, ckpt):
-        sd = load_model_from_config(f"{ckpt}")
-        return sd
-
     def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip=1):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
 
-        state_dict = self.load_state_dict_sd(ckpt)
+        state_dict = load_model_from_config(ckpt)
 
         try:
-            controlnet_loaded = False
             if self.control_model is not None and controlnet_path is None:
                 self.deinject_controlnet(sd=state_dict)
                 self.control_model = None
@@ -216,15 +211,14 @@ class StableDiffusion:
                                            existing=(self.control_model is not None and self.ckpt == ckpt),
                                            state_dict=state_dict)
                 self.control_model = True
-                controlnet_loaded = True
         except Exception as e:
             print(f"Controlnet Failed to load {e}")
-            controlnet_loaded = False
+            self.control_model = None
 
         if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae, sd=state_dict, controlnet_loaded=controlnet_loaded)
+                self.set_up_models(ckpt, speed, vae, sd=state_dict, controlnet_loaded=self.control_model)
                 print("Successfully set up model")
             except Exception as e:
                 print(f"Setting up model failed: {e}")
@@ -959,7 +953,7 @@ class StableDiffusion:
                                 self.model.control_scales = [1.0] * 13
                                 ddim_sampler = DDIMSampler(self.model)
                                 x0 = ddim_sampler.sample(
-                                    steps - 1,
+                                    steps,
                                     batch_size,
                                     tuple(shape[1:]),
                                     c,
