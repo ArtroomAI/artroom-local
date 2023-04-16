@@ -11,7 +11,9 @@ import {
     NumberInputField,
     Text,
     Tooltip,
-    Select
+    Select,
+    ButtonGroup,
+    Input
 } from '@chakra-ui/react';
 import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
@@ -34,8 +36,25 @@ const FolderComponent = ({ directory_path, directory_full_path } : { directory_p
             fontSize="9xl"
             justifyContent="center"
             display="block" />
-        <Box>{ directory_path }</Box>
+        <Box overflowWrap="break-word">{ directory_path }</Box>
     </Flex>
+}
+
+const SelectDisks = () => {
+    const [imageViewPath, setImageViewPath] = useRecoilState(atom.imageViewPathState);
+    const [disks, setDisks] = useState(['C:']);
+
+    useEffect(() => {
+        window.api.getDisks().then(setDisks)
+    }, []);
+
+    return <Box w="10%">
+        <Select onChange={(e) => setImageViewPath(e.target.value)} value={imageViewPath.split(path.sep)[0]}>
+            { disks.map((disk) => {
+                return <option key={disk} value={disk}>{disk}</option>
+            }) }
+        </Select>
+    </Box>
 }
 
 const PathButtons = () => {
@@ -49,33 +68,23 @@ const PathButtons = () => {
     });
     return (
         <Box m={4}>
-            { paths.map(([relPath, absPath], index) => (
-                <Button key={index} onClick={() => setImageViewPath(absPath)}>
-                    {relPath}
-                </Button>
-            )) }
+            <Flex mb={4}>
+                <SelectDisks />
+                <Input ml={2} value={imageViewPath} onChange={e => { setImageViewPath(e.target.value) }} />
+            </Flex>
+            <ButtonGroup isAttached variant="outline">
+                { paths.map(([relPath, absPath], index) => (
+                    <Button key={index} onClick={() => setImageViewPath(absPath)}>
+                        {relPath}
+                    </Button>
+                )) }
+            </ButtonGroup>
         </Box>
     )
 }
 
-const SelectDisks = () => {
-    const setImageViewPath = useSetRecoilState(atom.imageViewPathState);
-    const [disks, setDisks] = useState(['C:']);
-
-    useEffect(() => {
-        window.api.getDisks().then(setDisks)
-    }, []);
-
-    return <Select onChange={(e) => setImageViewPath(e.target.value)}>
-        { disks.map((disk) => {
-            return <option key={disk} value={disk}>{disk}</option>
-        }) }
-    </Select>
-}
-
 const Controls = ({ pageIndex, maxLength, gotoPage } : { pageIndex: number; maxLength: number; gotoPage: React.Dispatch<React.SetStateAction<number>>}) => {
     return <Box width="100%" pos="sticky" top="30px" p="2" bgColor="#080B16">
-        <SelectDisks />
         <PathButtons />
     
         <Flex justifyContent="space-between" m={4} alignItems="center">
