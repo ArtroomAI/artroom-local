@@ -160,13 +160,13 @@ def apply_mlsd(img, value_threshold = 0.1, distance_threshold = 0.1):
 
 
 def apply_lineart(img):
-    img= apply_mlsd_d(img)
+    img= apply_lineart_d(img)
     img = HWC3(img)
     return img
 
 
-def apply_mlsd(img):
-    img= apply_mlsd_d(img)
+def apply_lineart_anime(img):
+    img= apply_lineart_anime_d(img)
     img = HWC3(img)
     return img
 
