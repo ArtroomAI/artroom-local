@@ -134,7 +134,11 @@ function Paint () {
             });
             setAddToQueue(true);
             const settings = parseSettings(
-                {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
+                {...imageSettings,  
+                    init_image: imageDataURL,
+                    mask_image: combinedMask,
+                    invert: shouldPreserveMaskedArea, 
+                    id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
                 useRandomSeed
             );
     

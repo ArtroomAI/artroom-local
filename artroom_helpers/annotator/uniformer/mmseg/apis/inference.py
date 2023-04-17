@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import annotator.uniformer.mmcv as mmcv
 import torch
-from annotator.uniformer.mmcv.parallel import collate, scatter
-from annotator.uniformer.mmcv.runner import load_checkpoint
+from artroom_helpers.annotator.uniformer.mmcv.parallel import collate, scatter
+from artroom_helpers.annotator.uniformer.mmcv.runner import load_checkpoint
 
-from annotator.uniformer.mmseg.datasets.pipelines import Compose
-from annotator.uniformer.mmseg.models import build_segmentor
+from artroom_helpers.annotator.uniformer.mmseg.datasets.pipelines import Compose
+from artroom_helpers.annotator.uniformer.mmseg.models import build_segmentor
 
 
 def init_segmentor(config, checkpoint=None, device='cuda:0'):

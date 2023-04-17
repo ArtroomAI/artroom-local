@@ -3,8 +3,8 @@ from __future__ import division
 
 import numpy as np
 
-from annotator.uniformer.mmcv.image import rgb2bgr
-from annotator.uniformer.mmcv.video import flowread
+from artroom_helpers.annotator.uniformer.mmcv.image import rgb2bgr
+from artroom_helpers.annotator.uniformer.mmcv.video import flowread
 from .image import imshow
 
 

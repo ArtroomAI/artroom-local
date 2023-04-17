@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
-from annotator.uniformer.mmcv.cnn import (ConvModule, DepthwiseSeparableConvModule, constant_init,
+from artroom_helpers.annotator.uniformer.mmcv.cnn import (ConvModule, DepthwiseSeparableConvModule, constant_init,
                                           kaiming_init)
 from torch.nn.modules.batchnorm import _BatchNorm
 
-from annotator.uniformer.mmseg.models.decode_heads.psp_head import PPM
-from annotator.uniformer.mmseg.ops import resize
+from artroom_helpers.annotator.uniformer.mmseg.models.decode_heads.psp_head import PPM
+from artroom_helpers.annotator.uniformer.mmseg.ops import resize
 from ..builder import BACKBONES
 from ..utils.inverted_residual import InvertedResidual
 

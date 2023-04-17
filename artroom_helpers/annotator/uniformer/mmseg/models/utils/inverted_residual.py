@@ -1,4 +1,4 @@
-from annotator.uniformer.mmcv.cnn import ConvModule
+from artroom_helpers.annotator.uniformer.mmcv.cnn import ConvModule
 from torch import nn
 from torch.utils import checkpoint as cp
 

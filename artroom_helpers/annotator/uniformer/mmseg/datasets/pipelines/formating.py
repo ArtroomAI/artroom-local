@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import annotator.uniformer.mmcv as mmcv
 import numpy as np
 import torch
-from annotator.uniformer.mmcv.parallel import DataContainer as DC
+from artroom_helpers.annotator.uniformer.mmcv.parallel import DataContainer as DC
 
 from ..builder import PIPELINES
 

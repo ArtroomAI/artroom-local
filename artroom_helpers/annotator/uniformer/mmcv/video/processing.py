@@ -4,7 +4,7 @@ import os.path as osp
 import subprocess
 import tempfile
 
-from annotator.uniformer.mmcv.utils import requires_executable
+from artroom_helpers.annotator.uniformer.mmcv.utils import requires_executable
 
 
 @requires_executable('ffmpeg')

@@ -1,6 +1,6 @@
 import annotator.uniformer.mmcv as mmcv
 import numpy as np
-from annotator.uniformer.mmcv.utils import deprecated_api_warning, is_tuple_of
+from artroom_helpers.annotator.uniformer.mmcv.utils import deprecated_api_warning, is_tuple_of
 from numpy import random
 
 from ..builder import PIPELINES

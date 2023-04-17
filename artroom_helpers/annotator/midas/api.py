@@ -11,15 +11,6 @@ from .midas.midas_net import MidasNet
 from .midas.midas_net_custom import MidasNet_small
 from .midas.transforms import Resize, NormalizeImage, PrepareForNet
 
-annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
-
-ISL_PATHS = {
-    "dpt_large": os.path.join(annotator_ckpts_path, "dpt_large-midas-2f21e586.pt"),
-    "dpt_hybrid": os.path.join(annotator_ckpts_path, "dpt_hybrid-midas-501f0c75.pt"),
-    "midas_v21": "",
-    "midas_v21_small": "",
-}
-
 remote_model_path = "https://huggingface.co/lllyasviel/ControlNet/resolve/main/annotator/ckpts/dpt_hybrid-midas-501f0c75.pt"
 
 
@@ -74,7 +65,14 @@ def load_midas_transform(model_type):
     return transform
 
 
-def load_model(model_type):
+def load_model(model_type, annotator_ckpts_path):
+    ISL_PATHS = {
+    "dpt_large": os.path.join(annotator_ckpts_path, "dpt_large-midas-2f21e586.pt"),
+    "dpt_hybrid": os.path.join(annotator_ckpts_path, "dpt_hybrid-midas-501f0c75.pt"),
+    "midas_v21": "",
+    "midas_v21_small": "",
+    }
+    
     # https://github.com/isl-org/MiDaS/blob/master/run.py
     # load network
     model_path = ISL_PATHS[model_type]
@@ -155,10 +153,10 @@ class MiDaSInference(nn.Module):
         "midas_v21_small",
     ]
 
-    def __init__(self, model_type):
+    def __init__(self, model_type, annotator_ckpts_path):
         super().__init__()
         assert (model_type in self.MODEL_TYPES_ISL)
-        model, _ = load_model(model_type)
+        model, _ = load_model(model_type, annotator_ckpts_path)
         self.model = model
         self.model.train = disabled_train
 

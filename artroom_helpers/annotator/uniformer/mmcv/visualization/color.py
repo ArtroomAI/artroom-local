@@ -3,7 +3,7 @@ from enum import Enum
 
 import numpy as np
 
-from annotator.uniformer.mmcv.utils import is_str
+from artroom_helpers.annotator.uniformer.mmcv.utils import is_str
 
 
 class Color(Enum):

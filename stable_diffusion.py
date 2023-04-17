@@ -9,6 +9,7 @@ import json
 import math
 import os
 import sys
+from glob import glob
 
 import numpy as np
 
@@ -22,17 +23,18 @@ from contextlib import nullcontext
 from PIL import Image, ImageOps
 from safetensors.torch import load_file
 
-from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, \
-    image_grid
+sys.path.append("artroom_helpers/modules")
+sys.path.append("artroom_helpers/annotator")
+sys.path.append("sd_modules/optimizedSD")
+
+import artroom_helpers
+from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
 from artroom_helpers.toast_status import toast_status
 
-sys.path.append("artroom_helpers/modules")
-
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
-from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-    apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff, deinit_cnet_stuff
 from artroom_helpers.modules.cldm.model import create_model
 from artroom_helpers import support, inpainting
 from artroom_helpers.prompt_parsing import weights_handling
@@ -41,7 +43,6 @@ from artroom_helpers.modules import HN
 
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
 
-sys.path.append("sd_modules/optimizedSD")
 from artroom_helpers.modules.cldm.hack import hack_everything
 
 logging.set_verbosity_error()
@@ -94,21 +95,7 @@ class StableDiffusion:
         if controlnet_mode is not None:
             image = HWC3(np.array(image))
             if not use_preprocessed_controlnet:
-                match controlnet_mode:
-                    case "canny":
-                        image = apply_canny(image)
-                    case "pose":
-                        image = apply_pose(image)
-                    case "depth":
-                        image = apply_depth(image)
-                    case "normal":
-                        image = apply_normal(image)
-                    case "scribble":
-                        image = apply_scribble(image)
-                    case "hed":
-                        image = apply_hed(image)
-                    case _:
-                        print("Unknown control mode:", controlnet_mode)
+                image = apply_controlnet(image, controlnet_mode)
 
             control = torch.from_numpy(image.copy()).float().cuda() / 255.0
             control = torch.stack([control for _ in range(1)], dim=0)
@@ -220,8 +207,12 @@ class StableDiffusion:
                 self.deinject_controlnet()
                 self.control_model = None
             if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
-                self.inject_controlnet_new(controlnet_path,
-                                           existing=(self.control_model is not None and self.ckpt == ckpt))
+                try:
+                    self.inject_controlnet_new(controlnet_path,
+                                            existing=(self.control_model is not None and self.ckpt == ckpt))
+                except:
+                    print(f"Loading controlnet failed, attempting old version")
+                    self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
         except Exception as e:
             print(f"Controlnet Failed to load {e}")
             self.socketio.emit('status', toast_status(title=f"Controlnet Failed to load {e}", status="error"))
@@ -293,8 +284,7 @@ class StableDiffusion:
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
             input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
-                                  'control_model' not in k}
+            control_model_dict = {k if k.startswith('control_model.') else f'control_model.{k}': v for k, v in controlnet_dict.items()}
             input_state_dict.update(control_model_dict)
             del control_model_dict
 
@@ -637,7 +627,7 @@ class StableDiffusion:
             # x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
             self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(x)})
 
-        if self.show_intermediates and current_step % 5 == 0:  # every 5 steps
+        if self.show_intermediates and current_step % 1 == 0:  # every step
             threading.Thread(target=send_intermediates, args=(x,)).start()
 
     def interrupt(self):
@@ -831,7 +821,23 @@ class StableDiffusion:
                         print("Black square detected, repeating on full precision")
                         self.model.to(torch.float32)
                         self.modelFS.to(torch.float32)
-
+                        gen_kwargs = {
+                            "S": steps,
+                            "conditioning": c,
+                            "x0": x0,
+                            "S_ddim_steps": ddim_steps,
+                            "unconditional_guidance_scale": cfg_scale,
+                            "txt_scale": txt_cfg_scale,
+                            "unconditional_conditioning": uc,
+                            "eta": ddim_eta,
+                            "sampler": sampler,
+                            "shape": shape,
+                            "batch_size": batch_size,
+                            "seed": seed,
+                            "mask": mask,
+                            "x_T": x_T,
+                            "callback": self.callback_fn,
+                            "mode": mode}
                         gen_kwargs["conditioning"] = gen_kwargs["conditioning"].to(torch.float32)
                         gen_kwargs["x0"] = x0.to(torch.float32)
 
@@ -1083,30 +1089,21 @@ class StableDiffusion:
         if len(init_image_str) == 0:
             controlnet = 'none'
 
-        controlnet_ckpts = {
-            "canny": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_cannyV10.safetensors"),
-            "depth": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_depthV10.safetensors"),
-            "normal": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_normalV10.safetensors"),
-            "pose": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_openposeV10.safetensors"),
-            "scribble": os.path.join(self.models_dir, "ControlNet",
-                                     "controlnetPreTrained_scribbleV10.safetensors"),
-            "hed": os.path.join(self.models_dir, "ControlNet", "controlnetPreTrained_hedV10.safetensors"),
-            "None": None,
-            "none": None
-        }
-        controlnet_ckpts_old = {
-            "canny": os.path.join(self.models_dir, "ControlNet", "control_sd15_canny.pth"),
-            "depth": os.path.join(self.models_dir, "ControlNet", "control_sd15_depth.pth"),
-            "normal": os.path.join(self.models_dir, "ControlNet", "control_sd15_normal.pth"),
-            "pose": os.path.join(self.models_dir, "ControlNet", "control_sd15_openpose.pth"),
-            "scribble": os.path.join(self.models_dir, "ControlNet", "control_sd15_scribble.pth"),
-            "hed": os.path.join(self.models_dir, "ControlNet", "control_sd15_hed.pth"),
-            "None": None,
-            "none": None
-        }
+        def get_contronet_path(controlnet):
+            controlnet_folder = os.path.join(self.models_dir, "ControlNet")
 
-        controlnet_path = controlnet_ckpts[controlnet]
-        old_cnet_path = controlnet_ckpts_old[controlnet]
+            # Search for files with the specified string in their base filename in the controlnet_folder
+            matching_files = glob(os.path.join(controlnet_folder, f"*{controlnet}*"))
+            if matching_files:
+                return matching_files[0]
+            else:
+                print("Controlnet not found")
+                return None
+
+        if controlnet.lower() != 'none':
+            controlnet_path = get_contronet_path(controlnet)
+        else:
+            controlnet_path = None
 
         if controlnet_path is None:
             deinit_cnet_stuff()
@@ -1119,7 +1116,7 @@ class StableDiffusion:
                 controlnet_path = None
             else:
                 print(f"Using controlnet {controlnet}")
-                init_cnet_stuff(controlnet)
+                init_cnet_stuff(controlnet, self.models_dir)
 
         self.running = True
 
@@ -1159,9 +1156,8 @@ class StableDiffusion:
 
         ddim_steps = int(steps / strength)
 
-        if not self.load_ckpt(ckpt, speed, vae, loras, controlnet_path, clip_skip):
-            print(f"Loading new controlnet failed, attempting old")
-            self.load_ckpt(ckpt, speed, vae, loras, old_cnet_path)
+        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path, clip_skip)
+
         if not self.model:
             print("Setting up model failed")
             return 'Failure'

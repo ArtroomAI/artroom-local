@@ -11,13 +11,12 @@ from torchvision import transforms
 from . import util
 from .model import bodypose_model
 
-
 class Body(object):
     def __init__(self, model_path):
         self.model = bodypose_model()
         if torch.cuda.is_available():
             self.model = self.model.cuda()
-            # print('cuda')
+            print('cuda')
         model_dict = util.transfer(self.model, torch.load(model_path))
         self.model.load_state_dict(model_dict)
         self.model.eval()
@@ -36,7 +35,7 @@ class Body(object):
 
         for m in range(len(multiplier)):
             scale = multiplier[m]
-            imageToTest = cv2.resize(oriImg, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+            imageToTest = util.smart_resize_k(oriImg, fx=scale, fy=scale)
             imageToTest_padded, pad = util.padRightDownCorner(imageToTest, stride, padValue)
             im = np.transpose(np.float32(imageToTest_padded[:, :, :, np.newaxis]), (3, 2, 0, 1)) / 256 - 0.5
             im = np.ascontiguousarray(im)
@@ -53,15 +52,15 @@ class Body(object):
             # extract outputs, resize, and remove padding
             # heatmap = np.transpose(np.squeeze(net.blobs[output_blobs.keys()[1]].data), (1, 2, 0))  # output 1 is heatmaps
             heatmap = np.transpose(np.squeeze(Mconv7_stage6_L2), (1, 2, 0))  # output 1 is heatmaps
-            heatmap = cv2.resize(heatmap, (0, 0), fx=stride, fy=stride, interpolation=cv2.INTER_CUBIC)
+            heatmap = util.smart_resize_k(heatmap, fx=stride, fy=stride)
             heatmap = heatmap[:imageToTest_padded.shape[0] - pad[2], :imageToTest_padded.shape[1] - pad[3], :]
-            heatmap = cv2.resize(heatmap, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+            heatmap = util.smart_resize(heatmap, (oriImg.shape[0], oriImg.shape[1]))
 
             # paf = np.transpose(np.squeeze(net.blobs[output_blobs.keys()[0]].data), (1, 2, 0))  # output 0 is PAFs
             paf = np.transpose(np.squeeze(Mconv7_stage6_L1), (1, 2, 0))  # output 0 is PAFs
-            paf = cv2.resize(paf, (0, 0), fx=stride, fy=stride, interpolation=cv2.INTER_CUBIC)
+            paf = util.smart_resize_k(paf, fx=stride, fy=stride)
             paf = paf[:imageToTest_padded.shape[0] - pad[2], :imageToTest_padded.shape[1] - pad[3], :]
-            paf = cv2.resize(paf, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+            paf = util.smart_resize(paf, (oriImg.shape[0], oriImg.shape[1]))
 
             heatmap_avg += heatmap_avg + heatmap / len(multiplier)
             paf_avg += + paf / len(multiplier)
@@ -83,8 +82,7 @@ class Body(object):
             map_down[:, :-1] = one_heatmap[:, 1:]
 
             peaks_binary = np.logical_and.reduce(
-                (one_heatmap >= map_left, one_heatmap >= map_right, one_heatmap >= map_up, one_heatmap >= map_down,
-                 one_heatmap > thre1))
+                (one_heatmap >= map_left, one_heatmap >= map_right, one_heatmap >= map_up, one_heatmap >= map_down, one_heatmap > thre1))
             peaks = list(zip(np.nonzero(peaks_binary)[1], np.nonzero(peaks_binary)[0]))  # note reverse
             peaks_with_score = [x + (map_ori[x[1], x[0]],) for x in peaks]
             peak_id = range(peak_counter, peak_counter + len(peaks))
@@ -209,7 +207,6 @@ class Body(object):
         # subset: n*20 array, 0-17 is the index in candidate, 18 is the total score, 19 is the total parts
         # candidate: x, y, score, id
         return candidate, subset
-
 
 if __name__ == "__main__":
     body_estimation = Body('../model/body_pose_model.pth')

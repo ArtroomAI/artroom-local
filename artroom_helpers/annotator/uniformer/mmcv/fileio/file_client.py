@@ -12,8 +12,8 @@ from typing import Iterable, Iterator, Optional, Tuple, Union
 from urllib.request import urlopen
 
 import annotator.uniformer.mmcv as mmcv
-from annotator.uniformer.mmcv.utils.misc import has_method
-from annotator.uniformer.mmcv.utils.path import is_filepath
+from artroom_helpers.annotator.uniformer.mmcv.utils.misc import has_method
+from artroom_helpers.annotator.uniformer.mmcv.utils.path import is_filepath
 
 
 class BaseStorageBackend(metaclass=ABCMeta):
