@@ -267,7 +267,7 @@ class MidasCore(nn.Module):
 
             # print("Input size to Midascore", x.shape)
             rel_depth = self.core(x)
-            # print("Output from midas shape", rel_depth.shape)
+            # print("Output from artroom_helpers.annotator.midas.midas shape", rel_depth.shape)
             if not self.fetch_features:
                 return rel_depth
         out = [self.core_out[k] for k in self.layer_names]

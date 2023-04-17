@@ -284,8 +284,7 @@ class StableDiffusion:
             input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
             input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
 
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
-                                  'control_model' not in k}
+            control_model_dict = {k if k.startswith('control_model.') else f'control_model.{k}': v for k, v in controlnet_dict.items()}
             input_state_dict.update(control_model_dict)
             del control_model_dict
 
@@ -822,7 +821,23 @@ class StableDiffusion:
                         print("Black square detected, repeating on full precision")
                         self.model.to(torch.float32)
                         self.modelFS.to(torch.float32)
-
+                        gen_kwargs = {
+                            "S": steps,
+                            "conditioning": c,
+                            "x0": x0,
+                            "S_ddim_steps": ddim_steps,
+                            "unconditional_guidance_scale": cfg_scale,
+                            "txt_scale": txt_cfg_scale,
+                            "unconditional_conditioning": uc,
+                            "eta": ddim_eta,
+                            "sampler": sampler,
+                            "shape": shape,
+                            "batch_size": batch_size,
+                            "seed": seed,
+                            "mask": mask,
+                            "x_T": x_T,
+                            "callback": self.callback_fn,
+                            "mode": mode}
                         gen_kwargs["conditioning"] = gen_kwargs["conditioning"].to(torch.float32)
                         gen_kwargs["x0"] = x0.to(torch.float32)
 

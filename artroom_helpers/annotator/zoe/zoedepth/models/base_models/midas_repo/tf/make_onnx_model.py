@@ -35,8 +35,8 @@ def restore_file():
 
 modify_file()
 
-from midas.midas_net import MidasNet
-from midas.transforms import Resize, NormalizeImage, PrepareForNet
+from artroom_helpers.annotator.midas.midas.midas_net import MidasNet
+from artroom_helpers.annotator.midas.midas.transforms import Resize, NormalizeImage, PrepareForNet
 
 restore_file()
 

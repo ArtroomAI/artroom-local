@@ -6,15 +6,23 @@ import torch.cuda
 
 from artroom_helpers.annotator.hed import HEDdetector, nms
 from artroom_helpers.annotator.midas import MidasDetector
+from artroom_helpers.annotator.zoe import ZoeDetector
 from artroom_helpers.annotator.openpose import OpenposeDetector
 from artroom_helpers.annotator.normalbae import NormalBaeDetector
 from artroom_helpers.annotator.pidinet import PidiNetDetector
+from artroom_helpers.annotator.mlsd import MLSDdetector
+from artroom_helpers.annotator.lineart import LineartDetector
+from artroom_helpers.annotator.lineart_anime import LineartAnimeDetector
 
 apply_openpose = None
 apply_midas = None
+apply_zoe = None
+apply_pidi = None 
 apply_hed_d = None
 apply_normalbae_d = None
-apply_pidi = None 
+apply_mlsd_d = None
+apply_lineart_d = None 
+apply_lineart_anime_d = None
 
 def apply_controlnet(image, controlnet_mode):
     match controlnet_mode:
@@ -32,9 +40,11 @@ def apply_controlnet(image, controlnet_mode):
         case "hed":
             image = apply_hed(image)
         case "ip2p":
-            image = image #I don't think the image gets changed?
-        # case "softedge":
-        #     image = 
+            image = HWC3(image) #I don't think the image gets changed?
+        case "softedge":
+            image = apply_softedge(image)
+        case "mlsd":
+            image = apply_mlsd(image)
         # case "inpaint":
         #     image = 
         # case "lineart":
@@ -43,8 +53,7 @@ def apply_controlnet(image, controlnet_mode):
         #     image = 
         # case "ip2p":
         #     image = 
-        # case "mlsd":
-        #     image = 
+
         # case "tile":
         #     image = 
         # case "shuffle":
@@ -54,7 +63,8 @@ def apply_controlnet(image, controlnet_mode):
     return image 
 
 def init_cnet_stuff(controlnet_mode, models_dir):
-    global apply_openpose, apply_midas, apply_hed_d, apply_normalbae_d, apply_pidi
+    global apply_openpose, apply_midas, apply_hed_d, apply_normalbae_d, apply_pidi, apply_zoe, apply_mlsd_d, apply_lineart_d, apply_lineart_anime_d
+
     annotator_ckpts_path = os.path.join(models_dir, "ControlNet", "ControlNetConfigs")
 
     match controlnet_mode:
@@ -64,6 +74,8 @@ def init_cnet_stuff(controlnet_mode, models_dir):
         case "depth":
             if apply_midas is None:
                 apply_midas = MidasDetector(annotator_ckpts_path)
+            # if apply_zoe is None:
+            #     apply_zoe = ZoeDetector(annotator_ckpts_path)
         case "hed":
             if apply_hed_d is None:
                 apply_hed_d = HEDdetector(annotator_ckpts_path)
@@ -75,6 +87,15 @@ def init_cnet_stuff(controlnet_mode, models_dir):
         case "softedge":
             if apply_pidi is None:
                 apply_pidi = PidiNetDetector(annotator_ckpts_path)
+        case "mlsd":
+            if apply_mlsd_d is None:
+                apply_mlsd_d = MLSDdetector(annotator_ckpts_path)
+        case "lineart":
+            if apply_lineart_d is None:
+                apply_lineart_d = LineartDetector(annotator_ckpts_path)
+        case "lineart_anime":
+            if apply_lineart_anime_d is None:
+                apply_lineart_anime_d = LineartAnimeDetector(annotator_ckpts_path)
 
 def deinit_cnet_stuff():
     global apply_openpose, apply_midas, apply_hed_d
@@ -91,13 +112,16 @@ def apply_canny(img, low_thr=100, high_thr=200):
 
 
 def apply_pose(img):
-    img, _ = apply_openpose(img, True) #True passes full openpose
+    img = apply_openpose(img, True) #True passes full openpose
     img = HWC3(img)
     return img
 
 
 def apply_depth(img):
-    img, _ = apply_midas(img)
+    if apply_midas is not None:
+       img, _ = apply_midas(img)
+    else:
+        img, _ = apply_zoe(img)
     img = HWC3(img)
     return img
 
@@ -124,6 +148,27 @@ def apply_scribble(img):
     detected_map[np.min(img, axis=2) < 127] = 255
     return detected_map
 
+def apply_softedge(img):
+    img= apply_pidi(img)
+    img = HWC3(img)
+    return img
+
+def apply_mlsd(img, value_threshold = 0.1, distance_threshold = 0.1):
+    img= apply_mlsd_d(img, value_threshold, distance_threshold)
+    img = HWC3(img)
+    return img
+
+
+def apply_lineart(img):
+    img= apply_mlsd_d(img)
+    img = HWC3(img)
+    return img
+
+
+def apply_mlsd(img):
+    img= apply_mlsd_d(img)
+    img = HWC3(img)
+    return img
 
 def HWC3(x):
     assert x.dtype == np.uint8

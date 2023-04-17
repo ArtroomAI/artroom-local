@@ -1,10 +1,10 @@
 import cv2
 import torch
 
-from midas.dpt_depth import DPTDepthModel
-from midas.midas_net import MidasNet
-from midas.midas_net_custom import MidasNet_small
-from midas.transforms import Resize, NormalizeImage, PrepareForNet
+from artroom_helpers.annotator.midas.midas.dpt_depth import DPTDepthModel
+from artroom_helpers.annotator.midas.midas.midas_net import MidasNet
+from artroom_helpers.annotator.midas.midas.midas_net_custom import MidasNet_small
+from artroom_helpers.annotator.midas.midas.transforms import Resize, NormalizeImage, PrepareForNet
 
 from torchvision.transforms import Compose
 
