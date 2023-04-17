@@ -819,30 +819,32 @@ class StableDiffusion:
 
                     if x_samples_ddim.sum().isnan():  # black square fix
                         print("Black square detected, repeating on full precision")
-                        self.model.to(torch.float32)
-                        self.modelFS.to(torch.float32)
-                        gen_kwargs = {
-                            "S": steps,
-                            "conditioning": c,
-                            "x0": x0,
-                            "S_ddim_steps": ddim_steps,
-                            "unconditional_guidance_scale": cfg_scale,
-                            "txt_scale": txt_cfg_scale,
-                            "unconditional_conditioning": uc,
-                            "eta": ddim_eta,
-                            "sampler": sampler,
-                            "shape": shape,
-                            "batch_size": batch_size,
-                            "seed": seed,
-                            "mask": mask,
-                            "x_T": x_T,
-                            "callback": self.callback_fn,
-                            "mode": mode}
-                        gen_kwargs["conditioning"] = gen_kwargs["conditioning"].to(torch.float32)
-                        gen_kwargs["x0"] = x0.to(torch.float32)
+                        try:
+                            self.model.to(torch.float32)
+                            self.modelFS.to(torch.float32)
+                            gen_kwargs = {
+                                "S": steps,
+                                "conditioning": c.to(torch.float32),
+                                "x0": x0,
+                                "S_ddim_steps": ddim_steps,
+                                "unconditional_guidance_scale": cfg_scale,
+                                "txt_scale": txt_cfg_scale,
+                                "unconditional_conditioning": uc,
+                                "eta": ddim_eta,
+                                "sampler": sampler,
+                                "shape": shape,
+                                "batch_size": batch_size,
+                                "seed": seed,
+                                "mask": mask,
+                                "x_T": x_T,
+                                "callback": self.callback_fn,
+                                "mode": mode}
+                            gen_kwargs["x0"] = x0.to(torch.float32)
 
-                        x0 = self.model.sample(**gen_kwargs)
-                        x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
+                            x0 = self.model.sample(**gen_kwargs)
+                            x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
+                        except:
+                            pass
                         if self.can_use_half:
                             self.modelFS.half()
                             self.model.half()
