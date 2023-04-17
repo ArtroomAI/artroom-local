@@ -627,7 +627,7 @@ class StableDiffusion:
             # x.save(os.path.join(self.intermediate_path, f'{current_step:04}.png'), "PNG")
             self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(x)})
 
-        if self.show_intermediates and current_step % 5 == 0:  # every 5 steps
+        if self.show_intermediates and current_step % 1 == 0:  # every step
             threading.Thread(target=send_intermediates, args=(x,)).start()
 
     def interrupt(self):
