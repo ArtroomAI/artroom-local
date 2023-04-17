@@ -49,9 +49,9 @@ const SelectDisks = () => {
     }, []);
 
     return <Box w="10%">
-        <Select onChange={(e) => setImageViewPath(e.target.value)} value={imageViewPath.split(path.sep)[0]}>
+        <Select onChange={(e) => setImageViewPath(e.target.value)} value={`${imageViewPath.split(path.sep)[0]}\\`}>
             { disks.map((disk) => {
-                return <option key={disk} value={disk}>{disk}</option>
+                return <option key={disk} value={`${disk}\\`}>{disk}</option>
             }) }
         </Select>
     </Box>
@@ -174,7 +174,7 @@ function ImageViewer () {
     const setImage = (image_path: string) => () => {
         window.api.getImageFromPath(image_path).then(result => {
             setImageModalB64(result.b64);
-            setImageModalMetadata(JSON.parse(result.metadata));
+            setImageModalMetadata(JSON.parse(result.metadata ?? "{}"));
             imageSetPath(image_path);
             setShowImageModal(true);
         })
