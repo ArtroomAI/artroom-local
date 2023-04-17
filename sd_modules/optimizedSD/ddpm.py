@@ -488,17 +488,17 @@ class CondStage(DDPM):
             model = instantiate_from_config(config)
             self.cond_stage_model = model
 
-    def get_learned_conditioning(self, c):
+    def get_learned_conditioning(self, c, clip_skip=None):
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
-                c = self.cond_stage_model.encode(c)
+                c = self.cond_stage_model.encode(c, clip_skip=clip_skip)
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
             else:
-                c = self.cond_stage_model(c)
+                c = self.cond_stage_model(c, clip_skip=clip_skip)
         else:
             assert hasattr(self.cond_stage_model, self.cond_stage_forward)
-            c = getattr(self.cond_stage_model, self.cond_stage_forward)(c)
+            c = getattr(self.cond_stage_model, self.cond_stage_forward)(c, clip_skip=clip_skip)
         return c
 
 
