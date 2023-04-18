@@ -11,7 +11,7 @@ export const imageModalMetadataState = atom<ExifDataType>({
         text_prompts: '',
         negative_prompts: '',
         width: 0,
-        heigth: 0,
+        height: 0,
         seed: 0,
         sampler: '',
         steps: 0,

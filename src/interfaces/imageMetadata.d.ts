@@ -1,6 +1,6 @@
 interface ExifDataType {
     width: number;
-    heigth: number;
+    height: number;
     cfg_scale: number;
     ckpt: string;
     controlnet: null | string;

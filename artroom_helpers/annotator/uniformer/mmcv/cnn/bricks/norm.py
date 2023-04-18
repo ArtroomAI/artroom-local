@@ -3,8 +3,8 @@ import inspect
 
 import torch.nn as nn
 
-from annotator.uniformer.mmcv.utils import is_tuple_of
-from annotator.uniformer.mmcv.utils.parrots_wrapper import SyncBatchNorm, _BatchNorm, _InstanceNorm
+from artroom_helpers.annotator.uniformer.mmcv.utils import is_tuple_of
+from artroom_helpers.annotator.uniformer.mmcv.utils.parrots_wrapper import SyncBatchNorm, _BatchNorm, _InstanceNorm
 from .registry import NORM_LAYERS
 
 NORM_LAYERS.register_module('BN', module=nn.BatchNorm2d)

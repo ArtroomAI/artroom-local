@@ -1,5 +1,5 @@
 import torch
-from annotator.uniformer.mmcv.cnn import NonLocal2d
+from artroom_helpers.annotator.uniformer.mmcv.cnn import NonLocal2d
 
 from ..builder import HEADS
 from .fcn_head import FCNHead

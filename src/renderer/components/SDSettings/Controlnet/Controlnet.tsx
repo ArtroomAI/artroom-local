@@ -65,6 +65,31 @@ const Controlnet = () => {
                         <option value="scribble">
                             Scribble
                         </option>
+
+                        <option value="ip2p">
+                            Instruct Pix2Pix
+                        </option>
+                        <option value="softedge">
+                            Soft Edge
+                        </option>
+                        <option value="inpaint">
+                            Inpaint
+                        </option>
+                        <option value="lineart">
+                            Lineart
+                        </option>
+                        <option value="lineart_anime">
+                            Lineart Anime
+                        </option>
+                        <option value="mlsd">
+                            MLSD
+                        </option>
+                        <option value="tile">
+                            Tile
+                        </option>
+                        <option value="shuffle">
+                            Shuffle
+                        </option>
                     </Select>
                     <Button
                         variant='outline'

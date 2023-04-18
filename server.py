@@ -62,7 +62,7 @@ try:
     def your_callback_function(text: str):
         socketio.emit('messagesss', text)
         if 'OutOfMemoryError' in text:
-            socketio.emit('status', toast_status(title="Cuda out of memory", status="error"))
+            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller image or change speed in settings", status="error"))
         elif 'Decoding image:' in text:
             current_num, total_num, current_step, total_steps = SD.get_steps()
             match = re.search(r'\[(.*?)\]', text)
@@ -233,39 +233,43 @@ try:
                 SD.running = False
                 socketio.emit('job_done')
                 return
-            #try:
-            print("Starting gen...")
-            SD.generate(
-                text_prompts=data['text_prompts'],
-                negative_prompts=data['negative_prompts'],
-                init_image_str=init_image_str,
-                strength=data['strength'],
-                mask_b64=mask_b64,
-                invert=data['invert'],
-                n_iter=int(data['n_iter']),
-                steps=int(data['steps']),
-                H=int(data['height']),
-                W=int(data['width']),
-                seed=int(data['seed']),
-                sampler=data['sampler'],
-                cfg_scale=float(data['cfg_scale']),
-                clip_skip=max(int(data['clip_skip']),1),
-                palette_fix=data['palette_fix'],
-                ckpt=ckpt_path,
-                vae=vae_path,
-                loras=lora_paths,
-                image_save_path=data['image_save_path'],
-                speed=data['speed'],
-                skip_grid=not data['save_grid'],
-                long_save_path=data['long_save_path'],
-                highres_fix=data['highres_fix'],
-                show_intermediates=data['show_intermediates'],
-                controlnet=data['controlnet'],
-                use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
-                remove_background=data['remove_background'],
-                use_removed_background=data['use_removed_background'],
-                models_dir=data['models_dir'],
-            )
+            try:
+                print("Starting gen...")
+                print(data)
+
+                SD.generate(
+                    text_prompts=data['text_prompts'],
+                    negative_prompts=data['negative_prompts'],
+                    init_image_str=init_image_str,
+                    strength=data['strength'],
+                    mask_b64=mask_b64,
+                    invert=data['invert'],
+                    n_iter=int(data['n_iter']),
+                    steps=int(data['steps']),
+                    H=int(data['height']),
+                    W=int(data['width']),
+                    seed=int(data['seed']),
+                    sampler=data['sampler'],
+                    cfg_scale=float(data['cfg_scale']),
+                    clip_skip=max(int(data['clip_skip']),1),
+                    palette_fix=data['palette_fix'],
+                    ckpt=ckpt_path,
+                    vae=vae_path,
+                    loras=lora_paths,
+                    image_save_path=data['image_save_path'],
+                    speed=data['speed'],
+                    skip_grid=not data['save_grid'],
+                    long_save_path=data['long_save_path'],
+                    highres_fix=data['highres_fix'],
+                    show_intermediates=data['show_intermediates'],
+                    controlnet=data['controlnet'],
+                    use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
+                    remove_background=data['remove_background'],
+                    use_removed_background=data['use_removed_background'],
+                    models_dir=data['models_dir'],
+                )
+            except Exception as e:
+                print(f"Generation failed! {e}")
             socketio.emit('job_done')
 
     @socketio.on('stop_queue')

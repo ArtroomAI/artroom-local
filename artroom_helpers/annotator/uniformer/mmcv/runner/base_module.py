@@ -7,8 +7,8 @@ from logging import FileHandler
 
 import torch.nn as nn
 
-from annotator.uniformer.mmcv.runner.dist_utils import master_only
-from annotator.uniformer.mmcv.utils.logging import get_logger, logger_initialized, print_log
+from artroom_helpers.annotator.uniformer.mmcv.runner.dist_utils import master_only
+from artroom_helpers.annotator.uniformer.mmcv.utils.logging import get_logger, logger_initialized, print_log
 
 
 class BaseModule(nn.Module, metaclass=ABCMeta):

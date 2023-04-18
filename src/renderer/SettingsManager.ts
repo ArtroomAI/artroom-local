@@ -277,6 +277,32 @@ export const queueSettingsSelector = selector<QueueType>({
     }
 });
 
+
+// @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
+export const parseLoras = (loras: Lora[]) => {
+    return loras.map(el => {
+        return { name: el.name ?? path.basename((el as any).path), weight: el.weight };
+    });
+}
+// @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
+export const parseWidth = (exif: Partial<ExifDataType>) => {
+    if('W' in exif) {
+        return exif.W;
+    } else if ('width' in exif) {
+        return exif.width;
+    }
+    return "Error";
+}
+// @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
+export const parseHeigth = (exif: Partial<ExifDataType>) => {
+    if('H' in exif) {
+        return exif.H;
+    } else if ('height' in exif) {
+        return exif.height;
+    }
+    return "Error";
+}
+
 // SET ONLY
 export const exifDataSelector = selector<Partial<ExifDataType>>({
     key: "exif.settings",
@@ -286,29 +312,13 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
     set: ({ set }, queue) => {
         const exif = queue as Partial<ExifDataType>;
 
-        // @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
-        if('W' in exif) {
-            set(widthState, exif.W);
-        } else if ('width' in exif) {
-            set(widthState, exif.width);
-        }
-
-        if('H' in exif) {
-            set(heightState, exif.H);
-        } else if ('height' in exif) {
-            set(heightState, exif.height);
-        }
+        set(widthState, parseWidth(exif));
+        set(heightState, parseHeigth(exif));
 
         set(cfgState, `${exif.cfg_scale}`);
         set(controlnetState, exif.controlnet ?? "none");
-        if('loras' in exif) {
-            set(loraState, exif.loras.map(el => {
-                // @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
-                return { name: el.name ?? path.basename((el as any).path), weight: el.weight };
-            }));
-        } else {
-            set(loraState, []);
-        }
+        set(loraState, parseLoras(exif.loras));
+
         set(negativePromptsState, exif.negative_prompts);
 
         set(samplerState, exif.sampler);

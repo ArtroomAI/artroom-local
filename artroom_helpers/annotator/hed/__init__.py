@@ -4,8 +4,6 @@ import os
 import torch
 from einops import rearrange
 
-annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
-
 
 class Network(torch.nn.Module):
     def __init__(self, model_path):
@@ -102,7 +100,7 @@ class Network(torch.nn.Module):
 
 
 class HEDdetector:
-    def __init__(self):
+    def __init__(self, annotator_ckpts_path):
         remote_model_path = "https://huggingface.co/lllyasviel/ControlNet/resolve/main/annotator/ckpts/network-bsds500.pth"
         modelpath = os.path.join(annotator_ckpts_path, "network-bsds500.pth")
         if not os.path.exists(modelpath):

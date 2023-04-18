@@ -49,7 +49,7 @@ def collect_env():
         for name, device_ids in devices.items():
             env_info['GPU ' + ','.join(device_ids)] = name
 
-        from annotator.uniformer.mmcv.utils.parrots_wrapper import _get_cuda_home
+        from artroom_helpers.annotator.uniformer.mmcv.utils.parrots_wrapper import _get_cuda_home
         CUDA_HOME = _get_cuda_home()
         env_info['CUDA_HOME'] = CUDA_HOME
 
@@ -84,7 +84,7 @@ def collect_env():
     env_info['MMCV'] = mmcv.__version__
 
     try:
-        from annotator.uniformer.mmcv.ops import get_compiler_version, get_compiling_cuda_version
+        from artroom_helpers.annotator.uniformer.mmcv.ops import get_compiler_version, get_compiling_cuda_version
     except ModuleNotFoundError:
         env_info['MMCV Compiler'] = 'n/a'
         env_info['MMCV CUDA Compiler'] = 'n/a'
