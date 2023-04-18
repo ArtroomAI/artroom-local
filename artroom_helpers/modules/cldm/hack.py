@@ -20,7 +20,7 @@ def enable_sliced_attention():
 
 
 def hack_everything(clip_skip=0):
-    ldm.modules.encoders.modules.FrozenCLIPEmbedder.forward = _hacked_clip_forward
+    # ldm.modules.encoders.modules.FrozenCLIPEmbedder.forward = _hacked_clip_forward
     ldm.modules.encoders.modules.FrozenCLIPEmbedder.clip_skip = clip_skip
     print(f'Enabled clip skip of {clip_skip}')
     return
