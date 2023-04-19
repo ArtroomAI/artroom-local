@@ -678,7 +678,7 @@ class StableDiffusion:
             highres_fix_steps=1,
             use_removed_background=False,
             remove_background="none",
-            clip_skip=None
+            clip_skip=1
     ):
 
         for prompts in data:
@@ -690,30 +690,11 @@ class StableDiffusion:
 
                 uc = None
                 if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data, clip_skip=clip_skip)
+                    uc = self.modelCS.get_learned_conditioning(batch_size * [""])
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
-                weighted_prompt = weights_handling(prompts)
-                if type(weighted_prompt) == str:
-                    weighted_prompt = [prompts]
-                print(f"Weighted prompts: {weighted_prompt}")
-                if len(weighted_prompt) > 1:
-                    weights_greater_than_zero = sum([wp[1] - 1 for wp in weighted_prompt if wp[1] > 1]) + 1
-                    weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
-                    c = self.modelCS.get_learned_conditioning(weighted_prompt_joined, clip_skip=clip_skip).to(
-                        self.device)
-                    c /= weights_greater_than_zero
-                    for i in range(len(weighted_prompt)):
-                        weight = weighted_prompt[i][1]
-                        if weight > 1:
-                            c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0],
-                                                                               clip_skip=clip_skip).to(self.device)
-                            c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
-                else:
-                    # For the empty prompt people
-                    if len(prompts.strip()) == 0:
-                        prompts = '-'
-                    c = self.modelCS.get_learned_conditioning(prompts, clip_skip=clip_skip).to(self.device)
+
+                c = self.modelCS.get_learned_conditioning(prompts, clip_skip=clip_skip)
                 shape = [batch_size, C, H // f, W // f]
                 if self.control_model is not None:
                     self.control_model.switch_devices(diffusion_loop=True)
