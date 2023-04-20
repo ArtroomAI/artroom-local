@@ -693,8 +693,8 @@ class StableDiffusion:
                     uc = self.modelCS.get_learned_conditioning(batch_size * [""])
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
+                c = self.modelCS.get_learned_conditioning(batch_size * [prompts], clip_skip=clip_skip)
 
-                c = self.modelCS.get_learned_conditioning(prompts, clip_skip=clip_skip)
                 shape = [batch_size, C, H // f, W // f]
                 if self.control_model is not None:
                     self.control_model.switch_devices(diffusion_loop=True)
