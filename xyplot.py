@@ -80,7 +80,7 @@ payloads = []
 
 def update_payload(payload, key, value):
     if key == "text_prompts" or key == "negative_prompts":
-        payload[key] = payload[key].replace("***",value)
+        payload[key] = payload[key].replace("***", str(x_value)).replace("@@@", str(y_value))
     elif key == "lora":
         value["trigger"] + text_prompts
         payload["text_prompts"] = f'{value["trigger"]}, {payload["text_prompts"]}'

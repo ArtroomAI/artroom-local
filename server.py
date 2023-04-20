@@ -301,6 +301,13 @@ try:
         xy_path = invalid_pattern.sub('', xy_path)
         image_save_path = os.path.join(xyplot_data["xyplots"][0]['image_save_path'], xy_path)
 
+        # Check if the folder exists and create it if it doesn't
+        base_count = 0
+        while os.path.exists(f"{image_save_path}_{base_count:03}"):
+            base_count += 1
+        image_save_path = f"{image_save_path}_{base_count:03}"
+        os.makedirs(image_save_path, exist_ok=True)
+        
         for data in xyplot_data["xyplots"]:
             if not SD.running:
                 try:
@@ -393,7 +400,7 @@ try:
 
         # Save the figure
         fig.tight_layout()
-        plt.savefig(os.path.join(image_save_path, "xyplot.png"))
+        plt.savefig(os.path.join(image_save_path, f"{xy_path}.png"))
 
         return "Finished"
 
