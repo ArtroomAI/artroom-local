@@ -7,6 +7,7 @@ import ldm.modules.attention
 from transformers import logging
 from ldm.modules.attention import default
 
+
 def disable_verbosity():
     logging.set_verbosity_error()
     return
@@ -19,14 +20,15 @@ def enable_sliced_attention():
 
 
 def hack_everything(clip_skip=0):
-    ldm.modules.encoders.modules.FrozenCLIPEmbedder.forward = _hacked_clip_forward
+    # ldm.modules.encoders.modules.FrozenCLIPEmbedder.forward = _hacked_clip_forward
     ldm.modules.encoders.modules.FrozenCLIPEmbedder.clip_skip = clip_skip
     print(f'Enabled clip skip of {clip_skip}')
     return
 
 
 # Written by Lvmin
-def _hacked_clip_forward(self, text):
+def _hacked_clip_forward(self, text, clip_skip=None):
+    clip_skip = self.clip_skip if clip_skip is None else clip_skip
     PAD = self.tokenizer.pad_token_id
     EOS = self.tokenizer.eos_token_id
     BOS = self.tokenizer.bos_token_id
@@ -35,9 +37,9 @@ def _hacked_clip_forward(self, text):
         return self.tokenizer(t, truncation=False, add_special_tokens=False)["input_ids"]
 
     def transformer_encode(t):
-        if self.clip_skip > 1:
+        if clip_skip > 1:
             rt = self.transformer(input_ids=t, output_hidden_states=True)
-            return self.transformer.text_model.final_layer_norm(rt.hidden_states[-self.clip_skip])
+            return self.transformer.text_model.final_layer_norm(rt.hidden_states[-clip_skip])
         else:
             return self.transformer(input_ids=t, output_hidden_states=False).last_hidden_state
 
