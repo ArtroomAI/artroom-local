@@ -690,7 +690,7 @@ class StableDiffusion:
 
                 uc = None
                 if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(batch_size * [""], clip_skip=1)
+                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data, clip_skip=1)
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
                 c = self.modelCS.get_learned_conditioning(batch_size * [prompts], clip_skip=clip_skip)
