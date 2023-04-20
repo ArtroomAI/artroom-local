@@ -15,35 +15,24 @@ import {
 import {
     FaTrashAlt, FaClipboardList, FaQuestionCircle
 } from 'react-icons/fa';
-import { aspectRatioState, heightState, initImageState, widthState } from '../../SettingsManager';
-
-const getImageDimensions = (base64: string) => {
-    return new Promise<{ width: number; height: number }>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-        img.onerror = reject;
-        img.src = base64;
-    });
-};
+import { aspectRatioState, initImageState } from '../../SettingsManager';
+import { getImageDimensions } from '../Utils/getImageDimensions';
 
 const DragDropFile = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [initImagePath, setInitImagePath] = useRecoilState(atom.initImagePathState);
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(atom.aspectRatioSelectionState);
     const [initImage, setInitImage] = useRecoilState(initImageState);
-    const setWidth = useSetRecoilState(widthState);
-    const setHeight = useSetRecoilState(heightState);
     const setAspectRatio = useSetRecoilState(aspectRatioState);
 
     useEffect(() => {
         if (initImagePath) {
             console.log(initImagePath);
             window.api.getImageFromPath(initImagePath).then((result) => {
-                getImageDimensions(result.b64).then((dimensions) => {
+                getImageDimensions(result.b64).then(({ width, height }) => {
                     setInitImage(result.b64);
                     if (aspectRatioSelection === "Init Image") {
-                        setWidth(dimensions.width);
-                        setHeight(dimensions.height);
+                        setAspectRatio(`${width}:${height}`);
                     }
                 });
             });
