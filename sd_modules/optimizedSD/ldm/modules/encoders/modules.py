@@ -29,6 +29,7 @@ class PromptChunk:
         for t, m in zip(self.tokens, self.multipliers):
             if t != 49407:  # nothing
                 s += f"{t}:{m} "
+        s += "; fixes: " + " ".join(self.fixes)
         return s.strip()
 
     def __repr__(self):
@@ -147,7 +148,7 @@ class FrozenCLIPEmbedder_old(AbstractEncoder):
         for param in self.parameters():
             param.requires_grad = False
 
-    def forward(self, text, clip_skip=None):
+    def forward(self, text, clip_skip):
         batch_encoding = self.tokenizer(text, truncation=True, max_length=self.max_length, return_length=True,
                                         return_overflowing_tokens=False, padding="max_length", return_tensors="pt")
         tokens = batch_encoding["input_ids"].to(self.device)
@@ -255,7 +256,6 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
         super().__init__(version=version, device=device, max_length=max_length,
                          freeze=freeze, layer=layer, layer_idx=layer_idx)
 
-        self.clip_skip = 1
         self.chunk_length = 75
         self.comma_padding_backtrack = 20
 
@@ -277,7 +277,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
 
         raise NotImplementedError
 
-    def encode_with_transformers(self, tokens):
+    def encode_with_transformers(self, tokens, clip_skip):
         """
         converts a batch of token ids (in python lists) into a single tensor with numeric respresentation of those tokens;
         All python lists with tokens are assumed to have same length, usually 77.
@@ -402,7 +402,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
 
         return batch_chunks, token_count
 
-    def forward(self, texts, clip_skip=1):
+    def forward(self, texts, clip_skip):
         """
         Accepts an array of texts; Passes texts through transformers network to create a tensor with numerical representation of those texts.
         Returns a tensor with shape of (B, T, C), where B is length of the array; T is length, in tokens, of texts (including padding) - T will
@@ -411,7 +411,6 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
         Webui usually sends just one text at a time through this function - the only time when texts is an array with more than one elemenet
         is when you do prompt editing: "a picture of a [cat:dog:0.4] eating ice cream"
         """
-        self.clip_skip = clip_skip
         batch_chunks, token_count = self.process_texts(texts)
 
         used_embeddings = {}
@@ -424,17 +423,18 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
             tokens = [x.tokens for x in batch_chunk]
             multipliers = [x.multipliers for x in batch_chunk]
             fixes = [x.fixes for x in batch_chunk]
+            self.transformer.text_model.embeddings.token_embedding.fixes = fixes
 
             for fixes in fixes:
                 for position, embedding in fixes:
                     used_embeddings[embedding.name] = embedding
 
-            z = self.process_tokens(tokens, multipliers)
+            z = self.process_tokens(tokens, multipliers, clip_skip=clip_skip)
             zs.append(z)
 
         return torch.hstack(zs)
 
-    def process_tokens(self, remade_batch_tokens, batch_multipliers):
+    def process_tokens(self, remade_batch_tokens, batch_multipliers, clip_skip):
         """
         sends one single prompt chunk to be encoded by transformers neural network.
         remade_batch_tokens is a batch of tokens - a list, where every element is a list of tokens; usually
@@ -450,7 +450,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
                 index = remade_batch_tokens[batch_pos].index(self.id_end)
                 tokens[batch_pos, index + 1:tokens.shape[1]] = self.id_pad
 
-        z = self.encode_with_transformers(tokens)
+        z = self.encode_with_transformers(tokens, clip_skip=clip_skip)
 
         # restoring original mean is likely not correct, but it seems to work well to prevent artifacts that happen otherwise
         batch_multipliers = torch.asarray(batch_multipliers).to(self.device)
@@ -491,20 +491,20 @@ class FrozenCLIPEmbedder(FrozenCLIPEmbedderWithCustomWordsBase):
         self.id_start = self.tokenizer.bos_token_id
         self.id_end = self.tokenizer.eos_token_id
         self.id_pad = self.id_end
-
-        self.clip_skip = 1
+        self.transformer.text_model.embeddings.token_embedding = \
+            EmbeddingsWithFixes(self.transformer.text_model.embeddings.token_embedding, fixes=[])
 
     def tokenize(self, texts):
         tokenized = self.tokenizer(texts, truncation=False, add_special_tokens=False)["input_ids"]
-
         return tokenized
 
-    def encode_with_transformers(self, tokens):
-        self.clip_skip = 1 if self.clip_skip is None else self.clip_skip
-        outputs = self.transformer(input_ids=tokens, output_hidden_states=-self.clip_skip)
+    def encode_with_transformers(self, tokens, clip_skip):
+        print(f"clip skip: {clip_skip}")
+        clip_skip = 1 if clip_skip is None else clip_skip
+        outputs = self.transformer(input_ids=tokens, output_hidden_states=-clip_skip)
 
-        if self.clip_skip > 1:
-            z = outputs.hidden_states[-self.clip_skip]
+        if clip_skip > 1:
+            z = outputs.hidden_states[-clip_skip]
             z = self.transformer.text_model.final_layer_norm(z)
         else:
             z = outputs.last_hidden_state
@@ -519,3 +519,29 @@ class FrozenCLIPEmbedder(FrozenCLIPEmbedderWithCustomWordsBase):
             ids.to(embedding_layer.token_embedding.wrapped.weight.device)).squeeze(0)
 
         return embedded
+
+
+class EmbeddingsWithFixes(torch.nn.Module):
+    def __init__(self, wrapped, fixes):
+        super().__init__()
+        self.wrapped = wrapped
+        self.fixes = fixes
+
+    def forward(self, input_ids):
+        batch_fixes = self.fixes
+
+        inputs_embeds = self.wrapped(input_ids)
+
+        if batch_fixes is None or len(batch_fixes) == 0 or max([len(x) for x in batch_fixes]) == 0:
+            return inputs_embeds
+
+        vecs = []
+        for fixes, tensor in zip(batch_fixes, inputs_embeds):
+            for offset, embedding in fixes:
+                emb = embedding.vec.to(tensor.dtype).to(tensor.device)
+                emb_len = min(tensor.shape[0] - offset - 1, emb.shape[0])
+                tensor = torch.cat([tensor[0:offset + 1], emb[0:emb_len], tensor[offset + 1 + emb_len:]])
+
+            vecs.append(tensor)
+
+        return torch.stack(vecs)

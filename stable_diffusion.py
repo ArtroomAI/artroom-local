@@ -245,10 +245,10 @@ class StableDiffusion:
         self.speed = speed
         self.controlnet_path = controlnet_path
 
-        try:
-            hack_everything(clip_skip=clip_skip)
-        except:
-            print("Clip skip failed")
+        # try:
+        #     hack_everything(clip_skip=clip_skip)
+        # except:
+        #     print("Clip skip failed")
 
         try:
             if self.network:
@@ -690,7 +690,7 @@ class StableDiffusion:
 
                 uc = None
                 if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(batch_size * [""])
+                    uc = self.modelCS.get_learned_conditioning(batch_size * [""], clip_skip=1)
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
                 c = self.modelCS.get_learned_conditioning(batch_size * [prompts], clip_skip=clip_skip)
@@ -884,6 +884,7 @@ class StableDiffusion:
                           precision_scope=None,
                           use_removed_background=False,
                           remove_background="none",
+                          clip_skip=1
                           ):
 
         temp_save_path = os.path.join(self.models_dir, "highres_temp.png")
@@ -924,7 +925,8 @@ class StableDiffusion:
             precision_scope=precision_scope,
             highres_fix_steps=1,
             use_removed_background=use_removed_background,
-            remove_background=remove_background
+            remove_background=remove_background,
+            clip_skip=clip_skip
         )
 
         # Does highres fix at 1.5x intervals
@@ -976,7 +978,8 @@ class StableDiffusion:
                 precision_scope=precision_scope,
                 highres_fix_steps=1,
                 use_removed_background=use_removed_background,
-                remove_background=remove_background
+                remove_background=remove_background,
+                clip_skip=clip_skip
             )
         print("Doing final run")
         print("Saving upscaled image")
@@ -1023,7 +1026,8 @@ class StableDiffusion:
             precision_scope=precision_scope,
             highres_fix_steps=1,
             use_removed_background=use_removed_background,
-            remove_background=remove_background
+            remove_background=remove_background,
+            clip_skip=clip_skip
         )
         return out_image
 
@@ -1274,7 +1278,8 @@ class StableDiffusion:
                         use_preprocessed_controlnet=use_preprocessed_controlnet,
                         precision_scope=precision_scope,
                         use_removed_background=use_removed_background,
-                        remove_background=remove_background
+                        remove_background=remove_background,
+                        clip_skip=clip_skip
                     )
 
                 else:
@@ -1304,7 +1309,8 @@ class StableDiffusion:
                         precision_scope=precision_scope,
                         highres_fix_steps=highres_fix_steps,
                         use_removed_background=use_removed_background,
-                        remove_background=remove_background
+                        remove_background=remove_background,
+                        clip_skip=clip_skip
                     )
 
                 exif_data = out_image.getexif()
