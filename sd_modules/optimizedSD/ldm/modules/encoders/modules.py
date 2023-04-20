@@ -24,6 +24,16 @@ class PromptChunk:
         self.multipliers = []
         self.fixes = []
 
+    def __str__(self):  # prints the tokens and their weights
+        s = ""
+        for t, m in zip(self.tokens, self.multipliers):
+            if t != 49407:  # nothing
+                s += f"{t}:{m} "
+        return s.strip()
+
+    def __repr__(self):
+        return str(self)
+
 
 PromptChunkFix = namedtuple('PromptChunkFix', ['offset', 'embedding'])
 
@@ -383,6 +393,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(FrozenCLIPEmbedder_old):
                 chunks = cache[line]
             else:
                 chunks, current_token_count = self.tokenize_line(line)
+                print(chunks)
                 token_count = max(current_token_count, token_count)
 
                 cache[line] = chunks
