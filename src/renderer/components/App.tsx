@@ -57,7 +57,7 @@ export default function App () {
     const setShard = useSetRecoilState(atom.shardState);
     const navSize = useRecoilValue(atom.navSizeState);
     const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
-    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
+    const setLatestImages = useSetRecoilState(atom.latestImageState);
     const setMainImage = useSetRecoilState(atom.mainImageState);
     const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
     const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
@@ -65,13 +65,14 @@ export default function App () {
     const socket = useContext(SocketContext);
 
     const handleGetImages = useCallback((data: ImageState) => {
-        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
-            setLatestImages([data]);
-        } else {
-            setLatestImages([...latestImages, data]);
-        }
+        setLatestImages(latestImages => {
+            if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
+                return [data];
+            }
+            return [data, ...latestImages].slice(0, 500)
+        });
         setMainImage(data);
-    }, [latestImages, setLatestImages, setMainImage])
+    }, [setLatestImages, setMainImage])
 
     const handleControlnetPreview = useCallback((data: {controlnetPreview: string}) => {
         setControlnetPreview(data.controlnetPreview);
@@ -148,7 +149,7 @@ export default function App () {
                     let job_list = response.data.jobs;
                     let text = "";
                     let pending_cnt = 0;
-                    let newCloudImages = [];
+                    let newCloudImages: Partial<ImageState>[] = [];
                     for (let i = 0; i < job_list.length; i++) {
                         for (let j = 0; j < job_list[i].images.length; j++) {
                             if (job_list[i].images[j].status == 'PENDING') {
@@ -183,8 +184,8 @@ export default function App () {
                             }
                         }
                     }
-                    setLatestImages([...latestImages, ...newCloudImages]);
-                    setMainImage(newCloudImages[newCloudImages.length-1]?.b64)
+                    setLatestImages((latestImages) => [...latestImages, ...newCloudImages]);
+                    setMainImage(newCloudImages[newCloudImages.length - 1])
                     toast({
                         title: 'Cloud jobs running!\n',
                         description: text + pending_cnt + " jobs pending",
