@@ -48,11 +48,7 @@ export default function App () {
     const image_save_path = useRecoilValue(imageSavePathState);
     const batch_name = useRecoilValue(batchNameState);
 
-    const toast = useToast({
-        containerStyle: {
-            pointerEvents: 'none'
-        }
-    });
+    const toast = useToast({});
     const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
     const setShard = useSetRecoilState(atom.shardState);
     const navSize = useRecoilValue(atom.navSizeState);
