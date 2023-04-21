@@ -63,6 +63,7 @@ export interface SocketEmitEvents {
     preview_controlnet: (data: {
         initImage: string;
         controlnet: string;
+        models_dir: string;
     }) => void;
 }
 

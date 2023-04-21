@@ -160,7 +160,7 @@ try:
             w, h = map(lambda x: x - x % 64, (w, h))
             image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
-            init_cnet_stuff(data["controlnet"])
+            init_cnet_stuff(data["controlnet"], data['models_dir'])
             match data["controlnet"]:
                 case "canny":
                     image = apply_canny(image)
