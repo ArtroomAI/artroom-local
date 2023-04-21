@@ -33,6 +33,9 @@ from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
 from artroom_helpers.toast_status import toast_status
 
+sys.path.append("artroom_helpers/modules")
+sys.path.append("sd_modules/optimizedSD")
+
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff, deinit_cnet_stuff
 from artroom_helpers.modules.cldm.model import create_model
@@ -52,7 +55,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
-        self.control_model = None
+        self.control_model = False
         self.network = None
         self.config = None
         self.dtype = None
@@ -185,14 +188,33 @@ class StableDiffusion:
         self.modelFS.eval()
         del input_state_dict
 
-    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip=1):
+    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
+
+        # load state dict
+        state_dict = load_model_from_config(ckpt)
+
+        try:  # load controlnet with state dict
+            if self.control_model and controlnet_path is None:
+                self.deinject_controlnet(sd=state_dict)
+                self.control_model = False
+            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
+                self.inject_controlnet_new(controlnet_path,
+                                           existing=(self.control_model and self.ckpt == ckpt),
+                                           state_dict=state_dict)
+                self.control_model = True
+        except Exception as e:
+            print(f"Controlnet Failed to load {e}")
+            self.control_model = False
+
+        # reload models
+        # in case we have a controlnet, we only load modelCS and modelFS
         if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae)
+                self.set_up_models(ckpt, speed, vae, sd=state_dict, controlnet_loaded=self.control_model)
                 print("Successfully set up model")
             except Exception as e:
                 self.socketio.emit('status', toast_status(title="Setting up model failed", status="error"))
@@ -203,13 +225,13 @@ class StableDiffusion:
                 return False
 
         try:
-            if self.control_model is not None and controlnet_path is None:
+            if self.control_model and controlnet_path is None:
                 self.deinject_controlnet()
-                self.control_model = None
+                self.control_model = False
             if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
                 try:
                     self.inject_controlnet_new(controlnet_path,
-                                            existing=(self.control_model is not None and self.ckpt == ckpt))
+                                            existing=(self.control_model and self.ckpt == ckpt))
                 except:
                     print(f"Loading controlnet failed, attempting old version")
                     self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
@@ -253,9 +275,11 @@ class StableDiffusion:
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
             self.socketio.emit('status', toast_status(title="Failed to load in Lora!", status="error"))
+
+        gc.collect()  # clean up state dicts
         return True
 
-    def inject_controlnet_new(self, controlnet_path, existing=False):
+    def inject_controlnet_new(self, controlnet_path, state_dict, existing=False):
         def get_state_dict(d):
             return d.get('state_dict', d)
 
@@ -271,44 +295,39 @@ class StableDiffusion:
 
         print("Injecting controlnet...")
         if existing:
-            input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
+            state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
             control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
                                   'control_model' not in k}
-            input_state_dict.update(control_model_dict)
+            state_dict.update(control_model_dict)
         else:
-            input_state_dict = self.model.state_dict()
             controlnet_dict = load_state_dict(controlnet_path)
-            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
 
-            input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
-            input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
+            state_dict = {k.replace("model1.", "model."): v for k, v in state_dict.items()}
+            state_dict = {k.replace("model2.", "model."): v for k, v in state_dict.items()}
 
-            control_model_dict = {k if k.startswith('control_model.') else f'control_model.{k}': v for k, v in controlnet_dict.items()}
-            input_state_dict.update(control_model_dict)
+            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
+                                  'control_model' not in k}
+            state_dict.update(control_model_dict)
             del control_model_dict
 
-            for key in self.modelFS.first_stage_model.state_dict().keys():
-                p = self.modelFS.first_stage_model.state_dict()[key]
-                input_state_dict['first_stage_model.' + key] = p
-            del self.modelFS
-            self.modelFS = None
+            # for key in self.modelCS.cond_stage_model.state_dict().keys():  condstage part
+            #     p = self.modelCS.cond_stage_model.state_dict()[key]
+            #     input_state_dict['cond_stage_model.' + key] = p
+            # del self.modelCS
+            # self.modelCS = None
 
-            for key in self.modelCS.cond_stage_model.state_dict().keys():
-                p = self.modelCS.cond_stage_model.state_dict()[key]
-                input_state_dict['cond_stage_model.' + key] = p
-            del self.modelCS
-            self.modelCS = None
+        state_dict = {k.replace("model.diffusion_model", "diffusion_model"): v for k, v in state_dict.items()}
 
-        self.control_model.load_state_dict(input_state_dict, strict=False)
-        self.model = self.control_model  # soft links
-        self.modelCS = self.control_model  # soft links
-        self.modelFS = self.control_model  # soft links
+        self.model.load_state_dict(state_dict, strict=False)
+        self.control_model = True  # just bool
+
+        # print(f"Missing control keys: {control_keys_missing}")
         if self.can_use_half:
-            self.control_model.half()
-        else:
-            self.control_model.to(torch.float32)
-        del input_state_dict
+            self.model.half()
+        self.model.to(self.device)
+        del state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
@@ -361,14 +380,13 @@ class StableDiffusion:
 
         return final_state_dict
 
-    def deinject_controlnet(self, delete=True):
+    def deinject_controlnet(self, sd, delete=True):
         print("Deinjecting controlnet...")
         # Remove controlnet pieces
-        sd = {k: v for k, v in self.control_model.state_dict().items() if "control" not in k}
 
         if delete:
-            del self.control_model
-            self.control_model = None
+            del self.model
+            self.model = None
 
         li = []
         lo = []
@@ -397,15 +415,6 @@ class StableDiffusion:
         self.model.unet_bs = 1  # unet_bs=1
         self.model.turbo = (self.speed != 'Low')
 
-        self.modelFS = instantiate_from_config(config.modelFirstStage)
-        _, _ = self.modelFS.load_state_dict(sd, strict=False)
-        self.modelFS.eval()
-
-        self.modelCS = instantiate_from_config(config.modelCondStage)
-        _, _ = self.modelCS.load_state_dict(sd, strict=False)
-        self.modelCS.cond_stage_model.device = self.device
-        self.modelCS.eval()
-
         if self.can_use_half:
             self.model.half()
             self.modelCS.half()
@@ -418,27 +427,25 @@ class StableDiffusion:
 
         del sd
 
-    def set_up_models(self, ckpt, speed, vae):
+    def set_up_models(self, ckpt, speed, vae, sd, controlnet_loaded=False):
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Loading model...", status="info",
             position="bottom-right", duration=None, isClosable=False))
         try:
-            del self.model
+            if not controlnet_loaded:
+                del self.model
+                self.model = None
+                self.control_model = False
             del self.modelFS
             del self.modelCS
-            if self.control_model is not None:
-                del self.control_model
-            self.model = None
             self.modelFS = None
             self.modelCS = None
-            self.control_model = None
         except:
             pass
         torch.cuda.empty_cache()
         gc.collect()
 
-        sd = load_model_from_config(f"{ckpt}")
         if sd:
             print("Model safety check passed")
         else:
@@ -462,14 +469,15 @@ class StableDiffusion:
                 self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
             print(f"v2 conf: {self.config}")
             config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.model)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.parameterization = parameterization
-            self.model.cdevice = self.device
-            self.model.to(self.device)
-            self.modelCS = self.model  # just link without a copy
-            self.modelFS = self.model  # just link without a copy
+            if not controlnet_loaded:  # won't work
+                self.model = instantiate_from_config(config.model)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.parameterization = parameterization
+                self.model.cdevice = self.device
+                self.model.to(self.device)
+                self.modelCS = self.model  # just link without a copy
+                self.modelFS = self.model  # just link without a copy
             self.v1 = False
         else:
             self.v1 = True
@@ -518,6 +526,7 @@ class StableDiffusion:
                         print(f"Not recognized speed: {speed}")
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
 
+            config = OmegaConf.load(f"{self.config}")
             li = []
             lo = []
             for key, value in sd.items():
@@ -535,14 +544,14 @@ class StableDiffusion:
                 sd['model1.' + key[6:]] = sd.pop(key)
             for key in lo:
                 sd['model2.' + key[6:]] = sd.pop(key)
-            config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.modelUNet)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.cdevice = self.device
-            self.model.unet_bs = 1  # unet_bs=1
+            if not controlnet_loaded:
+                self.model = instantiate_from_config(config.modelUNet)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.cdevice = self.device
+                self.model.unet_bs = 1  # unet_bs=1
 
-            self.model.turbo = (speed != 'Low')
+                self.model.turbo = (speed != 'Low')
 
             self.modelCS = instantiate_from_config(config.modelCondStage)
             _, _ = self.modelCS.load_state_dict(sd, strict=False)
@@ -673,21 +682,22 @@ class StableDiffusion:
 
         for prompts in data:
             with precision_scope(self.device.type):
-                if self.v1 and self.control_model is None:
+                if self.v1 and self.control_model:
                     self.modelCS.to(self.device)
-                if self.control_model is not None:
-                    self.control_model.switch_devices(diffusion_loop=False)
+                if self.control_model:
+                    self.model.switch_devices(diffusion_loop=False)
 
                 uc = None
                 if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data, clip_skip=1)
+                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data, clip_skip=clip_skip)
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
                 c = self.modelCS.get_learned_conditioning(batch_size * [prompts], clip_skip=clip_skip)
 
                 shape = [batch_size, C, H // f, W // f]
-                if self.control_model is not None:
-                    self.control_model.switch_devices(diffusion_loop=True)
+                if self.control_model:
+                    self.model.switch_devices(diffusion_loop=True)
+                    self.modelCS.cpu()
 
                 x0 = None
                 for ij in range(1, highres_fix_steps + 1):
@@ -699,7 +709,7 @@ class StableDiffusion:
                         strength = 0.15
                         steps = 5
                         ddim_steps = int(steps / strength)
-                    if init_image is not None and self.control_model is None:
+                    if init_image is not None and self.control_model:
                         init_image = init_image.to(self.device)
                         init_image = repeat(
                             init_image, '1 ... -> b ...', b=batch_size)
@@ -754,11 +764,11 @@ class StableDiffusion:
                         mask = None
                         x_T = None
 
-                    if self.control_model is not None and controlnet is not None and controlnet.lower() != "none" and control is not None:
+                    if self.control_model and controlnet is not None and controlnet.lower() != "none" and control is not None:
                         # control = torch.load("control.torch")
                         c = {"c_concat": [control], "c_crossattn": [c]}
                         uc = {"c_concat": [control], "c_crossattn": [uc]}
-                        self.control_model.control_scales = [1.0] * 13
+                        self.model.control_scales = [1.0] * 13
                         ddim_sampler = DDIMSampler(self.control_model)
                         x0 = ddim_sampler.sample(
                             steps,
@@ -770,8 +780,8 @@ class StableDiffusion:
                             unconditional_guidance_scale=cfg_scale,
                             callback=self.callback_fn,
                             unconditional_conditioning=uc)
-                        if self.control_model is not None:
-                            self.control_model.switch_devices(diffusion_loop=False)
+                        if self.control_model:
+                            self.model.switch_devices(diffusion_loop=False)
                     else:
                         x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                         x0 = init_latent_1stage if mode == "pix2pix" else x0
@@ -956,7 +966,7 @@ class StableDiffusion:
                                                controlnet_mode=controlnet,
                                                use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
 
-            if self.v1 or self.control_model is not None:
+            if self.v1 or self.control_model:
                 self.modelFS.to(self.device)
 
             print("Generating upscaled image")
@@ -1004,7 +1014,7 @@ class StableDiffusion:
         highres_init_image = self.load_img(upscaled_image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0),
                                            controlnet_mode=controlnet,
                                            use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-        if self.v1 or self.control_model is not None:
+        if self.v1 or self.control_model:
             self.modelFS.to(self.device)
 
         # generate the final version using the original image as the input
@@ -1149,7 +1159,7 @@ class StableDiffusion:
 
         ddim_steps = int(steps / strength)
 
-        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path, clip_skip)
+        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path)
 
         if not self.model:
             print("Setting up model failed")
@@ -1199,14 +1209,14 @@ class StableDiffusion:
             init_image = None
             control = None
 
-        if self.control_model is None:
+        if not self.control_model:
             mode = "default" if not self.v1 or (
                     self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
                 "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
             )
         else:
             mode = "default"
-            self.control_model.secondary_device = get_device()
+            self.model.secondary_device = get_device()
 
         if mode == "pix2pix":
             sampler = "ddim"
@@ -1231,7 +1241,7 @@ class StableDiffusion:
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
-            if self.v1 or self.control_model is not None:
+            if self.v1:
                 self.modelFS.to(self.device)
 
         self.total_num = n_iter * highres_fix_steps
@@ -1239,7 +1249,7 @@ class StableDiffusion:
         precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
-                if not self.running and self.control_model is None:
+                if not self.running:
                     self.clean_up()
                     return
 
