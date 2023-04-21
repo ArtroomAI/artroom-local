@@ -1,9 +1,6 @@
 import React from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
 import {
     Box,
-    Flex,
     Tab,
     TabList,
     TabPanel,
@@ -13,8 +10,6 @@ import {
 import Upscale from './Upscale';
 
 export default function ImageEditor () {
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
-
     return (
         <Box
             width="80%" 
@@ -29,7 +24,7 @@ export default function ImageEditor () {
 
             <TabPanels>
                 <TabPanel>
-                    <Upscale></Upscale>
+                    <Upscale />
                 </TabPanel>
                 {/* <TabPanel>
                 <p>Placeholder</p>

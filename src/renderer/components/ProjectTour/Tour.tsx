@@ -1,8 +1,6 @@
 import React, { useReducer, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../../atoms/atoms';
 import JoyRide, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { FaQuestionCircle } from 'react-icons/fa';
 import {
     MenuButton,
@@ -90,9 +88,8 @@ const reducer = (state = INITIAL_STATE, action: { type: any; payload: any; }) =>
 };
 
 // Tour component
-const Tour = () => {
+const Tour = ({ navSize } : { navSize: 'small' | 'large' }) => {
     // Tour state is the state which control the JoyRide component
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
     const [tourState, dispatch] = useReducer(
         reducer,
         INITIAL_STATE
