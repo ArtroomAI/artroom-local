@@ -1,9 +1,8 @@
-import React, { useContext} from 'react';
+import React, { useContext } from 'react';
 import { useRecoilState, useRecoilValue} from 'recoil';
 import * as atom from '../../../atoms/atoms';
 import {
     VStack,
-    useToast,
     Button,
     Checkbox,
     FormControl,
@@ -11,7 +10,7 @@ import {
     HStack,
     Select
 } from '@chakra-ui/react';
-import { controlnetState, initImageState, usePreprocessedControlnetState} from '../../../SettingsManager';
+import { controlnetState, initImageState, modelsDirState, usePreprocessedControlnetState} from '../../../SettingsManager';
 import { SocketContext } from '../../../socket';
 import ControlnetPreview from './ControlnetPreview';
 
@@ -19,6 +18,7 @@ const Controlnet = () => {
     const socket = useContext(SocketContext);
     const [controlnet, setControlnet] = useRecoilState(controlnetState);
     const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
+    const models_dir = useRecoilValue(modelsDirState);
     const [usePreprocessedControlnet, setUsePreprocessedControlnet] = useRecoilState(usePreprocessedControlnetState);
     const initImage = useRecoilValue(initImageState);
 
@@ -95,11 +95,9 @@ const Controlnet = () => {
                         variant='outline'
                         disabled={controlnet==='none' || usePreprocessedControlnet}
                         onClick={()=>{
-                            socket.emit('preview_controlnet', {initImage, controlnet})
-                        }
-                    }
-                >
-                    Preview
+                            socket.emit('preview_controlnet', {initImage, controlnet, models_dir})
+                        }}>
+                        Preview
                     </Button>
                 </HStack>
             </FormControl>
@@ -120,8 +118,7 @@ const Controlnet = () => {
             </HStack>
 
             {controlnetPreview.length > 0 && 
-                <ControlnetPreview></ControlnetPreview> 
-            }
+                <ControlnetPreview />}
         </VStack>
     );
 };
