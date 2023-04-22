@@ -1,3 +1,6 @@
+from artroom_helpers.process_controlnet_images import apply_controlnet
+
+
 try:
     import numpy as np
     import json
@@ -150,8 +153,7 @@ try:
 
     @socketio.on('preview_controlnet')
     def preview_controlnet(data):
-        from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-            apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+        from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff
         try:
             print(f'Previewing controlnet {data["controlnet"]}')
             image = support.b64_to_image(data['initImage'])
@@ -161,19 +163,7 @@ try:
             image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
             init_cnet_stuff(data["controlnet"], data['models_dir'])
-            match data["controlnet"]:
-                case "canny":
-                    image = apply_canny(image)
-                case "pose":
-                    image = apply_pose(image)
-                case "depth":
-                    image = apply_depth(image)
-                case "normal":
-                    image = apply_normal(image)
-                case "scribble":
-                    image = apply_scribble(image)
-                case "hed":
-                    image = apply_hed(image)
+            image = apply_controlnet(image, data["controlnet"])
             output = support.image_to_b64(Image.fromarray(image))
             socketio.emit('get_controlnet_preview', {'controlnetPreview': output})
             print(f"Preview finished")
