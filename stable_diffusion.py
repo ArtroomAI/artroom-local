@@ -204,12 +204,12 @@ class StableDiffusion:
         state_dict = load_model_from_config(ckpt)
 
         try:  # load controlnet with state dict
-            if self.control_model is not None and controlnet_path is None:
+            if self.control_model and controlnet_path is None:
                 self.deinject_controlnet(sd=state_dict)
                 self.control_model = None
             if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
                 self.inject_controlnet_new(controlnet_path,
-                                           existing=(self.control_model is not None and self.ckpt == ckpt),
+                                           existing=(self.control_model and self.ckpt == ckpt),
                                            state_dict=state_dict)
                 self.control_model = True
         except Exception as e:
@@ -425,7 +425,7 @@ class StableDiffusion:
                 self.control_model = None
             del self.modelFS
             del self.modelCS
-            if self.control_model is not None and not controlnet_loaded:
+            if self.control_model and not controlnet_loaded:
                 del self.control_model
             self.modelFS = None
             self.modelCS = None
@@ -798,7 +798,7 @@ class StableDiffusion:
             init_image = None
             control = None
 
-        if self.control_model is None:
+        if not self.control_model:
             mode = "default" if not self.v1 or (
                     self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
                 "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
@@ -853,7 +853,7 @@ class StableDiffusion:
                     with precision_scope(self.device.type):
                         if self.v1:
                             self.modelCS.to(self.device)
-                        if self.control_model is not None:
+                        if self.control_model:
                             self.model.switch_devices(diffusion_loop=False)
 
                         uc = None
@@ -882,7 +882,7 @@ class StableDiffusion:
                                 prompts = '-'
                             c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
                         shape = [batch_size, C, H // f, W // f]
-                        if self.control_model is not None:
+                        if self.control_model:
                             self.model.switch_devices(diffusion_loop=True)
                             self.modelCS.cpu()
 
@@ -895,7 +895,7 @@ class StableDiffusion:
                             if ij > 1:
                                 strength = 0.1
                                 ddim_steps = int(steps / strength)
-                            if init_image is not None and self.control_model is None:
+                            if init_image is not None and not self.control_model:
                                 init_image = init_image.to(self.device)
                                 init_image = repeat(
                                     init_image, '1 ... -> b ...', b=batch_size)
@@ -949,7 +949,7 @@ class StableDiffusion:
                                 mask = None
                                 x_T = None
 
-                            if self.control_model is not None and controlnet is not None and controlnet.lower() != "none" and control is not None:
+                            if self.control_model and controlnet is not None and controlnet.lower() != "none" and control is not None:
                                 # control = torch.load("control.torch")
                                 c = {"c_concat": [control], "c_crossattn": [c]}
                                 uc = {"c_concat": [control], "c_crossattn": [uc]}
@@ -965,7 +965,7 @@ class StableDiffusion:
                                     unconditional_guidance_scale=cfg_scale,
                                     callback=self.callback_fn,
                                     unconditional_conditioning=uc)
-                                if self.control_model is not None:
+                                if self.control_model:
                                     self.model.switch_devices(diffusion_loop=False)
                             else:
                                 x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
