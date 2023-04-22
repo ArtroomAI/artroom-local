@@ -23,7 +23,8 @@ import {
     Icon,
     Button,
     IconButton,
-    useToast
+    useToast,
+    ButtonGroup
 } from '@chakra-ui/react';
 import { FaClipboardList, FaFolder, FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
@@ -483,7 +484,7 @@ function SDSettings () {
                         <RemoveBackground />
                     </SDSettingsAccordion>
 
-                    <Box>
+                    <ButtonGroup isAttached variant="outline">
                         <Tooltip label="Upload">
                             <Button
                                 onClick={() => {
@@ -495,6 +496,7 @@ function SDSettings () {
                                     });
                                 }}
                                 aria-label="upload"
+                                variant="outline"
                             >
                                 Load SDSettings from file
                             </Button>
@@ -502,6 +504,7 @@ function SDSettings () {
                         <Tooltip label="Paste from Clipboard">
                             <IconButton
                                 aria-label="Paste from Clipboard"
+                                variant="outline"
                                 icon={<FaClipboardList />}
                                 onClick={() => {
                                     navigator.clipboard.readText().then(checkSettings).then(results => {
@@ -513,7 +516,7 @@ function SDSettings () {
                                 }}
                             />
                         </Tooltip>
-                    </Box>         
+                    </ButtonGroup>         
                 </VStack>
             </Box>
         </Flex>

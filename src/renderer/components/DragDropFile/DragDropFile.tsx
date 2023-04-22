@@ -194,9 +194,9 @@ const DragDropFile = () => {
                         aria-label="upload"
                     />
                 </Tooltip>
-                <Tooltip label="Clear Init Image">
+                <Tooltip label="Clear Starting Image">
                     <IconButton
-                    aria-label="Clear Init Image"
+                    aria-label="Clear Starting Image"
                     border="2px"
                     icon={<FaTrashAlt />}
                     width="45px"
