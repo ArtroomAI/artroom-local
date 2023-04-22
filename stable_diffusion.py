@@ -225,21 +225,6 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
 
-        try:
-            if self.control_model and controlnet_path is None:
-                self.deinject_controlnet()
-                self.control_model = False
-            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
-                try:
-                    self.inject_controlnet_new(controlnet_path,
-                                            existing=(self.control_model and self.ckpt == ckpt))
-                except:
-                    print(f"Loading controlnet failed, attempting old version")
-                    self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
-        except Exception as e:
-            print(f"Controlnet Failed to load {e}")
-            self.socketio.emit('status', toast_status(title=f"Controlnet Failed to load {e}", status="error"))
-
         if vae != self.vae or self.ckpt != ckpt:
             print("Loading vae")
             try:
@@ -683,7 +668,7 @@ class StableDiffusion:
 
         for prompts in data:
             with precision_scope(self.device.type):
-                if self.v1 and self.control_model:
+                if self.v1:
                     self.modelCS.to(self.device)
                 if self.control_model:
                     self.model.switch_devices(diffusion_loop=False)
