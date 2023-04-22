@@ -54,7 +54,6 @@
     },
     "extraFiles": [
       "icon.ico",
-      "miniconda.exe",
       "artroom_helpers/**/*",
       "gfpgan/**/*",
       "sd_modules/**/*",
