@@ -1085,6 +1085,7 @@ class StableDiffusion:
             # Search for files with the specified string in their base filename in the controlnet_folder
             matching_files = glob(os.path.join(controlnet_folder, f"*{controlnet}*"))
             if matching_files:
+                print(f"Found matching controlnet, using {matching_files[0]}")
                 return matching_files[0]
             else:
                 print("Controlnet not found")
