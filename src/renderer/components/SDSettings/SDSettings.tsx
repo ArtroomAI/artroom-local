@@ -25,7 +25,7 @@ import {
     IconButton,
     useToast
 } from '@chakra-ui/react';
-import { FaClipboardList, FaQuestionCircle } from 'react-icons/fa';
+import { FaClipboardList, FaFolder, FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 import {
     batchNameState,
@@ -91,6 +91,12 @@ function SDSettings () {
 
     useEffect(getCkpts, [getCkpts]);
 
+    const goToModelFolder = () => {
+        if (modelDirs !== '') {
+            window.api.showInExplorer(modelDirs);
+        }
+    }
+
     return (
         <Flex pr="10" width="450px">
             <Box m="-1" p={4} rounded="md">
@@ -136,7 +142,16 @@ function SDSettings () {
                                 <Text>
                                     Model
                                 </Text>
-
+                                <Button
+                                    fontSize='xs'
+                                    leftIcon={<FaFolder/>}
+                                    _hover={{ cursor: 'pointer' }}
+                                    onClick={() => goToModelFolder()}
+                                    variant="outline"
+                                    size="sm"
+                                    >
+                                    View Model Folder
+                                </Button>
                                 {cloudMode
                                     ? <Icon as={IoMdCloud} />
                                     : null}
