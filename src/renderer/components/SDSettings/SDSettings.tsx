@@ -149,9 +149,9 @@ function SDSettings () {
                                     _hover={{ cursor: 'pointer' }}
                                     onClick={() => goToModelFolder()}
                                     variant="outline"
-                                    size="sm"
+                                    size="xs"
                                     >
-                                    View Model Folder
+                                    View
                                 </Button>
                                 {cloudMode
                                     ? <Icon as={IoMdCloud} />
