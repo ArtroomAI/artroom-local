@@ -343,9 +343,8 @@ function Settings () {
                         Save Settings
                     </Button>
                     <Spacer/>
-                    <DebugInstallerModal/>
+                    {/* <DebugInstallerModal/> */}
                     <Button
-                        marginLeft={1}
                         backgroundColor="red.600"
                         colorScheme="red"
                         alignContent="center"

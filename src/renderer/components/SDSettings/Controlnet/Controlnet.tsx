@@ -42,24 +42,41 @@ const Controlnet = () => {
                             None
                         </option>
 
-                        <option value="canny">
-                            Canny
+                        <option value="depth">
+                            Depth
                         </option>
+
+                        <option value="normal">
+                            Normal
+                        </option>
+
 
                         <option value="pose">
                             Pose
                         </option>
 
-                        <option value="depth">
-                            Depth
-                        </option>
-                        
                         <option value="hed">
                             HED
                         </option>
 
-                        <option value="normal">
-                            Normal
+                        <option value="softedge">
+                            Soft Edge
+                        </option>
+
+                        <option value="canny">
+                            Canny
+                        </option>
+
+                        <option value="mlsd">
+                            MLSD
+                        </option>
+
+                        <option value="lineart">
+                            Lineart
+                        </option>
+
+                        <option value="lineart_anime">
+                            Lineart Anime
                         </option>
 
                         <option value="scribble">
@@ -69,25 +86,16 @@ const Controlnet = () => {
                         <option value="ip2p">
                             Instruct Pix2Pix
                         </option>
-                        <option value="softedge">
-                            Soft Edge
-                        </option>
-                        <option value="inpaint">
+
+                        <option disabled={true} value="inpaint">
                             Inpaint
                         </option>
-                        <option value="lineart">
-                            Lineart
-                        </option>
-                        <option value="lineart_anime">
-                            Lineart Anime
-                        </option>
-                        <option value="mlsd">
-                            MLSD
-                        </option>
-                        <option value="tile">
+
+                        <option disabled={true} value="tile">
                             Tile
                         </option>
-                        <option value="shuffle">
+
+                        <option disabled={true} value="shuffle">
                             Shuffle
                         </option>
                     </Select>

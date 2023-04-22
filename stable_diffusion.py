@@ -283,18 +283,20 @@ class StableDiffusion:
         if existing:
             state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
-                                  'control_model' not in k}
+            #print(controlnet_dict.keys())
+            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in controlnet_dict.items()}
             state_dict.update(control_model_dict)
+            del control_model_dict
+
         else:
             controlnet_dict = load_state_dict(controlnet_path)
             self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            #print(controlnet_dict.keys())
 
             state_dict = {k.replace("model1.", "model."): v for k, v in state_dict.items()}
             state_dict = {k.replace("model2.", "model."): v for k, v in state_dict.items()}
 
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
-                                  'control_model' not in k}
+            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in controlnet_dict.items()}
             state_dict.update(control_model_dict)
             del control_model_dict
 
@@ -303,6 +305,8 @@ class StableDiffusion:
             #     input_state_dict['cond_stage_model.' + key] = p
             # del self.modelCS
             # self.modelCS = None
+
+
 
         state_dict = {k.replace("model.diffusion_model", "diffusion_model"): v for k, v in state_dict.items()}
 
@@ -1084,11 +1088,17 @@ class StableDiffusion:
 
             # Search for files with the specified string in their base filename in the controlnet_folder
             matching_files = glob(os.path.join(controlnet_folder, f"*{controlnet}*"))
+            if controlnet == 'lineart':
+                matching_files = [file for file in matching_files  if 'lineart_anime' not in file]
+
             if matching_files:
                 print(f"Found matching controlnet, using {matching_files[0]}")
                 return matching_files[0]
             else:
                 print("Controlnet not found")
+                self.socketio.emit('status', toast_status(
+                    id="error-message", title="Controlnet Not Found",
+                    status="error", position="top", duration=2000))
                 return None
 
         if controlnet.lower() != 'none':
