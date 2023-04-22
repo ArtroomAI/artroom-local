@@ -91,12 +91,13 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
                 <Spacer />
 
                 <Button
-                className="defualt-negative-prompt"
-                h="25px"
-                onClick={() =>
-                    setNegativePrompts(DEFAULT_NEGATIVE_PROMPT)
-                }
-                w="150px"
+                    className="defualt-negative-prompt"
+                    variant="outline"
+                    h="25px"
+                    onClick={() =>
+                        setNegativePrompts(DEFAULT_NEGATIVE_PROMPT)
+                    }
+                    w="150px"
                 >
                 Default Negative
                 </Button>
