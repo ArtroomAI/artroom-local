@@ -709,7 +709,8 @@ class StableDiffusion:
                         strength = 0.15
                         steps = 5
                         ddim_steps = int(steps / strength)
-                    if init_image is not None and self.control_model:
+
+                    if init_image is not None and not self.control_model:
                         init_image = init_image.to(self.device)
                         init_image = repeat(
                             init_image, '1 ... -> b ...', b=batch_size)
@@ -769,7 +770,7 @@ class StableDiffusion:
                         c = {"c_concat": [control], "c_crossattn": [c]}
                         uc = {"c_concat": [control], "c_crossattn": [uc]}
                         self.model.control_scales = [1.0] * 13
-                        ddim_sampler = DDIMSampler(self.control_model)
+                        ddim_sampler = DDIMSampler(self.model)
                         x0 = ddim_sampler.sample(
                             steps,
                             batch_size,
