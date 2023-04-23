@@ -636,7 +636,7 @@ class StableDiffusion:
     def generate_image(
             self,
             n=0,
-            data=None,
+            prompts_data=None,
             negative_prompts_data=None,
             image=None,
             init_image=None,
@@ -668,7 +668,7 @@ class StableDiffusion:
             clip_skip=1
     ):
 
-        for prompts in data:
+        for prompts in prompts_data:
             with precision_scope(self.device.type):
                 if self.v1:
                     self.modelCS.to(self.device)
@@ -866,7 +866,7 @@ class StableDiffusion:
 
     def diffusion_upscale(self,
                           n=0,
-                          data=None,
+                          prompts_data=None,
                           negative_prompts_data=None,
                           image=None,
                           init_image=None,
@@ -908,7 +908,7 @@ class StableDiffusion:
         # First pass
         starting_version = self.generate_image(
             n=n,
-            data=data,
+            prompts_data=prompts_data,
             negative_prompts_data=negative_prompts_data,
             image=image,
             init_image=init_image,
@@ -961,7 +961,7 @@ class StableDiffusion:
             print("Generating upscaled image")
             starting_version = self.generate_image(
                 n=n,
-                data=data,
+                prompts_data=prompts_data,
                 negative_prompts_data=negative_prompts_data,
                 image=upscaled_image,
                 init_image=highres_init_image,
@@ -1009,7 +1009,7 @@ class StableDiffusion:
         # generate the final version using the original image as the input
         out_image = self.generate_image(
             n=n,
-            data=data,
+            prompts_data=prompts_data,
             negative_prompts_data=negative_prompts_data,
             image=upscaled_image,
             init_image=highres_init_image,
@@ -1222,7 +1222,7 @@ class StableDiffusion:
             highres_fix_steps = 1
 
         print("Prompt:", text_prompts)
-        data = [batch_size * text_prompts]
+        prompts_data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
         negative_prompts_data = [batch_size * negative_prompts]
 
@@ -1258,7 +1258,7 @@ class StableDiffusion:
                 if highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
                     out_image = self.diffusion_upscale(
                         n=n,
-                        data=data,
+                        prompts_data=prompts_data,
                         negative_prompts_data=negative_prompts_data,
                         image=image,
                         init_image=init_image,
@@ -1289,7 +1289,7 @@ class StableDiffusion:
                 else:
                     out_image = self.generate_image(
                         n=n,
-                        data=data,
+                        prompts_data=prompts_data,
                         negative_prompts_data=negative_prompts_data,
                         image=image,
                         init_image=init_image,
