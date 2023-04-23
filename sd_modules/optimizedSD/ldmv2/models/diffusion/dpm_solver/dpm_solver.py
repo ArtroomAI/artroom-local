@@ -307,6 +307,13 @@ def model_wrapper(
             else:
                 x_in = torch.cat([x] * 2)
                 t_in = torch.cat([t_continuous] * 2)
+                if unconditional_conditioning.shape[1] < condition.shape[1]:
+                    last_vector = unconditional_conditioning[:, -1:]
+                    last_vector_repeated = last_vector.repeat([1, condition.shape[1] - unconditional_conditioning.shape[1], 1])
+                    unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
+                elif unconditional_conditioning.shape[1] > condition.shape[1]:
+                    unconditional_conditioning = unconditional_conditioning[:, :condition.shape[1]]
+
                 c_in = torch.cat([unconditional_condition, condition])
                 noise_uncond, noise = noise_pred_fn(x_in, t_in, cond=c_in).chunk(2)
                 return noise_uncond + guidance_scale * (noise - noise_uncond)
