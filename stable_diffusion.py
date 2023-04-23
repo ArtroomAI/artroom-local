@@ -40,13 +40,11 @@ from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff, deinit_cnet_stuff
 from artroom_helpers.modules.cldm.model import create_model
 from artroom_helpers import support, inpainting
-from artroom_helpers.prompt_parsing import weights_handling
 from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import HN
 
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
 
-from artroom_helpers.modules.cldm.hack import hack_everything
 
 logging.set_verbosity_error()
 
