@@ -385,8 +385,8 @@ try:
             ax.set_yticks([])
             row = i // n_cols
             col = i % n_cols
-            ax.set_xlabel(f"{x_key}: {x_values[col]}", fontsize=10)
-            ax.set_ylabel(f"{y_key}: {y_values[row]}", fontsize=10, rotation=90, labelpad=10)
+            ax.set_xlabel(f"{x_key}: {x_values[col]}", fontsize=15)
+            ax.set_ylabel(f"{y_key}: {y_values[row]}", fontsize=15, rotation=90, labelpad=10)
 
         # Save the figure
         fig.tight_layout()
