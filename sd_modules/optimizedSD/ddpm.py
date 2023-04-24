@@ -27,7 +27,6 @@ class DiffusionWrapperv2(pl.LightningModule):
         assert self.conditioning_key in [None, 'concat', 'crossattn', 'hybrid', 'adm', 'hybrid-adm', 'crossattn-adm']
 
     def forward(self, x, t, c_concat: list = None, c_crossattn: list = None, c_adm=None):
-        print("invoked a wrapper")
         self.diffusion_model.dtype = x.dtype
         if self.conditioning_key is None:
             out = self.diffusion_model(x, t)
@@ -947,12 +946,6 @@ class UNet(DDPM):
         t_in = torch.cat([t] * multiplier)
         if mode == "pix2pix":
             self.x_spare_part = x[:, 4:, :, :]
-            if unconditional_conditioning.shape[1] < c.shape[1]:
-                last_vector = unconditional_conditioning[:, -1:]
-                last_vector_repeated = last_vector.repeat([1, c.shape[1] - unconditional_conditioning.shape[1], 1])
-                unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
-            elif unconditional_conditioning.shape[1] > c.shape[1]:
-                unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
             c_in = torch.cat([c, c, unconditional_conditioning])
             out_cond, out_img_cond, out_uncond = self.apply_model(x_in, t_in, c_in).chunk(3)
             e_t = out_uncond + text_cfg_scale * (
@@ -1439,7 +1432,7 @@ class UNetV2(UNet):
             raise NotImplementedError(f"encoder_posterior of type '{type(encoder_posterior)}' not yet implemented")
         return self.scale_factor * z
 
-    def get_learned_conditioning(self, c):
+    def get_learned_conditioning(self, c, clip_skip=None):
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
                 c = self.cond_stage_model.encode(c)
