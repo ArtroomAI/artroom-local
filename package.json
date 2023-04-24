@@ -1,6 +1,6 @@
 {
-  "name": "artroom-beta",
-  "version": "1.2.2-beta.11",
+  "name": "artroom",
+  "version": "1.2.2",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
@@ -20,14 +20,14 @@
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom-beta",
-    "productName": "Artroom-beta",
+    "appId": "com.example.Artroom",
+    "productName": "Artroom",
     "win": {
       "publish": [
         {
           "provider": "github",
           "owner": "ArtroomAI",
-          "repo": "artroom-beta"
+          "repo": "artroomai"
         }
       ],
       "target": "nsis",
