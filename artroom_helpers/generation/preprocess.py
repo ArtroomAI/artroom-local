@@ -1,4 +1,3 @@
-import face_alignment
 import torch
 import numpy as np
 from scipy.spatial import ConvexHull
@@ -61,6 +60,7 @@ def image_grid(imgs, rows, cols, path):
 
 
 def mask_from_face(img, w, h, face_idx=0):
+    import face_alignment
     fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device="cpu")
     img = np.array(img.resize((w, h)))
 

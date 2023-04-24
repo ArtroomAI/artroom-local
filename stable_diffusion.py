@@ -27,7 +27,6 @@ sys.path.append("artroom_helpers/modules")
 sys.path.append("artroom_helpers/annotator")
 sys.path.append("sd_modules/optimizedSD")
 
-import artroom_helpers
 from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
@@ -226,7 +225,7 @@ class StableDiffusion:
         if vae != self.vae or self.ckpt != ckpt:
             print("Loading vae")
             try:
-                if '.vae' in vae:
+                if len(vae) > 0:
                     self.load_vae(vae)
                     print("Loading vae finished")
                 else:

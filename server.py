@@ -1,6 +1,3 @@
-from artroom_helpers.process_controlnet_images import apply_controlnet
-
-
 try:
     import numpy as np
     import json
@@ -8,9 +5,7 @@ try:
     import logging
     import os
     import re
-    import math
     import sys
-    from functools import partial
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
@@ -19,12 +14,9 @@ try:
     from artroom_helpers.toast_status import toast_status
     from model_merger import ModelMerger
 
-    from flask import Flask, request, jsonify, make_response
+    from flask import Flask, request, jsonify
     from flask_socketio import SocketIO
-    from werkzeug.utils import secure_filename
-    from PIL import Image, ImageDraw, ImageOps
-    from scipy.spatial import ConvexHull
-    from uuid import uuid4
+    from PIL import Image, ImageOps
     from glob import glob
 
     kernel32 = ctypes.windll.kernel32
@@ -178,7 +170,6 @@ try:
         print('Removing background...')
         try:
             if data['remove_background'] == 'face':
-                import face_alignment
                 image = support.b64_to_image(data["initImage"]).convert("RGB")
                 mask = mask_from_face(image, image.width, image.height)
 
