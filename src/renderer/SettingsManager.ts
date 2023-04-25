@@ -279,7 +279,7 @@ export const queueSettingsSelector = selector<QueueType>({
 
 
 // @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
-export const parseLoras = (loras: Lora[]) => {
+export const parseLoras = (loras: Lora[] = []): Lora[] => {
     return loras.map(el => {
         return { name: el.name ?? path.basename((el as any).path), weight: el.weight };
     });
@@ -287,20 +287,20 @@ export const parseLoras = (loras: Lora[]) => {
 // @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
 export const parseWidth = (exif: Partial<ExifDataType>) => {
     if('W' in exif) {
-        return exif.W;
+        return exif.W as number;
     } else if ('width' in exif) {
-        return exif.width;
+        return exif.width as number;
     }
-    return "Error";
+    return NaN;
 }
 // @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
 export const parseHeigth = (exif: Partial<ExifDataType>) => {
     if('H' in exif) {
-        return exif.H;
+        return exif.H as number;
     } else if ('height' in exif) {
-        return exif.height;
+        return exif.height as number;
     }
-    return "Error";
+    return NaN;
 }
 
 // SET ONLY
@@ -310,7 +310,7 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
         return {};
     },
     set: ({ set }, queue) => {
-        const exif = queue as Partial<ExifDataType>;
+        const exif = queue as ExifDataType;
 
         set(widthState, parseWidth(exif));
         set(heightState, parseHeigth(exif));
@@ -338,7 +338,7 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
 export const checkSettings = (clipboard: string): [Partial<ExifDataType>, UseToastOptions] => {
     try {
         if(clipboard === '') {
-            return [null, {
+            return [{}, {
                 title: "Settings not loaded",
                 status: "info",
                 duration: 500,
@@ -353,7 +353,7 @@ export const checkSettings = (clipboard: string): [Partial<ExifDataType>, UseToa
             position: 'top'
         }];
     } catch(err) {
-        return [null, {
+        return [{}, {
             title: `Error during loading settings`,
             status: "error",
             duration: 5000,

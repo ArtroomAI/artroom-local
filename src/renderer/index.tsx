@@ -13,7 +13,7 @@ import { InstallerManager } from './InstallerManager';
 
 const theme = extendTheme(indexTheme);
 
-ReactDOM.createRoot(document.getElementById('root')).render(<HashRouter>
+ReactDOM.createRoot(document.getElementById('root')!).render(<HashRouter>
     <ColorModeScript initialColorMode='dark' />    
     <ChakraProvider theme={theme}>
         <RecoilRoot>

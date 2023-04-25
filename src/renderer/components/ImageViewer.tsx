@@ -181,13 +181,17 @@ function ImageViewer () {
     }
 
     useEffect(() => {
-        window.api.imageViewerChange((_, result) => {
+        const handlerDiscard = window.api.imageViewerChange((_, result) => {
             if(result.error) {
                 setImageViewPath(result.error.path);
                 return;
             }
             setImagePreviews(result.results);
-        })
+        });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     useEffect(() => {

@@ -167,6 +167,15 @@ const QueueButtons = () => {
     );
 }
 
+interface ReducerState {
+    selectedIndex: number;
+}
+  
+interface ReducerAction {
+    type: "arrowLeft" | "arrowRight" | "select" | "intermediate";
+    payload?: number;
+}
+
 const Body = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
     const toast = useToast({});
@@ -178,7 +187,7 @@ const Body = () => {
     
     const socket = useContext(SocketContext);
 
-    const reducer = (state: { selectedIndex: number; }, action: { type: string; payload?: number; }) => {
+    const reducer = (state: ReducerState, action: ReducerAction): ReducerState => {
         switch (action.type) {
         case 'arrowLeft':
             console.log('Arrow Left');
@@ -198,7 +207,7 @@ const Body = () => {
             };
         case 'select':
             console.log('Select');
-            return { selectedIndex: action.payload };
+            return { selectedIndex: action.payload ?? -1 };
         case 'intermediate':
             console.log('intermediate');
             return { selectedIndex: -1 };

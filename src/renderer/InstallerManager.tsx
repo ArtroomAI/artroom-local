@@ -59,9 +59,13 @@ export const InstallerManager = () => {
     }, [artroomPath]);
 
     useEffect(() => {
-        window.api.fixButtonProgress((_: any, str: string) => {
+        const handlerDiscard = window.api.fixButtonProgress((_: any, str: string) => {
             setDownloadMessage(str);
         });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     const handleRunClick = async () => {

@@ -12,7 +12,8 @@
     "electron:serve": "yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
     "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
-    "electron:start": "electron ./build/main.js"
+    "electron:start": "electron ./build/main.js",
+    "lint": "eslint . --resolve-plugins-relative-to . --ext .ts,.tsx"
   },
   "repository": {
     "type": "git",

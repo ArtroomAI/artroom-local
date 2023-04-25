@@ -3,12 +3,16 @@ import { Box, Progress, Text } from '@chakra-ui/react';
 import { ProgressInfo } from 'electron-updater';
 
 export const UpdateProgressBar: React.FC = () => {
-    const [info, setInfo] = useState<Partial<ProgressInfo>>({ percent: 0, total: 0, transferred: 0, bytesPerSecond: 0 });
+    const [info, setInfo] = useState<ProgressInfo>({ percent: 0, total: 0, transferred: 0, bytesPerSecond: 0, delta: 0 });
 
     useEffect(() => {
-        window.api.downloadProgress((_, _info) => {
+        const handlerDiscard = window.api.downloadProgress((_, _info) => {
             setInfo(_info);
         });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     if(info.percent && info.percent < 100) {

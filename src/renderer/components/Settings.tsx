@@ -104,10 +104,14 @@ function Settings () {
     }, [toast, debugModeTemp, highresFixTemp, imageSavePathTemp, longSavePathTemp, modelsDirTemp, saveGridTemp, speedTemp]);
 
     useEffect(() => {
-        window.api.fixButtonProgress((_, str) => {
+        const handlerDiscard = window.api.fixButtonProgress((_, str) => {
             setDownloadMessage(str);
             console.log(str);
         });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     const chooseUploadPath = () => {

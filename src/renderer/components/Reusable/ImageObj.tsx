@@ -10,8 +10,9 @@ import ContextMenuItem from '../ContextMenu/ContextMenuItem';
 import ContextMenuList from '../ContextMenu/ContextMenuList';
 import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
 import { initImageState } from '../../SettingsManager';
+import { ImageState } from '../../atoms/atoms.types';
 
-export default function ImageObj ({ b64 = '', path = '', active } : { b64: string; path: string; active: boolean }) {
+export default function ImageObj ({ b64 = '', path = '', active } : Partial<ImageState> & { active: boolean }) {
     const queueRunning = useRecoilValue(atom.queueRunningState);
 
     const setInitImage = useSetRecoilState(initImageState);
