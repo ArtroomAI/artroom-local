@@ -26,7 +26,6 @@ export const AppSocket: React.FC = () => {
     const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
     const setLatestImages = useSetRecoilState(atom.latestImageState);
     const setMainImage = useSetRecoilState(atom.mainImageState);
-    const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
     const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
     const [removeBackgroundPreview, setRemoveBackgroundPreview] = useRecoilState(atom.removeBackgroundPreviewState);
     const socket = useContext(SocketContext);
@@ -98,8 +97,10 @@ export const AppSocket: React.FC = () => {
 
     useInterval(
         () => {
-            ProtectedReqManager.make_get_request(`${ARTROOM_URL}/image/get_status`).then((response: any) => {
-                if (response.data.jobs.length == 0) {
+            ProtectedReqManager.make_get_request(`${ARTROOM_URL}/image/get_status`).then((response: CloudGetStatus) => {
+                const job_list = response.data.jobs;
+
+                if (job_list.length == 0) {
                     toast({
                         title: 'Cloud jobs Complete!',
                         status: 'success',
@@ -111,61 +112,60 @@ export const AppSocket: React.FC = () => {
                         }
                     });
                     setCloudRunning(false);
-                } else {
-                    setShard(response.data.shards);
-                    let job_list = response.data.jobs;
-                    let text = "";
-                    let pending_cnt = 0;
-                    let newCloudImages: Partial<ImageState>[] = [];
-                    for (let i = 0; i < job_list.length; i++) {
-                        for (let j = 0; j < job_list[i].images.length; j++) {
-                            if (job_list[i].images[j].status == 'PENDING') {
-                                pending_cnt = pending_cnt + 1;
-                            } else if (job_list[i].images[j].status == 'FAILED') {
-
-                                let shard_refund = job_list[i].image_settings.shard_cost/job_list[i].image_settings.n_iter;
-                                toast({
-                                    title: 'Cloud Error Occurred, ' + shard_refund +' Shards Refunded to account',
-                                    description: "Failure on Image id: " + job_list[i].images[j].id + " Job id: " + job_list[i].id,
-                                    status: 'error',
-                                    position: 'top',
-                                    duration: 10000,
-                                    isClosable: true
-                                });
-                            } else if (job_list[i].images[j].status == 'SUCCESS') {
-                                //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
-                                let img_name = job_list[i].id + '_' + job_list[i].images[j].id;
-                                const imagePath = path.join(image_save_path, batch_name, img_name + "_cloud.png");
-                                toast({
-                                    title: "Image completed: " + imagePath,
-                                    status: 'info',
-                                    position: 'top',
-                                    duration: 5000,
-                                    isClosable: true
-                                });
-                                //const timestamp = new Date().getTime();
-                                console.log(imagePath);
-                                let dataURL = job_list[i].images[j].url;
-                                newCloudImages.push({"b64": dataURL})
-                                window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
-                            }
-                        }
-                    }
-                    setLatestImages((latestImages) => [...latestImages, ...newCloudImages]);
-                    setMainImage(newCloudImages[newCloudImages.length - 1])
-                    toast({
-                        title: 'Cloud jobs running!\n',
-                        description: text + pending_cnt + " jobs pending",
-                        status: 'info',
-                        position: 'top',
-                        duration: 5000,
-                        isClosable: true,
-                        containerStyle: {
-                            pointerEvents: 'none'
-                        }
-                    });
+                    return;
                 }
 
+                setShard(response.data.shards);
+
+                let text = "";
+                let pending_cnt = 0;
+                const newCloudImages: Partial<ImageState>[] = [];
+
+                for (const job of job_list) {
+                    for (const image of job.images) {
+                        if (image.status === CloudStatus.PENDING) {
+                            pending_cnt = pending_cnt + 1;
+                        } else if (image.status === CloudStatus.FAILED) {
+                            const shard_refund = job.image_settings.shard_cost / job.image_settings.n_iter;
+                            toast({
+                                title: `Cloud Error Occurred, ${shard_refund} Shards Refunded to account`,
+                                description: `Failure on Image id: ${image.id} Job id: ${job.id}`,
+                                status: 'error',
+                                position: 'top',
+                                duration: 10000,
+                                isClosable: true
+                            });
+                        } else if (image.status === CloudStatus.SUCCESS) {
+                            //text = text + "job_" + job.id.slice(0, 5) + 'img_' + job.images[j].id + '\n';
+                            const img_name = `${job.id}_${image.id}_cloud.png`;
+                            const imagePath = path.join(image_save_path, batch_name, img_name);
+                            toast({
+                                title: `Image completed: ${imagePath}`,
+                                status: 'info',
+                                position: 'top',
+                                duration: 5000,
+                                isClosable: true
+                            });
+                            //const timestamp = new Date().getTime();
+                            console.log(imagePath);
+                            newCloudImages.push({ "b64": image.url })
+                            window.api.saveFromDataURL(JSON.stringify({dataURL: image.url, imagePath}));
+                        }
+                    }
+                }
+                setLatestImages((latestImages) => [...newCloudImages, ...latestImages]);
+                setMainImage(newCloudImages[0])
+                toast({
+                    title: 'Cloud jobs running!\n',
+                    description: text + pending_cnt + " jobs pending",
+                    status: 'info',
+                    position: 'top',
+                    duration: 5000,
+                    isClosable: true,
+                    containerStyle: {
+                        pointerEvents: 'none'
+                    }
+                });
             }).catch((err: any) => {
                 console.log(err);
             });

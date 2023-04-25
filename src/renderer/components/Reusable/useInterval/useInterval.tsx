@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
 // Annoying React-setInterval interaction fixer
-export function useInterval (callback: () => void, delay: number) {
+export function useInterval (callback: () => void, delay: number | null) {
     const savedCallback = useRef<() => void>();
 
     // Remember the latest callback.
@@ -16,7 +16,7 @@ export function useInterval (callback: () => void, delay: number) {
     useEffect(
         () => {
             function tick () {
-                savedCallback.current();
+                savedCallback.current && savedCallback.current();
             }
             if (delay !== null) {
                 const id = setInterval(
