@@ -76,15 +76,15 @@ export default function ImageObj ({ b64 = '', path = '', active } : Partial<Imag
             <ContextMenuList>
                 <ContextMenuItem onClick={() => {
                     setInitImage(b64);
-                } } colorScheme={undefined} disabled={false}>
+                } }>
                     Set As Starting Image
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={copyToClipboard} colorScheme={undefined} disabled={false}>
+                <ContextMenuItem onClick={copyToClipboard}>
                     Copy To Clipboard
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={showInExplorer} colorScheme={undefined} disabled={false}>
+                <ContextMenuItem onClick={showInExplorer}>
                     Show In Explorer
                 </ContextMenuItem>
             </ContextMenuList>

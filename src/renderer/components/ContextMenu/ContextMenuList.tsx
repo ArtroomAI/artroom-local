@@ -54,8 +54,8 @@ export default function ContextMenuList ({ children }: { children: React.ReactNo
             let right;
             let top;
             let bottom;
-            const menuHeight = menuRef?.current?.clientHeight;
-            const menuWidth = menuRef?.current?.clientWidth;
+            const menuHeight = menuRef.current?.clientHeight;
+            const menuWidth = menuRef.current?.clientWidth;
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             if (!menuHeight || !menuWidth) {
