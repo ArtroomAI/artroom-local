@@ -5,7 +5,8 @@ import {
     FaMagic,
     FaFileImage,
     FaChevronLeft,
-    FaChevronRight
+    FaChevronRight,
+    FaDiscord
 } from 'react-icons/fa';
 import {
     FiGitMerge,
@@ -17,9 +18,8 @@ import {
 } from 'react-icons/gi';
 import NavItem from './NavItem';
 import Tour from './ProjectTour/Tour';
-import Discord from './Discord';
-import EquilibriumAI from './EquilibriumAI';
-import Civitai from './Civitai';
+import EquilibriumLogo from '../images/equilibriumai.png';
+import CivitaiLogo from '../images/civitai.png';
 
 interface SidebarProps {
     navSize: 'large' | 'small';
@@ -105,11 +105,28 @@ export default function Sidebar ({ navSize, setNavSize } : SidebarProps) {
                     p="5%"
                     pb="20px"
                     w="100%">
-                    <Discord navSize={navSize} />
+                    
+                    <NavItem
+                        className="discord-link"
+                        title="Join Discord"
+                        icon={FaDiscord}
+                        navSize={navSize}
+                        onClick={window.api.openDiscord} />
+                    
+                    <NavItem
+                        className="equilibrium-link"
+                        title="Learn More"
+                        icon={EquilibriumLogo}
+                        navSize={navSize}
+                        onClick={window.api.openEquilibrium} />
+                        
+                    <NavItem
+                        className="civitai-link"
+                        title="Get Models"
+                        icon={CivitaiLogo}
+                        navSize={navSize}
+                        onClick={window.api.openCivitai} />
 
-                    <EquilibriumAI navSize={navSize} />
-
-                    <Civitai navSize={navSize} />
                     {/* <Tour navSize={navSize} /> */}
 
                     <NavItem

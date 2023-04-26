@@ -1,24 +1,28 @@
 import React from 'react';
-import { Flex,
+import {
+    Flex,
     Text,
     Icon,
     Link,
     Menu,
     MenuButton,
     HStack,
-    Tooltip } from '@chakra-ui/react';
+    Tooltip,
+    Image
+} from '@chakra-ui/react';
 import type { IconType } from 'react-icons';
 
 interface NavItemProps {
-    icon: IconType;
+    icon: IconType | string;
     title: string;
     active?: boolean;
     navSize: string;
-    linkTo: string;
+    linkTo?: string;
     className: string;
+    onClick?: () => void;
 }
 
-export default function NavItem ({ icon, title, active, navSize, linkTo, className } : NavItemProps) {
+export default function NavItem ({ icon, title, active, navSize, linkTo, className, onClick } : NavItemProps) {
     return (
         <Flex
             alignItems={navSize === 'small'
@@ -28,6 +32,7 @@ export default function NavItem ({ icon, title, active, navSize, linkTo, classNa
             fontSize="md"
             mt={15}
             w="100%"
+            onClick={onClick}
         >
             <Menu placement="right">
                 <Link
@@ -36,6 +41,9 @@ export default function NavItem ({ icon, title, active, navSize, linkTo, classNa
                     borderRadius={8}
                     href={linkTo}
                     p={2.5}
+                    width="100%"
+                    textAlign="center"
+                    height="46px"
                 >
                     <Tooltip
                         fontSize="md"
@@ -48,13 +56,23 @@ export default function NavItem ({ icon, title, active, navSize, linkTo, classNa
                             bg="transparent"
                             width="100%">
                             <HStack className={className}>
-                                <Icon
-                                    as={icon}
-                                    color={active
-                                        ? '#82AAAD'
-                                        : 'gray.500'}
-                                    fontSize="xl"
-                                    justifyContent="center" />
+                                { typeof icon === 'string' ?
+                                    <Image
+                                        color="#82AAAD"
+                                        fontSize="xl"
+                                        justifyContent="center"
+                                        src={icon}
+                                        width="20px"
+                                        height="20px" /> :
+                                    <Icon
+                                        as={icon}
+                                        color={active
+                                            ? '#82AAAD'
+                                            : 'gray.500'}
+                                        fontSize="xl"
+                                        justifyContent="center" />
+                                }
+                                
 
                                 <Text
                                     align="center"
