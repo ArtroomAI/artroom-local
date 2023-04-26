@@ -10,7 +10,7 @@ const parseIterations = (inputStr: string) => {
         const unit = match[2];
 
         // Converting the value to iterations per second
-        let iterationsPerSec;
+        let iterationsPerSec = 0;
         if (unit === 'it/s') {
             iterationsPerSec = value;
         } else if (unit === 's/it') {

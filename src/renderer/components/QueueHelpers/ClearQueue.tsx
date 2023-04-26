@@ -15,7 +15,7 @@ import { artroomPathState } from '../../SettingsManager';
 
 function ClearQueue () {
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const cancelRef = React.useRef();
+    const cancelRef = React.useRef(null);
 
     const [queue, setQueue] = useRecoilState(atom.queueState);
     const artroomPath = useRecoilValue(artroomPathState);

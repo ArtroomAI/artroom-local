@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import * as atom from '../../atoms/atoms';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { Image, Modal, ModalBody, ModalContent, ModalOverlay } from '@chakra-ui/react';
 import Logo from '../../images/ArtroomLogoTransparent.png';
 import LoadingGif from '../../images/loading.gif';
@@ -11,9 +10,10 @@ import ContextMenuList from '../ContextMenu/ContextMenuList';
 import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
 import { initImageState } from '../../SettingsManager';
 import { ImageState } from '../../atoms/atoms.types';
+import { queueRunningState } from '../../atoms/atoms';
 
 export default function ImageObj ({ b64 = '', path = '', active } : Partial<ImageState> & { active: boolean }) {
-    const queueRunning = useRecoilValue(atom.queueRunningState);
+    const queueRunning = useRecoilValue(queueRunningState);
 
     const setInitImage = useSetRecoilState(initImageState);
 
