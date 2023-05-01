@@ -44,3 +44,5 @@ __pycache__/
 /controlnet_image.png
 artroom_helpers/annotator/midas/ckpts/dpt_hybrid-midas-501f0c75.pt
 18
+
+src/interfaces/generated
