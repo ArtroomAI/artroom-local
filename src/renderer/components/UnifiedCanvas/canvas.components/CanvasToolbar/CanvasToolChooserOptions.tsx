@@ -29,43 +29,7 @@ import {
 } from '../../atoms/canvas.atoms';
 import { uploadImage } from '../../helpers/uploadImage';
 
-// import {
-// 	addEraseRect,
-// 	addFillRect,
-// 	setBrushColor,
-// 	setBrushSize,
-// 	setTool,
-// } from 'canvas/store/canvasSlice';
-// import {
-// 	canvasSelector,
-// 	isStagingSelector,
-// } from 'canvas/store/canvasSelectors';
-// import { systemSelector } from 'system/store/systemSelectors';
-
-// export const selector = createSelector(
-// 	[canvasSelector, isStagingSelector, systemSelector],
-// 	(canvas, isStaging, system) => {
-// 		const { isProcessing } = system;
-// 		const { tool, brushColor, brushSize } = canvas;
-
-// 		return {
-// 			tool,
-// 			isStaging,
-// 			isProcessing,
-// 			brushColor,
-// 			brushSize,
-// 		};
-// 	},
-// 	{
-// 		memoizeOptions: {
-// 			resultEqualityCheck: _.isEqual,
-// 		},
-// 	},
-// );
-
-export const CanvasToolChooserOptions: FC = () => {
-  // const { tool, brushColor, brushSize, isStaging } = useAppSelector(selector);
-
+const CanvasToolChooserOptionsHotkeys: React.FC = () => {
   const [tool, setTool] = useRecoilState(toolSelector);
   const [brushColor, setBrushColor] = useRecoilState(brushColorAtom);
   const [brushSize, setBrushSize] = useRecoilState(brushSizeAtom);
@@ -73,6 +37,11 @@ export const CanvasToolChooserOptions: FC = () => {
   const addEraseRect = useSetRecoilState(addEraseRectAction);
   const isStaging = useRecoilValue(isStagingSelector);
 
+  const handleSelectBrushTool = () => setTool('brush');
+  const handleSelectEraserTool = () => setTool('eraser');
+  const handleSelectColorPickerTool = () => setTool('colorPicker');
+  const handleFillRect = () => addFillRect();
+  const handleEraseBoundingBox = () => addEraseRect();
 
   const boundingBoxCoordinates = useRecoilValue(boundingBoxCoordinatesAtom);  
   const boundingBoxDimensions = useRecoilValue(boundingBoxDimensionsAtom);  
@@ -81,6 +50,47 @@ export const CanvasToolChooserOptions: FC = () => {
   const [pastLayerStates, setPastLayerStates] = useRecoilState(pastLayerStatesAtom);  
   const setFutureLayerStates = useSetRecoilState(futureLayerStatesAtom);  
   const setInitialCanvasImage = useSetRecoilState(setInitialCanvasImageAction)
+
+  const fileAcceptedCallback = async (file: File) => {
+    uploadImage({
+      imageFile: file,
+      setInitialCanvasImage,
+      boundingBoxCoordinates,
+      boundingBoxDimensions,
+      setPastLayerStates,
+      pastLayerStates,
+      layerState,
+      maxHistory,
+      setLayerState,
+      setFutureLayerStates
+    });
+  };
+
+  const handlePaste = async () => {
+    try {
+      const clipboardData = await navigator.clipboard.read();
+      for (let i = 0; i < clipboardData.length; i++) {
+        const clipboardItem = clipboardData[i];
+        if (
+          clipboardItem.types.includes("image/png") ||
+          clipboardItem.types.includes("image/jpeg")
+        ) {
+          const blob = await clipboardItem.getType("image/png");
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = async () => {
+            const base64data = String(reader.result);
+            blob["b64"] = base64data;
+            fileAcceptedCallback(blob);
+          };
+          break;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to read clipboard contents: ", err);
+    }
+  };
+
 
   useHotkeys(
     ['b'],
@@ -140,46 +150,6 @@ export const CanvasToolChooserOptions: FC = () => {
     }
   );
 
-  const fileAcceptedCallback = async (file: File) => {
-    uploadImage({
-      imageFile: file,
-      setInitialCanvasImage,
-      boundingBoxCoordinates,
-      boundingBoxDimensions,
-      setPastLayerStates,
-      pastLayerStates,
-      layerState,
-      maxHistory,
-      setLayerState,
-      setFutureLayerStates
-    });
-  };
-
-  const handlePaste = async () => {
-    try {
-      const clipboardData = await navigator.clipboard.read();
-      for (let i = 0; i < clipboardData.length; i++) {
-        const clipboardItem = clipboardData[i];
-        if (
-          clipboardItem.types.includes("image/png") ||
-          clipboardItem.types.includes("image/jpeg")
-        ) {
-          const blob = await clipboardItem.getType("image/png");
-          const reader = new FileReader();
-          reader.readAsDataURL(blob);
-          reader.onloadend = async () => {
-            const base64data = String(reader.result);
-            blob["b64"] = base64data;
-            fileAcceptedCallback(blob);
-          };
-          break;
-        }
-      }
-    } catch (err) {
-      console.error("Failed to read clipboard contents: ", err);
-    }
-  };
-  
   useHotkeys(
     ["ctrl+v"],
     handlePaste,
@@ -259,6 +229,19 @@ export const CanvasToolChooserOptions: FC = () => {
     [brushColor]
   );
 
+  return null;
+}
+
+export const CanvasToolChooserOptions: FC = () => {
+  // const { tool, brushColor, brushSize, isStaging } = useAppSelector(selector);
+
+  const [tool, setTool] = useRecoilState(toolSelector);
+  const [brushColor, setBrushColor] = useRecoilState(brushColorAtom);
+  const [brushSize, setBrushSize] = useRecoilState(brushSizeAtom);
+  const addFillRect = useSetRecoilState(addFillRectAction);
+  const addEraseRect = useSetRecoilState(addEraseRectAction);
+  const isStaging = useRecoilValue(isStagingSelector);
+
   const handleSelectBrushTool = () => setTool('brush');
   const handleSelectEraserTool = () => setTool('eraser');
   const handleSelectColorPickerTool = () => setTool('colorPicker');
@@ -267,6 +250,7 @@ export const CanvasToolChooserOptions: FC = () => {
 
   return (
     <ButtonGroup isAttached>
+      <CanvasToolChooserOptionsHotkeys />
       <Popover
         trigger="hover"
         triggerComponent={
