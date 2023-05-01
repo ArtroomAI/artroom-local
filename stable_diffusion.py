@@ -49,6 +49,18 @@ logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+def get_state_dict(d):
+    return d.get('state_dict', d)
+
+def load_state_dict(ckpt_path, location='cpu'):
+    _, extension = os.path.splitext(ckpt_path)
+    if extension.lower() == ".safetensors":
+        import safetensors.torch
+        state_dict = safetensors.torch.load_file(ckpt_path, device=location)
+    else:
+        state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
+    state_dict = get_state_dict(state_dict)
+    return state_dict
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
@@ -147,7 +159,7 @@ class StableDiffusion:
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4, controlnet=False):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
 
-        du_state_dict = load_file(path)
+        du_state_dict = load_state_dict(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
         # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
         # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
@@ -263,19 +275,6 @@ class StableDiffusion:
         return True
 
     def inject_controlnet_new(self, controlnet_path, state_dict, existing=False):
-        def get_state_dict(d):
-            return d.get('state_dict', d)
-
-        def load_state_dict(ckpt_path, location='cpu'):
-            _, extension = os.path.splitext(ckpt_path)
-            if extension.lower() == ".safetensors":
-                import safetensors.torch
-                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
-            else:
-                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
-            state_dict = get_state_dict(state_dict)
-            return state_dict
-
         print("Injecting controlnet...")
         if existing:
             state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
@@ -318,19 +317,6 @@ class StableDiffusion:
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
-
-        def get_state_dict(d):
-            return d.get('state_dict', d)
-
-        def load_state_dict(ckpt_path, location='cpu'):
-            _, extension = os.path.splitext(ckpt_path)
-            if extension.lower() == ".safetensors":
-                import safetensors.torch
-                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
-            else:
-                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
-            state_dict = get_state_dict(state_dict)
-            return state_dict
 
         def get_node_name(name, parent_name):
             if len(name) <= len(parent_name):
