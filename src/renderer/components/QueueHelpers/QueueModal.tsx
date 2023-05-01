@@ -16,7 +16,6 @@ import {
     BsInfoCircle
 } from 'react-icons/bs';
 import QueueModalRow from './QueueModalRow';
-import { parseHeigth, parseLoras, parseWidth } from '../../SettingsManager';
 
 function QueueModal (props: QueueTypeWithIndex) {
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -70,7 +69,7 @@ function QueueModal (props: QueueTypeWithIndex) {
 
                                 <QueueModalRow
                                     name="Loras:"
-                                    value={parseLoras(props.loras).map(lora => `${lora.name} : ${lora.weight}`).join('\n')} />
+                                    value={props.loras.map(lora => `${lora.name} : ${lora.weight}`).join('\n')} />
 
                                 <QueueModalRow
                                     name="Controlnet:"
@@ -78,7 +77,7 @@ function QueueModal (props: QueueTypeWithIndex) {
 
                                 <QueueModalRow
                                     name="Dimensions:"
-                                    value={`${parseWidth(props)}x${parseHeigth(props)}`} />
+                                    value={`${props.width}x${props.height}`} />
 
                                 <QueueModalRow
                                     name="Seed:"

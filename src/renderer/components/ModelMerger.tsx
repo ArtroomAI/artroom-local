@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useRecoilValue } from 'recoil';
 import {
     Box,
@@ -29,7 +29,7 @@ import {
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import path from 'path';
-import { modelsDirState } from '../SettingsManager';
+import { modelsDirState, modelsState } from '../SettingsManager';
 import { SocketContext } from '../socket';
 
 export const ModelMerger = () => {
@@ -37,7 +37,7 @@ export const ModelMerger = () => {
     const modelsDir = useRecoilValue(modelsDirState);
     const socket = useContext(SocketContext);
 
-    const [ckpts, setCkpts] = useState([]);
+    const models = useRecoilValue(modelsState);
 
     const [modelA, setModelA] = useState('');
     const [modelB, setModelB] = useState('');
@@ -92,12 +92,6 @@ export const ModelMerger = () => {
             socket.emit("merge_models", data);
         }
     };
-
-    const getCkpts = useCallback(() => {
-        window.api.getCkpts(modelsDir).then(setCkpts);
-    }, [modelsDir]);
-
-    useEffect(getCkpts, [getCkpts]);
 
     return (
         <Box
@@ -167,17 +161,16 @@ export const ModelMerger = () => {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setModelA(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={modelA}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -199,17 +192,16 @@ export const ModelMerger = () => {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setModelB(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={modelB}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -232,17 +224,16 @@ export const ModelMerger = () => {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setModelC(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={modelC}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts?.map((ckpt_option, i) => (<option
+                            {models.ckpts?.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >

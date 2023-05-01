@@ -3,12 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { EXTENSION, getExtname, IMAGE_EXTENSIONS } from '../utils/extensions';
+import { FileWatcher } from '../utils/fileWatcher';
 
 export const setupImageViewer = (mainWindow: Electron.BrowserWindow) => {
-  let current_folder_path = '';
-
-  let watcher: fs.FSWatcher | null = null;
-
   const readFiles = (folder_path: string): ImageViewerResultType => {
     const results = fs.readdirSync(folder_path, { withFileTypes: true })
       .map(dirent => {
@@ -33,34 +30,30 @@ export const setupImageViewer = (mainWindow: Electron.BrowserWindow) => {
     };
   }
 
-  const reassignWatcher = (folder_path: string) => {
-    if(current_folder_path === folder_path) return;
-
-    current_folder_path = folder_path;
-    watcher?.close();
-    watcher = fs.watch(folder_path, (eventType, filename) => {
-      mainWindow.webContents.send('imageViewerChange', readFiles(folder_path));
-    })
-  }
-
   ipcMain.handle('getDisks', () => {
     return execSync('wmic logicaldisk get deviceid /value', { encoding: 'utf-8' })
       .split('\r\r\n')
       .filter(Boolean)
       .map(s => s.replace('DeviceID=', ''));
   });
+
+  const watcher = new FileWatcher();
+
+  const imageViewerWatcherCallback = (folder_path: string) => () => {
+    mainWindow.webContents.send('imageViewerChange', readFiles(folder_path));
+  }
   
   ipcMain.handle('imageViewer', (_, folder_path: string, batch_path: string): ImageViewerResultType => {
     if(!fs.existsSync(folder_path)) {
       if(fs.existsSync(batch_path)) {
-        reassignWatcher(batch_path);
+        watcher.reassignWatcher(batch_path, imageViewerWatcherCallback(batch_path));
         return { error: { error: '', path: batch_path }, results: [] }
       }
-      reassignWatcher(app.getPath('home'));
+      watcher.reassignWatcher(batch_path, imageViewerWatcherCallback(app.getPath('home')));
       return { error: { error: '', path: app.getPath('home') }, results: [] }
     }
     
-    reassignWatcher(folder_path);
+    watcher.reassignWatcher(batch_path, imageViewerWatcherCallback(folder_path));
   
     return readFiles(folder_path);
   });  
