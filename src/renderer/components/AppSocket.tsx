@@ -9,7 +9,7 @@ import path from 'path';
 import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
 
-import { batchNameState, imageSavePathState } from '../SettingsManager';
+import { batchNameState, imageSavePathState, modelsDirState, modelsState } from '../SettingsManager';
 
 export const AppSocket: React.FC = () => {
     // Connect to the server 
@@ -29,6 +29,23 @@ export const AppSocket: React.FC = () => {
     const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
     const [removeBackgroundPreview, setRemoveBackgroundPreview] = useRecoilState(atom.removeBackgroundPreviewState);
     const socket = useContext(SocketContext);
+
+    const setModels = useSetRecoilState(modelsState);
+    const modelsDir = useRecoilValue(modelsDirState);
+
+    useEffect(() => {
+        const handlerDiscard = window.api.modelsChange((_, result) => {
+            setModels(result);
+        });
+
+        return () => {
+            handlerDiscard();
+        }
+    }, []);
+
+    useEffect(() => {
+        window.api.modelsFolder(modelsDir).then(setModels);
+    }, [modelsDir])
 
     const handleGetImages = useCallback((data: ImageState) => {
         setLatestImages(latestImages => {

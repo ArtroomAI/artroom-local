@@ -16,6 +16,6 @@ export const setupHandles = (browserWindow: Electron.BrowserWindow) => {
     setupQueueHandles();
     clipboardHandles();
     openLinksHandles();
-    filesHandles();
+    filesHandles(browserWindow);
     pytestHandles();
 }

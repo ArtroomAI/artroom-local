@@ -19,7 +19,7 @@ import { FiLink } from "react-icons/fi";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { aspectRatioSelectionState } from "../../atoms/atoms";
 import { aspectRatioState, heightState, initImageState, widthState } from "../../SettingsManager";
-import { getImageDimensions } from "../Utils/getImageDimensions";
+import { getImageDimensions } from "../Utils/image";
 
 const MAX_VALUE = 2048;
 const MIN_VALUE = 256;

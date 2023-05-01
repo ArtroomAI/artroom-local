@@ -1,8 +1,3 @@
-interface Lora {
-    name: string;
-    weight: number; // float
-}
-
 interface QueueType {
     text_prompts: string;
     negative_prompts: string;

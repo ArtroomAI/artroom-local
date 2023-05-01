@@ -1,5 +1,4 @@
 import React from 'react';
-import path from 'path';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import {
     Modal,
@@ -19,7 +18,7 @@ import { BiImages, BiCopy } from 'react-icons/bi';
 import { GoSettings } from 'react-icons/go';
 import { AiFillFolderOpen } from 'react-icons/ai';
 import * as atom from '../../atoms/atoms';
-import { initImageState, parseHeigth, parseLoras, parseWidth } from '../../SettingsManager';
+import { initImageState } from '../../SettingsManager';
 import ImageObj from '../Reusable/ImageObj';
 import { initImagePathState } from '../../atoms/atoms';
 
@@ -37,7 +36,7 @@ const ImageModalField = ({ data, header }: { data: string | number | Lora[]; hea
     }
 
     const parseArray = (arr: Lora[]) => {
-        return parseLoras(arr).map(el => `${el.name} : ${el.weight}`).join('\n');
+        return arr.map(el => `${el.name} : ${el.weight}`).join('\n');
     }
 
     const toDisplay = Array.isArray(data) ? parseArray(data) : data;
@@ -117,7 +116,7 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                             <Divider pt="5"></Divider>
                             <Flex>
                                 <Box flexDirection="column" width="50%">
-                                    <ImageModalField data={`${parseWidth(imageModalMetadata)}x${parseHeigth(imageModalMetadata)}`} header="Dimensions (WxH)" />
+                                    <ImageModalField data={`${imageModalMetadata.width}x${imageModalMetadata.height}`} header="Dimensions (WxH)" />
                                 </Box>
                                 <Box>
                                     <ImageModalField data={imageModalMetadata.seed} header="Seed:" />

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
@@ -46,22 +46,22 @@ import {
     stepsState,
     strengthState,
     useRemovedBackgroundState,
-    vaeState
+    vaeState,
+    modelsState
 } from '../../SettingsManager';
 import LoraSelector from './Lora/LoraSelector';
 import { AspectRatio } from './AspectRatio';
 import Controlnet from './Controlnet/Controlnet';
 import RemoveBackground from './RemoveBackground/RemoveBackground';
 import { SDSettingsAccordion } from './SDSettingsAccordion';
+import { getExifData } from '../../../main/utils/exifData';
 
 function SDSettings () {
     const toast = useToast({});
     const cloudMode = useRecoilValue(atom.cloudModeState);
 
     const modelDirs = useRecoilValue(modelsDirState);
-    const [ckpts, setCkpts] = useState([]);
-    const [vaes, setVaes] = useState([]);
-    const [loras, setLoras] = useState([]);
+    const models = useRecoilValue(modelsState);
 
     const [batchName, setBatchName] = useRecoilState(batchNameState);
     const [iterations, setIterations] = useRecoilState(iterationsState);
@@ -83,20 +83,11 @@ function SDSettings () {
     const useRemovedBackground = useRecoilValue(useRemovedBackgroundState);
     const setSettings = useSetRecoilState(exifDataSelector);
 
-    const getCkpts = useCallback(() => {
-        window.api.getCkpts(modelDirs).then(setCkpts);
-        window.api.getVaes(modelDirs).then(setVaes);
-        window.api.getLoras(modelDirs).then(setLoras);
-        
-    }, [modelDirs]);
-
-    useEffect(getCkpts, [getCkpts]);
-
-    const goToModelFolder = () => {
+    const goToModelFolder = useCallback(() => {
         if (modelDirs !== '') {
             window.api.showInExplorer(modelDirs);
         }
-    }
+    }, [modelDirs])
 
     return (
         <Flex pr="10" width="450px">
@@ -163,17 +154,16 @@ function SDSettings () {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setCkpt(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={ckpt}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Choose Your Model Weights
                                 </option>
                                 : <></>}
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -455,14 +445,13 @@ function SDSettings () {
                                 id="vae"
                                 name="vae"
                                 onChange={(event) => setVae(event.target.value)}
-                                onMouseEnter={getCkpts}
                                 value={vae}
                                 variant="outline"
                             >
                                 <option value="">
                                     No vae
                                 </option>
-                                {vaes.map((ckpt_option, i) => (<option
+                                {models.vaes.map((ckpt_option, i) => (<option
                                     key={i}
                                     value={ckpt_option}
                                 >
@@ -473,7 +462,7 @@ function SDSettings () {
                     </SDSettingsAccordion> 
 
                     <SDSettingsAccordion header={`Loras ${lora.length ? `(${lora.length})` : ``}`}>
-                        <LoraSelector cloudMode={cloudMode} options={loras} />
+                        <LoraSelector cloudMode={cloudMode} options={models.loras} />
                     </SDSettingsAccordion> 
 
                     <SDSettingsAccordion header={`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}>
@@ -490,7 +479,7 @@ function SDSettings () {
                                 onClick={() => {
                                     window.api.uploadSettings().then(checkSettings).then(results => {
                                         if(results[1].status === 'success') {
-                                            setSettings(results[0]);
+                                            setSettings(results[0]!);
                                         }
                                         toast(results[1]);
                                     });
@@ -507,9 +496,9 @@ function SDSettings () {
                                 variant="outline"
                                 icon={<FaClipboardList />}
                                 onClick={() => {
-                                    navigator.clipboard.readText().then(checkSettings).then(results => {
+                                    navigator.clipboard.readText().then(getExifData).then(checkSettings).then(results => {
                                         if(results[1].status === 'success') {
-                                            setSettings(results[0]);
+                                            setSettings(results[0]!);
                                         }
                                         toast(results[1]);
                                     });

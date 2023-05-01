@@ -1,8 +1,12 @@
 import path from 'path';
 import os from 'os';
+import React from 'react';
 import { atom, selector } from "recoil";
 import { recoilPersist } from 'recoil-persist';
-import { UseToastOptions } from '@chakra-ui/react';
+import { Text, UseToastOptions } from '@chakra-ui/react';
+import { ExifValidation } from '../interfaces/imageData';
+import { DEFAULT_EXIF } from '../interfaces/ExifDataType';
+import type { IValidation } from "typia";
 
 const { persistAtom } = recoilPersist();
 
@@ -17,6 +21,15 @@ export const modelsDirState = atom<string>({
     default: path.join(os.homedir() || "", 'artroom', 'model_weights'),
     effects_UNSTABLE: [persistAtom]
 });
+
+export const modelsState = atom<InternalModelsType>({
+    key: 'modelsState',
+    default: {
+        ckpts: [],
+        vaes: [],
+        loras: []
+    }
+})
 
 export const textPromptsState = atom<string>({
     key: "text_prompts",
@@ -214,6 +227,12 @@ export const debugModeState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const cloudOnlyState = atom<boolean>({
+    key: 'cloudOnly',
+    default: false,
+    effects_UNSTABLE: [persistAtom]
+});
+
 const parseAndCheckFloat = (num: string, def: number) => {
     const parsed = parseFloat(num);
     return isFinite(parsed) ? parsed : def; 
@@ -277,32 +296,6 @@ export const queueSettingsSelector = selector<QueueType>({
     }
 });
 
-
-// @DEPRECATE: LEGACY LORAS DON'T HAVE NAME ONLY PATH, IT WILL BE REMOVED 
-export const parseLoras = (loras: Lora[] = []): Lora[] => {
-    return loras.map(el => {
-        return { name: el.name ?? path.basename((el as any).path), weight: el.weight };
-    });
-}
-// @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
-export const parseWidth = (exif: Partial<ExifDataType>) => {
-    if('W' in exif) {
-        return exif.W as number;
-    } else if ('width' in exif) {
-        return exif.width as number;
-    }
-    return NaN;
-}
-// @DEPRECATE: CHANGE 'W' INTO 'WIDTH' AND 'H' INTO 'HEIGHT'
-export const parseHeigth = (exif: Partial<ExifDataType>) => {
-    if('H' in exif) {
-        return exif.H as number;
-    } else if ('height' in exif) {
-        return exif.height as number;
-    }
-    return NaN;
-}
-
 // SET ONLY
 export const exifDataSelector = selector<Partial<ExifDataType>>({
     key: "exif.settings",
@@ -312,12 +305,12 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
     set: ({ set }, queue) => {
         const exif = queue as ExifDataType;
 
-        set(widthState, parseWidth(exif));
-        set(heightState, parseHeigth(exif));
+        set(widthState, exif.width);
+        set(heightState, exif.height);
 
         set(cfgState, `${exif.cfg_scale}`);
         set(controlnetState, exif.controlnet ?? "none");
-        set(loraState, parseLoras(exif.loras));
+        set(loraState, exif.loras);
 
         set(negativePromptsState, exif.negative_prompts);
 
@@ -335,30 +328,47 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
     }
 });
 
-export const checkSettings = (clipboard: string): [Partial<ExifDataType>, UseToastOptions] => {
-    try {
-        if(clipboard === '') {
-            return [{}, {
-                title: "Settings not loaded",
-                status: "info",
-                duration: 500,
-                position: 'top'
-            }]
-        }
-        const json = JSON.parse(clipboard);
-        return [json, {
-            title: "Settings loaded successfully",
-            status: "success",
-            duration: 500,
-            position: 'top'
-        }];
-    } catch(err) {
-        return [{}, {
-            title: `Error during loading settings`,
+const parseExifErrors = (errors: IValidation.IError[]) => {
+    const parsePath = (path: string) => path.replace('$input.', '');
+
+    const parseType = (type: string) => {
+        if (type.includes('@type int')) return 'integer';
+        return type;
+    };
+
+    const parseValue = (value: any) => typeof value === 'object' ? JSON.stringify(value) : String(value);
+    return errors.map((err) => {
+        const path = parsePath(err.path);
+        const type = parseType(err.expected);
+        const value = parseValue(err.value);
+        return <Text>In {path} expected {type}, but got {value}</Text>
+    });
+}
+
+export const checkSettings = (exif: ExifValidation | null): [ExifDataType, UseToastOptions] => {
+    if(exif === null) {
+        return [DEFAULT_EXIF, {
+            title: `Settings were not loaded`,
             status: "error",
             duration: 5000,
             isClosable: true,
             position: 'top'
         }];
     }
+    if(exif.success) {
+        return [exif.data, {
+            title: "Settings loaded successfully",
+            status: "success",
+            duration: 500,
+            position: 'top'
+        }]
+    }
+    return [DEFAULT_EXIF, {
+        title: `Error during loading settings`,
+        description: parseExifErrors(exif.errors),
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: 'top'
+    }];
 }
