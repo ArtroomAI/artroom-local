@@ -12,8 +12,8 @@ from functools import partial
 
 from ldm.modules.ema import LitEma
 from ldm.models.autoencoder import VQModelInterface
-from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor
-from ldm.modules.diffusionmodules.util import make_ddim_sampling_parameters, make_ddim_timesteps, noise_like
+from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor, \
+    make_ddim_sampling_parameters, make_ddim_timesteps, noise_like, BrownianTreeNoiseSampler
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 from ldm.util import exists, default, instantiate_from_config, disabled_train
 
@@ -980,7 +980,7 @@ class UNet(DDPM):
 
     def p_k_sample(self, x, c, sigmas, sampler, i, s_in, mode="default", unconditional_guidance_scale=1.,
                    unconditional_conditioning=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.,
-                   model_wrap_sigmas=None, ds=None, order=4):
+                   model_wrap_sigmas=None, ds=None, order=4, r=1/2):
         if ds is None:
             ds = []
         b, *_, device = *x.shape, x.device
@@ -989,6 +989,37 @@ class UNet(DDPM):
         t_fn = lambda sigma: sigma.log().neg()
         self.x_spare_part = None
         match sampler:
+            case "dpmpp_sde":
+                sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
+                noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max)
+                denoised = self.get_model_output_k(x, sigmas[i] * s_in, unconditional_conditioning, c,
+                                                   unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
+                if sigmas[i + 1] == 0:
+                    # Euler method
+                    d = self.to_d(x, sigmas[i], denoised).to(x.dtype).to(x.device)
+                    dt = sigmas[i + 1] - sigmas[i]
+                    x = x + d * dt
+                else:
+                    # DPM-Solver++
+                    t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
+                    h = t_next - t
+                    s = t + h * r
+                    fac = 1 / (2 * r)
+
+                    # Step 1
+                    sd, su = self.get_ancestral_step(sigma_fn(t), sigma_fn(s), eta=1.)
+                    s_ = t_fn(sd)
+                    x_2 = (sigma_fn(s_) / sigma_fn(t)) * x - (t - s_).expm1() * denoised
+                    x_2 = x_2 + noise_sampler(sigma_fn(t), sigma_fn(s)) * s_noise * su
+                    denoised_2 = self.get_model_output_k(x_2, sigma_fn(s) * s_in, unconditional_conditioning, c,
+                                                         unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
+
+                    # Step 2
+                    sd, su = self.get_ancestral_step(sigma_fn(t), sigma_fn(t_next), eta=1.)
+                    t_next_ = t_fn(sd)
+                    denoised_d = (1 - fac) * denoised + fac * denoised_2
+                    x = (sigma_fn(t_next_) / sigma_fn(t)) * x - (t - t_next_).expm1() * denoised_d
+                    x = x + noise_sampler(sigma_fn(t), sigma_fn(t_next)) * s_noise * su
             case "dpmpp_2m":
                 denoised = self.get_model_output_k(x, sigmas[i] * s_in, unconditional_conditioning, c,
                                                    unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
