@@ -21,7 +21,7 @@ import { aspectRatioSelectionState } from "../../atoms/atoms";
 import { aspectRatioState, heightState, initImageState, widthState } from "../../SettingsManager";
 import { getImageDimensions } from "../Utils/getImageDimensions";
 
-const MAX_VALUE = 2048;
+const MAX_VALUE = 3840;
 const MIN_VALUE = 256;
 const STEP = 64;
 

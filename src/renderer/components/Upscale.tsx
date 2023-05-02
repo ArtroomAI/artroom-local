@@ -238,6 +238,10 @@ function Upscale () {
                                     Choose Upscaler
                                 </option>
 
+                                <option value="UltraSharp">
+                                    4x UltraSharp
+                                </option>
+
                                 <option value="GFPGANv1.3">
                                     GFPGANv1.3
                                 </option>
@@ -326,7 +330,7 @@ function Upscale () {
                             onChange={(v, n) => {
                                 setUpscaleFactor(n);
                             }}
-                            step={1}
+                            step={0.01}
                             value={upscale_factor}
                             variant="outline"
                             w="200px"
