@@ -49,6 +49,18 @@ logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+def get_state_dict(d):
+    return d.get('state_dict', d)
+
+def load_state_dict(ckpt_path, location='cpu'):
+    _, extension = os.path.splitext(ckpt_path)
+    if extension.lower() == ".safetensors":
+        import safetensors.torch
+        state_dict = safetensors.torch.load_file(ckpt_path, device=location)
+    else:
+        state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
+    state_dict = get_state_dict(state_dict)
+    return state_dict
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
@@ -147,7 +159,7 @@ class StableDiffusion:
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4, controlnet=False):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
 
-        du_state_dict = load_file(path)
+        du_state_dict = load_state_dict(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
         # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
         # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
@@ -263,19 +275,6 @@ class StableDiffusion:
         return True
 
     def inject_controlnet_new(self, controlnet_path, state_dict, existing=False):
-        def get_state_dict(d):
-            return d.get('state_dict', d)
-
-        def load_state_dict(ckpt_path, location='cpu'):
-            _, extension = os.path.splitext(ckpt_path)
-            if extension.lower() == ".safetensors":
-                import safetensors.torch
-                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
-            else:
-                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
-            state_dict = get_state_dict(state_dict)
-            return state_dict
-
         print("Injecting controlnet...")
         if existing:
             state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
@@ -318,19 +317,6 @@ class StableDiffusion:
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
-
-        def get_state_dict(d):
-            return d.get('state_dict', d)
-
-        def load_state_dict(ckpt_path, location='cpu'):
-            _, extension = os.path.splitext(ckpt_path)
-            if extension.lower() == ".safetensors":
-                import safetensors.torch
-                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
-            else:
-                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
-            state_dict = get_state_dict(state_dict)
-            return state_dict
 
         def get_node_name(name, parent_name):
             if len(name) <= len(parent_name):
@@ -630,6 +616,147 @@ class StableDiffusion:
         if self.running and self.model:
             self.model.interrupted_state = True
             self.running = False
+    
+    def diffusion_upscale(self,
+                            n=0,
+                            prompts_data=None,
+                            negative_prompts_data=None,
+                            image=None,
+                            highres_steps=50,
+                            highres_strength=0.15,
+                            highres_multiplier=1.5,
+                            mask_b64="",
+                            invert=False,
+                            padding=0,
+                            H=512,
+                            W=512,
+                            oldH=512,
+                            oldW=512,
+                            cfg_scale=7.5,
+                            seed=-1,
+                            sampler="ddim",
+                            batch_size=1,
+                            mode="default",
+                            precision_scope=None,
+                            clip_skip=1
+                            ):
+        i = 0
+        upscaler_model = "UltraSharp"
+        failed = False #If it fails, then stop generating and only upscale 
+        temp_save_path = os.path.join(self.models_dir, f"highres_temp_{i}.png")
+        print("Running experimental highres fix")
+
+        # Does highres fix at 1.5x intervals
+        while W * highres_multiplier < oldW and H * highres_multiplier < oldH:
+            print("Saving upscaled image")
+            image.save(temp_save_path)
+            W = int(W * highres_multiplier)
+            H = int(H * highres_multiplier)
+            
+            print("Upscaling image")
+            image = self.Upscaler.upscale(self.models_dir, [temp_save_path], upscaler_model, highres_multiplier,
+                                                   os.path.join(self.models_dir, "upscale_test"))['content'][
+                'output_images'][0]
+
+            image.resize((W, H)) #Ensures final dimensions are correct
+
+            # generate the next version using the upscaled image as the new input
+            highres_init_image = self.load_img(image.convert('RGB'), H, W).to(self.device)
+
+            if self.v1 or self.control_model:
+                self.modelFS.to(self.device)
+
+            print("Generating upscaled image")
+            try:
+                if not failed:
+                    image = self.generate_image(
+                        n=n,
+                        prompts_data=prompts_data,
+                        negative_prompts_data=negative_prompts_data,
+                        image=image,
+                        init_image=highres_init_image,
+                        init_image_str="upscaled",
+                        steps=highres_steps,
+                        H=H,
+                        W=W,
+                        oldH=H,
+                        oldW=W,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        ddim_steps=int(highres_steps / highres_strength),
+                        batch_size=batch_size,
+                        mode=mode,
+                        precision_scope=precision_scope,
+                        highres_fix_steps=1,
+                        clip_skip=clip_skip
+                    )
+                
+            except Exception as e:
+                if "CUDA out of memory" in str(e):
+                    torch.cuda.empty_cache()  # free up GPU memory
+                    print("CUDA out of memory error occurred, skipping this image resolution")
+                print(f"Failed to generate image for resultion {H}x{W}: {e}")
+                failed = True
+            i += 1
+            temp_save_path = os.path.join(self.models_dir, f"highres_temp_{i}.png")
+        
+        image.save(temp_save_path)
+        print("Doing final run")
+        
+        # save the upscaled image as the starting version for the next iteration           
+        # upscale the starting version by x1.5
+        image = self.Upscaler.upscale(self.models_dir, [temp_save_path], upscaler_model,
+                                               max(1, min(oldW / W, oldH / H)),
+                                               os.path.join(self.models_dir, "upscale_test"))['content'][
+            'output_images'][0]
+        image = image.resize((oldW, oldH)) #Ensures final dimensions are correct
+        return image 
+    
+        # NOTE: Everything below would be used if we upscale all the way. Instead, we upscale only for the last step to save vram.
+
+        if failed:
+            print("Failed to gen previously, returning upscaled image as final")
+            return image 
+        
+        # generate the next version using the upscaled image as the new input
+        highres_init_image = self.load_img(image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0)).to(self.device)
+        if self.v1 or self.control_model:
+            self.modelFS.to(self.device)
+
+        # generate the final version using the original image as the input
+        print("Doing final diffusion step")
+        try:
+            image = self.generate_image(
+                n=n,
+                prompts_data=prompts_data,
+                negative_prompts_data=negative_prompts_data,
+                image=image,
+                init_image=highres_init_image,
+                init_image_str="upscaled",
+                mask_b64=mask_b64,  # TO BE IMPLEMENTED
+                invert=invert,
+                padding=padding,
+                steps=highres_steps,  # 10 steps
+                H=H,
+                W=W,
+                oldH=H,
+                oldW=W,
+                cfg_scale=cfg_scale,
+                seed=seed,
+                sampler=sampler,
+                ddim_steps=int(highres_steps / highres_strength),
+                batch_size=batch_size,
+                mode=mode,
+                precision_scope=precision_scope,
+                highres_fix_steps=1,
+                clip_skip=clip_skip
+            )
+            
+        except:
+            print(f"Failed to generate image for resultion {H}x{W}: {e}")
+
+        return image
 
     @torch.no_grad()
     def generate_image(
@@ -863,180 +990,6 @@ class StableDiffusion:
                         break
             return out_image
 
-    def diffusion_upscale(self,
-                          n=0,
-                          prompts_data=None,
-                          negative_prompts_data=None,
-                          image=None,
-                          init_image=None,
-                          init_image_str="",
-                          mask_b64="",
-                          invert=False,
-                          padding=0,
-                          steps=50,
-                          H=512,
-                          W=512,
-                          oldH=512,
-                          oldW=512,
-                          cfg_scale=7.5,
-                          seed=-1,
-                          sampler="ddim",
-                          ddim_steps=0,
-                          batch_size=1,
-                          mode="default",
-                          controlnet="none",
-                          control=None,
-                          use_preprocessed_controlnet=False,
-                          precision_scope=None,
-                          use_removed_background=False,
-                          remove_background="none",
-                          clip_skip=1
-                          ):
-
-        temp_save_path = os.path.join(self.models_dir, "highres_temp.png")
-
-        print("Running experimental highres fix")
-        # Calculate the scaling factor for both dimensions
-        scale_factor = max(W / 768, H / 768)
-
-        # Calculate the new dimensions while maintaining aspect ratio
-        highres_W = int(round(W / scale_factor / 64) * 64)
-        highres_H = int(round(H / scale_factor / 64) * 64)
-        print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
-
-        # First pass
-        starting_version = self.generate_image(
-            n=n,
-            prompts_data=prompts_data,
-            negative_prompts_data=negative_prompts_data,
-            image=image,
-            init_image=init_image,
-            init_image_str=init_image_str,
-            mask_b64=mask_b64,
-            invert=invert,
-            padding=padding,
-            steps=steps,
-            H=highres_H,
-            W=highres_W,
-            oldH=oldH,  # Unused if not other highres fix
-            oldW=oldW,  # Unused if not other highres fix
-            cfg_scale=cfg_scale,
-            seed=seed,
-            sampler=sampler,
-            ddim_steps=ddim_steps,
-            batch_size=batch_size,
-            mode=mode,
-            controlnet=controlnet,
-            control=control,
-            precision_scope=precision_scope,
-            highres_fix_steps=1,
-            use_removed_background=use_removed_background,
-            remove_background=remove_background,
-            clip_skip=clip_skip
-        )
-
-        # Does highres fix at 1.5x intervals
-        while highres_W * 1.5 < oldW and highres_H * 1.5 < oldH:
-            print("Saving upscaled image")
-            starting_version.save(temp_save_path)
-
-            print("Upscaling image")
-            upscaled_image = self.Upscaler.upscale(self.models_dir, [temp_save_path], "RealESRGAN-Anime", 1.5,
-                                                   os.path.join(self.models_dir, "upscale_test"))['content'][
-                'output_images'][0]
-
-            highres_W = int(highres_W * 1.5)
-            highres_H = int(highres_H * 1.5)
-
-            # generate the next version using the upscaled image as the new input
-            highres_init_image = self.load_img(upscaled_image.convert('RGB'), highres_H, highres_W,
-                                               inpainting=(len(mask_b64) > 0),
-                                               controlnet_mode=controlnet,
-                                               use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-
-            if self.v1 or self.control_model:
-                self.modelFS.to(self.device)
-
-            print("Generating upscaled image")
-            starting_version = self.generate_image(
-                n=n,
-                prompts_data=prompts_data,
-                negative_prompts_data=negative_prompts_data,
-                image=upscaled_image,
-                init_image=highres_init_image,
-                init_image_str="upscaled",
-                mask_b64=mask_b64,  # TO BE IMPLEMENTED
-                invert=invert,
-                padding=padding,
-                steps=10,  # 10 steps
-                H=highres_H,
-                W=highres_W,
-                oldH=highres_H,
-                oldW=highres_W,
-                cfg_scale=cfg_scale,
-                seed=seed,
-                sampler=sampler,
-                ddim_steps=int(10 / 0.15),
-                batch_size=batch_size,
-                mode=mode,
-                controlnet=controlnet,
-                control=control,
-                precision_scope=precision_scope,
-                highres_fix_steps=1,
-                use_removed_background=use_removed_background,
-                remove_background=remove_background,
-                clip_skip=clip_skip
-            )
-        print("Doing final run")
-        print("Saving upscaled image")
-        starting_version.save(temp_save_path)
-        # save the upscaled image as the starting version for the next iteration           
-        # upscale the starting version by x1.5
-        print("Upscaling image")
-        upscaled_image = self.Upscaler.upscale(self.models_dir, [temp_save_path], "RealESRGAN-Anime",
-                                               max(1, min(oldW / highres_W, oldH / highres_H, 1.5)),
-                                               os.path.join(self.models_dir, "upscale_test"))['content'][
-            'output_images'][0]
-
-        # generate the next version using the upscaled image as the new input
-        highres_init_image = self.load_img(upscaled_image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0),
-                                           controlnet_mode=controlnet,
-                                           use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-        if self.v1 or self.control_model:
-            self.modelFS.to(self.device)
-
-        # generate the final version using the original image as the input
-        out_image = self.generate_image(
-            n=n,
-            prompts_data=prompts_data,
-            negative_prompts_data=negative_prompts_data,
-            image=upscaled_image,
-            init_image=highres_init_image,
-            init_image_str="upscaled",
-            mask_b64=mask_b64,  # TO BE IMPLEMENTED
-            invert=invert,
-            padding=padding,
-            steps=10,  # 10 steps
-            H=highres_H,
-            W=highres_W,
-            oldH=highres_H,
-            oldW=highres_W,
-            cfg_scale=cfg_scale,
-            seed=seed,
-            sampler=sampler,
-            ddim_steps=int(10 / 0.15),
-            batch_size=batch_size,
-            mode=mode,
-            controlnet=controlnet,
-            control=control,
-            precision_scope=precision_scope,
-            highres_fix_steps=1,
-            use_removed_background=use_removed_background,
-            remove_background=remove_background,
-            clip_skip=clip_skip
-        )
-        return out_image
-
     def generate(
             self,
             text_prompts="",
@@ -1073,6 +1026,8 @@ class StableDiffusion:
     ):
         self.models_dir = models_dir
         highres_fix_experimental = True
+        highres_steps = 10
+        highres_strength = 0.15 
 
         if loras is None:
             loras = []
@@ -1255,7 +1210,15 @@ class StableDiffusion:
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
                 if highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
-                    out_image = self.diffusion_upscale(
+                    # First pass
+                    scale_factor = max(W / 768, H / 768)
+
+                    # Calculate the new dimensions while maintaining aspect ratio
+                    highres_W = int(round(W / scale_factor / 64) * 64)
+                    highres_H = int(round(H / scale_factor / 64) * 64)
+                    print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
+
+                    starting_version = self.generate_image(
                         n=n,
                         prompts_data=prompts_data,
                         negative_prompts_data=negative_prompts_data,
@@ -1266,10 +1229,10 @@ class StableDiffusion:
                         invert=invert,
                         padding=padding,
                         steps=steps,
-                        H=H,
-                        W=W,
-                        oldH=oldH,
-                        oldW=oldW,
+                        H=highres_H,
+                        W=highres_W,
+                        oldH=oldH,  # Unused if not other highres fix
+                        oldW=oldW,  # Unused if not other highres fix
                         cfg_scale=cfg_scale,
                         seed=seed,
                         sampler=sampler,
@@ -1278,10 +1241,30 @@ class StableDiffusion:
                         mode=mode,
                         controlnet=controlnet,
                         control=control,
-                        use_preprocessed_controlnet=use_preprocessed_controlnet,
                         precision_scope=precision_scope,
+                        highres_fix_steps=1,
                         use_removed_background=use_removed_background,
                         remove_background=remove_background,
+                        clip_skip=clip_skip
+                    )
+                    
+                    out_image = self.diffusion_upscale(
+                        n=n,
+                        prompts_data=[""],#prompts_data,
+                        negative_prompts_data=negative_prompts_data,
+                        image=starting_version,
+                        highres_steps=highres_steps,
+                        highres_strength=highres_strength,
+                        H=H,
+                        W=W,
+                        oldH=oldH,
+                        oldW=oldW,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        batch_size=batch_size,
+                        mode=mode,
+                        precision_scope=precision_scope,
                         clip_skip=clip_skip
                     )
 

@@ -111,7 +111,7 @@ export const ModelMerger = () => {
                         <HStack>
                             <Tooltip
                                 fontSize="md"
-                                label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference."
+                                label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference (model A) + (model B - Model C)"
                                 mt="3"
                                 placement="right"
                                 shouldWrapChildren>
@@ -131,15 +131,7 @@ export const ModelMerger = () => {
                                     <Radio value="weighted_sum">
                                         Weighted Sum
                                     </Radio>
-
-                                    <Radio value="sigmoid">
-                                        Sigmoid
-                                    </Radio>
-
-                                    <Radio value="inverse_sigmoid">
-                                        Inverse Sigmoid
-                                    </Radio>
-
+                                    
                                     <Radio value="add_difference">
                                         Add Difference
                                     </Radio>
@@ -249,12 +241,12 @@ export const ModelMerger = () => {
                                     setFullrange(!fullrange);
                                 }}
                                 checked={fullrange}>
-                                Use Range for Alpha
+                                Incremental Merging
                             </Checkbox>
 
                             <Tooltip
                                 fontSize="md"
-                                label="Merge the model for every % value from 5 to 95, every 5 steps"
+                                label="Save a model at every increment from the starting % to the ending %"
                                 mt="3"
                                 placement="right"
                                 shouldWrapChildren>
