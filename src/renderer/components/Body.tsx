@@ -59,7 +59,11 @@ const Body = () => {
         });
         setAddToQueue(true);
         const settings = parseSettings(
-            {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
+            {
+                ...imageSettings,
+                id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`,
+                palette_fix: false
+            },
             useRandomSeed
         );
 

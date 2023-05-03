@@ -64,13 +64,14 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
 
             <Flex className="text-prompts" w="100%">
                 <AutoResizeTextarea
-                id="text_prompts"
-                name="text_prompts"
-                onBlur={() => setFocused(false)}
-                onChange={(event) => setTextPrompts(event.target.value)}
-                onFocus={() => setFocused(true)}
-                value={textPrompts}
-                variant="outline"
+                    id="text_prompts"
+                    name="text_prompts"
+                    onBlur={() => setFocused(false)}
+                    onChange={(event) => setTextPrompts(event.target.value)}
+                    onFocus={() => setFocused(true)}
+                    value={textPrompts}
+                    variant="outline"
+                    spellCheck
                 />
             </Flex>
             </FormControl>
@@ -107,13 +108,14 @@ function Prompt ({ setFocused }: { setFocused: React.Dispatch<React.SetStateActi
 
             <Flex className="negative-prompts" w="100%">
                 <AutoResizeTextarea
-                id="negative_prompts"
-                name="negative_prompts"
-                onBlur={() => setFocused(false)}
-                onChange={(event) => setNegativePrompts(event.target.value)}
-                onFocus={() => setFocused(true)}
-                value={negativePrompts}
-                variant="outline"
+                    id="negative_prompts"
+                    name="negative_prompts"
+                    onBlur={() => setFocused(false)}
+                    onChange={(event) => setNegativePrompts(event.target.value)}
+                    onFocus={() => setFocused(true)}
+                    value={negativePrompts}
+                    variant="outline"
+                    spellCheck
                 />
             </Flex>
             </FormControl>

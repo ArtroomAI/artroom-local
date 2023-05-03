@@ -132,8 +132,7 @@ export const invertState = atom<boolean>({
 
 export const paletteFixState = atom<boolean>({
     key: "palette_fix",
-    default: false,
-    effects_UNSTABLE: [persistAtom]
+    default: false
 });
 
 export const imageSavePathState = atom<string>({
@@ -242,13 +241,15 @@ const floatBetween = (num: number, min: number, max: number) => {
     return Math.max(Math.min(num, max), min);
 }
 
+const normalizeString = (input: string) => input.replace('\n', ' ').trim();
+
 export const queueSettingsSelector = selector<QueueType>({
     key: "queue.settings",
     get: ({ get }) => {
         const settings: QueueType = {
 
-            text_prompts: get(textPromptsState),
-            negative_prompts: get(negativePromptsState),
+            text_prompts: normalizeString(get(textPromptsState)),
+            negative_prompts: normalizeString(get(negativePromptsState)),
 
             // image to image options
             strength: floatBetween(get(strengthState), 0.03, 0.96),
@@ -280,7 +281,10 @@ export const queueSettingsSelector = selector<QueueType>({
             palette_fix: get(paletteFixState),
 
             //
-            image_save_path: path.join(get(imageSavePathState), get(batchNameState)), // absolute path
+            image_save_path: path.join(
+                normalizeString(get(imageSavePathState)),
+                normalizeString(get(batchNameState))
+            ), // absolute path
 
             // generation options
             n_iter: parseAndCheckFloat(get(iterationsState), 1),
