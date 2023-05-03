@@ -126,7 +126,7 @@ try:
                 image_folder = os.path.join(data['image_save_path'], re.sub(
                     r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
                 os.makedirs(image_folder, exist_ok=True)
-                os.makedirs(os.path.join(image_folder,'/settings'), exist_ok=True)
+                os.makedirs(os.path.join(image_folder, 'settings'), exist_ok=True)
                 sd_settings_count = len(glob(image_folder + '/settings/*.json'))
                 with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
                     json.dump(data, outfile, indent=4)
