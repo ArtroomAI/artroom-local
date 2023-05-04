@@ -349,7 +349,9 @@ const parseExifErrors = (errors: IValidation.IError[]) => {
     });
 }
 
-export const checkSettings = (exif: ExifValidation | null): [ExifDataType, UseToastOptions] => {
+export type CheckSettingsType = [ExifDataType, UseToastOptions];
+
+export const checkSettings = (exif: ExifValidation | null, models?: InternalModelsType): CheckSettingsType => {
     if(exif === null) {
         return [DEFAULT_EXIF, {
             title: `Settings were not loaded`,
@@ -360,12 +362,43 @@ export const checkSettings = (exif: ExifValidation | null): [ExifDataType, UseTo
         }];
     }
     if(exif.success) {
+        if(models) {
+            const missing: string[] = [];
+            const hasModel = models.ckpts.includes(exif.data.ckpt);
+            const hasVae = models.vaes.includes(exif.data.vae);
+            const hasLoras = exif.data.loras
+                .map(lora => models.loras.includes(lora.name));
+
+            if (!hasModel) {
+                missing.push(`Missing model: ${exif.data.ckpt}`);
+            }
+            if (!hasVae) {
+                missing.push(`Missing vae: ${exif.data.vae}`);
+            }
+            if (hasLoras.find(e => e === false) ?? false) {
+                hasLoras.forEach((err, index) => {
+                    if(err) {
+                        missing.push(`Missing lora: ${exif.data.loras[index]}`);
+                    }
+                })
+            }
+
+            if (missing.length) {
+                return [exif.data, {
+                    title: "Settings loaded partially",
+                    description: missing.map(text => <Text>{text}</Text>),
+                    status: "warning",
+                    duration: 5000,
+                    position: 'top'
+                }];
+            }
+        }
         return [exif.data, {
             title: "Settings loaded successfully",
             status: "success",
             duration: 500,
             position: 'top'
-        }]
+        }];
     }
     return [DEFAULT_EXIF, {
         title: `Error during loading settings`,

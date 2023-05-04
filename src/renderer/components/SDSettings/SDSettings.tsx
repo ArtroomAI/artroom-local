@@ -47,7 +47,8 @@ import {
     strengthState,
     useRemovedBackgroundState,
     vaeState,
-    modelsState
+    modelsState,
+    CheckSettingsType
 } from '../../SettingsManager';
 import LoraSelector from './Lora/LoraSelector';
 import { AspectRatio } from './AspectRatio';
@@ -87,7 +88,14 @@ function SDSettings () {
         if (modelDirs !== '') {
             window.api.showInExplorer(modelDirs);
         }
-    }, [modelDirs])
+    }, [modelDirs]);
+
+    const setSettingsWithToast = (results: CheckSettingsType) => {
+        if(results[1].status !== 'error') {
+            setSettings(results[0]);
+        }
+        toast(results[1]);
+    }
 
     return (
         <Flex pr="10" width="450px">
@@ -478,12 +486,9 @@ function SDSettings () {
                         <Tooltip label="Upload">
                             <Button
                                 onClick={() => {
-                                    window.api.uploadSettings().then(checkSettings).then(results => {
-                                        if(results[1].status === 'success') {
-                                            setSettings(results[0]!);
-                                        }
-                                        toast(results[1]);
-                                    });
+                                    window.api.uploadSettings()
+                                        .then(settings => checkSettings(settings, models))
+                                        .then(setSettingsWithToast);
                                 }}
                                 aria-label="upload"
                                 variant="outline"
@@ -497,12 +502,10 @@ function SDSettings () {
                                 variant="outline"
                                 icon={<FaClipboardList />}
                                 onClick={() => {
-                                    navigator.clipboard.readText().then(getExifData).then(checkSettings).then(results => {
-                                        if(results[1].status === 'success') {
-                                            setSettings(results[0]!);
-                                        }
-                                        toast(results[1]);
-                                    });
+                                    navigator.clipboard.readText()
+                                        .then(getExifData)
+                                        .then(settings => checkSettings(settings, models))
+                                        .then(setSettingsWithToast);
                                 }}
                             />
                         </Tooltip>
