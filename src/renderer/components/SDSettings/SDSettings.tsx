@@ -264,11 +264,12 @@ function SDSettings () {
 
                                 <NumberInput
                                     id="cfg_scale"
-                                    min={0}
                                     name="cfg_scale"
                                     onChange={setCfg}         
                                     value={cfg}
                                     variant="outline"
+                                    max={0.95}
+                                    min={0.03}
                                 >
                                     <NumberInputField id="cfg_scale" />
                                 </NumberInput>

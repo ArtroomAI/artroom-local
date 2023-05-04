@@ -252,7 +252,7 @@ export const queueSettingsSelector = selector<QueueType>({
             negative_prompts: normalizeString(get(negativePromptsState)),
 
             // image to image options
-            strength: floatBetween(get(strengthState), 0.03, 0.96),
+            strength: get(strengthState),
             init_image: get(initImageState), // replaced in Paint.tsx
 
             width: get(widthState),
