@@ -9,7 +9,7 @@ import path from 'path';
 import { SocketContext } from '../socket';
 import { ImageState } from '../atoms/atoms.types';
 
-import { batchNameState, imageSavePathState, modelsDirState, modelsState } from '../SettingsManager';
+import { batchNameState, connectedToServerState, imageSavePathState, modelsDirState, modelsState } from '../SettingsManager';
 
 export const AppSocket: React.FC = () => {
     // Connect to the server 
@@ -32,6 +32,7 @@ export const AppSocket: React.FC = () => {
 
     const setModels = useSetRecoilState(modelsState);
     const modelsDir = useRecoilValue(modelsDirState);
+    const setIsConnected = useSetRecoilState(connectedToServerState);
 
     useEffect(() => {
         const handlerDiscard = window.api.modelsChange((_, result) => {
@@ -98,8 +99,21 @@ export const AppSocket: React.FC = () => {
         socket.on('get_remove_background_preview', handleRemoveBackgroundPreview); 
         return () => {
             socket.off('get_remove_background_preview', handleRemoveBackgroundPreview);
-          };
+        };
     }, [socket, handleRemoveBackgroundPreview]);
+
+    useEffect(() => {
+        const connected = () => setIsConnected(true);
+        const disconnected = () => setIsConnected(false);
+
+        socket.on('connect', connected);
+        socket.on('disconnect', disconnected);
+
+        return () => {
+            socket.off('connect', connected);
+            socket.off('disconnect', disconnected);
+        }
+    }, [socket]);
 
     //make sure cloudmode is off, while not signed in
     useEffect(() => {

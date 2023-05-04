@@ -232,6 +232,11 @@ export const cloudOnlyState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const connectedToServerState = atom<boolean>({
+    key: 'connected_to_server',
+    default: false
+});
+
 const parseAndCheckFloat = (num: string, def: number) => {
     const parsed = parseFloat(num);
     return isFinite(parsed) ? parsed : def; 
