@@ -72,6 +72,7 @@ const Body = () => {
             let error = false;
             if (!settings.init_image) {
                 err.description = 'Initial image is required for upscale only!';
+                error = true;
             } else if (settings.width * settings.height < 1024 * 1024) {
                 err.description = 'The size of output image must be greater than 1024x1024 (in pixels)';
                 error = true;
