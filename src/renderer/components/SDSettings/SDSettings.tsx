@@ -330,6 +330,10 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
                                         Euler Ancestral
                                     </option>
 
+                                    <option value="dpmpp_sde">
+                                        DPM++ SDE
+                                    </option>
+
                                     <option value="dpm_2">
                                         DPM 2
                                     </option>
