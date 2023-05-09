@@ -559,7 +559,7 @@ class StableDiffusion:
             id="loading-model", title="Finished Loading Model",
             status="info", position="bottom-right", duration=2000))
 
-    def get_image(self, init_image_str, mask_b64):
+    def get_image(self, init_image_str, mask_b64=''):
         if len(init_image_str) == 0:
             return None
 
@@ -1054,7 +1054,7 @@ class StableDiffusion:
                     status="error", position="top", duration=2000))
                 return None
 
-        if controlnet.lower() != 'none':
+        if controlnet.lower() != 'none' and generation_mode != 'highresfix':
             controlnet_path = get_contronet_path(controlnet)
         else:
             controlnet_path = None
@@ -1212,12 +1212,10 @@ class StableDiffusion:
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
                 
                 if generation_mode == 'highresfix':
-                    scale_factor = max(W / 768, H / 768)
-                    # Calculate the new dimensions while maintaining aspect ratio
-                    highres_W = int(round(W / scale_factor / 64) * 64)
-                    highres_H = int(round(H / scale_factor / 64) * 64)
-                    print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
 
+                    #Uses original image size as base, no need to downscale
+                    image = self.get_image(init_image_str)
+                    print(f"Highres from {image.size[0]}x{image.size[1]} to {oldW}x{oldH}")
                     out_image = self.diffusion_upscale(
                         n=n,
                         prompts_data=[""],#prompts_data,
@@ -1225,8 +1223,8 @@ class StableDiffusion:
                         image=image,
                         highres_steps=highres_steps,
                         highres_strength=highres_strength,
-                        H=H,
-                        W=W,
+                        H=image.size[1],
+                        W=image.size[0],
                         oldH=oldH,
                         oldW=oldW,
                         cfg_scale=cfg_scale,
