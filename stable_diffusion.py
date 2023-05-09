@@ -1212,10 +1212,6 @@ class StableDiffusion:
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
                 
                 if generation_mode == 'highresfix':
-                    if oldW * oldH < 1024 * 1024:
-                        print("Too small size, required is bigger than 1024x1024 (in pixels)")
-                        self.clean_up()
-                        return
                     scale_factor = max(W / 768, H / 768)
                     # Calculate the new dimensions while maintaining aspect ratio
                     highres_W = int(round(W / scale_factor / 64) * 64)
