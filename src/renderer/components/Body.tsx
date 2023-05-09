@@ -15,7 +15,7 @@ import {
 import ImageObj from './Reusable/ImageObj';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { SocketContext } from '../socket';
-import { queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
+import { highresfixOnlyState, queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
 import { addToQueueState, cloudModeState } from '../atoms/atoms';
 import { ImageState } from '../atoms/atoms.types';
 import { parseSettings } from './Utils/utils';
@@ -45,6 +45,7 @@ const Body = () => {
     const setShard = useSetRecoilState(atom.shardState);
     const setSeed = useSetRecoilState(seedState);
     const cloudMode = useRecoilValue(cloudModeState);
+    const highresfixOnly = useRecoilValue(highresfixOnlyState);
 
     const altRPressed = useKeyPress('r', true);
 
@@ -62,7 +63,8 @@ const Body = () => {
             {
                 ...imageSettings,
                 id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`,
-                palette_fix: false
+                palette_fix: false,
+                generation_mode: highresfixOnly ? 'highresfix' : 'default'
             },
             useRandomSeed
         );

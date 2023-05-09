@@ -85,7 +85,7 @@ export default function App () {
                                 element={<>
                                     <Body />
                                     <Spacer />
-                                    <SDSettings />
+                                    <SDSettings tab='default' />
                                 </>}
                                 path="/" />
 
@@ -95,7 +95,7 @@ export default function App () {
 
                                     <Spacer />
 
-                                    <SDSettings />
+                                    <SDSettings tab='paint' />
                                 </>}
                                 path="/paint" />
 

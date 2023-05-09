@@ -56,8 +56,11 @@ import Controlnet from './Controlnet/Controlnet';
 import RemoveBackground from './RemoveBackground/RemoveBackground';
 import { SDSettingsAccordion } from './SDSettingsAccordion';
 import { getExifData } from '../../../main/utils/exifData';
+import HighresUpscale from './HighresUpscale/HighresUpscale';
 
-function SDSettings () {
+type SDSettingsTab = 'default' | 'paint';
+
+function SDSettings ({ tab } : { tab: SDSettingsTab }) {
     const toast = useToast({});
     const cloudMode = useRecoilValue(atom.cloudModeState);
 
@@ -146,7 +149,7 @@ function SDSettings () {
                                     fontSize='xs'
                                     leftIcon={<FaFolder/>}
                                     _hover={{ cursor: 'pointer' }}
-                                    onClick={() => goToModelFolder()}
+                                    onClick={goToModelFolder}
                                     variant="outline"
                                     size="xs"
                                     >
@@ -165,11 +168,9 @@ function SDSettings () {
                             value={ckpt}
                             variant="outline"
                         >
-                            {models.ckpts.length > 0
-                                ? <option value="">
-                                    Choose Your Model Weights
-                                </option>
-                                : <></>}
+                            <option value="">
+                                Choose Your Model Weights
+                            </option>
 
                             {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
@@ -181,48 +182,50 @@ function SDSettings () {
                     </FormControl>
 
                     <SDSettingsAccordion header={`Advanced Settings`}>
-                        <FormControl className="strength-input">
-                            <HStack>
-                                <FormLabel htmlFor="Strength">
-                                    Image Variation Strength:
-                                </FormLabel>
-                                <Spacer />
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
+                        { tab === 'paint' ? (
+                            <FormControl className="strength-input">
+                                <HStack>
+                                    <FormLabel htmlFor="Strength">
+                                        Image Variation Strength:
+                                    </FormLabel>
+                                    <Spacer />
+                                    <Tooltip
+                                        fontSize="md"
+                                        label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                                        placement="left"
+                                        shouldWrapChildren
+                                    >
+                                        <FaQuestionCircle color="#777" />
+                                    </Tooltip>
+                                </HStack>
 
-                            <Slider
-                                defaultValue={0.75}
-                                id="strength"
-                                max={0.99}
-                                min={0.0}
-                                name="strength"
-                                onChange={setStrength}        
-                                step={0.01}
-                                value={strength}
-                                variant="outline"
-                            >
-                                <SliderTrack bg="#EEEEEE">
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
-
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={true}
-                                    label={`${strength}`}
-                                    placement="right"
+                                <Slider
+                                    defaultValue={0.75}
+                                    id="strength"
+                                    max={0.95}
+                                    min={0.03}
+                                    name="strength"
+                                    onChange={setStrength}        
+                                    step={0.01}
+                                    value={strength}
+                                    variant="outline"
                                 >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
-                        </FormControl>
+                                    <SliderTrack bg="#EEEEEE">
+                                        <SliderFilledTrack bg="#4f8ff8" />
+                                    </SliderTrack>
+
+                                    <Tooltip
+                                        bg="#4f8ff8"
+                                        color="white"
+                                        isOpen={true}
+                                        label={`${strength}`}
+                                        placement="right"
+                                    >
+                                        <SliderThumb />
+                                    </Tooltip>
+                                </Slider>
+                            </FormControl>
+                        ) : null }
 
                         <HStack mt={4} alignItems="end">
                             <FormControl width="60%" className="steps-input">
@@ -276,8 +279,6 @@ function SDSettings () {
                                     onChange={setCfg}         
                                     value={cfg}
                                     variant="outline"
-                                    max={0.95}
-                                    min={0.03}
                                 >
                                     <NumberInputField id="cfg_scale" />
                                 </NumberInput>
@@ -482,6 +483,10 @@ function SDSettings () {
                         <RemoveBackground />
                     </SDSettingsAccordion>
 
+                    <SDSettingsAccordion header='Highres settings'>
+                        <HighresUpscale />
+                    </SDSettingsAccordion>
+
                     <ButtonGroup isAttached variant="outline">
                         <Tooltip label="Upload">
                             <Button
@@ -509,7 +514,7 @@ function SDSettings () {
                                 }}
                             />
                         </Tooltip>
-                    </ButtonGroup>         
+                    </ButtonGroup>
                 </VStack>
             </Box>
         </Flex>

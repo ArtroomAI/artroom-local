@@ -42,7 +42,6 @@ function LoraSelector({options, cloudMode}: {options: any[], cloudMode: boolean}
     };
 
   return (
-    <>
     <FormControl className="lora-input">
         <FormLabel htmlFor="Lora">
             <HStack>
@@ -106,7 +105,6 @@ function LoraSelector({options, cloudMode}: {options: any[], cloudMode: boolean}
         ))}
       </VStack>
     </FormControl>
-    </>
   );
 }
 

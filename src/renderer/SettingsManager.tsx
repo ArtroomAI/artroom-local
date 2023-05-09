@@ -237,6 +237,21 @@ export const connectedToServerState = atom<boolean>({
     default: false
 });
 
+export const highresfixOnlyState = atom({
+    key: 'highresfix_only',
+    default: false
+});
+
+export const highresStepsState = atom({
+    key: 'highresfix_steps',
+    default: '10'
+});
+
+export const highresStrengthState = atom({
+    key: 'highresfix_strength',
+    default: 0.15
+});
+
 const parseAndCheckFloat = (num: string, def: number) => {
     const parsed = parseFloat(num);
     return isFinite(parsed) ? parsed : def; 
@@ -290,6 +305,10 @@ export const queueSettingsSelector = selector<QueueType>({
                 normalizeString(get(imageSavePathState)),
                 normalizeString(get(batchNameState))
             ), // absolute path
+            
+            // highres fix options
+            highres_steps: floatBetween(parseAndCheckFloat(get(highresStepsState), 10), 5, 100),
+            highres_strength: get(highresStrengthState),
 
             // generation options
             n_iter: parseAndCheckFloat(get(iterationsState), 1),
@@ -299,7 +318,8 @@ export const queueSettingsSelector = selector<QueueType>({
             long_save_path: get(longSavePathState),
             highres_fix: get(highresFixState),
             show_intermediates: get(showIntermediatesState),
-            id: ""
+            id: "",
+            generation_mode: ''
         }
         return settings;
     }

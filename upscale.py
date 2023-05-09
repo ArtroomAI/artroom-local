@@ -311,7 +311,7 @@ class Upscaler():
     def ESRGAN(self, upscaler, upscale_factor, upscale_dest):
         import artroom_helpers.upscale.esrgan_model_arch as arch
         if "UltraSharp" in upscaler:
-            filename = os.path.join(self.artroom_path,"upscalers", "4x-UltraSharp.pth")
+            filename = self.download_upscaler('https://huggingface.co/lokCX/4x-Ultrasharp/resolve/main/4x-UltraSharp.pth')
         else:
             filename = None
 
@@ -426,11 +426,6 @@ class Upscaler():
 
         def load_model(path: str):
             filename = path
-            #TODO Implement downloading of Ultrax4
-            # if not os.path.exists(filename) or filename is None:
-            #     filename = load_file_from_url(url=self.model_url, model_dir=self.model_path,
-            #                                                 file_name="%s.pth" % self.model_name,
-            #                                                 progress=True)
 
             state_dict = torch.load(filename)
 

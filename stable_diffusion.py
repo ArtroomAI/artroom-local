@@ -1022,12 +1022,13 @@ class StableDiffusion:
             controlnet=None,
             use_preprocessed_controlnet=False,
             remove_background='face', use_removed_background=False,
-            models_dir=''
+            models_dir='',
+            generation_mode='',
+            highres_steps=10,
+            highres_strength=0.15
     ):
         self.models_dir = models_dir
         highres_fix_experimental = True
-        highres_steps = 10
-        highres_strength = 0.15 
 
         if loras is None:
             loras = []
@@ -1209,7 +1210,38 @@ class StableDiffusion:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
-                if highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
+                
+                if generation_mode == 'highresfix':
+                    if oldW * oldH < 1024 * 1024:
+                        print("Too small size, required is bigger than 1024x1024 (in pixels)")
+                        self.clean_up()
+                        return
+                    scale_factor = max(W / 768, H / 768)
+                    # Calculate the new dimensions while maintaining aspect ratio
+                    highres_W = int(round(W / scale_factor / 64) * 64)
+                    highres_H = int(round(H / scale_factor / 64) * 64)
+                    print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
+
+                    out_image = self.diffusion_upscale(
+                        n=n,
+                        prompts_data=[""],#prompts_data,
+                        negative_prompts_data=negative_prompts_data,
+                        image=image,
+                        highres_steps=highres_steps,
+                        highres_strength=highres_strength,
+                        H=H,
+                        W=W,
+                        oldH=oldH,
+                        oldW=oldW,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        batch_size=batch_size,
+                        mode=mode,
+                        precision_scope=precision_scope,
+                        clip_skip=clip_skip
+                    )
+                elif highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
                     # First pass
                     scale_factor = max(W / 768, H / 768)
 

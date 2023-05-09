@@ -248,6 +248,9 @@ try:
                     remove_background=data['remove_background'],
                     use_removed_background=data['use_removed_background'],
                     models_dir=data['models_dir'],
+                    generation_mode=data.get('generation_mode'),
+                    highres_steps=data.get('highres_steps'),
+                    highres_strength=data.get('highres_strength')
                 )
             except Exception as e:
                 print(f"Generation failed! {e}")
