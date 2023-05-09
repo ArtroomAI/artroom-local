@@ -10,7 +10,8 @@ import {
     Button,
     HStack,
     IconButton,
-    Text
+    Text,
+    UseToastOptions
 } from '@chakra-ui/react';
 import ImageObj from './Reusable/ImageObj';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
@@ -50,15 +51,6 @@ const Body = () => {
     const altRPressed = useKeyPress('r', true);
 
     const addToQueue = useCallback(() => {
-        toast({
-            title: 'Added to Queue!',
-            description: `Currently ${queue.length + 1} elements in queue`,
-            status: 'success',
-            position: 'top',
-            duration: 2000,
-            isClosable: false
-        });
-        setAddToQueue(true);
         const settings = parseSettings(
             {
                 ...imageSettings,
@@ -69,10 +61,40 @@ const Body = () => {
             useRandomSeed
         );
 
-        if(useRandomSeed) setSeed(settings.seed);
+        if (highresfixOnly) {
+            const err: UseToastOptions = {
+                title: 'Error while adding to a queue!',
+                status: 'error',
+                position: 'top',
+                duration: 3000,
+                isClosable: true
+            }
+            let error = false;
+            if (!settings.init_image) {
+                err.description = 'Initial image is required for upscale only!';
+            } else if (settings.width * settings.height < 1024 * 1024) {
+                err.description = 'The size of output image must be greater than 1024x1024 (in pixels)';
+                error = true;
+            }
+            if(error) {
+                toast(err);
+                return;
+            }
+        }
 
+        toast({
+            title: 'Added to Queue!',
+            description: `Currently ${queue.length + 1} elements in queue`,
+            status: 'success',
+            position: 'top',
+            duration: 2000,
+            isClosable: false
+        });
+        setAddToQueue(true);
+
+        if(useRandomSeed) setSeed(settings.seed);
         setQueue((queue) => [...queue, settings]);
-    }, [imageSettings, queue, toast]);
+    }, [imageSettings, queue, toast, highresfixOnly]);
 
     const submitCloud = useCallback(() => {
         ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
