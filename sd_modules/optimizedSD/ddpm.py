@@ -776,7 +776,7 @@ class UNet(DDPM):
             samples = self.k_sampling(x_latent, conditioning, S, sampler, S_ddim_steps=S_ddim_steps,
                                       unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
                                       unconditional_conditioning=unconditional_conditioning, callback=callback,
-                                      mask=mask, init_latent=x0, use_original_steps=False)
+                                      mask=mask, init_latent=x0, use_original_steps=False, seed=seed)
 
         if self.turbo and self.v1:
             self.model1.to("cpu")
@@ -980,7 +980,7 @@ class UNet(DDPM):
 
     def p_k_sample(self, x, c, sigmas, sampler, i, s_in, mode="default", unconditional_guidance_scale=1.,
                    unconditional_conditioning=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.,
-                   model_wrap_sigmas=None, ds=None, order=4, r=1/2):
+                   model_wrap_sigmas=None, ds=None, order=4, r=1/2, seed=42):
         if ds is None:
             ds = []
         b, *_, device = *x.shape, x.device
@@ -991,7 +991,7 @@ class UNet(DDPM):
         match sampler:
             case "dpmpp_sde":
                 sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-                noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max)
+                noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed)
                 denoised = self.get_model_output_k(x, sigmas[i] * s_in, unconditional_conditioning, c,
                                                    unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
                 if sigmas[i + 1] == 0:
@@ -1305,7 +1305,7 @@ class UNet(DDPM):
 
     def k_sampling(self, x_latent, cond, S, sampler, unconditional_guidance_scale=1.0,
                    unconditional_conditioning=None, S_ddim_steps=None, callback=None,
-                   mask=None, init_latent=None, use_original_steps=False, mode="default"):
+                   mask=None, init_latent=None, use_original_steps=False, mode="default", seed=42):
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:S]
         total_steps = timesteps.shape[0]
@@ -1337,7 +1337,7 @@ class UNet(DDPM):
             x_latent = self.p_k_sample(x_latent, cond, sigmas, sampler, s_in=s_in, i=i, mode=mode,
                                        unconditional_guidance_scale=unconditional_guidance_scale,
                                        unconditional_conditioning=unconditional_conditioning,
-                                       model_wrap_sigmas=model_wrap_sigmas, ds=ds)
+                                       model_wrap_sigmas=model_wrap_sigmas, ds=ds, seed=seed)
 
             if callback:
                 callback(x_latent)
