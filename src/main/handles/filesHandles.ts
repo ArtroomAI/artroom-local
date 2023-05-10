@@ -55,7 +55,7 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
   })
 
   const modelsWatcherCallback = (folder: string) => async () => {
-    mainWindow.webContents.send('modelsChange', getModels(folder));
+    mainWindow.webContents.send('modelsChange', await getModels(folder));
   }
 
   ipcMain.handle('modelsFolder', (_, folder_path: string) => {
