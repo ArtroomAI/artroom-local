@@ -94,9 +94,9 @@ export const iterationsState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const cfgState = atom<string>({
+export const cfgState = atom<number>({
     key: "cfg_scale",
-    default: "7.5",
+    default: 7.5,
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -290,7 +290,7 @@ export const queueSettingsSelector = selector<QueueType>({
             // sampler options
             sampler: get(samplerState),
             steps: floatBetween(parseAndCheckFloat(get(stepsState), 30), 5, 500),
-            cfg_scale: floatBetween(parseAndCheckFloat(get(cfgState), 7.5), 1.01, 50),
+            cfg_scale: get(cfgState),
             clip_skip: floatBetween(parseAndCheckFloat(get(clipSkipState), 1), 1, 12),
 
             seed: get(seedState),
@@ -337,7 +337,7 @@ export const exifDataSelector = selector<Partial<ExifDataType>>({
         set(widthState, exif.width);
         set(heightState, exif.height);
 
-        set(cfgState, `${exif.cfg_scale}`);
+        set(cfgState, exif.cfg_scale);
         set(controlnetState, exif.controlnet ?? "none");
         set(loraState, exif.loras);
 

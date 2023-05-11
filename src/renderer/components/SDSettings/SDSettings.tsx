@@ -273,15 +273,31 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
                                     </Tooltip>
                                 </HStack>
 
-                                <NumberInput
+                                <Slider
+                                    defaultValue={7.5}
+                                    max={40}
+                                    min={1}
                                     id="cfg_scale"
                                     name="cfg_scale"
-                                    onChange={setCfg}         
+                                    onChange={setCfg}     
+                                    step={0.5}
                                     value={cfg}
                                     variant="outline"
                                 >
-                                    <NumberInputField id="cfg_scale" />
-                                </NumberInput>
+                                    <SliderTrack bg="#EEEEEE">
+                                        <SliderFilledTrack bg="#4f8ff8" />
+                                    </SliderTrack>
+
+                                    <Tooltip
+                                        bg="#4f8ff8"
+                                        color="white"
+                                        isOpen={true}
+                                        label={`${cfg}`}
+                                        placement="right"
+                                    >
+                                        <SliderThumb />
+                                    </Tooltip>
+                                </Slider>
                             </FormControl>
                         </HStack>
                         <HStack alignItems="end">
