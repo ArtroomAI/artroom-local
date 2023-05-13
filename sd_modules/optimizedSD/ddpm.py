@@ -980,7 +980,7 @@ class UNet(DDPM):
 
     def p_k_sample(self, x, c, sigmas, sampler, i, s_in, mode="default", unconditional_guidance_scale=1.,
                    unconditional_conditioning=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.,
-                   model_wrap_sigmas=None, ds=None, order=4, r=1/2, seed=42):
+                   model_wrap_sigmas=None, ds=None, order=4, r=1 / 2, noise_sampler=None):
         if ds is None:
             ds = []
         b, *_, device = *x.shape, x.device
@@ -989,9 +989,7 @@ class UNet(DDPM):
         t_fn = lambda sigma: sigma.log().neg()
         self.x_spare_part = None
         match sampler:
-            case "dpmpp_sde":
-                sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-                noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed)
+            case "dpmpp_sde" | "dpmpp_sde_karras":
                 denoised = self.get_model_output_k(x, sigmas[i] * s_in, unconditional_conditioning, c,
                                                    unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
                 if sigmas[i + 1] == 0:
@@ -1310,8 +1308,15 @@ class UNet(DDPM):
         timesteps = timesteps[:S]
         total_steps = timesteps.shape[0]
         self.old_denoised = None
+
         print(f"Running {sampler} Sampling with {total_steps} timesteps")
         model_wrap_sigmas = (((1 - self.alphas_cumprod) / self.alphas_cumprod) ** 0.5).to(x_latent.device)
+
+        if sampler == "dpmpp_sde_karras":
+            sigma_min, sigma_max = (model_wrap_sigmas[0].item(), model_wrap_sigmas[-1].item())
+            sigmas = self.get_sigmas_karras(n=S, sigma_min=sigma_min, sigma_max=sigma_max, device=x_latent.device)
+        else:
+            sigmas = self.get_sigmas(S, model_wrap_sigmas)
 
         if init_latent is not None and mode == "default":  # img2img
             sigmas = self.get_sigmas(S_ddim_steps, model_wrap_sigmas)
@@ -1323,8 +1328,14 @@ class UNet(DDPM):
             noise = torch.randn_like(x_latent[:, 4:, :, :], device=x_latent.device) * sigmas[0]
             x_latent[:, 4:, :, :] = x_latent[:, 4:, :, :] + noise
         else:
-            sigmas = self.get_sigmas(S, model_wrap_sigmas)
             x_latent = x_latent * sigmas[0]
+
+        if sampler in ["dpmpp_sde", "dpmpp_sde_karras"]:
+            sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
+            # x_latent is only needed for shape
+            noise_sampler = BrownianTreeNoiseSampler(x_latent, sigma_min, sigma_max, seed=seed)
+        else:
+            noise_sampler = None
 
         s_in = x_latent.new_ones([x_latent.shape[0]]).to(x_latent.dtype).to(x_latent.device)
         ds = []
@@ -1337,7 +1348,7 @@ class UNet(DDPM):
             x_latent = self.p_k_sample(x_latent, cond, sigmas, sampler, s_in=s_in, i=i, mode=mode,
                                        unconditional_guidance_scale=unconditional_guidance_scale,
                                        unconditional_conditioning=unconditional_conditioning,
-                                       model_wrap_sigmas=model_wrap_sigmas, ds=ds, seed=seed)
+                                       model_wrap_sigmas=model_wrap_sigmas, ds=ds, noise_sampler=noise_sampler)
 
             if callback:
                 callback(x_latent)
