@@ -27,7 +27,8 @@ sys.path.append("artroom_helpers/modules")
 sys.path.append("artroom_helpers/annotator")
 sys.path.append("sd_modules/optimizedSD")
 
-from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, image_grid
+from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, \
+    image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
 from artroom_helpers.toast_status import toast_status
@@ -44,13 +45,14 @@ from artroom_helpers.modules import HN
 
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
 
-
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+
 def get_state_dict(d):
     return d.get('state_dict', d)
+
 
 def load_state_dict(ckpt_path, location='cpu'):
     _, extension = os.path.splitext(ckpt_path)
@@ -61,6 +63,7 @@ def load_state_dict(ckpt_path, location='cpu'):
         state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
     state_dict = get_state_dict(state_dict)
     return state_dict
+
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
@@ -279,20 +282,22 @@ class StableDiffusion:
         if existing:
             state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
-            #print(controlnet_dict.keys())
-            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in controlnet_dict.items()}
+            # print(controlnet_dict.keys())
+            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in
+                                  controlnet_dict.items()}
             state_dict.update(control_model_dict)
             del control_model_dict
 
         else:
             controlnet_dict = load_state_dict(controlnet_path)
             self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-            #print(controlnet_dict.keys())
+            # print(controlnet_dict.keys())
 
             state_dict = {k.replace("model1.", "model."): v for k, v in state_dict.items()}
             state_dict = {k.replace("model2.", "model."): v for k, v in state_dict.items()}
 
-            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in controlnet_dict.items()}
+            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in
+                                  controlnet_dict.items()}
             state_dict.update(control_model_dict)
             del control_model_dict
 
@@ -301,8 +306,6 @@ class StableDiffusion:
             #     input_state_dict['cond_stage_model.' + key] = p
             # del self.modelCS
             # self.modelCS = None
-
-
 
         state_dict = {k.replace("model.diffusion_model", "diffusion_model"): v for k, v in state_dict.items()}
 
@@ -616,33 +619,33 @@ class StableDiffusion:
         if self.running and self.model:
             self.model.interrupted_state = True
             self.running = False
-    
+
     def diffusion_upscale(self,
-                            n=0,
-                            prompts_data=None,
-                            negative_prompts_data=None,
-                            image=None,
-                            highres_steps=50,
-                            highres_strength=0.15,
-                            highres_multiplier=1.5,
-                            mask_b64="",
-                            invert=False,
-                            padding=0,
-                            H=512,
-                            W=512,
-                            oldH=512,
-                            oldW=512,
-                            cfg_scale=7.5,
-                            seed=-1,
-                            sampler="ddim",
-                            batch_size=1,
-                            mode="default",
-                            precision_scope=None,
-                            clip_skip=1
-                            ):
+                          n=0,
+                          prompts_data=None,
+                          negative_prompts_data=None,
+                          image=None,
+                          highres_steps=50,
+                          highres_strength=0.15,
+                          highres_multiplier=1.5,
+                          mask_b64="",
+                          invert=False,
+                          padding=0,
+                          H=512,
+                          W=512,
+                          oldH=512,
+                          oldW=512,
+                          cfg_scale=7.5,
+                          seed=-1,
+                          sampler="ddim",
+                          batch_size=1,
+                          mode="default",
+                          precision_scope=None,
+                          clip_skip=1
+                          ):
         i = 0
         upscaler_model = "UltraSharp"
-        failed = False #If it fails, then stop generating and only upscale 
+        failed = False  # If it fails, then stop generating and only upscale
         temp_save_path = os.path.join(self.models_dir, f"highres_temp_{i}.png")
         print("Running experimental highres fix")
 
@@ -652,13 +655,13 @@ class StableDiffusion:
             image.save(temp_save_path)
             W = int(W * highres_multiplier)
             H = int(H * highres_multiplier)
-            
+
             print("Upscaling image")
             image = self.Upscaler.upscale(self.models_dir, [temp_save_path], upscaler_model, highres_multiplier,
-                                                   os.path.join(self.models_dir, "upscale_test"))['content'][
+                                          os.path.join(self.models_dir, "upscale_test"))['content'][
                 'output_images'][0]
 
-            image.resize((W, H)) #Ensures final dimensions are correct
+            image.resize((W, H))  # Ensures final dimensions are correct
 
             # generate the next version using the upscaled image as the new input
             highres_init_image = self.load_img(image.convert('RGB'), H, W).to(self.device)
@@ -691,7 +694,7 @@ class StableDiffusion:
                         highres_fix_steps=1,
                         clip_skip=clip_skip
                     )
-                
+
             except Exception as e:
                 if "CUDA out of memory" in str(e):
                     torch.cuda.empty_cache()  # free up GPU memory
@@ -700,27 +703,28 @@ class StableDiffusion:
                 failed = True
             i += 1
             temp_save_path = os.path.join(self.models_dir, f"highres_temp_{i}.png")
-        
+
         image.save(temp_save_path)
         print("Doing final run")
-        
+
         # save the upscaled image as the starting version for the next iteration           
         # upscale the starting version by x1.5
         image = self.Upscaler.upscale(self.models_dir, [temp_save_path], upscaler_model,
-                                               max(1, min(oldW / W, oldH / H)),
-                                               os.path.join(self.models_dir, "upscale_test"))['content'][
+                                      max(1, min(oldW / W, oldH / H)),
+                                      os.path.join(self.models_dir, "upscale_test"))['content'][
             'output_images'][0]
-        image = image.resize((oldW, oldH)) #Ensures final dimensions are correct
-        return image 
-    
+        image = image.resize((oldW, oldH))  # Ensures final dimensions are correct
+        return image
+
         # NOTE: Everything below would be used if we upscale all the way. Instead, we upscale only for the last step to save vram.
 
         if failed:
             print("Failed to gen previously, returning upscaled image as final")
-            return image 
-        
-        # generate the next version using the upscaled image as the new input
-        highres_init_image = self.load_img(image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0)).to(self.device)
+            return image
+
+            # generate the next version using the upscaled image as the new input
+        highres_init_image = self.load_img(image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
+            self.device)
         if self.v1 or self.control_model:
             self.modelFS.to(self.device)
 
@@ -752,7 +756,7 @@ class StableDiffusion:
                 highres_fix_steps=1,
                 clip_skip=clip_skip
             )
-            
+
         except:
             print(f"Failed to generate image for resultion {H}x{W}: {e}")
 
@@ -929,24 +933,11 @@ class StableDiffusion:
                         try:
                             self.model.to(torch.float32)
                             self.modelFS.to(torch.float32)
-                            gen_kwargs = {
-                                "S": steps,
-                                "conditioning": c.to(torch.float32),
-                                "x0": x0,
-                                "S_ddim_steps": ddim_steps,
-                                "unconditional_guidance_scale": cfg_scale,
-                                "txt_scale": txt_cfg_scale,
-                                "unconditional_conditioning": uc,
-                                "eta": ddim_eta,
-                                "sampler": sampler,
-                                "shape": shape,
-                                "batch_size": batch_size,
-                                "seed": seed,
-                                "mask": mask,
-                                "x_T": x_T,
-                                "callback": self.callback_fn,
-                                "mode": mode}
-                            gen_kwargs["x0"] = x0.to(torch.float32)
+                            gen_kwargs = {"S": steps, "conditioning": c.to(torch.float32), "x0": x0.to(torch.float32),
+                                          "S_ddim_steps": ddim_steps, "unconditional_guidance_scale": cfg_scale,
+                                          "txt_scale": txt_cfg_scale, "unconditional_conditioning": uc, "eta": ddim_eta,
+                                          "sampler": sampler, "shape": shape, "batch_size": batch_size, "seed": seed,
+                                          "mask": mask, "x_T": x_T, "callback": self.callback_fn, "mode": mode}
 
                             x0 = self.model.sample(**gen_kwargs)
                             x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
@@ -1042,7 +1033,7 @@ class StableDiffusion:
             # Search for files with the specified string in their base filename in the controlnet_folder
             matching_files = glob(os.path.join(controlnet_folder, f"*{controlnet}*"))
             if controlnet == 'lineart':
-                matching_files = [file for file in matching_files  if 'lineart_anime' not in file]
+                matching_files = [file for file in matching_files if 'lineart_anime' not in file]
 
             if matching_files:
                 print(f"Found matching controlnet, using {matching_files[0]}")
@@ -1210,15 +1201,15 @@ class StableDiffusion:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
-                
+
                 if generation_mode == 'highresfix':
 
-                    #Uses original image size as base, no need to downscale
+                    # Uses original image size as base, no need to downscale
                     image = self.get_image(init_image_str)
                     print(f"Highres from {image.size[0]}x{image.size[1]} to {oldW}x{oldH}")
                     out_image = self.diffusion_upscale(
                         n=n,
-                        prompts_data=[""],#prompts_data,
+                        prompts_data=[""],  # prompts_data,
                         negative_prompts_data=negative_prompts_data,
                         image=image,
                         highres_steps=highres_steps,
@@ -1273,10 +1264,10 @@ class StableDiffusion:
                         remove_background=remove_background,
                         clip_skip=clip_skip
                     )
-                    
+
                     out_image = self.diffusion_upscale(
                         n=n,
-                        prompts_data=[""],#prompts_data,
+                        prompts_data=[""],  # prompts_data,
                         negative_prompts_data=negative_prompts_data,
                         image=starting_version,
                         highres_steps=highres_steps,

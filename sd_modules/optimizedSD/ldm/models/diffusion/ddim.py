@@ -179,7 +179,7 @@ class DDIMSampler(object):
                 unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
             elif unconditional_conditioning.shape[1] > c.shape[1]:
                 unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
-        
+
             c_in = torch.cat([unconditional_conditioning, c])
             e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
             e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)

@@ -309,7 +309,8 @@ def model_wrapper(
                 t_in = torch.cat([t_continuous] * 2)
                 if unconditional_conditioning.shape[1] < condition.shape[1]:
                     last_vector = unconditional_conditioning[:, -1:]
-                    last_vector_repeated = last_vector.repeat([1, condition.shape[1] - unconditional_conditioning.shape[1], 1])
+                    last_vector_repeated = last_vector.repeat(
+                        [1, condition.shape[1] - unconditional_conditioning.shape[1], 1])
                     unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
                 elif unconditional_conditioning.shape[1] > condition.shape[1]:
                     unconditional_conditioning = unconditional_conditioning[:, :condition.shape[1]]
