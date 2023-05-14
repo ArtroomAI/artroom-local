@@ -749,6 +749,13 @@ class UNet(DDPM):
             else:
                 x_latent = noise if x0 is None else x0
 
+        if unconditional_conditioning.shape[1] < conditioning.shape[1]:
+            last_vector = unconditional_conditioning[:, -1:]
+            last_vector_repeated = last_vector.repeat([1, conditioning.shape[1] - unconditional_conditioning.shape[1], 1])
+            unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
+        elif unconditional_conditioning.shape[1] > conditioning.shape[1]:
+            unconditional_conditioning = unconditional_conditioning[:, :conditioning.shape[1]]
+
         # sampling
         if sampler == "plms":
             # self.make_schedule_plms(ddim_num_steps=S, ddim_eta=eta, verbose=False)
@@ -852,17 +859,9 @@ class UNet(DDPM):
             else:
                 x_in = torch.cat([x] * 2)
                 t_in = torch.cat([t] * 2)
-                if unconditional_conditioning.shape[1] < c.shape[1]:
-                    last_vector = unconditional_conditioning[:, -1:]
-                    last_vector_repeated = last_vector.repeat([1, c.shape[1] - unconditional_conditioning.shape[1], 1])
-                    unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
-                elif unconditional_conditioning.shape[1] > c.shape[1]:
-                    unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
-
                 c_in = torch.cat([unconditional_conditioning, c])
                 e_t_uncond, e_t = self.apply_model(x_in, t_in, c_in).chunk(2)
                 e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
-
             if score_corrector is not None:
                 assert self.parameterization == "eps"
                 e_t = score_corrector.modify_score(self.model, e_t, x, t, c, **corrector_kwargs)
@@ -951,12 +950,6 @@ class UNet(DDPM):
             e_t = out_uncond + text_cfg_scale * (
                     out_cond - out_img_cond) + cond_scale * (out_img_cond - out_uncond)
         else:
-            if unconditional_conditioning.shape[1] < c.shape[1]:
-                last_vector = unconditional_conditioning[:, -1:]
-                last_vector_repeated = last_vector.repeat([1, c.shape[1] - unconditional_conditioning.shape[1], 1])
-                unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
-            elif unconditional_conditioning.shape[1] > c.shape[1]:
-                unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
             c_in = torch.cat([unconditional_conditioning, c])
             e_t_uncond, e_t = apply_inner_model(x_in, t_in, cond=c_in).chunk(2)
             e_t = e_t_uncond + cond_scale * (e_t - e_t_uncond)
@@ -1224,26 +1217,12 @@ class UNet(DDPM):
             t_in = torch.cat([t] * multiplier)
             if mode == "pix2pix":
                 x_spare_part = x[:, 4:, :, :]
-                if unconditional_conditioning.shape[1] < c.shape[1]:
-                    last_vector = unconditional_conditioning[:, -1:]
-                    last_vector_repeated = last_vector.repeat([1, c.shape[1] - unconditional_conditioning.shape[1], 1])
-                    unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
-                elif unconditional_conditioning.shape[1] > c.shape[1]:
-                    unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
-
                 c_in = torch.cat([c, c, unconditional_conditioning])
                 out_cond, out_img_cond, out_uncond = self.apply_model(x_in, t_in, c_in).chunk(3)
                 model_output = out_uncond + text_cfg_scale * (
                         out_cond - out_img_cond) + unconditional_guidance_scale * (out_img_cond - out_uncond)
                 x = x[:, :4, :, :]
             else:
-                if unconditional_conditioning.shape[1] < c.shape[1]:
-                    last_vector = unconditional_conditioning[:, -1:]
-                    last_vector_repeated = last_vector.repeat([1, c.shape[1] - unconditional_conditioning.shape[1], 1])
-                    unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
-                elif unconditional_conditioning.shape[1] > c.shape[1]:
-                    unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
-
                 c_in = torch.cat([unconditional_conditioning, c])
                 model_uncond, model_t = self.apply_model(x_in, t_in, c_in).chunk(2)
                 model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)
