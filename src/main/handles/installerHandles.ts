@@ -4,7 +4,7 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { ipcMain } from "electron";
 import yauzl from "yauzl";
 import axios from 'axios';
-import { pipeline as _pipeline } from 'stream';
+import { pipeline as _pipeline, Readable } from 'stream';
 import { promisify } from 'util';
 const pipeline = promisify(_pipeline);
 
@@ -34,19 +34,27 @@ async function download_via_https(name: string, URL: string, file_path: string, 
     }
 
     try {
-      const response = await axios.get(URL, {
+      const response = await axios.get<Readable>(URL, {
         responseType: "stream",
         timeout: 10000, // 10 seconds timeout
         headers: {
           "Cache-Control": "no-cache",
         },
+      }).catch(() => {
+        return axios.get<Readable>(URL.replace('https://', 'http://'), {
+          responseType: "stream",
+          timeout: 10000, // 10 seconds timeout
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
       });
 
       const len = parseInt(response.headers["content-length"], 10);
       let cur = 0;
       let chunk_counter = 0;
 
-      response.data.on("data", (chunk: any) => {
+      response.data.on("data", (chunk: string) => {
         cur += chunk.length;
         ++chunk_counter;
         if (chunk_counter === 5000) {
