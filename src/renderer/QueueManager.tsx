@@ -25,7 +25,7 @@ export const QueueManager = () => {
     const [queue, setQueue] = useRecoilState(queueState);
     const [isQueuePaused, setQueuePaused] = useRecoilState(queuePausedState);
     const [addToQueue, setAddToQueue] = useRecoilState(addToQueueState);
-    const queuedItemRef = useRef(null);
+    const queuedItemRef = useRef<QueueType | null>(null);
     const artroomPath = useRecoilValue(artroomPathState);
     
     const emit = useCallback((remove: boolean = true) => {

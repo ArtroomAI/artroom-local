@@ -6,6 +6,14 @@ import { useOutsideClick } from '@chakra-ui/react';
 // Type Props = {};
 
 const motionVariants = {
+    hidden: {
+        visibility: 'hidden',
+        opacity: 0,
+        scale: 0.8,
+        transition: {
+            duration: 0
+        }
+    },
     enter: {
         visibility: 'visible',
         opacity: 1,
@@ -45,7 +53,14 @@ export default function ContextMenuList ({ children }: { children: React.ReactNo
         position: { x, y }
     } = useContext(ContextMenuContext);
 
+    const [wasToggled, setWasToggled] = useState(false);
     const [position, setPosition] = useState({});
+
+    useEffect(() => {
+        if(!wasToggled && isOpen) {
+            setWasToggled(true);
+        }
+    }, [isOpen])
 
     // TODO: Any less manual way to do this
     useEffect(
@@ -54,8 +69,8 @@ export default function ContextMenuList ({ children }: { children: React.ReactNo
             let right;
             let top;
             let bottom;
-            const menuHeight = menuRef?.current?.clientHeight;
-            const menuWidth = menuRef?.current?.clientWidth;
+            const menuHeight = menuRef.current?.clientHeight;
+            const menuWidth = menuRef.current?.clientWidth;
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             if (!menuHeight || !menuWidth) {
@@ -92,9 +107,9 @@ export default function ContextMenuList ({ children }: { children: React.ReactNo
 
     return (
         <MotionBox
-            animate={isOpen
-                ? 'enter'
-                : 'exit'}
+            animate={wasToggled ? 
+                isOpen ? 'enter' : 'exit' :
+                'hidden'}
             bg="white"
             borderRadius={5}
             borderWidth={2}

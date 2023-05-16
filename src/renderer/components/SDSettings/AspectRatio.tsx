@@ -19,8 +19,9 @@ import { FiLink } from "react-icons/fi";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { aspectRatioSelectionState } from "../../atoms/atoms";
 import { aspectRatioState, heightState, initImageState, widthState } from "../../SettingsManager";
+import { getImageDimensions } from "../Utils/image";
 
-const MAX_VALUE = 2048;
+const MAX_VALUE = 3840;
 const MIN_VALUE = 256;
 const STEP = 64;
 
@@ -95,11 +96,7 @@ export const AspectRatio = () => {
 
     useEffect(() => {
         if(aspectRatioSelection === 'Init Image') {
-            const img = new Image();
-            img.src = initImage;
-            img.decode().then(() => {
-                const width = img.width;
-                const height = img.height;
+            getImageDimensions(initImage).then(({ width, height }) => {
                 setAspectRatio(`${width}:${height}`);
             });
         }

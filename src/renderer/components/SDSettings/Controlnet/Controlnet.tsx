@@ -1,9 +1,8 @@
-import React, { useContext} from 'react';
+import React, { useContext } from 'react';
 import { useRecoilState, useRecoilValue} from 'recoil';
 import * as atom from '../../../atoms/atoms';
 import {
     VStack,
-    useToast,
     Button,
     Checkbox,
     FormControl,
@@ -11,7 +10,7 @@ import {
     HStack,
     Select
 } from '@chakra-ui/react';
-import { controlnetState, initImageState, usePreprocessedControlnetState} from '../../../SettingsManager';
+import { controlnetState, initImageState, modelsDirState, usePreprocessedControlnetState} from '../../../SettingsManager';
 import { SocketContext } from '../../../socket';
 import ControlnetPreview from './ControlnetPreview';
 
@@ -19,6 +18,7 @@ const Controlnet = () => {
     const socket = useContext(SocketContext);
     const [controlnet, setControlnet] = useRecoilState(controlnetState);
     const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
+    const models_dir = useRecoilValue(modelsDirState);
     const [usePreprocessedControlnet, setUsePreprocessedControlnet] = useRecoilState(usePreprocessedControlnetState);
     const initImage = useRecoilValue(initImageState);
 
@@ -42,24 +42,41 @@ const Controlnet = () => {
                             None
                         </option>
 
-                        <option value="canny">
-                            Canny
+                        <option value="depth">
+                            Depth
                         </option>
+
+                        <option value="normal">
+                            Normal
+                        </option>
+
 
                         <option value="pose">
                             Pose
                         </option>
 
-                        <option value="depth">
-                            Depth
-                        </option>
-                        
                         <option value="hed">
                             HED
                         </option>
 
-                        <option value="normal">
-                            Normal
+                        <option value="softedge">
+                            Soft Edge
+                        </option>
+
+                        <option value="canny">
+                            Canny
+                        </option>
+
+                        <option value="mlsd">
+                            MLSD
+                        </option>
+
+                        <option value="lineart">
+                            Lineart
+                        </option>
+
+                        <option value="lineart_anime">
+                            Lineart Anime
                         </option>
 
                         <option value="scribble">
@@ -69,25 +86,16 @@ const Controlnet = () => {
                         <option value="ip2p">
                             Instruct Pix2Pix
                         </option>
-                        <option value="softedge">
-                            Soft Edge
-                        </option>
-                        <option value="inpaint">
+
+                        <option disabled={true} value="inpaint">
                             Inpaint
                         </option>
-                        <option value="lineart">
-                            Lineart
-                        </option>
-                        <option value="lineart_anime">
-                            Lineart Anime
-                        </option>
-                        <option value="mlsd">
-                            MLSD
-                        </option>
-                        <option value="tile">
+
+                        <option disabled={true} value="tile">
                             Tile
                         </option>
-                        <option value="shuffle">
+
+                        <option disabled={true} value="shuffle">
                             Shuffle
                         </option>
                     </Select>
@@ -95,11 +103,9 @@ const Controlnet = () => {
                         variant='outline'
                         disabled={controlnet==='none' || usePreprocessedControlnet}
                         onClick={()=>{
-                            socket.emit('preview_controlnet', {initImage, controlnet})
-                        }
-                    }
-                >
-                    Preview
+                            socket.emit('preview_controlnet', {initImage, controlnet, models_dir})
+                        }}>
+                        Preview
                     </Button>
                 </HStack>
             </FormControl>
@@ -120,8 +126,7 @@ const Controlnet = () => {
             </HStack>
 
             {controlnetPreview.length > 0 && 
-                <ControlnetPreview></ControlnetPreview> 
-            }
+                <ControlnetPreview />}
         </VStack>
     );
 };

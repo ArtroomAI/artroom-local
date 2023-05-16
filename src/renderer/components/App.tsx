@@ -1,21 +1,6 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
-import {
-    Flex,
-    Spacer,
-    useToast,
-    Grid,
-    GridItem,
-    VStack,
-    HStack,
-    Switch,
-    Icon,
-    Button,
-    UseToastOptions
-} from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { Flex, Spacer, Grid, GridItem } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
-import { useInterval } from './Reusable/useInterval/useInterval';
 import PromptGuide from './PromptGuide';
 import Body from './Body';
 import Sidebar from './Sidebar';
@@ -24,196 +9,24 @@ import Paint from './Paint';
 import Queue from './Queue';
 import SDSettings from './SDSettings/SDSettings';
 import ImageViewer from './ImageViewer';
-import EquilibriumAI from './EquilibriumAI';
-import ProfileMenu from './ProfileMenu';
-import LoginPage from './Modals/Login/LoginPage';
-import ProtectedReqManager from '../helpers/ProtectedReqManager';
 
-import { IoMdCloud, IoMdCloudOutline } from 'react-icons/io';
 import { ModelMerger } from './ModelMerger';
-import path from 'path';
-import { SocketContext } from '../socket';
-import { ImageState } from '../atoms/atoms.types';
 import { UpdateProgressBar } from './UpdateProgressBar';
 import ImageEditor from './ImageEditor';
 import { QueueManager } from '../QueueManager';
 
-import { batchNameState, imageSavePathState } from '../SettingsManager';
+import { AppSocket } from './AppSocket';
 
 export default function App () {
-    // Connect to the server 
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
-    const [loggedIn, setLoggedIn] = useState(false);
-
-    const image_save_path = useRecoilValue(imageSavePathState);
-    const batch_name = useRecoilValue(batchNameState);
-
-    const toast = useToast({
-        containerStyle: {
-            pointerEvents: 'none'
-        }
-    });
-    const [cloudMode, setCloudMode] = useRecoilState(atom.cloudModeState);
-    const setShard = useSetRecoilState(atom.shardState);
-    const navSize = useRecoilValue(atom.navSizeState);
-    const [cloudRunning, setCloudRunning] = useRecoilState(atom.cloudRunningState);
-    const [latestImages, setLatestImages] = useRecoilState(atom.latestImageState);
-    const setMainImage = useSetRecoilState(atom.mainImageState);
-    const [showLoginModal, setShowLoginModal] = useRecoilState(atom.showLoginModalState);
-    const [controlnetPreview, setControlnetPreview] = useRecoilState(atom.controlnetPreviewState);
-    const [removeBackgroundPreview, setRemoveBackgroundPreview] = useRecoilState(atom.removeBackgroundPreviewState);
-    const socket = useContext(SocketContext);
-
-    const handleGetImages = useCallback((data: ImageState) => {
-        if(latestImages.length > 0 && latestImages[0].batch_id !== data.batch_id) {
-            setLatestImages([data]);
-        } else {
-            setLatestImages([...latestImages, data]);
-        }
-        setMainImage(data);
-    }, [latestImages, setLatestImages, setMainImage])
-
-    const handleControlnetPreview = useCallback((data: {controlnetPreview: string}) => {
-        setControlnetPreview(data.controlnetPreview);
-    }, [controlnetPreview])
-
-    const handleRemoveBackgroundPreview = useCallback((data: {removeBackgroundPreview: string}) => {
-        setRemoveBackgroundPreview(data.removeBackgroundPreview);
-    }, [removeBackgroundPreview])
-
-    useEffect(() => {
-        const log = (options: UseToastOptions) => {
-            if (options.id && toast.isActive(options.id)) {
-                toast.update(options.id, options);
-            } else {
-                toast(options);
-            }
-        };
-        socket.on('status', log); 
-        return () => {
-          socket.off('status', log); 
-        };
-    }, [socket, toast]);
-    
-    useEffect(() => {
-        socket.on('get_images', handleGetImages); 
-
-        return () => {
-          socket.off('get_images', handleGetImages);
-        };
-    }, [socket, handleGetImages]);
-
-    useEffect(() => {
-        socket.on('get_controlnet_preview', handleControlnetPreview); 
-        return () => {
-            socket.off('get_controlnet_preview', handleControlnetPreview);
-          };
-    }, [socket, handleControlnetPreview]);
-
-    useEffect(() => {
-        socket.on('get_remove_background_preview', handleRemoveBackgroundPreview); 
-        return () => {
-            socket.off('get_remove_background_preview', handleRemoveBackgroundPreview);
-          };
-    }, [socket, handleRemoveBackgroundPreview]);
-
-    //make sure cloudmode is off, while not signed in
-    useEffect(() => {
-        if (!loggedIn) {
-            setCloudMode(false);
-        }
-    }, [loggedIn]);
-
-    ProtectedReqManager.setCloudMode = setCloudMode;
-    ProtectedReqManager.setLoggedIn = setLoggedIn;
-    ProtectedReqManager.toast = toast;
-
-    useInterval(
-        () => {
-            ProtectedReqManager.make_get_request(`${ARTROOM_URL}/image/get_status`).then((response: any) => {
-                if (response.data.jobs.length == 0) {
-                    toast({
-                        title: 'Cloud jobs Complete!',
-                        status: 'success',
-                        position: 'top',
-                        duration: 5000,
-                        isClosable: true,
-                        containerStyle: {
-                            pointerEvents: 'none'
-                        }
-                    });
-                    setCloudRunning(false);
-                } else {
-                    setShard(response.data.shards);
-                    let job_list = response.data.jobs;
-                    let text = "";
-                    let pending_cnt = 0;
-                    let newCloudImages = [];
-                    for (let i = 0; i < job_list.length; i++) {
-                        for (let j = 0; j < job_list[i].images.length; j++) {
-                            if (job_list[i].images[j].status == 'PENDING') {
-                                pending_cnt = pending_cnt + 1;
-                            } else if (job_list[i].images[j].status == 'FAILED') {
-
-                                let shard_refund = job_list[i].image_settings.shard_cost/job_list[i].image_settings.n_iter;
-                                toast({
-                                    title: 'Cloud Error Occurred, ' + shard_refund +' Shards Refunded to account',
-                                    description: "Failure on Image id: " + job_list[i].images[j].id + " Job id: " + job_list[i].id,
-                                    status: 'error',
-                                    position: 'top',
-                                    duration: 10000,
-                                    isClosable: true
-                                });
-                            } else if (job_list[i].images[j].status == 'SUCCESS') {
-                                //text = text + "job_" + job_list[i].id.slice(0, 5) + 'img_' + job_list[i].images[j].id + '\n';
-                                let img_name = job_list[i].id + '_' + job_list[i].images[j].id;
-                                const imagePath = path.join(image_save_path, batch_name, img_name + "_cloud.png");
-                                toast({
-                                    title: "Image completed: " + imagePath,
-                                    status: 'info',
-                                    position: 'top',
-                                    duration: 5000,
-                                    isClosable: true
-                                });
-                                //const timestamp = new Date().getTime();
-                                console.log(imagePath);
-                                let dataURL = job_list[i].images[j].url;
-                                newCloudImages.push({"b64": dataURL})
-                                window.api.saveFromDataURL(JSON.stringify({dataURL, imagePath}));
-                            }
-                        }
-                    }
-                    setLatestImages([...latestImages, ...newCloudImages]);
-                    setMainImage(newCloudImages[newCloudImages.length-1]?.b64)
-                    toast({
-                        title: 'Cloud jobs running!\n',
-                        description: text + pending_cnt + " jobs pending",
-                        status: 'info',
-                        position: 'top',
-                        duration: 5000,
-                        isClosable: true,
-                        containerStyle: {
-                            pointerEvents: 'none'
-                        }
-                    });
-                }
-
-            }).catch((err: any) => {
-                console.log(err);
-            });
-        },
-        cloudRunning ? 5000 : null
-    );
+    const [navSize, setNavSize] = useState<'small' | 'large'>('small');
 
     return (
         <>
             <Grid
                 fontWeight="bold"
                 gap="1"
-                gridTemplateColumns = {
-                    navSize === 'large'
-                    ? "300px 1fr 250px"
-                    : "125px 1fr 250px"
+                gridTemplateColumns={
+                    navSize === 'large' ? "300px 1fr 250px" : "125px 1fr 250px"
                 }
                 gridTemplateRows="43px 1fr 30px"
                 h="200px"
@@ -260,7 +73,7 @@ export default function App () {
                 <GridItem
                     area="nav"
                     pl="2">
-                    <Sidebar />
+                    <Sidebar navSize={navSize} setNavSize={setNavSize}  />
                 </GridItem>
 
                 <GridItem
@@ -272,7 +85,7 @@ export default function App () {
                                 element={<>
                                     <Body />
                                     <Spacer />
-                                    <SDSettings />
+                                    <SDSettings tab='default' />
                                 </>}
                                 path="/" />
 
@@ -282,7 +95,7 @@ export default function App () {
 
                                     <Spacer />
 
-                                    <SDSettings />
+                                    <SDSettings tab='paint' />
                                 </>}
                                 path="/paint" />
 
@@ -303,10 +116,6 @@ export default function App () {
                                 path="/imageviewer" />
 
                             <Route
-                                element={<EquilibriumAI />}
-                                path="/equilibriumai" />
-
-                            <Route
                                 element={<PromptGuide />}
                                 path="/prompt-guide" />
 
@@ -319,6 +128,7 @@ export default function App () {
             </Grid>
             <UpdateProgressBar />
             <QueueManager />
+            <AppSocket />
         </>
     );
 }

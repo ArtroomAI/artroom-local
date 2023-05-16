@@ -1,16 +1,12 @@
 import React from 'react';
-import { useRecoilState } from 'recoil';
-import * as atom from '../atoms/atoms';
-import {
-    Flex,
-    IconButton
-} from '@chakra-ui/react';
+import { Flex, IconButton } from '@chakra-ui/react';
 import {
     FaPaintBrush,
     FaMagic,
     FaFileImage,
     FaChevronLeft,
-    FaChevronRight
+    FaChevronRight,
+    FaDiscord
 } from 'react-icons/fa';
 import {
     FiGitMerge,
@@ -22,13 +18,15 @@ import {
 } from 'react-icons/gi';
 import NavItem from './NavItem';
 import Tour from './ProjectTour/Tour';
-import Discord from './Discord';
-import EquilibriumAI from './EquilibriumAI';
-import Civitai from './Civitai';
+import EquilibriumLogo from '../images/equilibriumai.png';
+import CivitaiLogo from '../images/civitai.png';
 
-export default function Sidebar () {
-    const [navSize, changeNavSize] = useRecoilState(atom.navSizeState);
+interface SidebarProps {
+    navSize: 'large' | 'small';
+    setNavSize: React.Dispatch<React.SetStateAction<"large" | "small">>;
+}
 
+export default function Sidebar ({ navSize, setNavSize } : SidebarProps) {
     return (
         <Flex
             alignItems="center"
@@ -107,12 +105,29 @@ export default function Sidebar () {
                     p="5%"
                     pb="20px"
                     w="100%">
-                    <Discord />
+                    
+                    <NavItem
+                        className="discord-link"
+                        title="Join Discord"
+                        icon={FaDiscord}
+                        navSize={navSize}
+                        onClick={window.api.openDiscord} />
+                    
+                    <NavItem
+                        className="equilibrium-link"
+                        title="Learn More"
+                        icon={EquilibriumLogo}
+                        navSize={navSize}
+                        onClick={window.api.openEquilibrium} />
+                        
+                    <NavItem
+                        className="civitai-link"
+                        title="Get Models"
+                        icon={CivitaiLogo}
+                        navSize={navSize}
+                        onClick={window.api.openCivitai} />
 
-                    <EquilibriumAI />
-
-                    <Civitai />
-                    {/* <Tour /> */}
+                    {/* <Tour navSize={navSize} /> */}
 
                     <NavItem
                         className="settings-nav"
@@ -131,7 +146,7 @@ export default function Sidebar () {
                 cursor="pointer"
                 h="95%"
                 onClick={() => {
-                    changeNavSize(navSize === 'small' ? 'large' : 'small');
+                    setNavSize(navSize === 'small' ? 'large' : 'small');
                 }}
                 width="15px"
             >
@@ -143,7 +158,7 @@ export default function Sidebar () {
                     background="#182138"
                     icon={navSize === 'small'
                         ? <FaChevronRight />
-                        : <FaChevronLeft />} aria-label='menu-expander'/>
+                        : <FaChevronLeft />} aria-label='menu-expander' />
             </Flex>
         </Flex>
 

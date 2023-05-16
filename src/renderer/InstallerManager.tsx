@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import {
     Modal,
@@ -13,19 +13,20 @@ import {
     Radio,
     RadioGroup,
     Text,
-    Spacer,
     useToast,
     Checkbox,
     Link,
     VStack
 } from '@chakra-ui/react';
-import { artroomPathState, debugModeState, modelsDirState } from './SettingsManager';
+import { artroomPathState, debugModeState, modelsDirState, cloudOnlyState } from './SettingsManager';
 import path from 'path';
 
 export const InstallerManager = () => {
     const toast = useToast({});
 
     const debugMode = useRecoilValue(debugModeState);
+
+    const [cloudOnly, setCloudOnly] = useRecoilState(cloudOnlyState);
 
     const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
     const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
@@ -40,6 +41,8 @@ export const InstallerManager = () => {
     const [landscapesStarter, setLandscapesStarter] = useState(false);
 
     useEffect(() => {
+        if(cloudOnly) return;
+
         window.api.runPyTests(artroomPath).then((result) => {
             if (result === 'success\r\n') {
                 console.log(result);
@@ -59,9 +62,13 @@ export const InstallerManager = () => {
     }, [artroomPath]);
 
     useEffect(() => {
-        window.api.fixButtonProgress((_: any, str: string) => {
+        const handlerDiscard = window.api.fixButtonProgress((_: any, str: string) => {
             setDownloadMessage(str);
         });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     const handleRunClick = async () => {
@@ -167,6 +174,7 @@ export const InstallerManager = () => {
 
                 <ModalFooter justifyContent='center'>
                     <Button isLoading={downloading} isDisabled={downloading} onClick={handleRunClick}>Install Artroom</Button>
+                    <Button onClick={() => setCloudOnly(true)}>I want cloud only</Button>
                 </ModalFooter>
             </ModalContent>
         </Modal>

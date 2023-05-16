@@ -1,24 +1,21 @@
 import React, { useContext, useState } from 'react';
-import { Button, ThemeTypings } from '@chakra-ui/react';
+import { Button } from '@chakra-ui/react';
 import { ContextMenuContext } from './ContextMenu';
 
 export default function ContextMenuItem ({
     children,
     onClick,
-    colorScheme,
     disabled = false
 } : {
     children: React.ReactNode;
     onClick: (ev: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
-    colorScheme: ThemeTypings["colorSchemes"];
-    disabled: boolean;
+    disabled?: boolean;
 }) {
     const [variant, setVariant] = useState('ghost');
     const { closeMenu } = useContext(ContextMenuContext);
     return (
         <Button
             borderRadius={0}
-            colorScheme={colorScheme}
             disabled={disabled}
             justifyContent="left"
             onClick={(e) => {

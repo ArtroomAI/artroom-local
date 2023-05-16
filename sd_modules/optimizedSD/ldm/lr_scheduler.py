@@ -95,6 +95,6 @@ class LambdaLinearScheduler(LambdaWarmUpCosineScheduler2):
             return f
         else:
             f = self.f_min[cycle] + (self.f_max[cycle] - self.f_min[cycle]) * (self.cycle_lengths[cycle] - n) / (
-            self.cycle_lengths[cycle])
+                self.cycle_lengths[cycle])
             self.last_f = f
             return f

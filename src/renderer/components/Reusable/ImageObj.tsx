@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import * as atom from '../../atoms/atoms';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { Image, Modal, ModalBody, ModalContent, ModalOverlay } from '@chakra-ui/react';
 import Logo from '../../images/ArtroomLogoTransparent.png';
 import LoadingGif from '../../images/loading.gif';
@@ -10,9 +9,11 @@ import ContextMenuItem from '../ContextMenu/ContextMenuItem';
 import ContextMenuList from '../ContextMenu/ContextMenuList';
 import ContextMenuTrigger from '../ContextMenu/ContextMenuTrigger';
 import { initImageState } from '../../SettingsManager';
+import { ImageState } from '../../atoms/atoms.types';
+import { queueRunningState } from '../../atoms/atoms';
 
-export default function ImageObj ({ b64 = '', path = '', active } : { b64: string; path: string; active: boolean }) {
-    const queueRunning = useRecoilValue(atom.queueRunningState);
+export default function ImageObj ({ b64 = '', path = '', active } : Partial<ImageState> & { active: boolean }) {
+    const queueRunning = useRecoilValue(queueRunningState);
 
     const setInitImage = useSetRecoilState(initImageState);
 
@@ -75,15 +76,15 @@ export default function ImageObj ({ b64 = '', path = '', active } : { b64: strin
             <ContextMenuList>
                 <ContextMenuItem onClick={() => {
                     setInitImage(b64);
-                } } colorScheme={undefined} disabled={false}>
+                } }>
                     Set As Starting Image
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={copyToClipboard} colorScheme={undefined} disabled={false}>
+                <ContextMenuItem onClick={copyToClipboard}>
                     Copy To Clipboard
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={showInExplorer} colorScheme={undefined} disabled={false}>
+                <ContextMenuItem onClick={showInExplorer}>
                     Show In Explorer
                 </ContextMenuItem>
             </ContextMenuList>

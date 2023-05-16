@@ -1,7 +1,4 @@
-interface Lora {
-    name: string;
-    weight: number; // float
-}
+type GenerationMode = string;
 
 interface QueueType {
     text_prompts: string;
@@ -31,6 +28,10 @@ interface QueueType {
     clip_skip: number;
     seed: number;
 
+    // highres fix options
+    highres_steps: number;
+    highres_strength: number;
+
     // inpainting options
     mask_image: string;
     invert: boolean;
@@ -48,6 +49,7 @@ interface QueueType {
     long_save_path: boolean;
     highres_fix: boolean;
     id: string;
+    generation_mode: GenerationMode;
 }
 
 interface QueueTypeWithIndex extends QueueType {

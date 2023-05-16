@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ipcMain, shell } from "electron";
+import { app, ipcMain, shell } from "electron";
 import glob from 'glob';
 import path from 'path';
 import fs from 'fs';
@@ -7,6 +7,7 @@ import { electronDialog } from "../utils/electronDialog";
 import { MODELS_EXTENSIONS, IMAGE_EXTENSIONS, getExtname } from "../utils/extensions";
 import { getExifData } from "../utils/exifData";
 import { getMimeType } from "../utils/getMimeType";
+import { FileWatcher } from "../utils/fileWatcher";
 
 const getFiles = async (folder_path: string, ext: string[], excludeFolders?: string[]) => {
   const exts = ext.join(',');
@@ -44,17 +45,27 @@ async function getImage(image_path: string) {
   });
 }
 
-export const filesHandles = () => {
-  ipcMain.handle('getCkpts', async (_, data) => {
-    return getFiles(data, MODELS_EXTENSIONS, ['Loras', 'ControlNet', 'Vaes', 'upscalers']);
-  });
+export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
+  const modelsWatcher = new FileWatcher();
 
-  ipcMain.handle('getLoras', async (_, data) => {
-    return getFiles(path.join(data, 'Loras'), MODELS_EXTENSIONS);
-  });
+  const getModels = async (folder: string) => ({
+    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Loras', 'ControlNet', 'Vaes', 'upscalers']),
+    loras: await getFiles(path.join(folder, 'Loras'), MODELS_EXTENSIONS),
+    vaes: await getFiles(path.join(folder, 'Vaes'), MODELS_EXTENSIONS)
+  })
 
-  ipcMain.handle('getVaes', async (_, data) => {
-    return getFiles(path.join(data, 'Vaes'), MODELS_EXTENSIONS);
+  const modelsWatcherCallback = (folder: string) => async () => {
+    mainWindow.webContents.send('modelsChange', await getModels(folder));
+  }
+
+  ipcMain.handle('modelsFolder', (_, folder_path: string) => {
+    if(!fs.existsSync(folder_path)) {
+      folder_path = app.getPath('home');
+    }
+    
+    modelsWatcher.reassignWatcher(folder_path, modelsWatcherCallback(folder_path));
+
+    return getModels(folder_path);
   });
 
   ipcMain.handle('saveFromDataURL', async (_, data) => {
@@ -98,12 +109,12 @@ export const filesHandles = () => {
     shell.showItemInFolder(path.resolve(data));
   });
 
-  ipcMain.handle('getImageFromPath', async (_, data) => {
-    if (data && data.length > 0) {
-      return await getImage(data);
+  ipcMain.handle('getImageFromPath', async (_, image_path: string) => {
+    if (image_path) {
+      return getImage(image_path);
     }
 
-    return { b64: '', metadata: '' };
+    return { b64: '', metadata: null };
   });
 
   ipcMain.handle("chooseImages", () => electronDialog('Files', IMAGE_EXTENSIONS));

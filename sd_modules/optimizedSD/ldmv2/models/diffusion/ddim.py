@@ -147,7 +147,7 @@ class DDIMSampler(object):
         total_steps = timesteps if ddim_use_original_steps else timesteps.shape[0]
         print(f"Running DDIM Sampling with {total_steps} timesteps")
 
-        iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
+        iterator = tqdm(time_range, desc='Decoding image', total=total_steps)
 
         for i, step in enumerate(iterator):
             index = total_steps - i - 1
@@ -209,6 +209,12 @@ class DDIMSampler(object):
                 for i in range(len(c)):
                     c_in.append(torch.cat([unconditional_conditioning[i], c[i]]))
             else:
+                if unconditional_conditioning.shape[1] < c.shape[1]:
+                    last_vector = unconditional_conditioning[:, -1:]
+                    last_vector_repeated = last_vector.repeat([1, c.shape[1] - unconditional_conditioning.shape[1], 1])
+                    unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
+                elif unconditional_conditioning.shape[1] > c.shape[1]:
+                    unconditional_conditioning = unconditional_conditioning[:, :c.shape[1]]
                 c_in = torch.cat([unconditional_conditioning, c])
             model_uncond, model_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
             model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "noImplicitAny": true,
     "outDir": "build",
     "module": "esnext",
     "target": "ESNext",
@@ -16,8 +15,8 @@
     "downlevelIteration": true,
     "importHelpers": true,
     "skipLibCheck": true,
-    "strictNullChecks": false,
     "esModuleInterop": true,
+    "strict": true
   },
   "include": [
     "src",

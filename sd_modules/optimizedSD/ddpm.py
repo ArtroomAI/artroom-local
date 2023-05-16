@@ -12,8 +12,8 @@ from functools import partial
 
 from ldm.modules.ema import LitEma
 from ldm.models.autoencoder import VQModelInterface
-from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor
-from ldm.modules.diffusionmodules.util import make_ddim_sampling_parameters, make_ddim_timesteps, noise_like
+from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor, \
+    make_ddim_sampling_parameters, make_ddim_timesteps, noise_like, BrownianTreeNoiseSampler
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 from ldm.util import exists, default, instantiate_from_config, disabled_train
 
@@ -27,7 +27,6 @@ class DiffusionWrapperv2(pl.LightningModule):
         assert self.conditioning_key in [None, 'concat', 'crossattn', 'hybrid', 'adm', 'hybrid-adm', 'crossattn-adm']
 
     def forward(self, x, t, c_concat: list = None, c_crossattn: list = None, c_adm=None):
-        print("invoked a wrapper")
         self.diffusion_model.dtype = x.dtype
         if self.conditioning_key is None:
             out = self.diffusion_model(x, t)
@@ -488,17 +487,17 @@ class CondStage(DDPM):
             model = instantiate_from_config(config)
             self.cond_stage_model = model
 
-    def get_learned_conditioning(self, c):
+    def get_learned_conditioning(self, c, clip_skip=None):
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
-                c = self.cond_stage_model.encode(c)
+                c = self.cond_stage_model.encode(c, clip_skip=clip_skip)
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
             else:
-                c = self.cond_stage_model(c)
+                c = self.cond_stage_model(c, clip_skip=clip_skip)
         else:
             assert hasattr(self.cond_stage_model, self.cond_stage_forward)
-            c = getattr(self.cond_stage_model, self.cond_stage_forward)(c)
+            c = getattr(self.cond_stage_model, self.cond_stage_forward)(c, clip_skip=clip_skip)
         return c
 
 
@@ -750,6 +749,13 @@ class UNet(DDPM):
             else:
                 x_latent = noise if x0 is None else x0
 
+        if unconditional_conditioning.shape[1] < conditioning.shape[1]:
+            last_vector = unconditional_conditioning[:, -1:]
+            last_vector_repeated = last_vector.repeat([1, conditioning.shape[1] - unconditional_conditioning.shape[1], 1])
+            unconditional_conditioning = torch.hstack([unconditional_conditioning, last_vector_repeated])
+        elif unconditional_conditioning.shape[1] > conditioning.shape[1]:
+            unconditional_conditioning = unconditional_conditioning[:, :conditioning.shape[1]]
+
         # sampling
         if sampler == "plms":
             # self.make_schedule_plms(ddim_num_steps=S, ddim_eta=eta, verbose=False)
@@ -777,7 +783,7 @@ class UNet(DDPM):
             samples = self.k_sampling(x_latent, conditioning, S, sampler, S_ddim_steps=S_ddim_steps,
                                       unconditional_guidance_scale=unconditional_guidance_scale, mode=mode,
                                       unconditional_conditioning=unconditional_conditioning, callback=callback,
-                                      mask=mask, init_latent=x0, use_original_steps=False)
+                                      mask=mask, init_latent=x0, use_original_steps=False, seed=seed)
 
         if self.turbo and self.v1:
             self.model1.to("cpu")
@@ -847,7 +853,7 @@ class UNet(DDPM):
                       unconditional_guidance_scale=1., unconditional_conditioning=None, old_eps=None, t_next=None):
         b, *_, device = *x.shape, x.device
 
-        def get_model_output(x, t):
+        def get_model_output(x, t, unconditional_conditioning=None):
             if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
                 e_t = self.apply_model(x, t, c)
             else:
@@ -856,7 +862,6 @@ class UNet(DDPM):
                 c_in = torch.cat([unconditional_conditioning, c])
                 e_t_uncond, e_t = self.apply_model(x_in, t_in, c_in).chunk(2)
                 e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
-
             if score_corrector is not None:
                 assert self.parameterization == "eps"
                 e_t = score_corrector.modify_score(self.model, e_t, x, t, c, **corrector_kwargs)
@@ -887,14 +892,14 @@ class UNet(DDPM):
             x_prev = a_prev.sqrt() * pred_x0 + dir_xt + noise
             return x_prev, pred_x0
 
-        e_t = get_model_output(x, t)
+        e_t = get_model_output(x, t, unconditional_conditioning)
         if self.parameterization == "v":
             e_t = self.predict_eps_from_z_and_v(x, t, e_t)
 
         if len(old_eps) == 0:
             # Pseudo Improved Euler (2nd order)
             x_prev, pred_x0 = get_x_prev_and_pred_x0(e_t, index)
-            e_t_next = get_model_output(x_prev, t_next)
+            e_t_next = get_model_output(x_prev, t_next, unconditional_conditioning)
 
             if self.parameterization == "v":
                 e_t_next = self.predict_eps_from_z_and_v(x_prev, t_next, e_t_next)
@@ -968,7 +973,7 @@ class UNet(DDPM):
 
     def p_k_sample(self, x, c, sigmas, sampler, i, s_in, mode="default", unconditional_guidance_scale=1.,
                    unconditional_conditioning=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.,
-                   model_wrap_sigmas=None, ds=None, order=4):
+                   model_wrap_sigmas=None, ds=None, order=4, r=1 / 2, noise_sampler=None):
         if ds is None:
             ds = []
         b, *_, device = *x.shape, x.device
@@ -977,6 +982,35 @@ class UNet(DDPM):
         t_fn = lambda sigma: sigma.log().neg()
         self.x_spare_part = None
         match sampler:
+            case "dpmpp_sde" | "dpmpp_sde_karras":
+                denoised = self.get_model_output_k(x, sigmas[i] * s_in, unconditional_conditioning, c,
+                                                   unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
+                if sigmas[i + 1] == 0:
+                    # Euler method
+                    d = self.to_d(x, sigmas[i], denoised).to(x.dtype).to(x.device)
+                    dt = sigmas[i + 1] - sigmas[i]
+                    x = x + d * dt
+                else:
+                    # DPM-Solver++
+                    t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
+                    h = t_next - t
+                    s = t + h * r
+                    fac = 1 / (2 * r)
+
+                    # Step 1
+                    sd, su = self.get_ancestral_step(sigma_fn(t), sigma_fn(s), eta=1.)
+                    s_ = t_fn(sd)
+                    x_2 = (sigma_fn(s_) / sigma_fn(t)) * x - (t - s_).expm1() * denoised
+                    x_2 = x_2 + noise_sampler(sigma_fn(t), sigma_fn(s)) * s_noise * su
+                    denoised_2 = self.get_model_output_k(x_2, sigma_fn(s) * s_in, unconditional_conditioning, c,
+                                                         unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
+
+                    # Step 2
+                    sd, su = self.get_ancestral_step(sigma_fn(t), sigma_fn(t_next), eta=1.)
+                    t_next_ = t_fn(sd)
+                    denoised_d = (1 - fac) * denoised + fac * denoised_2
+                    x = (sigma_fn(t_next_) / sigma_fn(t)) * x - (t - t_next_).expm1() * denoised_d
+                    x = x + noise_sampler(sigma_fn(t), sigma_fn(t_next)) * s_noise * su
             case "dpmpp_2m":
                 denoised = self.get_model_output_k(x, sigmas[i] * s_in, unconditional_conditioning, c,
                                                    unconditional_guidance_scale, model_wrap_sigmas, mode=mode)
@@ -1248,13 +1282,20 @@ class UNet(DDPM):
 
     def k_sampling(self, x_latent, cond, S, sampler, unconditional_guidance_scale=1.0,
                    unconditional_conditioning=None, S_ddim_steps=None, callback=None,
-                   mask=None, init_latent=None, use_original_steps=False, mode="default"):
+                   mask=None, init_latent=None, use_original_steps=False, mode="default", seed=42):
         timesteps = self.ddim_timesteps
         timesteps = timesteps[:S]
         total_steps = timesteps.shape[0]
         self.old_denoised = None
+
         print(f"Running {sampler} Sampling with {total_steps} timesteps")
         model_wrap_sigmas = (((1 - self.alphas_cumprod) / self.alphas_cumprod) ** 0.5).to(x_latent.device)
+
+        if sampler == "dpmpp_sde_karras":
+            sigma_min, sigma_max = (model_wrap_sigmas[0].item(), model_wrap_sigmas[-1].item())
+            sigmas = self.get_sigmas_karras(n=S, sigma_min=sigma_min, sigma_max=sigma_max, device=x_latent.device)
+        else:
+            sigmas = self.get_sigmas(S, model_wrap_sigmas)
 
         if init_latent is not None and mode == "default":  # img2img
             sigmas = self.get_sigmas(S_ddim_steps, model_wrap_sigmas)
@@ -1266,8 +1307,14 @@ class UNet(DDPM):
             noise = torch.randn_like(x_latent[:, 4:, :, :], device=x_latent.device) * sigmas[0]
             x_latent[:, 4:, :, :] = x_latent[:, 4:, :, :] + noise
         else:
-            sigmas = self.get_sigmas(S, model_wrap_sigmas)
             x_latent = x_latent * sigmas[0]
+
+        if sampler in ["dpmpp_sde", "dpmpp_sde_karras"]:
+            sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
+            # x_latent is only needed for shape
+            noise_sampler = BrownianTreeNoiseSampler(x_latent, sigma_min, sigma_max, seed=seed)
+        else:
+            noise_sampler = None
 
         s_in = x_latent.new_ones([x_latent.shape[0]]).to(x_latent.dtype).to(x_latent.device)
         ds = []
@@ -1280,7 +1327,7 @@ class UNet(DDPM):
             x_latent = self.p_k_sample(x_latent, cond, sigmas, sampler, s_in=s_in, i=i, mode=mode,
                                        unconditional_guidance_scale=unconditional_guidance_scale,
                                        unconditional_conditioning=unconditional_conditioning,
-                                       model_wrap_sigmas=model_wrap_sigmas, ds=ds)
+                                       model_wrap_sigmas=model_wrap_sigmas, ds=ds, noise_sampler=noise_sampler)
 
             if callback:
                 callback(x_latent)
@@ -1406,7 +1453,7 @@ class UNetV2(UNet):
             raise NotImplementedError(f"encoder_posterior of type '{type(encoder_posterior)}' not yet implemented")
         return self.scale_factor * z
 
-    def get_learned_conditioning(self, c):
+    def get_learned_conditioning(self, c, clip_skip=None):
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
                 c = self.cond_stage_model.encode(c)

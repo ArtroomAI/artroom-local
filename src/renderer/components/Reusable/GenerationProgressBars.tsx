@@ -10,7 +10,7 @@ const parseIterations = (inputStr: string) => {
         const unit = match[2];
 
         // Converting the value to iterations per second
-        let iterationsPerSec;
+        let iterationsPerSec = 0;
         if (unit === 'it/s') {
             iterationsPerSec = value;
         } else if (unit === 's/it') {
@@ -29,6 +29,10 @@ const parseToTime = (seconds: number) => {
     return `${m}:${s > 10 ? s : `0${s}`}`;
 }
 
+const getPercent = (a: number, b: number) => {
+    return a === b ? 100 : 100 * a / b;
+}
+
 export const GenerationProgressBars = () => {
     const socket = useContext(SocketContext);
 
@@ -41,16 +45,19 @@ export const GenerationProgressBars = () => {
     });
 
     const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
-        const current = 100 * data.current_step / data.total_steps;
+        console.log(data);
         const totalStepsDone = data.current_num * data.total_steps + data.current_step;
         const totalSteps = data.total_steps * data.total_num;
-        const batch = 100 * totalStepsDone / totalSteps;
+
+        const current = getPercent(data.current_step, data.total_steps);
+        const batch = getPercent(totalStepsDone, totalSteps)
         
         const perSecond = parseIterations(data.iterations_per_sec);
         const timeSpent = data.time_spent;
         const currentEta = data.eta;
         const batchEta = parseToTime((totalSteps - totalStepsDone) / perSecond);
 
+        console.log(data, { current, batch, timeSpent, currentEta, batchEta });
         setProgress({ current, batch, timeSpent, currentEta, batchEta });
     }, []);
 
@@ -63,23 +70,23 @@ export const GenerationProgressBars = () => {
         };
     }, [socket, handleGetProgress]);
 
-    return (
-        <>
-            <Progress
-                display={progress.batch >= 0 && progress.batch !== 100 ? 'block' : 'none'}
-                alignContent="left"
-                hasStripe
-                width="100%"
-                value={progress.batch} />
-            <Progress
-                display={progress.current >= 0 && progress.current ? 'block' : 'none'}
-                alignContent="left"
-                hasStripe
-                width="100%"
-                value={progress.current} />
-            <Box display={progress.current >= 0 && progress.current ? 'block' : 'none'}>
-                eta: { progress.currentEta } | batch eta: { progress.batchEta }
-            </Box>
-        </>
-    );
+    if(progress.current >= 0 && progress.current < 100) {
+        return (
+            <>
+                <Progress
+                    alignContent="left"
+                    hasStripe
+                    width="100%"
+                    value={progress.batch} />
+                <Progress
+                    alignContent="left"
+                    hasStripe
+                    width="100%"
+                    value={progress.current} />
+                <Box>eta: { progress.currentEta } | batch eta: { progress.batchEta }</Box>
+            </>
+        );  
+    }
+
+    return null;
 }

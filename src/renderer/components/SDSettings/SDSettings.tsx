@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../../atoms/atoms';
 import {
@@ -23,9 +23,10 @@ import {
     Icon,
     Button,
     IconButton,
-    useToast
+    useToast,
+    ButtonGroup
 } from '@chakra-ui/react';
-import { FaClipboardList, FaQuestionCircle } from 'react-icons/fa';
+import { FaClipboardList, FaFolder, FaQuestionCircle } from 'react-icons/fa';
 import { IoMdCloud } from 'react-icons/io';
 import {
     batchNameState,
@@ -45,22 +46,26 @@ import {
     stepsState,
     strengthState,
     useRemovedBackgroundState,
-    vaeState
+    vaeState,
+    modelsState,
+    CheckSettingsType
 } from '../../SettingsManager';
 import LoraSelector from './Lora/LoraSelector';
 import { AspectRatio } from './AspectRatio';
 import Controlnet from './Controlnet/Controlnet';
 import RemoveBackground from './RemoveBackground/RemoveBackground';
 import { SDSettingsAccordion } from './SDSettingsAccordion';
+import { getExifData } from '../../../main/utils/exifData';
+import HighresUpscale from './HighresUpscale/HighresUpscale';
 
-function SDSettings () {
+type SDSettingsTab = 'default' | 'paint';
+
+function SDSettings ({ tab } : { tab: SDSettingsTab }) {
     const toast = useToast({});
     const cloudMode = useRecoilValue(atom.cloudModeState);
 
     const modelDirs = useRecoilValue(modelsDirState);
-    const [ckpts, setCkpts] = useState([]);
-    const [vaes, setVaes] = useState([]);
-    const [loras, setLoras] = useState([]);
+    const models = useRecoilValue(modelsState);
 
     const [batchName, setBatchName] = useRecoilState(batchNameState);
     const [iterations, setIterations] = useRecoilState(iterationsState);
@@ -82,14 +87,18 @@ function SDSettings () {
     const useRemovedBackground = useRecoilValue(useRemovedBackgroundState);
     const setSettings = useSetRecoilState(exifDataSelector);
 
-    const getCkpts = useCallback(() => {
-        window.api.getCkpts(modelDirs).then(setCkpts);
-        window.api.getVaes(modelDirs).then(setVaes);
-        window.api.getLoras(modelDirs).then(setLoras);
-        
+    const goToModelFolder = useCallback(() => {
+        if (modelDirs !== '') {
+            window.api.showInExplorer(modelDirs);
+        }
     }, [modelDirs]);
 
-    useEffect(getCkpts, [getCkpts]);
+    const setSettingsWithToast = (results: CheckSettingsType) => {
+        if(results[1].status !== 'error') {
+            setSettings(results[0]);
+        }
+        toast(results[1]);
+    }
 
     return (
         <Flex pr="10" width="450px">
@@ -136,7 +145,16 @@ function SDSettings () {
                                 <Text>
                                     Model
                                 </Text>
-
+                                <Button
+                                    fontSize='xs'
+                                    leftIcon={<FaFolder/>}
+                                    _hover={{ cursor: 'pointer' }}
+                                    onClick={goToModelFolder}
+                                    variant="outline"
+                                    size="xs"
+                                    >
+                                    View
+                                </Button>
                                 {cloudMode
                                     ? <Icon as={IoMdCloud} />
                                     : null}
@@ -147,17 +165,14 @@ function SDSettings () {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setCkpt(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={ckpt}
                             variant="outline"
                         >
-                            {ckpts.length > 0
-                                ? <option value="">
-                                    Choose Your Model Weights
-                                </option>
-                                : <></>}
+                            <option value="">
+                                Choose Your Model Weights
+                            </option>
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -167,48 +182,50 @@ function SDSettings () {
                     </FormControl>
 
                     <SDSettingsAccordion header={`Advanced Settings`}>
-                        <FormControl className="strength-input">
-                            <HStack>
-                                <FormLabel htmlFor="Strength">
-                                    Image Variation Strength:
-                                </FormLabel>
-                                <Spacer />
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
+                        { tab === 'paint' ? (
+                            <FormControl className="strength-input">
+                                <HStack>
+                                    <FormLabel htmlFor="Strength">
+                                        Image Variation Strength:
+                                    </FormLabel>
+                                    <Spacer />
+                                    <Tooltip
+                                        fontSize="md"
+                                        label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                                        placement="left"
+                                        shouldWrapChildren
+                                    >
+                                        <FaQuestionCircle color="#777" />
+                                    </Tooltip>
+                                </HStack>
 
-                            <Slider
-                                defaultValue={0.75}
-                                id="strength"
-                                max={0.99}
-                                min={0.0}
-                                name="strength"
-                                onChange={setStrength}        
-                                step={0.01}
-                                value={strength}
-                                variant="outline"
-                            >
-                                <SliderTrack bg="#EEEEEE">
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
-
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={true}
-                                    label={`${strength}`}
-                                    placement="right"
+                                <Slider
+                                    defaultValue={0.75}
+                                    id="strength"
+                                    max={0.95}
+                                    min={0.03}
+                                    name="strength"
+                                    onChange={setStrength}        
+                                    step={0.01}
+                                    value={strength}
+                                    variant="outline"
                                 >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
-                        </FormControl>
+                                    <SliderTrack bg="#EEEEEE">
+                                        <SliderFilledTrack bg="#4f8ff8" />
+                                    </SliderTrack>
+
+                                    <Tooltip
+                                        bg="#4f8ff8"
+                                        color="white"
+                                        isOpen={true}
+                                        label={`${strength}`}
+                                        placement="right"
+                                    >
+                                        <SliderThumb />
+                                    </Tooltip>
+                                </Slider>
+                            </FormControl>
+                        ) : null }
 
                         <HStack mt={4} alignItems="end">
                             <FormControl width="60%" className="steps-input">
@@ -256,16 +273,31 @@ function SDSettings () {
                                     </Tooltip>
                                 </HStack>
 
-                                <NumberInput
+                                <Slider
+                                    defaultValue={7.5}
+                                    max={40}
+                                    min={1}
                                     id="cfg_scale"
-                                    min={0}
                                     name="cfg_scale"
-                                    onChange={setCfg}         
+                                    onChange={setCfg}     
+                                    step={0.5}
                                     value={cfg}
                                     variant="outline"
                                 >
-                                    <NumberInputField id="cfg_scale" />
-                                </NumberInput>
+                                    <SliderTrack bg="#EEEEEE">
+                                        <SliderFilledTrack bg="#4f8ff8" />
+                                    </SliderTrack>
+
+                                    <Tooltip
+                                        bg="#4f8ff8"
+                                        color="white"
+                                        isOpen={true}
+                                        label={`${cfg}`}
+                                        placement="right"
+                                    >
+                                        <SliderThumb />
+                                    </Tooltip>
+                                </Slider>
                             </FormControl>
                         </HStack>
                         <HStack alignItems="end">
@@ -312,6 +344,10 @@ function SDSettings () {
 
                                     <option value="euler_a">
                                         Euler Ancestral
+                                    </option>
+
+                                    <option value="dpmpp_sde">
+                                        DPM++ SDE
                                     </option>
 
                                     <option value="dpm_2">
@@ -439,14 +475,13 @@ function SDSettings () {
                                 id="vae"
                                 name="vae"
                                 onChange={(event) => setVae(event.target.value)}
-                                onMouseEnter={getCkpts}
                                 value={vae}
                                 variant="outline"
                             >
                                 <option value="">
                                     No vae
                                 </option>
-                                {vaes.map((ckpt_option, i) => (<option
+                                {models.vaes.map((ckpt_option, i) => (<option
                                     key={i}
                                     value={ckpt_option}
                                 >
@@ -457,7 +492,7 @@ function SDSettings () {
                     </SDSettingsAccordion> 
 
                     <SDSettingsAccordion header={`Loras ${lora.length ? `(${lora.length})` : ``}`}>
-                        <LoraSelector cloudMode={cloudMode} options={loras} />
+                        <LoraSelector cloudMode={cloudMode} options={models.loras} />
                     </SDSettingsAccordion> 
 
                     <SDSettingsAccordion header={`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}>
@@ -468,18 +503,20 @@ function SDSettings () {
                         <RemoveBackground />
                     </SDSettingsAccordion>
 
-                    <Box>
+                    <SDSettingsAccordion header='Highres settings'>
+                        <HighresUpscale />
+                    </SDSettingsAccordion>
+
+                    <ButtonGroup isAttached variant="outline">
                         <Tooltip label="Upload">
                             <Button
                                 onClick={() => {
-                                    window.api.uploadSettings().then(checkSettings).then(results => {
-                                        if(results[1].status === 'success') {
-                                            setSettings(results[0]);
-                                        }
-                                        toast(results[1]);
-                                    });
+                                    window.api.uploadSettings()
+                                        .then(settings => checkSettings(settings, models))
+                                        .then(setSettingsWithToast);
                                 }}
                                 aria-label="upload"
+                                variant="outline"
                             >
                                 Load SDSettings from file
                             </Button>
@@ -487,18 +524,17 @@ function SDSettings () {
                         <Tooltip label="Paste from Clipboard">
                             <IconButton
                                 aria-label="Paste from Clipboard"
+                                variant="outline"
                                 icon={<FaClipboardList />}
                                 onClick={() => {
-                                    navigator.clipboard.readText().then(checkSettings).then(results => {
-                                        if(results[1].status === 'success') {
-                                            setSettings(results[0]);
-                                        }
-                                        toast(results[1]);
-                                    });
+                                    navigator.clipboard.readText()
+                                        .then(getExifData)
+                                        .then(settings => checkSettings(settings, models))
+                                        .then(setSettingsWithToast);
                                 }}
                             />
                         </Tooltip>
-                    </Box>         
+                    </ButtonGroup>
                 </VStack>
             </Box>
         </Flex>

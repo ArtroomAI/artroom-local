@@ -43,12 +43,12 @@ function DebugInstallerModal () {
 
     return (
         <>
-            <Button
+            {/* <Button
                 backgroundColor="red.600"
                 colorScheme="red"
                 onClick={onOpen}>
                 Reinstall Artroom Backend
-            </Button>
+            </Button> */}
 
             <AlertDialog
                 isOpen={isOpen}

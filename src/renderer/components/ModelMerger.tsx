@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useRecoilValue } from 'recoil';
 import {
     Box,
@@ -29,7 +29,7 @@ import {
 } from '@chakra-ui/react';
 import { FaQuestionCircle } from 'react-icons/fa';
 import path from 'path';
-import { modelsDirState } from '../SettingsManager';
+import { modelsDirState, modelsState } from '../SettingsManager';
 import { SocketContext } from '../socket';
 
 export const ModelMerger = () => {
@@ -37,7 +37,7 @@ export const ModelMerger = () => {
     const modelsDir = useRecoilValue(modelsDirState);
     const socket = useContext(SocketContext);
 
-    const [ckpts, setCkpts] = useState([]);
+    const models = useRecoilValue(modelsState);
 
     const [modelA, setModelA] = useState('');
     const [modelB, setModelB] = useState('');
@@ -93,12 +93,6 @@ export const ModelMerger = () => {
         }
     };
 
-    const getCkpts = useCallback(() => {
-        window.api.getCkpts(modelsDir).then(setCkpts);
-    }, [modelsDir]);
-
-    useEffect(getCkpts, [getCkpts]);
-
     return (
         <Box
             height="90%"
@@ -117,7 +111,7 @@ export const ModelMerger = () => {
                         <HStack>
                             <Tooltip
                                 fontSize="md"
-                                label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference."
+                                label="These determine how you would like to handle the model merges. Note that you can use 3 models if you select Add Difference (model A) + (model B - Model C)"
                                 mt="3"
                                 placement="right"
                                 shouldWrapChildren>
@@ -137,15 +131,7 @@ export const ModelMerger = () => {
                                     <Radio value="weighted_sum">
                                         Weighted Sum
                                     </Radio>
-
-                                    <Radio value="sigmoid">
-                                        Sigmoid
-                                    </Radio>
-
-                                    <Radio value="inverse_sigmoid">
-                                        Inverse Sigmoid
-                                    </Radio>
-
+                                    
                                     <Radio value="add_difference">
                                         Add Difference
                                     </Radio>
@@ -167,17 +153,16 @@ export const ModelMerger = () => {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setModelA(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={modelA}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -199,17 +184,16 @@ export const ModelMerger = () => {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setModelB(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={modelB}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts.map((ckpt_option, i) => (<option
+                            {models.ckpts.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -232,17 +216,16 @@ export const ModelMerger = () => {
                             id="ckpt"
                             name="ckpt"
                             onChange={(event) => setModelC(event.target.value)}
-                            onMouseEnter={getCkpts}
                             value={modelC}
                             variant="outline"
                         >
-                            {ckpts.length > 0
+                            {models.ckpts.length > 0
                                 ? <option value="">
                                     Select model weights
                                 </option>
                                 : <></>}
 
-                            {ckpts?.map((ckpt_option, i) => (<option
+                            {models.ckpts?.map((ckpt_option, i) => (<option
                                 key={i}
                                 value={ckpt_option}
                             >
@@ -258,12 +241,12 @@ export const ModelMerger = () => {
                                     setFullrange(!fullrange);
                                 }}
                                 checked={fullrange}>
-                                Use Range for Alpha
+                                Incremental Merging
                             </Checkbox>
 
                             <Tooltip
                                 fontSize="md"
-                                label="Merge the model for every % value from 5 to 95, every 5 steps"
+                                label="Save a model at every increment from the starting % to the ending %"
                                 mt="3"
                                 placement="right"
                                 shouldWrapChildren>

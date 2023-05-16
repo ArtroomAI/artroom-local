@@ -1,39 +1,51 @@
-import { ipcRenderer } from "electron";
+import { ipcRenderer as IPC, IpcRendererEvent } from "electron";
 import type { ProgressInfo } from "electron-updater";
+import type { BackEndImage, ExifValidation } from "../interfaces/imageData";
 
 const api = {
-    startArtroom: async (artroomPath: string, isDebug: boolean) => {return await ipcRenderer.invoke('startArtroom',artroomPath, isDebug);},
-    runPyTests: async (artroomPath: string) => {return await ipcRenderer.invoke('runPyTests', artroomPath);},
-    getCkpts: async (data: any) => {return await ipcRenderer.invoke('getCkpts',data);},
-    getLoras: async (data: any) => {return await ipcRenderer.invoke('getLoras',data);},
-    getVaes: async (data: any) => {return await ipcRenderer.invoke('getVaes',data);},
-    imageViewer: async (folder_path: string, batch_path: string): Promise<ImageViewerResultType> => { return await ipcRenderer.invoke('imageViewer', folder_path, batch_path); },
-    imageViewerChange: (callback: (_: any, result: ImageViewerResultType) => void) => ipcRenderer.on('imageViewerChange', callback),
-    getDisks: async(): Promise<string[]> => { return await ipcRenderer.invoke('getDisks')},
-    uploadSettings: async (): Promise<string> => {return await ipcRenderer.invoke('uploadSettings');},
-    chooseImages: async (): Promise<string[]> => {return await ipcRenderer.invoke('chooseImages');},
-    openDiscord: async () => {return await ipcRenderer.invoke('openDiscord');},
-    openCivitai: async () => {return await ipcRenderer.invoke('openCivitai');},
-    openEquilibrium: async () => {return await ipcRenderer.invoke('openEquilibrium');},
-    uploadInitImage: async (data: any) => {return await ipcRenderer.invoke('uploadInitImage',data);},
-    getImageFromPath: async (data: string): Promise<{ b64: string, metadata: string }> => {return await ipcRenderer.invoke('getImageFromPath',data);},
-    copyToClipboard: async (data: string, type?: string) => {return await ipcRenderer.invoke('copyToClipboard', data, type);},
-    saveFromDataURL: async (data: string) => {return await ipcRenderer.invoke('saveFromDataURL',data);},
-    chooseUploadPath: async (): Promise<string> => {return await ipcRenderer.invoke('chooseUploadPath');},
-    restartServer: async (artroomPath: string, isDebug: boolean) => {return await ipcRenderer.invoke('restartServer', artroomPath, isDebug);},
-    showInExplorer: async (path: string) => {return await ipcRenderer.invoke('showInExplorer', path);},
-    minimizeWindow: async () => {return await ipcRenderer.invoke('minimizeWindow');},
-    unmaximizeWindow: async () => {return await ipcRenderer.invoke('unmaximizeWindow');},
-    maxUnmaxWindow: async () => {return await ipcRenderer.invoke('maxUnmaxWindow');},
-    closeWindow: async () => {return await ipcRenderer.invoke('closeWindow');},
-    getVersion: async () => {return await ipcRenderer.invoke('getVersion');},
-    pythonInstall: async(artroomPath: string, gpuType: string) => {return await ipcRenderer.invoke('pythonInstall', artroomPath, gpuType);},
-    pythonInstallDependencies: async(artroomPath: string) => {return await ipcRenderer.invoke('pythonInstallDependencies', artroomPath);},
-    downloadStarterModels: async(dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {return await ipcRenderer.invoke('downloadStarterModels', dir, realisticStarter, animeStarter, landscapesStarter);},
-    fixButtonProgress: async (callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => {ipcRenderer.on('fixButtonProgress', callback);},
-    downloadProgress: async (callback: (event: Electron.IpcRendererEvent, info: ProgressInfo) => void) => {ipcRenderer.on('downloadProgress', callback);},
-    saveQueue: async (queue: string, artroom_path: string) => { ipcRenderer.invoke('saveQueue', queue, artroom_path) },
-    readQueue: async (artroom_path: string): Promise<string | undefined> => { return await ipcRenderer.invoke('readQueue', artroom_path) }
+    startArtroom: (artroomPath: string, isDebug: boolean) => IPC.invoke('startArtroom',artroomPath, isDebug),
+    runPyTests: (artroomPath: string) => IPC.invoke('runPyTests', artroomPath),
+    imageViewer: (folder_path: string, batch_path: string): Promise<ImageViewerResultType> => IPC.invoke('imageViewer', folder_path, batch_path),
+    getDisks: (): Promise<string[]> => IPC.invoke('getDisks'),
+    uploadSettings: (): Promise<ExifValidation | null> => IPC.invoke('uploadSettings'),
+    chooseImages: (): Promise<string[]> => IPC.invoke('chooseImages'),
+    openDiscord: () => IPC.invoke('openDiscord'),
+    openCivitai: () => IPC.invoke('openCivitai'),
+    openEquilibrium: () => IPC.invoke('openEquilibrium'),
+    uploadInitImage: (data: any) => IPC.invoke('uploadInitImage',data),
+    getImageFromPath: (image_path: string): Promise<BackEndImage> => IPC.invoke('getImageFromPath',image_path),
+    copyToClipboard: (data: string, type?: string) => IPC.invoke('copyToClipboard', data, type),
+    saveFromDataURL: (data: string) => IPC.invoke('saveFromDataURL',data),
+    chooseUploadPath: (): Promise<string> => IPC.invoke('chooseUploadPath'),
+    restartServer: (artroomPath: string, isDebug: boolean) => IPC.invoke('restartServer', artroomPath, isDebug),
+    showInExplorer: (path: string) => IPC.invoke('showInExplorer', path),
+    minimizeWindow: () => IPC.invoke('minimizeWindow'),
+    unmaximizeWindow: () => IPC.invoke('unmaximizeWindow'),
+    maxUnmaxWindow: () => IPC.invoke('maxUnmaxWindow'),
+    closeWindow: () => IPC.invoke('closeWindow'),
+    getVersion: () => IPC.invoke('getVersion'),
+    pythonInstall: (artroomPath: string, gpuType: string) => IPC.invoke('pythonInstall', artroomPath, gpuType),
+    pythonInstallDependencies: (artroomPath: string) => IPC.invoke('pythonInstallDependencies', artroomPath),
+    downloadStarterModels: (dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => IPC.invoke('downloadStarterModels', dir, realisticStarter, animeStarter, landscapesStarter),
+    saveQueue: (queue: string, artroom_path: string) => IPC.invoke('saveQueue', queue, artroom_path),
+    readQueue: (artroom_path: string): Promise<string | undefined> => IPC.invoke('readQueue', artroom_path),
+    modelsFolder: (folder_name: string) => IPC.invoke('modelsFolder', folder_name),
+    modelsChange: (callback: (_: IpcRendererEvent, models: InternalModelsType) => void) => {
+        IPC.on('modelsChange', callback);
+        return () => IPC.off('modelsChange', callback);
+    },
+    fixButtonProgress: (callback: (_: IpcRendererEvent, message: string) => void) => {
+        IPC.on('fixButtonProgress', callback);
+        return () => IPC.off('fixButtonProgress', callback);
+    },
+    downloadProgress: (callback: (_: IpcRendererEvent, info: ProgressInfo) => void) => {
+        IPC.on('downloadProgress', callback);
+        return () => IPC.off('downloadProgress', callback);
+    },
+    imageViewerChange: (callback: (_: IpcRendererEvent, result: ImageViewerResultType) => void) => {
+        IPC.on('imageViewerChange', callback);
+        return () => IPC.off('imageViewerChange', callback);
+    }
 }
 
 window.api = api;

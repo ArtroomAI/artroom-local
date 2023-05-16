@@ -27,32 +27,47 @@ sys.path.append("artroom_helpers/modules")
 sys.path.append("artroom_helpers/annotator")
 sys.path.append("sd_modules/optimizedSD")
 
-import artroom_helpers
-from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, image_grid
+from artroom_helpers.generation.preprocess import load_model_from_config, mask_from_face, mask_background, load_mask, \
+    image_grid
 from artroom_helpers.modules.cldm.ddim_hacked import DDIMSampler
 from artroom_helpers.tomesd import apply_patch
 from artroom_helpers.toast_status import toast_status
+
+sys.path.append("artroom_helpers/modules")
+sys.path.append("sd_modules/optimizedSD")
 
 from artroom_helpers.modules.lora_ext import create_network_and_apply_compvis
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff, deinit_cnet_stuff
 from artroom_helpers.modules.cldm.model import create_model
 from artroom_helpers import support, inpainting
-from artroom_helpers.prompt_parsing import weights_handling
 from artroom_helpers.gpu_detect import get_gpu_architecture, get_device
 from artroom_helpers.modules import HN
 
 from sd_modules.optimizedSD.ldm.util import instantiate_from_config
-
-from artroom_helpers.modules.cldm.hack import hack_everything
 
 logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
+def get_state_dict(d):
+    return d.get('state_dict', d)
+
+
+def load_state_dict(ckpt_path, location='cpu'):
+    _, extension = os.path.splitext(ckpt_path)
+    if extension.lower() == ".safetensors":
+        import safetensors.torch
+        state_dict = safetensors.torch.load_file(ckpt_path, device=location)
+    else:
+        state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
+    state_dict = get_state_dict(state_dict)
+    return state_dict
+
+
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
-        self.control_model = None
+        self.control_model = False
         self.network = None
         self.config = None
         self.dtype = None
@@ -146,8 +161,8 @@ class StableDiffusion:
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4, controlnet=False):
         print(f'Loading Lora file :{path} with weight {weight_tenc}')
-        
-        du_state_dict = load_file(path)
+
+        du_state_dict = load_state_dict(path)
         text_encoder = self.modelCS.cond_stage_model.to(self.device, dtype=self.dtype)
         # text_encoder = model.cond_stage_model.transformer.to(device, dtype=model.dtype)
         # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
@@ -185,14 +200,34 @@ class StableDiffusion:
         self.modelFS.eval()
         del input_state_dict
 
-    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None, clip_skip=1):
+    def load_ckpt(self, ckpt, speed, vae, loras=None, controlnet_path=None):
         if loras is None:
             loras = []
         assert ckpt != '', 'Checkpoint cannot be empty'
+
+        # load state dict
+        state_dict = load_model_from_config(ckpt)
+
+        try:  # load controlnet with state dict
+            if self.control_model and controlnet_path is None:
+                self.deinject_controlnet(sd=state_dict)
+                self.control_model = False
+            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
+                self.inject_controlnet_new(controlnet_path,
+                                           existing=(self.control_model and self.ckpt == ckpt),
+                                           state_dict=state_dict)
+                self.control_model = True
+        except Exception as e:
+            print(f"Controlnet Failed to load {e}")
+            self.control_model = False
+            self.socketio.emit('status', toast_status(title=f"Controlnet Failed to load {e}", status="error"))
+
+        # reload models
+        # in case we have a controlnet, we only load modelCS and modelFS
         if self.ckpt != ckpt or self.speed != speed:
             try:
                 print("Setting up model...")
-                self.set_up_models(ckpt, speed, vae)
+                self.set_up_models(ckpt, speed, vae, sd=state_dict, controlnet_loaded=self.control_model)
                 print("Successfully set up model")
             except Exception as e:
                 self.socketio.emit('status', toast_status(title="Setting up model failed", status="error"))
@@ -202,25 +237,10 @@ class StableDiffusion:
                 self.modelFS = None
                 return False
 
-        try:
-            if self.control_model is not None and controlnet_path is None:
-                self.deinject_controlnet()
-                self.control_model = None
-            if controlnet_path is not None and (self.controlnet_path != controlnet_path or self.ckpt != ckpt):
-                try:
-                    self.inject_controlnet_new(controlnet_path,
-                                            existing=(self.control_model is not None and self.ckpt == ckpt))
-                except:
-                    print(f"Loading controlnet failed, attempting old version")
-                    self.inject_controlnet(ckpt, os.path.join(self.models_dir, "model.ckpt"), controlnet_path)
-        except Exception as e:
-            print(f"Controlnet Failed to load {e}")
-            self.socketio.emit('status', toast_status(title=f"Controlnet Failed to load {e}", status="error"))
-
         if vae != self.vae or self.ckpt != ckpt:
             print("Loading vae")
             try:
-                if '.vae' in vae:
+                if len(vae) > 0:
                     self.load_vae(vae)
                     print("Loading vae finished")
                 else:
@@ -236,10 +256,10 @@ class StableDiffusion:
         self.speed = speed
         self.controlnet_path = controlnet_path
 
-        try:
-            hack_everything(clip_skip=clip_skip)
-        except:
-            print("Clip skip failed")
+        # try:
+        #     hack_everything(clip_skip=clip_skip)
+        # except:
+        #     print("Clip skip failed")
 
         try:
             if self.network:
@@ -253,78 +273,53 @@ class StableDiffusion:
         except Exception as e:
             print(f"Failed to load in Lora! {e}")
             self.socketio.emit('status', toast_status(title="Failed to load in Lora!", status="error"))
+
+        gc.collect()  # clean up state dicts
         return True
 
-    def inject_controlnet_new(self, controlnet_path, existing=False):
-        def get_state_dict(d):
-            return d.get('state_dict', d)
-
-        def load_state_dict(ckpt_path, location='cpu'):
-            _, extension = os.path.splitext(ckpt_path)
-            if extension.lower() == ".safetensors":
-                import safetensors.torch
-                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
-            else:
-                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
-            state_dict = get_state_dict(state_dict)
-            return state_dict
-
+    def inject_controlnet_new(self, controlnet_path, state_dict, existing=False):
         print("Injecting controlnet...")
         if existing:
-            input_state_dict = {k: v for k, v in self.control_model.state_dict().items() if 'control_model' not in k}
+            state_dict = {k: v for k, v in state_dict.items() if 'control_model' not in k}
             controlnet_dict = load_state_dict(controlnet_path)
-            control_model_dict = {f'control_model.{k}': v for k, v in controlnet_dict.items() if
-                                  'control_model' not in k}
-            input_state_dict.update(control_model_dict)
-        else:
-            input_state_dict = self.model.state_dict()
-            controlnet_dict = load_state_dict(controlnet_path)
-            self.control_model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
-
-            input_state_dict = {k.replace("model1.", "model."): v for k, v in input_state_dict.items()}
-            input_state_dict = {k.replace("model2.", "model."): v for k, v in input_state_dict.items()}
-
-            control_model_dict = {k if k.startswith('control_model.') else f'control_model.{k}': v for k, v in controlnet_dict.items()}
-            input_state_dict.update(control_model_dict)
+            # print(controlnet_dict.keys())
+            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in
+                                  controlnet_dict.items()}
+            state_dict.update(control_model_dict)
             del control_model_dict
 
-            for key in self.modelFS.first_stage_model.state_dict().keys():
-                p = self.modelFS.first_stage_model.state_dict()[key]
-                input_state_dict['first_stage_model.' + key] = p
-            del self.modelFS
-            self.modelFS = None
-
-            for key in self.modelCS.cond_stage_model.state_dict().keys():
-                p = self.modelCS.cond_stage_model.state_dict()[key]
-                input_state_dict['cond_stage_model.' + key] = p
-            del self.modelCS
-            self.modelCS = None
-
-        self.control_model.load_state_dict(input_state_dict, strict=False)
-        self.model = self.control_model  # soft links
-        self.modelCS = self.control_model  # soft links
-        self.modelFS = self.control_model  # soft links
-        if self.can_use_half:
-            self.control_model.half()
         else:
-            self.control_model.to(torch.float32)
-        del input_state_dict
+            controlnet_dict = load_state_dict(controlnet_path)
+            self.model = create_model("sd_modules/optimizedSD/configs/cnet/cldm_v15.yaml").cpu()
+            # print(controlnet_dict.keys())
+
+            state_dict = {k.replace("model1.", "model."): v for k, v in state_dict.items()}
+            state_dict = {k.replace("model2.", "model."): v for k, v in state_dict.items()}
+
+            control_model_dict = {k if 'control_model' in k else f'control_model.{k}': v for k, v in
+                                  controlnet_dict.items()}
+            state_dict.update(control_model_dict)
+            del control_model_dict
+
+            # for key in self.modelCS.cond_stage_model.state_dict().keys():  condstage part
+            #     p = self.modelCS.cond_stage_model.state_dict()[key]
+            #     input_state_dict['cond_stage_model.' + key] = p
+            # del self.modelCS
+            # self.modelCS = None
+
+        state_dict = {k.replace("model.diffusion_model", "diffusion_model"): v for k, v in state_dict.items()}
+
+        self.model.load_state_dict(state_dict, strict=False)
+        self.control_model = True  # just bool
+
+        # print(f"Missing control keys: {control_keys_missing}")
+        if self.can_use_half:
+            self.model.half()
+        self.model.to(self.device)
+        del state_dict
 
     def inject_controlnet(self, ckpt, path_sd15, path_sd15_with_control):
         print("Injecting controlnet..")
-
-        def get_state_dict(d):
-            return d.get('state_dict', d)
-
-        def load_state_dict(ckpt_path, location='cpu'):
-            _, extension = os.path.splitext(ckpt_path)
-            if extension.lower() == ".safetensors":
-                import safetensors.torch
-                state_dict = safetensors.torch.load_file(ckpt_path, device=location)
-            else:
-                state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
-            state_dict = get_state_dict(state_dict)
-            return state_dict
 
         def get_node_name(name, parent_name):
             if len(name) <= len(parent_name):
@@ -361,14 +356,13 @@ class StableDiffusion:
 
         return final_state_dict
 
-    def deinject_controlnet(self, delete=True):
+    def deinject_controlnet(self, sd, delete=True):
         print("Deinjecting controlnet...")
         # Remove controlnet pieces
-        sd = {k: v for k, v in self.control_model.state_dict().items() if "control" not in k}
 
         if delete:
-            del self.control_model
-            self.control_model = None
+            del self.model
+            self.model = None
 
         li = []
         lo = []
@@ -397,15 +391,6 @@ class StableDiffusion:
         self.model.unet_bs = 1  # unet_bs=1
         self.model.turbo = (self.speed != 'Low')
 
-        self.modelFS = instantiate_from_config(config.modelFirstStage)
-        _, _ = self.modelFS.load_state_dict(sd, strict=False)
-        self.modelFS.eval()
-
-        self.modelCS = instantiate_from_config(config.modelCondStage)
-        _, _ = self.modelCS.load_state_dict(sd, strict=False)
-        self.modelCS.cond_stage_model.device = self.device
-        self.modelCS.eval()
-
         if self.can_use_half:
             self.model.half()
             self.modelCS.half()
@@ -418,27 +403,25 @@ class StableDiffusion:
 
         del sd
 
-    def set_up_models(self, ckpt, speed, vae):
+    def set_up_models(self, ckpt, speed, vae, sd, controlnet_loaded=False):
         speed = speed if self.device.type != 'privateuseone' else "High"
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Loading model...", status="info",
             position="bottom-right", duration=None, isClosable=False))
         try:
-            del self.model
+            if not controlnet_loaded:
+                del self.model
+                self.model = None
+                self.control_model = False
             del self.modelFS
             del self.modelCS
-            if self.control_model is not None:
-                del self.control_model
-            self.model = None
             self.modelFS = None
             self.modelCS = None
-            self.control_model = None
         except:
             pass
         torch.cuda.empty_cache()
         gc.collect()
 
-        sd = load_model_from_config(f"{ckpt}")
         if sd:
             print("Model safety check passed")
         else:
@@ -462,14 +445,15 @@ class StableDiffusion:
                 self.config = 'sd_modules/optimizedSD/configs/v2/v2-inference.yaml'
             print(f"v2 conf: {self.config}")
             config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.model)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.parameterization = parameterization
-            self.model.cdevice = self.device
-            self.model.to(self.device)
-            self.modelCS = self.model  # just link without a copy
-            self.modelFS = self.model  # just link without a copy
+            if not controlnet_loaded:  # won't work
+                self.model = instantiate_from_config(config.model)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.parameterization = parameterization
+                self.model.cdevice = self.device
+                self.model.to(self.device)
+                self.modelCS = self.model  # just link without a copy
+                self.modelFS = self.model  # just link without a copy
             self.v1 = False
         else:
             self.v1 = True
@@ -518,6 +502,7 @@ class StableDiffusion:
                         print(f"Not recognized speed: {speed}")
                         self.config = 'sd_modules/optimizedSD/configs/v1/v1-inference.yaml'
 
+            config = OmegaConf.load(f"{self.config}")
             li = []
             lo = []
             for key, value in sd.items():
@@ -535,14 +520,14 @@ class StableDiffusion:
                 sd['model1.' + key[6:]] = sd.pop(key)
             for key in lo:
                 sd['model2.' + key[6:]] = sd.pop(key)
-            config = OmegaConf.load(f"{self.config}")
-            self.model = instantiate_from_config(config.modelUNet)
-            _, _ = self.model.load_state_dict(sd, strict=False)
-            self.model.eval()
-            self.model.cdevice = self.device
-            self.model.unet_bs = 1  # unet_bs=1
+            if not controlnet_loaded:
+                self.model = instantiate_from_config(config.modelUNet)
+                _, _ = self.model.load_state_dict(sd, strict=False)
+                self.model.eval()
+                self.model.cdevice = self.device
+                self.model.unet_bs = 1  # unet_bs=1
 
-            self.model.turbo = (speed != 'Low')
+                self.model.turbo = (speed != 'Low')
 
             self.modelCS = instantiate_from_config(config.modelCondStage)
             _, _ = self.modelCS.load_state_dict(sd, strict=False)
@@ -577,7 +562,7 @@ class StableDiffusion:
             id="loading-model", title="Finished Loading Model",
             status="info", position="bottom-right", duration=2000))
 
-    def get_image(self, init_image_str, mask_b64):
+    def get_image(self, init_image_str, mask_b64=''):
         if len(init_image_str) == 0:
             return None
 
@@ -635,23 +620,165 @@ class StableDiffusion:
             self.model.interrupted_state = True
             self.running = False
 
+    def diffusion_upscale(self,
+                          n=0,
+                          prompts_data=None,
+                          negative_prompts_data=None,
+                          image=None,
+                          highres_steps=50,
+                          highres_strength=0.15,
+                          highres_multiplier=1.5,
+                          mask_b64="",
+                          invert=False,
+                          padding=0,
+                          H=512,
+                          W=512,
+                          oldH=512,
+                          oldW=512,
+                          cfg_scale=7.5,
+                          seed=-1,
+                          sampler="ddim",
+                          batch_size=1,
+                          mode="default",
+                          precision_scope=None,
+                          clip_skip=1
+                          ):
+        i = 0
+        upscaler_model = "UltraSharp"
+        failed = False  # If it fails, then stop generating and only upscale
+        temp_save_path = os.path.join(self.models_dir, f"highres_temp_{i}.png")
+        print("Running experimental highres fix")
+
+        # Does highres fix at 1.5x intervals
+        while W * highres_multiplier < oldW and H * highres_multiplier < oldH:
+            print("Saving upscaled image")
+            image.save(temp_save_path)
+            W = int(W * highres_multiplier)
+            H = int(H * highres_multiplier)
+
+            print("Upscaling image")
+            image = self.Upscaler.upscale(self.models_dir, [temp_save_path], upscaler_model, highres_multiplier,
+                                          os.path.join(self.models_dir, "upscale_test"))['content'][
+                'output_images'][0]
+
+            image.resize((W, H))  # Ensures final dimensions are correct
+
+            # generate the next version using the upscaled image as the new input
+            highres_init_image = self.load_img(image.convert('RGB'), H, W).to(self.device)
+
+            if self.v1 or self.control_model:
+                self.modelFS.to(self.device)
+
+            print("Generating upscaled image")
+            try:
+                if not failed:
+                    image = self.generate_image(
+                        n=n,
+                        prompts_data=prompts_data,
+                        negative_prompts_data=negative_prompts_data,
+                        image=image,
+                        init_image=highres_init_image,
+                        init_image_str="upscaled",
+                        steps=highres_steps,
+                        H=H,
+                        W=W,
+                        oldH=H,
+                        oldW=W,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        ddim_steps=int(highres_steps / highres_strength),
+                        batch_size=batch_size,
+                        mode=mode,
+                        precision_scope=precision_scope,
+                        highres_fix_steps=1,
+                        clip_skip=clip_skip
+                    )
+
+            except Exception as e:
+                if "CUDA out of memory" in str(e):
+                    torch.cuda.empty_cache()  # free up GPU memory
+                    print("CUDA out of memory error occurred, skipping this image resolution")
+                print(f"Failed to generate image for resultion {H}x{W}: {e}")
+                failed = True
+            i += 1
+            temp_save_path = os.path.join(self.models_dir, f"highres_temp_{i}.png")
+
+        image.save(temp_save_path)
+        print("Doing final run")
+
+        # save the upscaled image as the starting version for the next iteration           
+        # upscale the starting version by x1.5
+        image = self.Upscaler.upscale(self.models_dir, [temp_save_path], upscaler_model,
+                                      max(1, min(oldW / W, oldH / H)),
+                                      os.path.join(self.models_dir, "upscale_test"))['content'][
+            'output_images'][0]
+        image = image.resize((oldW, oldH))  # Ensures final dimensions are correct
+        return image
+
+        # NOTE: Everything below would be used if we upscale all the way. Instead, we upscale only for the last step to save vram.
+
+        if failed:
+            print("Failed to gen previously, returning upscaled image as final")
+            return image
+
+            # generate the next version using the upscaled image as the new input
+        highres_init_image = self.load_img(image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0)).to(
+            self.device)
+        if self.v1 or self.control_model:
+            self.modelFS.to(self.device)
+
+        # generate the final version using the original image as the input
+        print("Doing final diffusion step")
+        try:
+            image = self.generate_image(
+                n=n,
+                prompts_data=prompts_data,
+                negative_prompts_data=negative_prompts_data,
+                image=image,
+                init_image=highres_init_image,
+                init_image_str="upscaled",
+                mask_b64=mask_b64,  # TO BE IMPLEMENTED
+                invert=invert,
+                padding=padding,
+                steps=highres_steps,  # 10 steps
+                H=H,
+                W=W,
+                oldH=H,
+                oldW=W,
+                cfg_scale=cfg_scale,
+                seed=seed,
+                sampler=sampler,
+                ddim_steps=int(highres_steps / highres_strength),
+                batch_size=batch_size,
+                mode=mode,
+                precision_scope=precision_scope,
+                highres_fix_steps=1,
+                clip_skip=clip_skip
+            )
+
+        except:
+            print(f"Failed to generate image for resultion {H}x{W}: {e}")
+
+        return image
+
     @torch.no_grad()
     def generate_image(
             self,
-            n = 0,
-            data=None,
+            n=0,
+            prompts_data=None,
             negative_prompts_data=None,
-            image = None,
+            image=None,
             init_image=None,
-            init_image_str = "",
-            mask_b64 = "",
-            invert = False,
-            padding = 0,
+            init_image_str="",
+            mask_b64="",
+            invert=False,
+            padding=0,
             steps=50,
             H=512,
             W=512,
-            oldH = 512,
-            oldW = 512,
+            oldH=512,
+            oldW=512,
             cfg_scale=7.5,
             txt_cfg_scale=1.5,
             seed=-1,
@@ -664,48 +791,31 @@ class StableDiffusion:
             mode="default",
             controlnet="none",
             control=None,
-            precision_scope = None,
-            highres_fix_steps = 1,
-            use_removed_background = False,
-            remove_background = "none",
-            ):
+            precision_scope=None,
+            highres_fix_steps=1,
+            use_removed_background=False,
+            remove_background="none",
+            clip_skip=1
+    ):
 
-
-        for prompts in data:
+        for prompts in prompts_data:
             with precision_scope(self.device.type):
-                if self.v1 and self.control_model is None:
+                if self.v1:
                     self.modelCS.to(self.device)
-                if self.control_model is not None:
-                    self.control_model.switch_devices(diffusion_loop=False)
+                if self.control_model:
+                    self.model.switch_devices(diffusion_loop=False)
 
                 uc = None
                 if cfg_scale != 1.0:
-                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data)
+                    uc = self.modelCS.get_learned_conditioning(negative_prompts_data, clip_skip=clip_skip)
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
-                weighted_prompt = weights_handling(prompts)
-                if type(weighted_prompt) == str:
-                    weighted_prompt = [prompts]
-                print(f"Weighted prompts: {weighted_prompt}")
-                if len(weighted_prompt) > 1:
-                    weights_greater_than_zero = sum([wp[1] - 1 for wp in weighted_prompt if wp[1] > 1]) + 1
-                    weighted_prompt_joined = ", ".join([wp[0] for wp in weighted_prompt])
-                    c = self.modelCS.get_learned_conditioning(weighted_prompt_joined).to(self.device)
-                    c /= weights_greater_than_zero
-                    for i in range(len(weighted_prompt)):
-                        weight = weighted_prompt[i][1]
-                        if weight > 1:
-                            c_weighted = self.modelCS.get_learned_conditioning(weighted_prompt[i][0]).to(
-                                self.device)
-                            c = torch.add(c, c_weighted, alpha=(weight - 1) / weights_greater_than_zero)
-                else:
-                    # For the empty prompt people
-                    if len(prompts.strip()) == 0:
-                        prompts = '-'
-                    c = self.modelCS.get_learned_conditioning(prompts).to(self.device)
+                c = self.modelCS.get_learned_conditioning(batch_size * [prompts], clip_skip=clip_skip)
+
                 shape = [batch_size, C, H // f, W // f]
-                if self.control_model is not None:
-                    self.control_model.switch_devices(diffusion_loop=True)
+                if self.control_model:
+                    self.model.switch_devices(diffusion_loop=True)
+                    self.modelCS.cpu()
 
                 x0 = None
                 for ij in range(1, highres_fix_steps + 1):
@@ -717,7 +827,8 @@ class StableDiffusion:
                         strength = 0.15
                         steps = 5
                         ddim_steps = int(steps / strength)
-                    if init_image is not None and self.control_model is None:
+
+                    if init_image is not None and not self.control_model:
                         init_image = init_image.to(self.device)
                         init_image = repeat(
                             init_image, '1 ... -> b ...', b=batch_size)
@@ -733,13 +844,13 @@ class StableDiffusion:
                             ddim_eta,
                             ddim_steps,
                         )
-                    
+
                     if use_removed_background and image is not None:
                         if remove_background == 'face':
                             mask_image = mask_from_face(image.convert('RGB'), W, H)
                         else:
                             mask_image = mask_background(image.convert('RGB'),
-                                                            remove_background=remove_background)
+                                                         remove_background=remove_background)
                     elif len(mask_b64) > 0:
                         if mask_b64[:4] == 'data':
                             print("Loading mask from b64")
@@ -772,12 +883,12 @@ class StableDiffusion:
                         mask = None
                         x_T = None
 
-                    if self.control_model is not None and controlnet is not None and controlnet.lower() != "none" and control is not None:
+                    if self.control_model and controlnet is not None and controlnet.lower() != "none" and control is not None:
                         # control = torch.load("control.torch")
                         c = {"c_concat": [control], "c_crossattn": [c]}
                         uc = {"c_concat": [control], "c_crossattn": [uc]}
-                        self.control_model.control_scales = [1.0] * 13
-                        ddim_sampler = DDIMSampler(self.control_model)
+                        self.model.control_scales = [1.0] * 13
+                        ddim_sampler = DDIMSampler(self.model)
                         x0 = ddim_sampler.sample(
                             steps,
                             batch_size,
@@ -788,8 +899,8 @@ class StableDiffusion:
                             unconditional_guidance_scale=cfg_scale,
                             callback=self.callback_fn,
                             unconditional_conditioning=uc)
-                        if self.control_model is not None:
-                            self.control_model.switch_devices(diffusion_loop=False)
+                        if self.control_model:
+                            self.model.switch_devices(diffusion_loop=False)
                     else:
                         x0 = x0 if (init_image is None or "ddim" in sampler.lower()) else init_latent
                         x0 = init_latent_1stage if mode == "pix2pix" else x0
@@ -822,24 +933,11 @@ class StableDiffusion:
                         try:
                             self.model.to(torch.float32)
                             self.modelFS.to(torch.float32)
-                            gen_kwargs = {
-                                "S": steps,
-                                "conditioning": c.to(torch.float32),
-                                "x0": x0,
-                                "S_ddim_steps": ddim_steps,
-                                "unconditional_guidance_scale": cfg_scale,
-                                "txt_scale": txt_cfg_scale,
-                                "unconditional_conditioning": uc,
-                                "eta": ddim_eta,
-                                "sampler": sampler,
-                                "shape": shape,
-                                "batch_size": batch_size,
-                                "seed": seed,
-                                "mask": mask,
-                                "x_T": x_T,
-                                "callback": self.callback_fn,
-                                "mode": mode}
-                            gen_kwargs["x0"] = x0.to(torch.float32)
+                            gen_kwargs = {"S": steps, "conditioning": c.to(torch.float32), "x0": x0.to(torch.float32),
+                                          "S_ddim_steps": ddim_steps, "unconditional_guidance_scale": cfg_scale,
+                                          "txt_scale": txt_cfg_scale, "unconditional_conditioning": uc, "eta": ddim_eta,
+                                          "sampler": sampler, "shape": shape, "batch_size": batch_size, "seed": seed,
+                                          "mask": mask, "x_T": x_T, "callback": self.callback_fn, "mode": mode}
 
                             x0 = self.model.sample(**gen_kwargs)
                             x_samples_ddim = self.modelFS.decode_first_stage(x0[0].unsqueeze(0))
@@ -852,8 +950,8 @@ class StableDiffusion:
                     x_sample = torch.clamp(
                         (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                     x_sample = 255. * \
-                                rearrange(
-                                    x_sample[0].cpu().numpy(), 'c h w -> h w c')
+                               rearrange(
+                                   x_sample[0].cpu().numpy(), 'c h w -> h w c')
                     out_image = Image.fromarray(
                         x_sample.astype(np.uint8))
 
@@ -877,213 +975,51 @@ class StableDiffusion:
                         else:
                             original_init_image = Image.open(init_image_str).convert('RGB')
                         out_image = support.repaste_and_color_correct(result=out_image,
-                                                                        init_image=original_init_image,
-                                                                        init_mask=mask_image, mask_blur_radius=8)
+                                                                      init_image=original_init_image,
+                                                                      init_mask=mask_image, mask_blur_radius=8)
                     if not self.running:
-                        break        
+                        break
             return out_image
 
-    def diffusion_upscale(self,
-            n = 0,
-            data=None,
-            negative_prompts_data=None,
-            image = None,
-            init_image=None,
-            init_image_str = "",
-            mask_b64 = "",
-            invert = False,
-            padding = 0,
+    def generate(
+            self,
+            text_prompts="",
+            negative_prompts="",
+            init_image_str="",
+            mask_b64="",
+            invert=False,
+            txt_cfg_scale=1.5,
             steps=50,
             H=512,
             W=512,
-            oldH = 512,
-            oldW = 512,
+            strength=0.75,
             cfg_scale=7.5,
             seed=-1,
-            sampler="ddim",
-            ddim_steps=0,
-            batch_size=1,
-            mode="default",
-            controlnet="none",
-            control=None,
-            use_preprocessed_controlnet = False,
-            precision_scope = None,
-            use_removed_background = False,
-            remove_background = "none",             
-        ):
-
-        temp_save_path = os.path.join(self.models_dir,"highres_temp.png")
-
-        print("Running experimental highres fix")
-        # Calculate the scaling factor for both dimensions
-        scale_factor = max(W / 768, H / 768)
-        
-        # Calculate the new dimensions while maintaining aspect ratio
-        highres_W = int(round(W / scale_factor / 64) * 64)
-        highres_H = int(round(H / scale_factor / 64) * 64)
-        print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
-        
-        # First pass
-        starting_version = self.generate_image(
-            n = n,
-            data=data,
-            negative_prompts_data=negative_prompts_data,
-            image = image,
-            init_image=init_image,
-            init_image_str = init_image_str,
-            mask_b64=mask_b64,
-            invert = invert,
-            padding = padding,
-            steps=steps,
-            H=highres_H,
-            W=highres_W,
-            oldH = oldH, #Unused if not other highres fix
-            oldW = oldW, #Unused if not other highres fix
-            cfg_scale=cfg_scale,
-            seed=seed,
-            sampler=sampler,
-            ddim_steps=ddim_steps,
-            batch_size=batch_size,
-            mode=mode,
-            controlnet=controlnet,
-            control = control,
-            precision_scope=precision_scope,
-            highres_fix_steps = 1,
-            use_removed_background = use_removed_background,
-            remove_background = remove_background
-        )
-        
-        # Does highres fix at 1.5x intervals
-        while highres_W*1.5 < oldW and highres_H*1.5 < oldH:   
-            print("Saving upscaled image")
-            starting_version.save(temp_save_path)
-            
-            print("Upscaling image")
-            upscaled_image = self.Upscaler.upscale(self.models_dir, [temp_save_path], "RealESRGAN-Anime", 1.5, os.path.join(self.models_dir, "upscale_test"))['content']['output_images'][0]
-
-            highres_W = int(highres_W*1.5)
-            highres_H = int(highres_H*1.5)
-
-            # generate the next version using the upscaled image as the new input
-            highres_init_image = self.load_img(upscaled_image.convert('RGB'), highres_H, highres_W, inpainting=(len(mask_b64) > 0),
-                    controlnet_mode=controlnet,
-                    use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-            
-            
-            
-            if self.v1 or self.control_model is not None:
-                self.modelFS.to(self.device)
-            
-            print("Generating upscaled image")
-            starting_version = self.generate_image(
-                n = n,
-                data=data,
-                negative_prompts_data=negative_prompts_data,
-                image = upscaled_image,
-                init_image= highres_init_image,
-                init_image_str = "upscaled",
-                mask_b64 = mask_b64, #TO BE IMPLEMENTED
-                invert = invert,
-                padding = padding,
-                steps= 10, #10 steps
-                H = highres_H,
-                W = highres_W,
-                oldH = highres_H,
-                oldW = highres_W,
-                cfg_scale=cfg_scale,
-                seed=seed,
-                sampler=sampler,
-                ddim_steps= int(10/0.15),
-                batch_size=batch_size,
-                mode=mode,
-                controlnet=controlnet,
-                control = control,
-                precision_scope=precision_scope,
-                highres_fix_steps = 1,
-                use_removed_background = use_removed_background,
-                remove_background = remove_background
-            )
-        print("Doing final run")
-        print("Saving upscaled image")
-        starting_version.save(temp_save_path)
-        # save the upscaled image as the starting version for the next iteration           
-        # upscale the starting version by x1.5
-        print("Upscaling image")
-        upscaled_image = self.Upscaler.upscale(self.models_dir, [temp_save_path], "RealESRGAN-Anime", max(1,min(oldW / highres_W, oldH / highres_H, 1.5)), os.path.join(self.models_dir, "upscale_test"))['content']['output_images'][0]
-
-        # generate the next version using the upscaled image as the new input
-        highres_init_image = self.load_img(upscaled_image.convert('RGB'), oldH, oldW, inpainting=(len(mask_b64) > 0),
-                controlnet_mode=controlnet,
-                use_preprocessed_controlnet=use_preprocessed_controlnet).to(self.device)
-        if self.v1 or self.control_model is not None:
-            self.modelFS.to(self.device)
-
-        # generate the final version using the original image as the input
-        out_image = self.generate_image(
-                n = n,
-                data=data,
-                negative_prompts_data=negative_prompts_data,
-                image = upscaled_image,
-                init_image= highres_init_image,
-                init_image_str = "upscaled",
-                mask_b64 = mask_b64, #TO BE IMPLEMENTED
-                invert = invert,
-                padding = padding,
-                steps= 10, #10 steps
-                H = highres_H,
-                W = highres_W,
-                oldH = highres_H,
-                oldW = highres_W,
-                cfg_scale=cfg_scale,
-                seed=seed,
-                sampler=sampler,
-                ddim_steps= int(10/0.15),
-                batch_size=batch_size,
-                mode=mode,
-                controlnet=controlnet,
-                control = control,
-                precision_scope=precision_scope,
-                highres_fix_steps = 1,
-                use_removed_background = use_removed_background,
-                remove_background = remove_background
-            )
-        return out_image
-    def generate(
-            self, 
-            text_prompts="", 
-            negative_prompts="",
-            init_image_str="", 
-            mask_b64="",
-            invert=False, 
-            txt_cfg_scale=1.5, 
-            steps=50, 
-            H=512, 
-            W=512, 
-            strength=0.75, 
-            cfg_scale=7.5, 
-            seed=-1, 
             clip_skip=1,
             sampler="ddim",
-            n_iter=4, 
-            batch_size=1, 
-            ckpt="", 
-            vae="", 
+            n_iter=4,
+            batch_size=1,
+            ckpt="",
+            vae="",
             loras=None,
             image_save_path="",
-            speed="High", 
-            skip_grid=False, 
-            palette_fix=False, 
-            batch_id=0, 
+            speed="High",
+            skip_grid=False,
+            palette_fix=False,
+            batch_id=0,
             highres_fix=False,
-            long_save_path=False, 
-            show_intermediates=False, 
+            long_save_path=False,
+            show_intermediates=False,
             controlnet=None,
             use_preprocessed_controlnet=False,
             remove_background='face', use_removed_background=False,
-            models_dir=''
+            models_dir='',
+            generation_mode='',
+            highres_steps=10,
+            highres_strength=0.15
     ):
         self.models_dir = models_dir
-        highres_fix_experimental = True 
+        highres_fix_experimental = True
 
         if loras is None:
             loras = []
@@ -1096,13 +1032,20 @@ class StableDiffusion:
 
             # Search for files with the specified string in their base filename in the controlnet_folder
             matching_files = glob(os.path.join(controlnet_folder, f"*{controlnet}*"))
+            if controlnet == 'lineart':
+                matching_files = [file for file in matching_files if 'lineart_anime' not in file]
+
             if matching_files:
+                print(f"Found matching controlnet, using {matching_files[0]}")
                 return matching_files[0]
             else:
                 print("Controlnet not found")
+                self.socketio.emit('status', toast_status(
+                    id="error-message", title="Controlnet Not Found",
+                    status="error", position="top", duration=2000))
                 return None
 
-        if controlnet.lower() != 'none':
+        if controlnet.lower() != 'none' and generation_mode != 'highresfix':
             controlnet_path = get_contronet_path(controlnet)
         else:
             controlnet_path = None
@@ -1158,7 +1101,7 @@ class StableDiffusion:
 
         ddim_steps = int(steps / strength)
 
-        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path, clip_skip)
+        self.load_ckpt(ckpt, speed, vae, loras, controlnet_path)
 
         if not self.model:
             print("Setting up model failed")
@@ -1208,14 +1151,14 @@ class StableDiffusion:
             init_image = None
             control = None
 
-        if self.control_model is None:
+        if not self.control_model:
             mode = "default" if not self.v1 or (
                     self.v1 and self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 4) else (
                 "runway" if self.model.model1.diffusion_model.input_blocks[0][0].weight.shape[1] == 9 else "pix2pix"
             )
         else:
             mode = "default"
-            self.control_model.secondary_device = get_device()
+            self.model.secondary_device = get_device()
 
         if mode == "pix2pix":
             sampler = "ddim"
@@ -1225,7 +1168,7 @@ class StableDiffusion:
             highres_fix_steps = 1
 
         print("Prompt:", text_prompts)
-        data = [batch_size * text_prompts]
+        prompts_data = [batch_size * text_prompts]
         print("Negative Prompt:", negative_prompts)
         negative_prompts_data = [batch_size * negative_prompts]
 
@@ -1240,7 +1183,7 @@ class StableDiffusion:
         base_count = len(os.listdir(sample_path))
 
         if init_image is not None:
-            if self.v1 or self.control_model is not None:
+            if self.v1:
                 self.modelFS.to(self.device)
 
         self.total_num = n_iter * highres_fix_steps
@@ -1248,7 +1191,7 @@ class StableDiffusion:
         precision_scope = autocast if self.can_use_half else nullcontext
         with torch.no_grad():
             for n in range(n_iter):
-                if not self.running and self.control_model is None:
+                if not self.running:
                     self.clean_up()
                     return
 
@@ -1258,22 +1201,55 @@ class StableDiffusion:
                     prompt_name = re.sub(
                         r'\W+', '', '_'.join(text_prompts.split()))[:100]
                     save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
-                if highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
-                   out_image = self.diffusion_upscale(
-                        n = n,
-                        data=data,
+
+                if generation_mode == 'highresfix':
+
+                    # Uses original image size as base, no need to downscale
+                    image = self.get_image(init_image_str)
+                    print(f"Highres from {image.size[0]}x{image.size[1]} to {oldW}x{oldH}")
+                    out_image = self.diffusion_upscale(
+                        n=n,
+                        prompts_data=[""],  # prompts_data,
                         negative_prompts_data=negative_prompts_data,
-                        image = image,
+                        image=image,
+                        highres_steps=highres_steps,
+                        highres_strength=highres_strength,
+                        H=image.size[1],
+                        W=image.size[0],
+                        oldH=oldH,
+                        oldW=oldW,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        batch_size=batch_size,
+                        mode=mode,
+                        precision_scope=precision_scope,
+                        clip_skip=clip_skip
+                    )
+                elif highres_fix and oldW * oldH >= 1024 * 1024 and highres_fix_experimental:
+                    # First pass
+                    scale_factor = max(W / 768, H / 768)
+
+                    # Calculate the new dimensions while maintaining aspect ratio
+                    highres_W = int(round(W / scale_factor / 64) * 64)
+                    highres_H = int(round(H / scale_factor / 64) * 64)
+                    print(f"Starting dimensions, W: {highres_W}, H: {highres_H}")
+
+                    starting_version = self.generate_image(
+                        n=n,
+                        prompts_data=prompts_data,
+                        negative_prompts_data=negative_prompts_data,
+                        image=image,
                         init_image=init_image,
-                        init_image_str = init_image_str,
+                        init_image_str=init_image_str,
                         mask_b64=mask_b64,
-                        invert = invert,
-                        padding = padding,
+                        invert=invert,
+                        padding=padding,
                         steps=steps,
-                        H=H,
-                        W=W,
-                        oldH = oldH,
-                        oldW = oldW,
+                        H=highres_H,
+                        W=highres_W,
+                        oldH=oldH,  # Unused if not other highres fix
+                        oldW=oldW,  # Unused if not other highres fix
                         cfg_scale=cfg_scale,
                         seed=seed,
                         sampler=sampler,
@@ -1281,29 +1257,50 @@ class StableDiffusion:
                         batch_size=batch_size,
                         mode=mode,
                         controlnet=controlnet,
-                        control = control,
-                        use_preprocessed_controlnet=use_preprocessed_controlnet,
+                        control=control,
                         precision_scope=precision_scope,
-                        use_removed_background = use_removed_background,
-                        remove_background = remove_background     
-                   )
+                        highres_fix_steps=1,
+                        use_removed_background=use_removed_background,
+                        remove_background=remove_background,
+                        clip_skip=clip_skip
+                    )
+
+                    out_image = self.diffusion_upscale(
+                        n=n,
+                        prompts_data=[""],  # prompts_data,
+                        negative_prompts_data=negative_prompts_data,
+                        image=starting_version,
+                        highres_steps=highres_steps,
+                        highres_strength=highres_strength,
+                        H=H,
+                        W=W,
+                        oldH=oldH,
+                        oldW=oldW,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        batch_size=batch_size,
+                        mode=mode,
+                        precision_scope=precision_scope,
+                        clip_skip=clip_skip
+                    )
 
                 else:
                     out_image = self.generate_image(
-                        n = n,
-                        data=data,
+                        n=n,
+                        prompts_data=prompts_data,
                         negative_prompts_data=negative_prompts_data,
-                        image = image,
+                        image=image,
                         init_image=init_image,
-                        init_image_str = init_image_str,
+                        init_image_str=init_image_str,
                         mask_b64=mask_b64,
-                        invert = invert,
-                        padding = padding,
+                        invert=invert,
+                        padding=padding,
                         steps=steps,
                         H=H,
                         W=W,
-                        oldH = oldH,
-                        oldW = oldW,
+                        oldH=oldH,
+                        oldW=oldW,
                         cfg_scale=cfg_scale,
                         seed=seed,
                         sampler=sampler,
@@ -1311,11 +1308,12 @@ class StableDiffusion:
                         batch_size=batch_size,
                         mode=mode,
                         controlnet=controlnet,
-                        control = control,
+                        control=control,
                         precision_scope=precision_scope,
-                        highres_fix_steps = highres_fix_steps,
-                        use_removed_background = use_removed_background,
-                        remove_background = remove_background
+                        highres_fix_steps=highres_fix_steps,
+                        use_removed_background=use_removed_background,
+                        remove_background=remove_background,
+                        clip_skip=clip_skip
                     )
 
                 exif_data = out_image.getexif()
@@ -1343,8 +1341,8 @@ class StableDiffusion:
                         os.path.join(sample_path, save_name), "PNG", exif=exif_data)
 
                     self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                        'path': os.path.join(sample_path, save_name),
-                                                        'batch_id': batch_id})
+                                                      'path': os.path.join(sample_path, save_name),
+                                                      'batch_id': batch_id})
 
                 base_count += 1
                 seed += 1

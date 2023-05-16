@@ -5,9 +5,8 @@ try:
     import logging
     import os
     import re
-    import math
     import sys
-    from functools import partial
+    import torch.cuda
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
@@ -16,12 +15,9 @@ try:
     from artroom_helpers.toast_status import toast_status
     from model_merger import ModelMerger
 
-    from flask import Flask, request, jsonify, make_response
+    from flask import Flask, request, jsonify
     from flask_socketio import SocketIO
-    from werkzeug.utils import secure_filename
-    from PIL import Image, ImageDraw, ImageOps
-    from scipy.spatial import ConvexHull
-    from uuid import uuid4
+    from PIL import Image, ImageOps
     from glob import glob
 
     kernel32 = ctypes.windll.kernel32
@@ -47,6 +43,7 @@ try:
     UP = Upscaler()
     SD = StableDiffusion(socketio=socketio, Upscaler=UP)
 
+
     class InterceptedStdout:
         def __init__(self, original_stdout, callback):
             self.original_stdout = original_stdout
@@ -59,10 +56,13 @@ try:
         def flush(self):
             self.original_stdout.flush()
 
+
     def your_callback_function(text: str):
         socketio.emit('messagesss', text)
         if 'OutOfMemoryError' in text:
-            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller image or change speed in settings", status="error"))
+            socketio.emit('status', toast_status(
+                title="Cuda Out of Memory Error - try generating smaller image or change speed in settings",
+                status="error"))
         elif 'Decoding image:' in text:
             current_num, total_num, current_step, total_steps = SD.get_steps()
             match = re.search(r'\[(.*?)\]', text)
@@ -85,6 +85,7 @@ try:
                 'iterations_per_sec': iterations_per_sec
             })
         return text
+
 
     original_stdout = sys.stdout
     original_stderr = sys.stderr
@@ -131,9 +132,10 @@ try:
                 image_folder = os.path.join(data['image_save_path'], re.sub(
                     r'\W+', '', '_'.join(data['text_prompts'].split())))[:150]
                 os.makedirs(image_folder, exist_ok=True)
-                os.makedirs(os.path.join(image_folder,'/settings'), exist_ok=True)
+                os.makedirs(os.path.join(image_folder, 'settings'), exist_ok=True)
                 sd_settings_count = len(glob(image_folder + '/settings/*.json'))
-                with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json', 'w') as outfile:
+                with open(f'{image_folder}/settings/sd_settings_{data["seed"]}_{sd_settings_count}.json',
+                          'w') as outfile:
                     json.dump(data, outfile, indent=4)
             else:
                 image_folder = os.path.join(data['image_save_path'], 'settings').replace(os.sep, '/')
@@ -142,16 +144,16 @@ try:
                 prompt_name = re.sub(
                     r'\W+', '', "_".join(data["text_prompts"].split()))[:100]
                 with open(f'{image_folder}/sd_settings_{prompt_name}_{data["seed"]}_{sd_settings_count}.json',
-                        'w') as outfile:
+                          'w') as outfile:
                     json.dump(data, outfile, indent=4)
             print("Settings saved")
         except Exception as e:
             print(f"Settings failed to save! {e}")
 
+
     @socketio.on('preview_controlnet')
     def preview_controlnet(data):
-        from artroom_helpers.process_controlnet_images import apply_pose, apply_depth, apply_canny, apply_normal, \
-            apply_scribble, HWC3, apply_hed, init_cnet_stuff, deinit_cnet_stuff
+        from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff
         try:
             print(f'Previewing controlnet {data["controlnet"]}')
             image = support.b64_to_image(data['initImage'])
@@ -160,20 +162,8 @@ try:
             w, h = map(lambda x: x - x % 64, (w, h))
             image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
-            init_cnet_stuff(data["controlnet"])
-            match data["controlnet"]:
-                case "canny":
-                    image = apply_canny(image)
-                case "pose":
-                    image = apply_pose(image)
-                case "depth":
-                    image = apply_depth(image)
-                case "normal":
-                    image = apply_normal(image)
-                case "scribble":
-                    image = apply_scribble(image)
-                case "hed":
-                    image = apply_hed(image)
+            init_cnet_stuff(data["controlnet"], data['models_dir'])
+            image = apply_controlnet(image, data["controlnet"])
             output = support.image_to_b64(Image.fromarray(image))
             socketio.emit('get_controlnet_preview', {'controlnetPreview': output})
             print(f"Preview finished")
@@ -188,7 +178,6 @@ try:
         print('Removing background...')
         try:
             if data['remove_background'] == 'face':
-                import face_alignment
                 image = support.b64_to_image(data["initImage"]).convert("RGB")
                 mask = mask_from_face(image, image.width, image.height)
 
@@ -208,6 +197,7 @@ try:
 
     @socketio.on('generate')
     def generate(data):
+        print(SD.running)
         if not SD.running:
             try:
                 SD.running = True
@@ -251,7 +241,7 @@ try:
                     seed=int(data['seed']),
                     sampler=data['sampler'],
                     cfg_scale=float(data['cfg_scale']),
-                    clip_skip=max(int(data['clip_skip']),1),
+                    clip_skip=max(int(data['clip_skip']), 1),
                     palette_fix=data['palette_fix'],
                     ckpt=ckpt_path,
                     vae=vae_path,
@@ -267,15 +257,22 @@ try:
                     remove_background=data['remove_background'],
                     use_removed_background=data['use_removed_background'],
                     models_dir=data['models_dir'],
+                    generation_mode=data.get('generation_mode'),
+                    highres_steps=data.get('highres_steps'),
+                    highres_strength=data.get('highres_strength')
                 )
             except Exception as e:
                 print(f"Generation failed! {e}")
+                SD.running = False
+                torch.cuda.empty_cache()
             socketio.emit('job_done')
+
 
     @socketio.on('stop_queue')
     def stop_queue():
         SD.interrupt()
         socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
+
 
     @app.route('/xyplot', methods=['POST'])
     def xyplot():
@@ -300,6 +297,13 @@ try:
         invalid_pattern = re.compile(r'[<>:"/\\|?*\x00-\x1f\s]')
         xy_path = invalid_pattern.sub('', xy_path)
         image_save_path = os.path.join(xyplot_data["xyplots"][0]['image_save_path'], xy_path)
+
+        # Check if the folder exists and create it if it doesn't
+        base_count = 0
+        while os.path.exists(f"{image_save_path}_{base_count:03}"):
+            base_count += 1
+        image_save_path = f"{image_save_path}_{base_count:03}"
+        os.makedirs(image_save_path, exist_ok=True)
 
         for data in xyplot_data["xyplots"]:
             if not SD.running:
@@ -342,7 +346,7 @@ try:
                         seed=int(data['seed']),
                         sampler=data['sampler'],
                         cfg_scale=float(data['cfg_scale']),
-                        clip_skip=max(int(data['clip_skip']),1),
+                        clip_skip=max(int(data['clip_skip']), 1),
                         palette_fix=data['palette_fix'],
                         ckpt=ckpt_path,
                         vae=vae_path,
@@ -365,7 +369,7 @@ try:
                     print(f"Generation failed! {e}")
                     SD.clean_up()
                     socketio.emit('job_done')
-      
+
         # Load the images into a list
         image_files = sorted(os.listdir(image_save_path))
         images = [plt.imread(os.path.join(image_save_path, f)) for f in image_files]
@@ -388,14 +392,15 @@ try:
             ax.set_yticks([])
             row = i // n_cols
             col = i % n_cols
-            ax.set_xlabel(f"{x_key}: {x_values[col]}", fontsize=10)
-            ax.set_ylabel(f"{y_key}: {y_values[row]}", fontsize=10, rotation=90, labelpad=10)
+            ax.set_xlabel(f"{x_key}: {x_values[col]}", fontsize=15)
+            ax.set_ylabel(f"{y_key}: {y_values[row]}", fontsize=15, rotation=90, labelpad=10)
 
         # Save the figure
         fig.tight_layout()
-        plt.savefig(os.path.join(image_save_path, "xyplot.png"))
+        plt.savefig(os.path.join(image_save_path, f"{xy_path}.png"))
 
         return "Finished"
+
 
     @app.route('/shutdown', methods=['GET'])
     def shutdown():
@@ -429,6 +434,7 @@ try:
         socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
 except Exception as e:
     import time
+
     print("Runtime failed")
     print(e)
     time.sleep(120)

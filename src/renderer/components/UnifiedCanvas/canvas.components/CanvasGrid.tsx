@@ -115,7 +115,7 @@ export const CanvasGrid: FC = () => {
 		));
 
 		setGridLines(xLines.concat(yLines));
-	}, [stageScale, stageCoordinates, stageDimensions, colorMode, unscale]);
+	}, [stageCoordinates, stageDimensions, colorMode, unscale]);
 
 	return <Group>{gridLines}</Group>;
 };

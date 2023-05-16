@@ -19,7 +19,7 @@ import Masonry from 'react-masonry-css'
 import { breakpoints } from '../constants/breakpoints';
 import ImageModal from './Modals/ImageModal';
 import path from 'path';
-import { batchNameState, imageSavePathState } from '../SettingsManager';
+import { batchNameState, checkSettings, imageSavePathState } from '../SettingsManager';
 import { GoFileDirectory } from 'react-icons/go';
 import { BiArrowToLeft, BiArrowToRight, BiChevronLeft, BiChevronRight } from 'react-icons/bi';
 
@@ -173,21 +173,26 @@ function ImageViewer () {
 
     const setImage = (image_path: string) => () => {
         window.api.getImageFromPath(image_path).then(result => {
+            const metadata = checkSettings(result.metadata);
             setImageModalB64(result.b64);
-            setImageModalMetadata(JSON.parse(result.metadata ?? "{}"));
+            setImageModalMetadata(metadata[0]);
             imageSetPath(image_path);
             setShowImageModal(true);
         })
     }
 
     useEffect(() => {
-        window.api.imageViewerChange((_, result) => {
+        const handlerDiscard = window.api.imageViewerChange((_, result) => {
             if(result.error) {
                 setImageViewPath(result.error.path);
                 return;
             }
             setImagePreviews(result.results);
-        })
+        });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     useEffect(() => {

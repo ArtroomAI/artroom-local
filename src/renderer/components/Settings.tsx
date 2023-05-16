@@ -104,10 +104,14 @@ function Settings () {
     }, [toast, debugModeTemp, highresFixTemp, imageSavePathTemp, longSavePathTemp, modelsDirTemp, saveGridTemp, speedTemp]);
 
     useEffect(() => {
-        window.api.fixButtonProgress((_, str) => {
+        const handlerDiscard = window.api.fixButtonProgress((_, str) => {
             setDownloadMessage(str);
             console.log(str);
         });
+
+        return () => {
+            handlerDiscard();
+        }
     }, []);
 
     const chooseUploadPath = () => {
@@ -343,9 +347,8 @@ function Settings () {
                         Save Settings
                     </Button>
                     <Spacer/>
-                    <DebugInstallerModal/>
+                    {/* <DebugInstallerModal/> */}
                     <Button
-                        marginLeft={1}
                         backgroundColor="red.600"
                         colorScheme="red"
                         alignContent="center"

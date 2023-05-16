@@ -25,6 +25,7 @@
     "react-hooks"
   ],
   "rules": {
+    "@typescript-eslint/return-await": "warn"
     // "react/jsx-newline": "off",
 
     // "react/jsx-filename-extension": "off",

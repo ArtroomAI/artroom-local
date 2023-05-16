@@ -1,18 +1,20 @@
 {
   "name": "artroom-beta",
-  "version": "1.2.2-beta.7",
+  "version": "1.2.3-beta.1",
   "private": false,
   "icon": "./icon.ico",
   "main": "public/main.js",
   "homepage": "./",
   "scripts": {
     "start": "cross-env NODE_ENV=development node scripts/serve.js",
-    "build": "yarn delete && cross-env NODE_ENV=production node scripts/build.js",
+    "build": "yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
     "delete": "del-cli --force dist",
-    "electron:serve": "yarn start",
+    "electron:serve": "yarn generate && yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
     "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
-    "electron:start": "electron ./build/main.js"
+    "electron:start": "electron ./build/main.js",
+    "lint": "eslint . --resolve-plugins-relative-to . --ext .ts,.tsx",
+    "generate": "typia generate --input src/interfaces/templates --output src/interfaces/generated --project tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -27,7 +29,7 @@
         {
           "provider": "github",
           "owner": "ArtroomAI",
-          "repo": "artroom-beta"
+          "repo": "artroomai"
         }
       ],
       "target": "nsis",
@@ -54,7 +56,6 @@
     },
     "extraFiles": [
       "icon.ico",
-      "miniconda.exe",
       "artroom_helpers/**/*",
       "gfpgan/**/*",
       "sd_modules/**/*",
@@ -138,6 +139,7 @@
     "sass-loader": "13.2.0",
     "style-loader": "3.3.1",
     "typescript": "5.0.4",
+    "typia": "3.8.2",
     "webpack": "5.70.0",
     "webpack-cli": "4.9.2",
     "webpack-dev-server": "4.7.4"

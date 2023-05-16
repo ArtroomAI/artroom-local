@@ -1,41 +1,43 @@
-import React, { useState, useEffect, useReducer, useContext, useCallback } from 'react';
+import React, { useEffect, useContext, useCallback, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as atom from '../atoms/atoms';
 import {
     Box,
-    Button,
-    VStack,
     SimpleGrid,
-    Image,
-    Text,
     useToast,
+    Image as ChakraImage,
+    VStack,
+    Button,
     HStack,
-    IconButton
+    IconButton,
+    Text,
+    UseToastOptions
 } from '@chakra-ui/react';
 import ImageObj from './Reusable/ImageObj';
-import Prompt from './Prompt';
-import Shards from '../images/shards.png';
 import ProtectedReqManager from '../helpers/ProtectedReqManager';
 import { SocketContext } from '../socket';
-import { queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
-import { addToQueueState } from '../atoms/atoms';
-import { FaStop } from 'react-icons/fa';
+import { highresfixOnlyState, queueSettingsSelector, randomSeedState, seedState } from '../SettingsManager';
+import { addToQueueState, cloudModeState } from '../atoms/atoms';
 import { ImageState } from '../atoms/atoms.types';
 import { parseSettings } from './Utils/utils';
 import { GenerationProgressBars } from './Reusable/GenerationProgressBars';
+import { latestImagesDispatcher, useKeyPress } from './latestImagesDispatcher';
+import { FaStop } from 'react-icons/fa';
+import Prompt from './Prompt';
+import { computeShardCost } from './Utils/shardCost';
+import Shards from '../images/shards.png';
 
-const QueueButtons = () => {
+const Body = () => {
     const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
+    const toast = useToast({});
 
-    const toast = useToast({
-        containerStyle: {
-            pointerEvents: 'none'
-        }
-    });
+    const [focused, setFocused] = useState(false);
 
+    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
+    const latestImages = useRecoilValue(atom.latestImageState);
+    
     const socket = useContext(SocketContext);
 
-    const cloudMode = useRecoilValue(atom.cloudModeState);
     const useRandomSeed = useRecoilValue(randomSeedState);
     const [queue, setQueue] = useRecoilState(atom.queueState);
     const setAddToQueue = useSetRecoilState(addToQueueState);
@@ -43,36 +45,44 @@ const QueueButtons = () => {
     const setCloudRunning = useSetRecoilState(atom.cloudRunningState);
     const setShard = useSetRecoilState(atom.shardState);
     const setSeed = useSetRecoilState(seedState);
-
-    const useKeyPress = (targetKey: string, useAltKey = false) => {
-        const [keyPressed, setKeyPressed] = useState(false);
-
-        useEffect(() => {
-            const handler = (isKeyDown: boolean) => ({ key, altKey } : { key: string, altKey: boolean }) => {
-                if (key === targetKey && altKey === useAltKey) {
-                    console.log(`key: ${key}, altKey: ${altKey}, keydown: ${isKeyDown}`);
-                    setKeyPressed(isKeyDown);
-                }
-            };
-
-            const keydownHandler = handler(true);
-            const keyupHandler = handler(false);
-
-            window.addEventListener('keydown', keydownHandler);
-            window.addEventListener('keyup', keyupHandler);
-
-            return () => {
-                window.removeEventListener('keydown', keydownHandler);
-                window.removeEventListener('keyup', keyupHandler);
-            };
-        }, [targetKey, useAltKey]);
-
-        return keyPressed;
-    };
+    const cloudMode = useRecoilValue(cloudModeState);
+    const highresfixOnly = useRecoilValue(highresfixOnlyState);
 
     const altRPressed = useKeyPress('r', true);
 
     const addToQueue = useCallback(() => {
+        const settings = parseSettings(
+            {
+                ...imageSettings,
+                id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`,
+                palette_fix: false,
+                generation_mode: highresfixOnly ? 'highresfix' : 'default'
+            },
+            useRandomSeed
+        );
+
+        if (highresfixOnly) {
+            const err: UseToastOptions = {
+                title: 'Error while adding to a queue!',
+                status: 'error',
+                position: 'top',
+                duration: 3000,
+                isClosable: true
+            }
+            let error = false;
+            if (!settings.init_image) {
+                err.description = 'Initial image is required for upscale only!';
+                error = true;
+            } else if (settings.width * settings.height < 1024 * 1024) {
+                err.description = 'The size of output image must be greater than 1024x1024 (in pixels)';
+                error = true;
+            }
+            if(error) {
+                toast(err);
+                return;
+            }
+        }
+
         toast({
             title: 'Added to Queue!',
             description: `Currently ${queue.length + 1} elements in queue`,
@@ -82,15 +92,10 @@ const QueueButtons = () => {
             isClosable: false
         });
         setAddToQueue(true);
-        const settings = parseSettings(
-            {...imageSettings, id: `${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`},
-            useRandomSeed
-        );
 
         if(useRandomSeed) setSeed(settings.seed);
-
         setQueue((queue) => [...queue, settings]);
-    }, [imageSettings, queue, toast]);
+    }, [imageSettings, queue, toast, highresfixOnly]);
 
     const submitCloud = useCallback(() => {
         ProtectedReqManager.make_post_request(`${ARTROOM_URL}/gpu/submit_job_to_queue`, imageSettings).then((response: any) => {
@@ -119,13 +124,6 @@ const QueueButtons = () => {
     const stopQueue = useCallback(() => {
         socket.emit('stop_queue');
     }, [socket]);
-
-    const computeShardCost = useCallback(() => {
-        //estimated_price = (width * height) / (512 * 512) * (steps / 50) * num_images * 10
-        let estimated_price = Math.round((imageSettings.width * imageSettings.height) / (512 * 512) * (imageSettings.steps / 50) * imageSettings.n_iter * 10);
-        return estimated_price;
-    }, [imageSettings]);
-
     
     useEffect(() => {
         if (altRPressed) {
@@ -133,120 +131,7 @@ const QueueButtons = () => {
         }
     }, [addToQueue, altRPressed]);
 
-    if(cloudMode) {
-        return (
-            <Button
-                className="run-button"
-                ml={2}
-                onClick={submitCloud}
-                variant="outline"
-                width="200px">
-                <Text pr={2}>Run</Text>
-
-                <Image src={Shards} width="12px" />
-
-                <Text pl={1}>{computeShardCost()}</Text>
-            </Button>
-        )
-    }
-    return (
-        <HStack>
-            <Button
-                className="run-button"
-                ml={2}
-                onClick={addToQueue}
-                width="200px"> 
-                Run
-            </Button>
-        <IconButton
-            aria-label="Stop Queue"
-            colorScheme="red"
-            icon={<FaStop />}
-            onClick={stopQueue} />
-        </HStack>
-    );
-}
-
-const Body = () => {
-    const ARTROOM_URL = process.env.REACT_APP_ARTROOM_URL;
-    const toast = useToast({});
-
-    const [mainImage, setMainImage] = useRecoilState(atom.mainImageState);
-    const latestImages = useRecoilValue(atom.latestImageState);
-
-    const [focused, setFocused] = useState(false);
-    
-    const socket = useContext(SocketContext);
-
-    const reducer = (state: { selectedIndex: number; }, action: { type: string; payload?: number; }) => {
-        switch (action.type) {
-        case 'arrowLeft':
-            console.log('Arrow Left');
-            return {
-                selectedIndex:
-              state.selectedIndex !== 0
-                  ? state.selectedIndex - 1
-                  : latestImages.length - 1
-            };
-        case 'arrowRight':
-            console.log('Arrow Right');
-            return {
-                selectedIndex:
-              state.selectedIndex !== latestImages.length - 1
-                  ? state.selectedIndex + 1
-                  : 0
-            };
-        case 'select':
-            console.log('Select');
-            return { selectedIndex: action.payload };
-        case 'intermediate':
-            console.log('intermediate');
-            return { selectedIndex: -1 };
-        default:
-            throw new Error();
-        }
-    };
-    
-    const [state, dispatch] = useReducer(reducer, { selectedIndex: 0 });
-
-    const handleIntermediateImages = useCallback((data: ImageState) => {
-        dispatch({ type: 'intermediate' });
-        setMainImage(data);
-    }, [setMainImage])
-
-    useEffect(() => {
-        socket.on('intermediate_image', handleIntermediateImages); 
-
-        return () => {
-          socket.off('intermediate_image', handleIntermediateImages);
-        };
-    }, [socket, handleIntermediateImages]);
-
-    const useKeyPress = (targetKey: string, useAltKey = false) => {
-        const [keyPressed, setKeyPressed] = useState(false);
-
-        useEffect(() => {
-            const handler = (isKeyDown: boolean) => ({ key, altKey } : { key: string, altKey: boolean }) => {
-                if (key === targetKey && altKey === useAltKey) {
-                    console.log(`key: ${key}, altKey: ${altKey}, keydown: ${isKeyDown}`);
-                    setKeyPressed(isKeyDown);
-                }
-            };
-
-            const keydownHandler = handler(true);
-            const keyupHandler = handler(false);
-
-            window.addEventListener('keydown', keydownHandler);
-            window.addEventListener('keyup', keyupHandler);
-
-            return () => {
-                window.removeEventListener('keydown', keydownHandler);
-                window.removeEventListener('keyup', keyupHandler);
-            };
-        }, [targetKey, useAltKey]);
-
-        return keyPressed;
-    };
+    const [state, dispatch] = latestImagesDispatcher();
 
     const arrowRightPressed = useKeyPress('ArrowRight');
     const arrowLeftPressed = useKeyPress('ArrowLeft');
@@ -263,6 +148,18 @@ const Body = () => {
         }
     }, [arrowLeftPressed, focused]);
 
+    const handleIntermediateImages = useCallback((data: ImageState) => {
+        dispatch({ type: 'intermediate' });
+        setMainImage(data);
+    }, [setMainImage])
+
+    useEffect(() => {
+        socket.on('intermediate_image', handleIntermediateImages); 
+
+        return () => {
+          socket.off('intermediate_image', handleIntermediateImages);
+        };
+    }, [socket, handleIntermediateImages]);
 
     useEffect(() => {
         if(state.selectedIndex !== -1) {
@@ -289,12 +186,9 @@ const Body = () => {
         });
     };
 
-
     return (
-        <Box
-            width="100%" 
-            alignContent="center">
-            <VStack spacing={3}>
+        <Box width="100%">
+            <VStack align="center" spacing={4}>
                 <Box
                     className="image-box"
                     width="80%"
@@ -309,7 +203,6 @@ const Body = () => {
                         active />
                     <GenerationProgressBars />
                 </Box>
-
                 <Box
                     maxHeight="120px"
                     overflowY="auto"
@@ -317,17 +210,51 @@ const Body = () => {
                     <SimpleGrid
                         minChildWidth="100px"
                         spacing="10px">
-                        {latestImages.map((imageData, index) => (<Image
+                        {latestImages.map((imageData, index) => (<ChakraImage
                             h="5vh"
                             key={index}
-                            onClick={() => dispatch({ type: 'select', payload: index })}
-                            src={imageData?.b64}
+                            src={imageData.b64}
+                            onClick={() => {
+                                dispatch({ type: 'select', payload: index })
+                            }}
                         />))}
                     </SimpleGrid>
                 </Box>
+                {cloudMode
+                    ? <Button
+                        className="run-button"
+                        ml={2}
+                        onClick={submitCloud}
+                        variant="outline"
+                        width="200px">
+                        <Text pr={2}>
+                            Run
+                        </Text>
 
-                <QueueButtons />
+                        <ChakraImage
+                            src={Shards}
+                            width="12px" />
 
+                        <Text pl={1}>
+                            {computeShardCost(imageSettings)}
+                        </Text>
+                    </Button>
+                    : 
+                    <HStack>
+                        <Button
+                            className="run-button"
+                            ml={2}
+                            onClick={addToQueue}
+                            width="200px"> 
+                            Run
+                        </Button>
+                        <IconButton
+                            aria-label="Stop Queue"
+                            colorScheme="red"
+                            icon={<FaStop />}
+                            onClick={stopQueue} />
+                        </HStack>
+                    }
                 <Box width="80%">
                     <Prompt setFocused={setFocused} />
                 </Box>
