@@ -27,13 +27,6 @@ yarn-debug.log*
 yarn-error.log*
 
 electron-builder.yml
-
-sd_modules/src/clip
-sd_modules/src/gfpgan
-sd_modules/src/k-diffusion
-sd_modules/src/realesrgan
-sd_modules/src/taming-transformers
-InpaintingTest.ipynb
 .eslintcache
 __pycache__
 artroom_helpers/__pycache__
