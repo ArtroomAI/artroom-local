@@ -2,7 +2,12 @@ g++ py_cuda_install_debug.cpp -o py_cuda_install.exe -static
 g++ py_cuda_install_debug_amd.cpp -o py_cuda_install_amd.exe -static
 
 #cd into rclone Desktop dir and make sure config is setup
-rclone copy C:\Users\artad\artroom\miniconda3_amd.zip artroom:artroom-ai-prod-public
+rclone copy C:\Users\artad\artroom\artroom_backend.zip artroom:artroom-ai-prod-public
+rclone copy C:\Users\artad\artroom\artroom_backend_amd.zip artroom:artroom-ai-prod-public
 
 # obfuscate
 pyarmor obfuscate lora_ext.py
+
+C:/Users/artad/artroom/artroom_backend/python.exe -m pip install torch-directml
+
+C:/Users/artad/artroom/artroom_backend/python.exe -m pip uninstall torch torchaudio torchvision xformers

@@ -147,13 +147,16 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
     console.log("REINSTALL BACKEND")
     console.log(`VANILLA PATH: ${artroomPath}`)
     const URL = gpuType === 'AMD' ? 
-      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3_amd.zip' 
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/artroom_backend_amd.zip' 
       : 
-      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/miniconda3.zip';
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/artroom_backend.zip';
 
-    const PATH = path.join(artroomPath, "\\artroom\\miniconda3");
+    const PATH = path.join(artroomPath, "\\artroom\\artroom_backend");
     console.log(`ARTROOM PATH: ${PATH}`)
-    const PATH_requirements = path.resolve('sd_modules/requirements.txt');
+    const PATH_requirements = gpuType === 'AMD' ? 
+      path.resolve('requirements_amd.txt') 
+      : 
+      path.resolve('requirements_nvidia.txt');
     console.log(`ARTROOM REQUIREMENTS PATH: ${PATH_requirements}`);
 
     const PATH_zip = path.join(artroomPath, "\\artroom\\file.zip")
@@ -226,9 +229,9 @@ const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.
 
 const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {
   fs.mkdirSync(dir, { recursive: true });
-  fs.mkdirSync(path.join(dir, 'Vaes'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Vae'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'ControlNet'), { recursive: true });
-  fs.mkdirSync(path.join(dir, 'Loras'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Lora'), { recursive: true });
 
   const bucketPath = "https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/models/models/"
   const realisticModel = "UmiAIMythologyAndBabes_aphroditeRealisticV1.safetensors"

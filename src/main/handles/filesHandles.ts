@@ -49,9 +49,9 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
   const modelsWatcher = new FileWatcher();
 
   const getModels = async (folder: string) => ({
-    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Loras', 'ControlNet', 'Vaes', 'upscalers']),
-    loras: await getFiles(path.join(folder, 'Loras'), MODELS_EXTENSIONS),
-    vaes: await getFiles(path.join(folder, 'Vaes'), MODELS_EXTENSIONS)
+    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Lora', 'ControlNet', 'Vae', 'upscalers']),
+    loras: await getFiles(path.join(folder, 'Lora'), MODELS_EXTENSIONS),
+    vaes: await getFiles(path.join(folder, 'Vae'), MODELS_EXTENSIONS)
   })
 
   const modelsWatcherCallback = (folder: string) => async () => {

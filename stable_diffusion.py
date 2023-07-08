@@ -7,8 +7,8 @@ from glob import glob
 from transformers import logging as tflogging
 from upscale import Upscaler
 
-sys.path.append("ComfyUI/")
-from ComfyUI.nodes import *
+sys.path.append("backend/")
+from backend.nodes import *
 
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
@@ -26,6 +26,7 @@ class NodeModules:
         self.LoadImageMask = LoadImageMask()
         self.KSampler = KSampler()
         self.KSamplerAdvanced = KSamplerAdvanced()
+        self.SetLatentNoiseMask = SetLatentNoiseMask()
         self.VAEDecode = VAEDecode()
         self.VAEDecodeTiled = VAEDecodeTiled()
         self.LoraLoader = LoraLoader()
@@ -157,6 +158,7 @@ class StableDiffusion:
         self.nodes = NodeModules()
         self.active_model = Model(ckpt='')
         self.highres_fix = False
+        self.running = False
 
     def callback_fn(self, job_id, x0=None, enabled=True):
         if not enabled:
@@ -337,8 +339,7 @@ class StableDiffusion:
             strength=1.0
     ):
         
-
-        
+        self.running = True
         if isinstance(prompts_data, list):
             prompts_data = prompts_data[0]
 
@@ -354,14 +355,13 @@ class StableDiffusion:
             control_image = control_image.permute(0, 2, 3, 1)
             positive_cond = self.nodes.ControlNetApply.apply_controlnet(
                 positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
-
+            print(f"Applying controlnet {controlnet}")
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
             mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.device)
-            with init_image.device, torch.autocast("cuda"):
-                if init_image.shape[1] == 3:
-                    init_image = init_image.permute(0, 2, 3, 1)
-                init_image = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae, init_image, mask_image)[0]
+            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]        
+            init_image = self.nodes.SetLatentNoiseMask.set_mask(init_image, mask_image)[0]
+
         elif init_image is not None:
             init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]        
         else:
@@ -376,6 +376,7 @@ class StableDiffusion:
         out_image = self.nodes.VAEDecode.decode(self.active_model.vae, out_image)[0]
         out_image = 255. * out_image[0].cpu().numpy()
         out_image = Image.fromarray(np.clip(out_image, 0, 255).astype(np.uint8))
+
         return out_image
 
     def generate(self,
@@ -430,10 +431,10 @@ class StableDiffusion:
             controlnet = 'none'
 
         if vae is not None and len(vae) > 0:
-            vae = os.path.join("models", "vae", vae)
+            vae = os.path.join(models_dir, "Vae", vae)
 
         def get_contronet_path(controlnet):
-            controlnet_folder = os.path.join("models", "ControlNet")
+            controlnet_folder = os.path.join(models_dir, "ControlNet")
 
             # Search for files with the specified string in their base filename in the controlnet_folder
             matching_files = glob(os.path.join(controlnet_folder, f"*{controlnet}*"))
@@ -505,6 +506,7 @@ class StableDiffusion:
         
         if len(mask_str) > 0 and len(init_image_str) > 0:
             mask_image = support.b64_to_image(mask_str).convert('L')
+        
 
         # Get image and extract mask from image if needed
         if len(init_image_str) > 0:
@@ -516,13 +518,14 @@ class StableDiffusion:
             else:
                 mask_image = mask_background(starting_image.convert('RGB'),
                                              remove_background=background_removal_type)
+        if mask_image is not None:
+            mask_image = mask_image.resize((W, H))
+            if invert:
+                mask_image = ImageOps.invert(mask_image)
+        original_mask = mask_image
 
         if starting_image is not None:
             starting_image = starting_image.resize((W, H))
-            if mask_image is not None:
-                mask_image = mask_image.resize((W, H))
-                if invert:
-                    mask_image = ImageOps.invert(mask_image)
             init_image, H, W = self.load_image(starting_image, H, W, mask_image=mask_image,
                                                inpainting=(mask_image is not None or background_removal_type != 'none'),
                                                device=device)
@@ -568,12 +571,14 @@ class StableDiffusion:
             Clip Skip: {clip_skip}, 
             Vae: {vae}, 
             Loras: {loras}, 
-            Controlnet: {controlnet}, 
-            Palette Fix: {palette_fix}''')
+            Controlnet: {controlnet}''')
         
         base_count = len(os.listdir(sample_path))
         with torch.no_grad():
             for n in range(1, n_iter + 1):
+                if not self.running:
+                    self.clean_up()
+                    return
                 self.active_model.current_num = n
                 try:
                     print(f'Generating on gpu {device} image job {job_id} image {n}')
@@ -597,6 +602,14 @@ class StableDiffusion:
                         device=device,
                         strength=strength if starting_image is not None else 1.0
                     )
+
+                    if mask_image is not None:
+                        out_image = support.repaste_and_color_correct(
+                            result=out_image,
+                            init_image=starting_image,
+                            init_mask=original_mask, 
+                            mask_blur_radius=8
+                        )
 
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
                     
@@ -662,5 +675,9 @@ class StableDiffusion:
         self.clean_up()
 
     def clean_up(self):
+        self.running = False
         torch.cuda.empty_cache()
         gc.collect()
+
+    def interrupt(self):
+        self.running = False

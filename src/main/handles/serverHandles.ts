@@ -8,7 +8,7 @@ export class Server {
   private server: ChildProcessWithoutNullStreams;
 
   public start(artroomPath: string, debug_mode: boolean) {
-    const command = `"${artroomPath}/artroom/artroom_backend/python.exe" server.cpython-310.opt-2.pyc`;
+    const command = `"${artroomPath}/artroom/artroom_backend/python.exe" server.pyc`;
     this.kill();
     const options = {
       detached: debug_mode,

@@ -154,7 +154,7 @@ try:
 
     @socketio.on('preview_controlnet')
     def preview_controlnet(data):
-        from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3
+        from artroom_helpers.process_controlnet_images import preview_controlnet, HWC3
         try:
             print(f'Previewing controlnet {data["controlnet"]}')
             image = support.b64_to_image(data['initImage'])
@@ -163,7 +163,9 @@ try:
             w, h = map(lambda x: x - x % 64, (w, h))
             image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
-            image = apply_controlnet(image, data["controlnet"])
+            image = preview_controlnet(image, data["controlnet"])
+            print("DONE PREVIEW")
+            image = HWC3(np.array(image))
             output = support.image_to_b64(Image.fromarray(image))
             socketio.emit('get_controlnet_preview', {'controlnetPreview': output})
             print(f"Preview finished")
@@ -197,73 +199,75 @@ try:
 
     @socketio.on('generate')
     def generate(data):
-        try:
-            mask_b64 = data['mask_image']
-            data['mask_image'] = data['mask_image'][:100] + "..."
-            init_image_str = data['init_image']
-            data['init_image'] = data['init_image'][:100] + "..."
+        if not SD.running:
+            try:
+                SD.running = True
+                mask_b64 = data['mask_image']
+                data['mask_image'] = data['mask_image'][:100] + "..."
+                init_image_str = data['init_image']
+                data['init_image'] = data['init_image'][:100] + "..."
 
-            print("Saving settings to folder...")
-            save_to_settings_folder(data)
-            ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-            vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
-            lora_paths = []
-            if len(data['loras']) > 0:
-                for lora in data['loras']:
-                    lora_paths.append({
-                        'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
-                        'name': lora['name'],
-                        'weight': lora['weight']
-                    })
-        except Exception as e:
-            print(f"Failed to add to queue {e}")
+                print("Saving settings to folder...")
+                save_to_settings_folder(data)
+                ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
+                vae_path = os.path.join(data['models_dir'], 'Vae', data['vae']).replace(os.sep, '/')
+                lora_paths = []
+                if len(data['loras']) > 0:
+                    for lora in data['loras']:
+                        lora_paths.append({
+                            'path': os.path.join(data['models_dir'], 'Lora', lora['name']).replace(os.sep, '/'),
+                            'name': lora['name'],
+                            'weight': lora['weight']
+                        })
+            except Exception as e:
+                print(f"Failed to add to queue {e}")
+                SD.running = False
+                socketio.emit('job_done')
+                return
+            try:
+                print("Starting gen...")
+                print(data)
+                # SD.generate(
+                #     generation_mode=data.get('generation_mode'),
+                #     highres_steps=data.get('highres_steps'),
+                #     highres_strength=data.get('highres_strength')
+                # )
+                SD.generate(                 
+                    image_save_path=data['image_save_path'],
+                    long_save_path=data['long_save_path'],
+                    highres_fix=data['highres_fix'],
+                    show_intermediates=data['show_intermediates'],
+                    use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
+                    remove_background=data['remove_background'],
+                    use_removed_background=data['use_removed_background'],
+                    models_dir=data['models_dir'],
+                    text_prompts=data['text_prompts'],
+                    negative_prompts=data['negative_prompts'],
+                    init_image_str=init_image_str,
+                    mask_str=mask_b64,
+                    invert=data['invert'],
+                    steps=int(data['steps']),
+                    H=int(data['height']),
+                    W=int(data['width']),
+                    strength=data['strength'],
+                    cfg_scale=float(data['cfg_scale']),
+                    seed=int(data['seed']),
+                    sampler=data['sampler'],
+                    n_iter=int(data['n_iter']),
+                    batch_size=1,
+                    ckpt=ckpt_path,
+                    vae=vae_path,
+                    loras=lora_paths,
+                    controlnet=data['controlnet'],
+                    background_removal_type="none",
+                    clip_skip=max(int(data['clip_skip']), 1),
+                    palette_fix=data['palette_fix'],
+                    device='cuda:0')
+            except Exception as e:
+                print(f"Generation failed! {e}")
+                SD.running = False
+                torch.cuda.empty_cache()
             socketio.emit('job_done')
-            return
-        try:
-            print("Starting gen...")
-            print(data)
-            # SD.generate(
-            #     generation_mode=data.get('generation_mode'),
-            #     highres_steps=data.get('highres_steps'),
-            #     highres_strength=data.get('highres_strength')
-            # )
-            SD.generate(                 
-                image_save_path=data['image_save_path'],
-                long_save_path=data['long_save_path'],
-                highres_fix=data['highres_fix'],
-                show_intermediates=data['show_intermediates'],
-                use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
-                remove_background=data['remove_background'],
-                use_removed_background=data['use_removed_background'],
-                models_dir=data['models_dir'],
-                text_prompts=data['text_prompts'],
-                negative_prompts=data['negative_prompts'],
-                init_image_str=init_image_str,
-                mask_str=mask_b64,
-                invert=data['invert'],
-                steps=int(data['steps']),
-                H=int(data['height']),
-                W=int(data['width']),
-                strength=data['strength'],
-                cfg_scale=float(data['cfg_scale']),
-                seed=int(data['seed']),
-                sampler=data['sampler'],
-                n_iter=int(data['n_iter']),
-                batch_size=1,
-                ckpt=ckpt_path,
-                vae=vae_path,
-                loras=lora_paths,
-                controlnet=data['controlnet'],
-                background_removal_type="none",
-                clip_skip=max(int(data['clip_skip']), 1),
-                palette_fix=data['palette_fix'],
-                device='cuda:0')
-
-
-        except Exception as e:
-            print(f"Generation failed! {e}")
-            torch.cuda.empty_cache()
-        socketio.emit('job_done')
 
 
     @socketio.on('stop_queue')
@@ -313,12 +317,12 @@ try:
                 print("Saving settings to folder...")
                 save_to_settings_folder(data)
                 ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-                vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
+                vae_path = os.path.join(data['models_dir'], 'Vae', data['vae']).replace(os.sep, '/')
                 lora_paths = []
                 if len(data['lora']) > 0:
                     for lora in data['lora']:
                         lora_paths.append({
-                            'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                            'path': os.path.join(data['models_dir'], 'Lora', lora['name']).replace(os.sep, '/'),
                             'weight': lora['weight']
                         })
             except Exception as e:
@@ -363,6 +367,8 @@ try:
 
             except Exception as e:
                 print(f"Generation failed! {e}")
+                SD.running = False
+
                 SD.clean_up()
                 socketio.emit('job_done')
 

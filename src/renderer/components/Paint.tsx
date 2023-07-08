@@ -235,6 +235,8 @@ const PaintQueueButtons = () => {
             setAddToQueue(true);
             const settings = parseSettings(
                 {...imageSettings,  
+                    width: boundingBox.width,
+                    height: boundingBox.height,
                     init_image: imageDataURL,
                     mask_image: combinedMask,
                     invert: shouldPreserveMaskedArea, 
