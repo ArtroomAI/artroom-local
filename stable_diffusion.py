@@ -4,6 +4,7 @@ import gc
 import sys
 
 from glob import glob
+from artroom_helpers.gpu_detect import get_device
 from transformers import logging as tflogging
 from upscale import Upscaler
 
@@ -39,7 +40,7 @@ class NodeModules:
 
 
 class Model:
-    def __init__(self, ckpt):
+    def __init__(self, ckpt, vae = '', device = 'cuda:0'):
         self.controlnet_path = None
         self.model = None
         self.clip = None
@@ -53,6 +54,7 @@ class Model:
         self.nodes = NodeModules()
 
         self.ckpt = ckpt
+        self.device = device
 
         self.steps = 0
         self.current_num = 0
@@ -60,7 +62,8 @@ class Model:
         self.total_steps = 0
         if ckpt != '':
             self.load_model()
-
+        if vae != '':
+            self.load_vae(vae)
         # self.prompt_appendices = []
 
     def load_model(self):
@@ -79,7 +82,7 @@ class Model:
         #     textual_inversion = os.path.basename(textual_inversion)
         #     self.prompt_appendices.append(f"embedding:{textual_inversion}")
 
-    def setup(self, vae, loras=None, controlnet_path=None, device='cuda:0'):
+    def setup(self, vae, loras=None, controlnet_path=None):
         if loras is None:
             loras = []
 
@@ -92,7 +95,7 @@ class Model:
         if vae != self.vae_path:
             try:
                 if '.vae' in vae:
-                    self.load_vae(vae, device=device)
+                    self.load_vae(vae)
             except:
                 print("Failed to load vae")
         self.vae_path = vae
@@ -101,17 +104,17 @@ class Model:
             for lora in loras:
                 try:
                     self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'],
-                                     controlnet=(controlnet_path is not None), device=device)
+                                     controlnet=(controlnet_path is not None))
                 except Exception as e:
                     self.socketio.emit('status', toast_status(title=f"Failed to load in Lora {lora} {e}", status="error"))
-        print("device: ", device)
-        self.to(device)
+        print("device: ", self.device)
+        self.to(self.device)
 
     def get_steps(self):
         return self.current_num, self.total_num, self.model.current_step + self.steps * (
                 self.current_num - 1), self.total_steps
 
-    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4, controlnet=False, device='cuda:0'):
+    def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         lora = comfy.utils.load_torch_file(path, safe_load=True)
         self.model, self.clip = comfy.sd.load_lora_for_models(self.model, self.clip, lora, weight_unet, weight_tenc)
 
@@ -123,8 +126,9 @@ class Model:
 
     def deinject_controlnet(self, delete=True):
         del self.controlnet
-    def load_vae(self, vae_path: str, device='cuda:0', safe_load_=True, original=False, controlnet=False):
-        self.vae = comfy.sd.VAE(ckpt_path=vae_path, device=device)
+
+    def load_vae(self, vae_path: str):
+        self.vae = comfy.sd.VAE(ckpt_path=vae_path, device=self.device)
 
     def to(self, device, dtype=torch.float32):
         self.vae.device = device
@@ -159,7 +163,8 @@ class StableDiffusion:
         self.active_model = Model(ckpt='')
         self.highres_fix = False
         self.running = False
-
+        self.device = get_device()
+        
     def callback_fn(self, job_id, x0=None, enabled=True):
         if not enabled:
             return
@@ -189,7 +194,7 @@ class StableDiffusion:
         # return init_image.convert("RGB"), mask_image
         return init_image.convert("RGB"), mask_image
 
-    def load_image(self, image, h0, w0, mask_image=None, inpainting=False, device='cuda:0'):
+    def load_image(self, image, h0, w0, mask_image=None, inpainting=False):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -200,14 +205,14 @@ class StableDiffusion:
 
         image = np.array(image).astype(np.float32) / 255.0
         init_image = torch.from_numpy(image)[None,]
-        init_image = init_image.to(device)
+        init_image = init_image.to(self.device)
         _, H, W, _ = init_image.shape
         #init_image = init_image.half()
 
-        return init_image.to(device), H, W
+        return init_image.to(self.device), H, W
 
     def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none",
-                           use_preprocessed_controlnet=False, device='cuda:0'):
+                           use_preprocessed_controlnet=False):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -225,7 +230,7 @@ class StableDiffusion:
             else:
                 control = apply_controlnet(image, controlnet_mode)
 
-        return control.to(device)
+        return control.to(self.device)
 
     def diffusion_upscale(
             self,
@@ -248,7 +253,6 @@ class StableDiffusion:
             mode="default",
             clip_skip=1,
             batch_size=1,
-            device='cuda:0',
             keep_size=False
     ):
         # try:
@@ -275,7 +279,7 @@ class StableDiffusion:
         # image.save(f'{job_id}_{n}_upscaled.png')
 
         # generate the next version using the upscaled image as the new input
-        highres_init_image, H, W = self.load_image(image.convert('RGB'), H, W, device=device)
+        highres_init_image, H, W = self.load_image(image.convert('RGB'), H, W)
 
         print("Generating upscaled image")
         image = self.generate_image(
@@ -283,7 +287,7 @@ class StableDiffusion:
             prompts_data=prompts_data,
             negative_prompts_data=negative_prompts_data,
             control_image=control_image,
-            init_image=highres_init_image.to(device),
+            init_image=highres_init_image.to(self.device),
             mask_image=mask_image,
             steps=highres_steps,
             H=H,
@@ -295,7 +299,6 @@ class StableDiffusion:
             controlnet=controlnet,
             clip_skip=clip_skip,
             callback_fn=self.callback_fn,
-            device=device,
             strength=highres_strength
         )     
 
@@ -334,7 +337,6 @@ class StableDiffusion:
             batch_size=1,
             controlnet="none",
             clip_skip=1,
-            device='cuda:0',
             callback_fn=None,
             strength=1.0
     ):
@@ -358,7 +360,7 @@ class StableDiffusion:
             print(f"Applying controlnet {controlnet}")
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.device)
+            mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.self.device)
             init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]        
             init_image = self.nodes.SetLatentNoiseMask.set_mask(init_image, mask_image)[0]
 
@@ -367,7 +369,7 @@ class StableDiffusion:
         else:
             init_image = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
         
-        self.active_model.to(device)
+        self.active_model.to(self.device)
         scheduler = "karras"  # ["normal", "karras", "exponential", "simple", "ddim_uniform"]
         out_image = self.nodes.KSampler.sample(self.active_model.model, seed, steps, cfg_scale, sampler, scheduler,
                                                positive_cond, negative_prompt, init_image, denoise=strength)[0]
@@ -408,9 +410,7 @@ class StableDiffusion:
                 loras=None,
                 controlnet="none",
                 background_removal_type="none",
-                clip_skip=1,
-                palette_fix=False,
-                device='cuda:0',
+                clip_skip=1
                 ):
 
         if long_save_path:
@@ -464,9 +464,9 @@ class StableDiffusion:
             id="loading-model", title="Loading model...", status="info",
             position="bottom-right", duration=None, isClosable=False))
         if model_key != self.active_model.ckpt:
-            self.active_model = Model(ckpt)
+            self.active_model = Model(ckpt, device=self.device)
         
-        self.active_model.setup(vae, loras, controlnet_path, device)
+        self.active_model.setup(vae, loras, controlnet_path)
         
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Finished Loading Model",
@@ -527,21 +527,20 @@ class StableDiffusion:
         if starting_image is not None:
             starting_image = starting_image.resize((W, H))
             init_image, H, W = self.load_image(starting_image, H, W, mask_image=mask_image,
-                                               inpainting=(mask_image is not None or background_removal_type != 'none'),
-                                               device=device)
+                                               inpainting=(mask_image is not None or background_removal_type != 'none'))
             if controlnet != "none":
                 control_image = self.load_control_image(starting_image, H, W, mask_image=mask_image,
                                                         inpainting=(
                                                                 mask_image is not None or background_removal_type != 'none'),
-                                                        controlnet_mode=controlnet, device=device)
-
+                                                        controlnet_mode=controlnet)
+        
         torch.cuda.empty_cache()
         gc.collect()
 
         prompts_data = [batch_size * text_prompts]
         negative_prompts_data = [batch_size * negative_prompts]
 
-        self.active_model.to(device)
+        self.active_model.to(self.device)
 
         total_steps = steps * n_iter
 
@@ -551,7 +550,7 @@ class StableDiffusion:
         self.active_model.total_steps = total_steps
         self.active_model.total_num = n_iter
 
-        print(f'''Generating on gpu {device} image job {job_id} with settings 
+        print(f'''Generating on gpu {self.device} image job {job_id} with settings 
             Job Id: {job_id}
             Text Prompts: {text_prompts}, 
             Negative Prompts: {negative_prompts}, 
@@ -581,7 +580,7 @@ class StableDiffusion:
                     return
                 self.active_model.current_num = n
                 try:
-                    print(f'Generating on gpu {device} image job {job_id} image {n}')
+                    print(f'Generating on gpu {self.device} image {n}')
                     out_image = self.generate_image(
                         job_id=job_id,
                         prompts_data=prompts_data,
@@ -599,7 +598,6 @@ class StableDiffusion:
                         controlnet=controlnet,
                         clip_skip=clip_skip,
                         callback_fn=self.callback_fn,
-                        device=device,
                         strength=strength if starting_image is not None else 1.0
                     )
 
@@ -630,7 +628,6 @@ class StableDiffusion:
                             seed=seed,
                             sampler=sampler,
                             clip_skip=clip_skip,
-                            device=device,
                             keep_size=False
                         )
 
@@ -672,6 +669,7 @@ class StableDiffusion:
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
 
+        self.active_model.load_model()
         self.clean_up()
 
     def clean_up(self):

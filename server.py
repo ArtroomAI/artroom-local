@@ -6,7 +6,6 @@ try:
     import os
     import re
     import sys
-    import torch.cuda
     sys.path.append(os.curdir)
 
     from upscale import Upscaler
@@ -260,13 +259,11 @@ try:
                     loras=lora_paths,
                     controlnet=data['controlnet'],
                     background_removal_type="none",
-                    clip_skip=max(int(data['clip_skip']), 1),
-                    palette_fix=data['palette_fix'],
-                    device='cuda:0')
+                    clip_skip=max(int(data['clip_skip']), 1)
+                    )
             except Exception as e:
                 print(f"Generation failed! {e}")
                 SD.running = False
-                torch.cuda.empty_cache()
             socketio.emit('job_done')
 
 
@@ -359,9 +356,8 @@ try:
                     loras=lora_paths,
                     controlnet=data['controlnet'],
                     background_removal_type="none",
-                    clip_skip=max(int(data['clip_skip']), 1),
-                    palette_fix=data['palette_fix'],
-                    device='cuda:0')
+                    clip_skip=max(int(data['clip_skip']), 1)
+                    )
 
                 socketio.emit('job_done')
 
