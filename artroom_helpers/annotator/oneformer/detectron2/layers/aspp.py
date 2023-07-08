@@ -17,16 +17,16 @@ class ASPP(nn.Module):
     """
 
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        dilations,
-        *,
-        norm,
-        activation,
-        pool_kernel_size=None,
-        dropout: float = 0.0,
-        use_depthwise_separable_conv=False,
+            self,
+            in_channels,
+            out_channels,
+            dilations,
+            *,
+            norm,
+            activation,
+            pool_kernel_size=None,
+            dropout: float = 0.0,
+            use_depthwise_separable_conv=False,
     ):
         """
         Args:

@@ -77,12 +77,12 @@ class RandomSubsetTrainingSampler(TrainingSampler):
     """
 
     def __init__(
-        self,
-        size: int,
-        subset_ratio: float,
-        shuffle: bool = True,
-        seed_shuffle: Optional[int] = None,
-        seed_subset: Optional[int] = None,
+            self,
+            size: int,
+            subset_ratio: float,
+            shuffle: bool = True,
+            seed_shuffle: Optional[int] = None,
+            seed_subset: Optional[int] = None,
     ):
         """
         Args:

@@ -64,7 +64,7 @@ def load_coco_panoptic_json(json_file, image_dir, gt_dir, meta):
 
 
 def register_coco_panoptic(
-    name, metadata, image_root, panoptic_root, panoptic_json, instances_json=None
+        name, metadata, image_root, panoptic_root, panoptic_json, instances_json=None
 ):
     """
     Register a "standard" version of COCO panoptic segmentation dataset named `name`.
@@ -100,7 +100,7 @@ def register_coco_panoptic(
 
 
 def register_coco_panoptic_separated(
-    name, metadata, image_root, panoptic_root, panoptic_json, sem_seg_root, instances_json
+        name, metadata, image_root, panoptic_root, panoptic_json, sem_seg_root, instances_json
 ):
     """
     Register a "separated" version of COCO panoptic segmentation dataset named `name`.

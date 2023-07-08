@@ -35,7 +35,7 @@ parser.add_argument('--img-size', default=None, type=int,
                     metavar='N', help='Input image dimension, uses model default if empty')
 parser.add_argument('--mean', type=float, nargs='+', default=None, metavar='MEAN',
                     help='Override mean pixel value of dataset')
-parser.add_argument('--std', type=float,  nargs='+', default=None, metavar='STD',
+parser.add_argument('--std', type=float, nargs='+', default=None, metavar='STD',
                     help='Override std deviation of of dataset')
 parser.add_argument('--crop-pct', type=float, default=None, metavar='PCT',
                     help='Override default crop pct of 0.875')
@@ -159,7 +159,7 @@ def main():
                     loss=losses, top1=top1, top5=top5))
 
     print(' * Prec@1 {top1.avg:.3f} ({top1a:.3f}) Prec@5 {top5.avg:.3f} ({top5a:.3f})'.format(
-        top1=top1, top1a=100-top1.avg, top5=top5, top5a=100.-top5.avg))
+        top1=top1, top1a=100 - top1.avg, top5=top5, top5a=100. - top5.avg))
 
 
 if __name__ == '__main__':

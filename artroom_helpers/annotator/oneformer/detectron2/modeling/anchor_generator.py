@@ -37,7 +37,7 @@ class BufferList(nn.Module):
 
 
 def _create_grid_offsets(
-    size: List[int], stride: int, offset: float, target_device_tensor: torch.Tensor
+        size: List[int], stride: int, offset: float, target_device_tensor: torch.Tensor
 ):
     grid_height, grid_width = size
     shifts_x = move_device_like(
@@ -202,7 +202,7 @@ class DefaultAnchorGenerator(nn.Module):
 
         anchors = []
         for size in sizes:
-            area = size**2.0
+            area = size ** 2.0
             for aspect_ratio in aspect_ratios:
                 # s * s = w * h
                 # a = h / w
@@ -327,10 +327,10 @@ class RotatedAnchorGenerator(nn.Module):
         return anchors
 
     def generate_cell_anchors(
-        self,
-        sizes=(32, 64, 128, 256, 512),
-        aspect_ratios=(0.5, 1, 2),
-        angles=(-90, -60, -30, 0, 30, 60, 90),
+            self,
+            sizes=(32, 64, 128, 256, 512),
+            aspect_ratios=(0.5, 1, 2),
+            angles=(-90, -60, -30, 0, 30, 60, 90),
     ):
         """
         Generate a tensor storing canonical anchor boxes, which are all anchor
@@ -349,7 +349,7 @@ class RotatedAnchorGenerator(nn.Module):
         """
         anchors = []
         for size in sizes:
-            area = size**2.0
+            area = size ** 2.0
             for aspect_ratio in aspect_ratios:
                 # s * s = w * h
                 # a = h / w

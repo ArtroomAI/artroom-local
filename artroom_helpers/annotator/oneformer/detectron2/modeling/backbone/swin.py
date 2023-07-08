@@ -27,7 +27,7 @@ class Mlp(nn.Module):
     """Multilayer perceptron."""
 
     def __init__(
-        self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.0
+            self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.0
     ):
         super().__init__()
         out_features = out_features or in_features
@@ -91,14 +91,14 @@ class WindowAttention(nn.Module):
     """
 
     def __init__(
-        self,
-        dim,
-        window_size,
-        num_heads,
-        qkv_bias=True,
-        qk_scale=None,
-        attn_drop=0.0,
-        proj_drop=0.0,
+            self,
+            dim,
+            window_size,
+            num_heads,
+            qkv_bias=True,
+            qk_scale=None,
+            attn_drop=0.0,
+            proj_drop=0.0,
     ):
 
         super().__init__()
@@ -106,7 +106,7 @@ class WindowAttention(nn.Module):
         self.window_size = window_size  # Wh, Ww
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = qk_scale or head_dim**-0.5
+        self.scale = qk_scale or head_dim ** -0.5
 
         # define a parameter table of relative position bias
         self.relative_position_bias_table = nn.Parameter(
@@ -195,19 +195,19 @@ class SwinTransformerBlock(nn.Module):
     """
 
     def __init__(
-        self,
-        dim,
-        num_heads,
-        window_size=7,
-        shift_size=0,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=0.0,
-        act_layer=nn.GELU,
-        norm_layer=nn.LayerNorm,
+            self,
+            dim,
+            num_heads,
+            window_size=7,
+            shift_size=0,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            qk_scale=None,
+            drop=0.0,
+            attn_drop=0.0,
+            drop_path=0.0,
+            act_layer=nn.GELU,
+            norm_layer=nn.LayerNorm,
     ):
         super().__init__()
         self.dim = dim
@@ -368,20 +368,20 @@ class BasicLayer(nn.Module):
     """
 
     def __init__(
-        self,
-        dim,
-        depth,
-        num_heads,
-        window_size=7,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-        downsample=None,
-        use_checkpoint=False,
+            self,
+            dim,
+            depth,
+            num_heads,
+            window_size=7,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            qk_scale=None,
+            drop=0.0,
+            attn_drop=0.0,
+            drop_path=0.0,
+            norm_layer=nn.LayerNorm,
+            downsample=None,
+            use_checkpoint=False,
     ):
         super().__init__()
         self.window_size = window_size
@@ -536,26 +536,26 @@ class SwinTransformer(Backbone):
     """
 
     def __init__(
-        self,
-        pretrain_img_size=224,
-        patch_size=4,
-        in_chans=3,
-        embed_dim=96,
-        depths=(2, 2, 6, 2),
-        num_heads=(3, 6, 12, 24),
-        window_size=7,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        drop_path_rate=0.2,
-        norm_layer=nn.LayerNorm,
-        ape=False,
-        patch_norm=True,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=-1,
-        use_checkpoint=False,
+            self,
+            pretrain_img_size=224,
+            patch_size=4,
+            in_chans=3,
+            embed_dim=96,
+            depths=(2, 2, 6, 2),
+            num_heads=(3, 6, 12, 24),
+            window_size=7,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            qk_scale=None,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+            norm_layer=nn.LayerNorm,
+            ape=False,
+            patch_norm=True,
+            out_indices=(0, 1, 2, 3),
+            frozen_stages=-1,
+            use_checkpoint=False,
     ):
         super().__init__()
 
@@ -600,7 +600,7 @@ class SwinTransformer(Backbone):
         self.layers = nn.ModuleList()
         for i_layer in range(self.num_layers):
             layer = BasicLayer(
-                dim=int(embed_dim * 2**i_layer),
+                dim=int(embed_dim * 2 ** i_layer),
                 depth=depths[i_layer],
                 num_heads=num_heads[i_layer],
                 window_size=window_size,
@@ -609,14 +609,14 @@ class SwinTransformer(Backbone):
                 qk_scale=qk_scale,
                 drop=drop_rate,
                 attn_drop=attn_drop_rate,
-                drop_path=dpr[sum(depths[:i_layer]) : sum(depths[: i_layer + 1])],
+                drop_path=dpr[sum(depths[:i_layer]): sum(depths[: i_layer + 1])],
                 norm_layer=norm_layer,
                 downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
                 use_checkpoint=use_checkpoint,
             )
             self.layers.append(layer)
 
-        num_features = [int(embed_dim * 2**i) for i in range(self.num_layers)]
+        num_features = [int(embed_dim * 2 ** i) for i in range(self.num_layers)]
         self.num_features = num_features
 
         # add a norm layer for each output
@@ -628,7 +628,7 @@ class SwinTransformer(Backbone):
         self._freeze_stages()
         self._out_features = ["p{}".format(i) for i in self.out_indices]
         self._out_feature_channels = {
-            "p{}".format(i): self.embed_dim * 2**i for i in self.out_indices
+            "p{}".format(i): self.embed_dim * 2 ** i for i in self.out_indices
         }
         self._out_feature_strides = {"p{}".format(i): 2 ** (i + 2) for i in self.out_indices}
         self._size_devisibility = 32

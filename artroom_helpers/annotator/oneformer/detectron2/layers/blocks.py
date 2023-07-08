@@ -7,7 +7,6 @@ from torch import nn
 from .batch_norm import FrozenBatchNorm2d, get_norm
 from .wrappers import Conv2d
 
-
 """
 CNN building blocks.
 """
@@ -64,17 +63,17 @@ class DepthwiseSeparableConv2d(nn.Module):
     """
 
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size=3,
-        padding=1,
-        dilation=1,
-        *,
-        norm1=None,
-        activation1=None,
-        norm2=None,
-        activation2=None,
+            self,
+            in_channels,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+            dilation=1,
+            *,
+            norm1=None,
+            activation1=None,
+            norm2=None,
+            activation2=None,
     ):
         """
         Args:

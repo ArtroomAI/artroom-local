@@ -25,12 +25,12 @@ class WarmupParamScheduler(CompositeParamScheduler):
     """
 
     def __init__(
-        self,
-        scheduler: ParamScheduler,
-        warmup_factor: float,
-        warmup_length: float,
-        warmup_method: str = "linear",
-        rescale_interval: bool = False,
+            self,
+            scheduler: ParamScheduler,
+            warmup_factor: float,
+            warmup_length: float,
+            warmup_method: str = "linear",
+            rescale_interval: bool = False,
     ):
         """
         Args:
@@ -92,11 +92,11 @@ class LRMultiplier(LRScheduler):
     # case we only need a total of one scheduler that defines the relative LR multiplier.
 
     def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        multiplier: ParamScheduler,
-        max_iter: int,
-        last_iter: int = -1,
+            self,
+            optimizer: torch.optim.Optimizer,
+            multiplier: ParamScheduler,
+            max_iter: int,
+            last_iter: int = -1,
     ):
         """
         Args:
@@ -128,6 +128,7 @@ class LRMultiplier(LRScheduler):
 Content below is no longer needed!
 """
 
+
 # NOTE: PyTorch's LR scheduler interface uses names that assume the LR changes
 # only on epoch boundaries. We typically use iteration based schedules instead.
 # As a result, "epoch" (e.g., as in self.last_epoch) should be understood to mean
@@ -139,14 +140,14 @@ Content below is no longer needed!
 
 class WarmupMultiStepLR(LRScheduler):
     def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        milestones: List[int],
-        gamma: float = 0.1,
-        warmup_factor: float = 0.001,
-        warmup_iters: int = 1000,
-        warmup_method: str = "linear",
-        last_epoch: int = -1,
+            self,
+            optimizer: torch.optim.Optimizer,
+            milestones: List[int],
+            gamma: float = 0.1,
+            warmup_factor: float = 0.001,
+            warmup_iters: int = 1000,
+            warmup_method: str = "linear",
+            last_epoch: int = -1,
     ):
         logger.warning(
             "WarmupMultiStepLR is deprecated! Use LRMultipilier with fvcore ParamScheduler instead!"
@@ -178,13 +179,13 @@ class WarmupMultiStepLR(LRScheduler):
 
 class WarmupCosineLR(LRScheduler):
     def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        max_iters: int,
-        warmup_factor: float = 0.001,
-        warmup_iters: int = 1000,
-        warmup_method: str = "linear",
-        last_epoch: int = -1,
+            self,
+            optimizer: torch.optim.Optimizer,
+            max_iters: int,
+            warmup_factor: float = 0.001,
+            warmup_iters: int = 1000,
+            warmup_method: str = "linear",
+            last_epoch: int = -1,
     ):
         logger.warning(
             "WarmupCosineLR is deprecated! Use LRMultipilier with fvcore ParamScheduler instead!"
@@ -218,7 +219,7 @@ class WarmupCosineLR(LRScheduler):
 
 
 def _get_warmup_factor_at_iter(
-    method: str, iter: int, warmup_iters: int, warmup_factor: float
+        method: str, iter: int, warmup_iters: int, warmup_factor: float
 ) -> float:
     """
     Return the learning rate warmup factor at a specific iteration.

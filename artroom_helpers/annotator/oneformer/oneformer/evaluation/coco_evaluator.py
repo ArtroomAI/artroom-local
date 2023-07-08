@@ -49,16 +49,16 @@ class COCOEvaluator(DatasetEvaluator):
     """
 
     def __init__(
-        self,
-        dataset_name,
-        tasks=None,
-        distributed=True,
-        output_dir=None,
-        *,
-        max_dets_per_image=None,
-        use_fast_impl=True,
-        kpt_oks_sigmas=(),
-        allow_cached_coco=True,
+            self,
+            dataset_name,
+            tasks=None,
+            distributed=True,
+            output_dir=None,
+            *,
+            max_dets_per_image=None,
+            use_fast_impl=True,
+            kpt_oks_sigmas=(),
+            allow_cached_coco=True,
     ):
         """
         Args:
@@ -405,14 +405,15 @@ def instances_to_coco_json(instances, img_id):
         results.append(result)
     return results
 
+
 def _evaluate_predictions_on_coco(
-    coco_gt,
-    coco_results,
-    iou_type,
-    kpt_oks_sigmas=None,
-    use_fast_impl=True,
-    img_ids=None,
-    max_dets_per_image=None,
+        coco_gt,
+        coco_results,
+        iou_type,
+        kpt_oks_sigmas=None,
+        use_fast_impl=True,
+        img_ids=None,
+        max_dets_per_image=None,
 ):
     """
     Evaluate the coco results using COCOEval API.
@@ -435,7 +436,7 @@ def _evaluate_predictions_on_coco(
         max_dets_per_image = [1, 10, 100]  # Default from COCOEval
     else:
         assert (
-            len(max_dets_per_image) >= 3
+                len(max_dets_per_image) >= 3
         ), "COCOeval requires maxDets (and max_dets_per_image) to have length at least 3"
         # In the case that user supplies a custom input for max_dets_per_image,
         # apply COCOevalMaxDets to evaluate AP with the custom input.

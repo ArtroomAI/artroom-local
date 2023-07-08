@@ -3,12 +3,11 @@ import argparse
 import onnx
 from caffe2.python.onnx.backend import Caffe2Backend
 
-
 parser = argparse.ArgumentParser(description="Convert ONNX to Caffe2")
 
 parser.add_argument("model", help="The ONNX model")
 parser.add_argument("--c2-prefix", required=True,
-    help="The output file prefix for the caffe2 model init and predict file. ")
+                    help="The output file prefix for the caffe2 model init and predict file. ")
 
 
 def main():

@@ -141,7 +141,7 @@ class ResizeShortestEdge(Augmentation):
 
     @torch.jit.unused
     def __init__(
-        self, short_edge_length, max_size=sys.maxsize, sample_style="range", interp=Image.BILINEAR
+            self, short_edge_length, max_size=sys.maxsize, sample_style="range", interp=Image.BILINEAR
     ):
         """
         Args:
@@ -179,7 +179,7 @@ class ResizeShortestEdge(Augmentation):
 
     @staticmethod
     def get_output_shape(
-        oldh: int, oldw: int, short_edge_length: int, max_size: int
+            oldh: int, oldw: int, short_edge_length: int, max_size: int
     ) -> Tuple[int, int]:
         """
         Compute the output size given input size and target short edge length.
@@ -210,12 +210,12 @@ class ResizeScale(Augmentation):
     """
 
     def __init__(
-        self,
-        min_scale: float,
-        max_scale: float,
-        target_height: int,
-        target_width: int,
-        interp: int = Image.BILINEAR,
+            self,
+            min_scale: float,
+            max_scale: float,
+            target_height: int,
+            target_width: int,
+            interp: int = Image.BILINEAR,
     ):
         """
         Args:
@@ -313,11 +313,11 @@ class FixedSizeCrop(Augmentation):
     """
 
     def __init__(
-        self,
-        crop_size: Tuple[int],
-        pad: bool = True,
-        pad_value: float = 128.0,
-        seg_pad_value: int = 255,
+            self,
+            crop_size: Tuple[int],
+            pad: bool = True,
+            pad_value: float = 128.0,
+            seg_pad_value: int = 255,
     ):
         """
         Args:
@@ -441,11 +441,11 @@ class RandomCrop_CategoryAreaConstraint(Augmentation):
     """
 
     def __init__(
-        self,
-        crop_type: str,
-        crop_size,
-        single_category_max_area: float = 1.0,
-        ignored_category: int = None,
+            self,
+            crop_type: str,
+            crop_size,
+            single_category_max_area: float = 1.0,
+            ignored_category: int = None,
     ):
         """
         Args:
@@ -468,7 +468,7 @@ class RandomCrop_CategoryAreaConstraint(Augmentation):
                 crop_size = self.crop_aug.get_crop_size((h, w))
                 y0 = np.random.randint(h - crop_size[0] + 1)
                 x0 = np.random.randint(w - crop_size[1] + 1)
-                sem_seg_temp = sem_seg[y0 : y0 + crop_size[0], x0 : x0 + crop_size[1]]
+                sem_seg_temp = sem_seg[y0: y0 + crop_size[0], x0: x0 + crop_size[1]]
                 labels, cnt = np.unique(sem_seg_temp, return_counts=True)
                 if self.ignored_category is not None:
                     cnt = cnt[labels != self.ignored_category]
@@ -666,11 +666,11 @@ class MinIoURandomCrop(Augmentation):
     """
 
     def __init__(
-        self,
-        min_ious=(0.1, 0.3, 0.5, 0.7, 0.9),
-        min_crop_size=0.3,
-        mode_trials=1000,
-        crop_trials=50,
+            self,
+            min_ious=(0.1, 0.3, 0.5, 0.7, 0.9),
+            min_crop_size=0.3,
+            mode_trials=1000,
+            crop_trials=50,
     ):
         self.min_ious = min_ious
         self.sample_mode = (1, *min_ious, 0)
@@ -723,10 +723,10 @@ class MinIoURandomCrop(Augmentation):
                     def is_center_of_bboxes_in_patch(boxes, patch):
                         center = (boxes[:, :2] + boxes[:, 2:]) / 2
                         mask = (
-                            (center[:, 0] > patch[0])
-                            * (center[:, 1] > patch[1])
-                            * (center[:, 0] < patch[2])
-                            * (center[:, 1] < patch[3])
+                                (center[:, 0] > patch[0])
+                                * (center[:, 1] > patch[1])
+                                * (center[:, 0] < patch[2])
+                                * (center[:, 1] < patch[3])
                         )
                         return mask
 

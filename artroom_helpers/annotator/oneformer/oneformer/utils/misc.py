@@ -15,11 +15,13 @@ import warnings
 import torch.nn.functional as F
 import math
 
+
 def inverse_sigmoid(x, eps=1e-3):
     x = x.clamp(min=0, max=1)
     x1 = x.clamp(min=eps)
     x2 = (1 - x).clamp(min=eps)
-    return torch.log(x1/x2)
+    return torch.log(x1 / x2)
+
 
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
@@ -56,6 +58,7 @@ def _no_grad_trunc_normal_(tensor, mean, std, a, b):
         tensor.clamp_(min=a, max=b)
         return tensor
 
+
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     # type: (Tensor, float, float, float, float) -> Tensor
     r"""Fills the input Tensor with values drawn from a truncated
@@ -75,6 +78,7 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
         >>> nn.init.trunc_normal_(w)
     """
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
+
 
 def resize(input,
            size=None,
@@ -98,6 +102,7 @@ def resize(input,
     if isinstance(size, torch.Size):
         size = tuple(int(x) for x in size)
     return F.interpolate(input, size, scale_factor, mode, align_corners)
+
 
 def _max_by_axis(the_list):
     # type: (List[List[int]]) -> List[int]

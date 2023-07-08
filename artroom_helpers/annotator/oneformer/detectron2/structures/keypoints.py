@@ -103,7 +103,7 @@ class Keypoints:
 
 # TODO make this nicer, this is a direct translation from C2 (but removing the inner loop)
 def _keypoints_to_heatmap(
-    keypoints: torch.Tensor, rois: torch.Tensor, heatmap_size: int
+        keypoints: torch.Tensor, rois: torch.Tensor, heatmap_size: int
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Encode keypoint locations into a target heatmap for use in SoftmaxWithLoss across space.
@@ -220,8 +220,8 @@ def heatmaps_to_keypoints(maps: torch.Tensor, rois: torch.Tensor) -> torch.Tenso
         y_int = (pos - x_int) // w
 
         assert (
-            roi_map_scores[keypoints_idx, y_int, x_int]
-            == roi_map_scores.view(num_keypoints, -1).max(1)[0]
+                roi_map_scores[keypoints_idx, y_int, x_int]
+                == roi_map_scores.view(num_keypoints, -1).max(1)[0]
         ).all()
 
         x = (x_int.float() + 0.5) * width_corrections[i]

@@ -1,5 +1,5 @@
 import React from 'react';
-import ArtroomIcon from '../images/icon.ico';
+import ArtroomIcon from '../images/artroom_icon.ico';
 import MinimizeIcon from '../images/minimize.png';
 import MaximizeIcon from '../images/maximize.png';
 import CloseIcon from '../images/close.png';

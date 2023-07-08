@@ -1,4 +1,5 @@
-from artroom_helpers import patchmatch
+# from artroom_helpers import patchmatch
+from patchmatch import patch_match
 from PIL import Image, ImageFilter, ImageOps
 import numpy as np
 import math
@@ -122,13 +123,8 @@ def infill_patchmatch(im: Image.Image) -> Image:
         print("Patchmatch failed, not RGBA")
         return im
 
-    # Skip patchmatch if patchmatch isn't available
-    if not patchmatch.patchmatch_available:
-        print("patchmatch not available")
-        return im
-
     # Patchmatch (note, we may want to expose patch_size? Increasing it significantly impacts performance though)
-    im_patched_np = patchmatch.inpaint(im.convert('RGB'), ImageOps.invert(im.split()[-1]), patch_size=3)
+    im_patched_np = patch_match.inpaint(im.convert('RGB'), ImageOps.invert(im.split()[-1]), patch_size=3)
     im_patched = Image.fromarray(im_patched_np, mode='RGB')
 
     return im_patched

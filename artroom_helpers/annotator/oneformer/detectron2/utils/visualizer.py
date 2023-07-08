@@ -14,7 +14,8 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
 
 from artroom_helpers.annotator.oneformer.detectron2.data import MetadataCatalog
-from artroom_helpers.annotator.oneformer.detectron2.structures import BitMasks, Boxes, BoxMode, Keypoints, PolygonMasks, RotatedBoxes
+from artroom_helpers.annotator.oneformer.detectron2.structures import BitMasks, Boxes, BoxMode, Keypoints, PolygonMasks, \
+    RotatedBoxes
 from artroom_helpers.annotator.oneformer.detectron2.utils.file_io import PathManager
 
 from .colormap import random_color
@@ -22,7 +23,6 @@ from .colormap import random_color
 logger = logging.getLogger(__name__)
 
 __all__ = ["ColorMode", "VisImage", "Visualizer"]
-
 
 _SMALL_OBJECT_AREA_THRESH = 1000
 _LARGE_MASK_AREA_THRESH = 120000
@@ -205,7 +205,7 @@ class _PanopticPrediction:
         if len(empty_ids) == 0:
             return np.zeros(self._seg.shape, dtype=np.uint8)
         assert (
-            len(empty_ids) == 1
+                len(empty_ids) == 1
         ), ">1 ids corresponds to no labels. This is currently not supported"
         return (self._seg != empty_ids[0]).numpy().astype(bool)
 
@@ -605,14 +605,14 @@ class Visualizer:
         return self.output
 
     def overlay_instances(
-        self,
-        *,
-        boxes=None,
-        labels=None,
-        masks=None,
-        keypoints=None,
-        assigned_colors=None,
-        alpha=0.5,
+            self,
+            *,
+            boxes=None,
+            labels=None,
+            masks=None,
+            keypoints=None,
+            assigned_colors=None,
+            alpha=0.5,
     ):
         """
         Args:
@@ -716,8 +716,8 @@ class Visualizer:
                 # for small objects, draw text at the side to avoid occlusion
                 instance_area = (y1 - y0) * (x1 - x0)
                 if (
-                    instance_area < _SMALL_OBJECT_AREA_THRESH * self.output.scale
-                    or y1 - y0 < 40 * self.output.scale
+                        instance_area < _SMALL_OBJECT_AREA_THRESH * self.output.scale
+                        or y1 - y0 < 40 * self.output.scale
                 ):
                     if y1 >= self.output.height - 5:
                         text_pos = (x1, y0)
@@ -727,9 +727,9 @@ class Visualizer:
                 height_ratio = (y1 - y0) / np.sqrt(self.output.height * self.output.width)
                 lighter_color = self._change_color_brightness(color, brightness_factor=0.7)
                 font_size = (
-                    np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2)
-                    * 0.5
-                    * self._default_font_size
+                        np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2)
+                        * 0.5
+                        * self._default_font_size
                 )
                 self.draw_text(
                     labels[i],
@@ -848,14 +848,14 @@ class Visualizer:
     """
 
     def draw_text(
-        self,
-        text,
-        position,
-        *,
-        font_size=None,
-        color="g",
-        horizontal_alignment="center",
-        rotation=0,
+            self,
+            text,
+            position,
+            *,
+            font_size=None,
+            color="g",
+            horizontal_alignment="center",
+            rotation=0,
     ):
         """
         Args:
@@ -929,7 +929,7 @@ class Visualizer:
         return self.output
 
     def draw_rotated_box_with_label(
-        self, rotated_box, alpha=0.5, edge_color="g", line_style="-", label=None
+            self, rotated_box, alpha=0.5, edge_color="g", line_style="-", label=None
     ):
         """
         Draw a rotated box with label on its top-left corner.
@@ -977,7 +977,7 @@ class Visualizer:
             height_ratio = h / np.sqrt(self.output.height * self.output.width)
             label_color = self._change_color_brightness(edge_color, brightness_factor=0.7)
             font_size = (
-                np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2) * 0.5 * self._default_font_size
+                    np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2) * 0.5 * self._default_font_size
             )
             self.draw_text(label, text_pos, color=label_color, font_size=font_size, rotation=angle)
 
@@ -1033,7 +1033,7 @@ class Visualizer:
         return self.output
 
     def draw_binary_mask(
-        self, binary_mask, color=None, *, edge_color=None, text=None, alpha=0.5, area_threshold=10
+            self, binary_mask, color=None, *, edge_color=None, text=None, alpha=0.5, area_threshold=10
     ):
         """
         Args:

@@ -79,7 +79,7 @@ def BilinearInterpolation(tensor_in, up_scale):
 # using dynamic `scale_factor` rather than static `size`. (T43166860)
 # NOTE: Caffe2 Int8 conversion might not be able to quantize `size` properly.
 def onnx_compatibale_interpolate(
-    input, size=None, scale_factor=None, mode="nearest", align_corners=None
+        input, size=None, scale_factor=None, mode="nearest", align_corners=None
 ):
     # NOTE: The input dimensions are interpreted in the form:
     # `mini-batch x channels x [optional depth] x [optional height] x width`.
@@ -117,7 +117,7 @@ def mock_torch_nn_functional_interpolate():
         def _mock_torch_nn_functional_interpolate(*args, **kwargs):
             if torch.onnx.is_in_onnx_export():
                 with mock.patch(
-                    "torch.nn.functional.interpolate", side_effect=onnx_compatibale_interpolate
+                        "torch.nn.functional.interpolate", side_effect=onnx_compatibale_interpolate
                 ):
                     return func(*args, **kwargs)
             else:
@@ -268,9 +268,9 @@ def _create_const_fill_op_from_c2_int8_tensor(name, int8_tensor):
 
 
 def create_const_fill_op(
-    name: str,
-    blob: Union[np.ndarray, workspace.Int8Tensor],
-    device_option: Optional[caffe2_pb2.DeviceOption] = None,
+        name: str,
+        blob: Union[np.ndarray, workspace.Int8Tensor],
+        device_option: Optional[caffe2_pb2.DeviceOption] = None,
 ) -> caffe2_pb2.OperatorDef:
     """
     Given a blob object, return the Caffe2 operator that creates this blob
@@ -293,7 +293,7 @@ def create_const_fill_op(
 
 
 def construct_init_net_from_params(
-    params: Dict[str, Any], device_options: Optional[Dict[str, caffe2_pb2.DeviceOption]] = None
+        params: Dict[str, Any], device_options: Optional[Dict[str, caffe2_pb2.DeviceOption]] = None
 ) -> caffe2_pb2.NetDef:
     """
     Construct the init_net from params dictionary
@@ -343,7 +343,7 @@ def get_consumer_map(ssa):
 
 
 def get_params_from_init_net(
-    init_net: caffe2_pb2.NetDef,
+        init_net: caffe2_pb2.NetDef,
 ) -> [Dict[str, Any], Dict[str, caffe2_pb2.DeviceOption]]:
     """
     Take the output blobs from init_net by running it.
@@ -351,6 +351,7 @@ def get_params_from_init_net(
         params: dict from blob name to numpy array
         device_options: dict from blob name to the device option of its creating op
     """
+
     # NOTE: this assumes that the params is determined by producer op with the
     # only exception be CopyGPUToCPU which is CUDA op but returns CPU tensor.
     def _get_device_option(producer_op):
@@ -379,9 +380,9 @@ def _updater_raise(op, input_types, output_types):
 
 
 def _generic_status_identifier(
-    predict_net: caffe2_pb2.NetDef,
-    status_updater: Callable,
-    known_status: Dict[Tuple[str, int], Any],
+        predict_net: caffe2_pb2.NetDef,
+        status_updater: Callable,
+        known_status: Dict[Tuple[str, int], Any],
 ) -> Dict[Tuple[str, int], Any]:
     """
     Statically infer the status of each blob, the status can be such as device type
@@ -427,7 +428,7 @@ def _generic_status_identifier(
         new_inputs_status, new_outputs_status = status_updater(op, inputs_status, outputs_status)
 
         for versioned_blob, status in zip(
-            versioned_inputs + versioned_outputs, new_inputs_status + new_outputs_status
+                versioned_inputs + versioned_outputs, new_inputs_status + new_outputs_status
         ):
             if status is not None:
                 _check_and_update(versioned_blob, status)
@@ -451,9 +452,9 @@ def _generic_status_identifier(
 
 
 def infer_device_type(
-    predict_net: caffe2_pb2.NetDef,
-    known_status: Dict[Tuple[str, int], Any],
-    device_name_style: str = "caffe2",
+        predict_net: caffe2_pb2.NetDef,
+        known_status: Dict[Tuple[str, int], Any],
+        device_name_style: str = "caffe2",
 ) -> Dict[Tuple[str, int], str]:
     """Return the device type ("cpu" or "gpu"/"cuda") of each (versioned) blob"""
 
@@ -634,13 +635,13 @@ class IllegalGraphTransformError(ValueError):
 
 
 def _rename_versioned_blob_in_proto(
-    proto: caffe2_pb2.NetDef,
-    old_name: str,
-    new_name: str,
-    version: int,
-    ssa: List[Tuple[List[Tuple[str, int]], List[Tuple[str, int]]]],
-    start_versions: Dict[str, int],
-    end_versions: Dict[str, int],
+        proto: caffe2_pb2.NetDef,
+        old_name: str,
+        new_name: str,
+        version: int,
+        ssa: List[Tuple[List[Tuple[str, int]], List[Tuple[str, int]]]],
+        start_versions: Dict[str, int],
+        end_versions: Dict[str, int],
 ):
     """In given proto, rename all blobs with matched version"""
     # Operater list
@@ -665,12 +666,12 @@ def _rename_versioned_blob_in_proto(
 
 
 def rename_op_input(
-    predict_net: caffe2_pb2.NetDef,
-    init_net: caffe2_pb2.NetDef,
-    op_id: int,
-    input_id: int,
-    new_name: str,
-    from_producer: bool = False,
+        predict_net: caffe2_pb2.NetDef,
+        init_net: caffe2_pb2.NetDef,
+        op_id: int,
+        input_id: int,
+        new_name: str,
+        from_producer: bool = False,
 ):
     """
     Rename the op_id-th operator in predict_net, change it's input_id-th input's
@@ -710,8 +711,8 @@ def rename_op_input(
     if sum(is_consumer) > 1:
         raise IllegalGraphTransformError(
             (
-                "Input '{}' of operator(#{}) are consumed by other ops, please use"
-                + " rename_op_output on the producer instead. Offending op: \n{}"
+                    "Input '{}' of operator(#{}) are consumed by other ops, please use"
+                    + " rename_op_output on the producer instead. Offending op: \n{}"
             ).format(old_name, op_id, predict_net.op[op_id])
         )
 
@@ -753,7 +754,7 @@ def rename_op_output(predict_net: caffe2_pb2.NetDef, op_id: int, output_id: int,
 
 
 def get_sub_graph_external_input_output(
-    predict_net: caffe2_pb2.NetDef, sub_graph_op_indices: List[int]
+        predict_net: caffe2_pb2.NetDef, sub_graph_op_indices: List[int]
 ) -> Tuple[List[Tuple[str, int]], List[Tuple[str, int]]]:
     """
     Return the list of external input/output of sub-graph,
@@ -842,7 +843,7 @@ def _get_dependency_chain(ssa, versioned_target, versioned_source):
     end_op = (
         producer_map[versioned_target][0] + 15 if versioned_target in producer_map else start_op
     )
-    sub_graph_ssa = ssa[start_op : end_op + 1]
+    sub_graph_ssa = ssa[start_op: end_op + 1]
     if len(sub_graph_ssa) > 30:
         logger.warning(
             "Subgraph bebetween {} and {} is large (from op#{} to op#{}), it"
@@ -980,13 +981,13 @@ def fuse_copy_between_cpu_and_gpu(predict_net: caffe2_pb2.NetDef):
                 reverse_op_type = _COPY_OPS[1 - _COPY_OPS.index(op.type)]
 
                 is_fusable = (
-                    len(consumer_ids) > 0
-                    and fw_copy_versioned_output not in versioned_external_output
-                    and all(
-                        predict_net.op[_op_id].type == reverse_op_type
-                        and ssa[_op_id][1][0] not in versioned_external_output
-                        for _op_id in consumer_ids
-                    )
+                        len(consumer_ids) > 0
+                        and fw_copy_versioned_output not in versioned_external_output
+                        and all(
+                    predict_net.op[_op_id].type == reverse_op_type
+                    and ssa[_op_id][1][0] not in versioned_external_output
+                    for _op_id in consumer_ids
+                )
                 )
 
                 if is_fusable:
@@ -1021,11 +1022,11 @@ def remove_dead_end_ops(net_def: caffe2_pb2.NetDef):
 
     def _is_dead_end(versioned_blob):
         return not (
-            versioned_blob in versioned_external_output
-            or (
-                len(consumer_map[versioned_blob]) > 0
-                and all(x[0] not in removed_op_ids for x in consumer_map[versioned_blob])
-            )
+                versioned_blob in versioned_external_output
+                or (
+                        len(consumer_map[versioned_blob]) > 0
+                        and all(x[0] not in removed_op_ids for x in consumer_map[versioned_blob])
+                )
         )
 
     for i, ssa_i in reversed(list(enumerate(ssa))):

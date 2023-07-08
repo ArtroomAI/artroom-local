@@ -1,6 +1,5 @@
 import torch
 
-
 # Need to expand to include more options, 10XX, 20XX, 30XX for auto xformers
 def get_gpu_architecture():
     if torch.cuda.is_available():

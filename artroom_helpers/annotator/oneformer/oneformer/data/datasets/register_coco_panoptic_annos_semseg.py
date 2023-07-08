@@ -17,9 +17,7 @@ from fvcore.common.timer import Timer
 import pycocotools.mask as mask_util
 from artroom_helpers.annotator.oneformer.detectron2.structures import BoxMode
 
-
 logger = logging.getLogger(__name__)
-
 
 _PREDEFINED_SPLITS_COCO_PANOPTIC = {
     "coco_2017_train_panoptic": (
@@ -39,6 +37,7 @@ _PREDEFINED_SPLITS_COCO_PANOPTIC = {
         "coco/panoptic_semseg_val2017",
     ),
 }
+
 
 def load_coco_instance_json(json_file, image_root, dataset_name=None):
     from pycocotools.coco import COCO
@@ -202,9 +201,10 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
                 num_instances_without_valid_segmentation
             )
             + "There might be issues in your dataset generation process.  Please "
-            "check https://detectron2.readthedocs.io/en/latest/tutorials/datasets.html carefully"
+              "check https://detectron2.readthedocs.io/en/latest/tutorials/datasets.html carefully"
         )
     return dataset_dicts
+
 
 def get_metadata():
     meta = {}
@@ -276,9 +276,9 @@ def load_coco_panoptic_json(json_file, instances_json, instances_name, image_dir
 
     with PathManager.open(json_file) as f:
         json_info = json.load(f)
-    
+
     instance_data_dicts = load_coco_instance_json(instances_json, image_dir.replace("panoptic_", ""), instances_name)
-    
+
     ret = []
     for ann in json_info["annotations"]:
         image_id = int(ann["image_id"])
@@ -308,7 +308,7 @@ def load_coco_panoptic_json(json_file, instances_json, instances_name, image_dir
 
 
 def register_coco_panoptic_annos_sem_seg(
-    name, metadata, image_root, panoptic_root, panoptic_json, sem_seg_root, instances_json, instances_name,
+        name, metadata, image_root, panoptic_root, panoptic_json, sem_seg_root, instances_json, instances_name,
 ):
     panoptic_name = name
     delattr(MetadataCatalog.get(panoptic_name), "thing_classes")
@@ -323,7 +323,8 @@ def register_coco_panoptic_annos_sem_seg(
     semantic_name = name + "_with_sem_seg"
     DatasetCatalog.register(
         semantic_name,
-        lambda: load_coco_panoptic_json(panoptic_json, instances_json, instances_name, image_root, panoptic_root, sem_seg_root, metadata),
+        lambda: load_coco_panoptic_json(panoptic_json, instances_json, instances_name, image_root, panoptic_root,
+                                        sem_seg_root, metadata),
     )
     MetadataCatalog.get(semantic_name).set(
         sem_seg_root=sem_seg_root,
@@ -340,8 +341,8 @@ def register_coco_panoptic_annos_sem_seg(
 
 def register_all_coco_panoptic_annos_sem_seg(root):
     for (
-        prefix,
-        (panoptic_root, panoptic_json, semantic_root),
+            prefix,
+            (panoptic_root, panoptic_json, semantic_root),
     ) in _PREDEFINED_SPLITS_COCO_PANOPTIC.items():
 
         prefix_instances = prefix[: -len("_panoptic")]

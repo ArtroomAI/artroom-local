@@ -57,10 +57,10 @@ class ImageList(object):
 
     @staticmethod
     def from_tensors(
-        tensors: List[torch.Tensor],
-        size_divisibility: int = 0,
-        pad_value: float = 0.0,
-        padding_constraints: Optional[Dict[str, int]] = None,
+            tensors: List[torch.Tensor],
+            size_divisibility: int = 0,
+            pad_value: float = 0.0,
+            padding_constraints: Optional[Dict[str, int]] = None,
     ) -> "ImageList":
         """
         Args:

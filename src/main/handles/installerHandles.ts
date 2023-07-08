@@ -177,38 +177,44 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
 
 const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.BrowserWindow) => {
   return new Promise<string>((resolve) => {
-    console.log("RESINSTALLING DEPENDENCIES")
-    const PATH = path.join(artroomPath, "artroom\\miniconda3");
-    const PATH_requirements = path.resolve('sd_modules/requirements.txt');
-    const installationCommand = `"${PATH}/Scripts/conda" run --no-capture-output -p "${PATH}/envs/artroom-ldm" python -m pip install -r "${PATH_requirements}" && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
-    
-    installationProcess = spawn(installationCommand, { shell: true, detached: true });
+    console.log("REINSTALLING DEPENDENCIES");
+    const PATH = path.join(artroomPath, "artroom\\artroom_backend");
+    const PATH_requirements = path.resolve('requirements.txt');
+    const installationCommand = `"${PATH}/python.exe" -m pip install --upgrade pip && "${PATH}/python.exe" -m pip install -r "${PATH_requirements}" && pause && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
+
+    let installationProcess = spawn(installationCommand, { shell: true, detached: true });
 
     installationProcess.stdout.on('data', function(data) {
       console.log("Child data: " + data);
       resolve('');
     });
+
     installationProcess.on('error', function () {
       console.log("Failed to start child.");
       resolve('');
     });
+
     installationProcess.on('close', function (code) {
       console.log('Child process exited with code ' + code);
       mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
       resolve('');
     });
+
     installationProcess.stderr.on('data', function (err) {
       console.log(`error: ${err}`);
       resolve('');
     });
+
     installationProcess.on('message', (msg) => {
-      console.log(`msg ${msg}`)
+      console.log(`msg ${msg}`);
       resolve('');
-    })
+    });
+
     installationProcess.stderr.on('message', (msg) => {
-      console.log(`ermsg ${msg}`)
+      console.log(`ermsg ${msg}`);
       resolve('');
-    })
+    });
+
     installationProcess.stdout.on('end', function () {
       console.log('Finished collecting data chunks.');
       mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
@@ -216,6 +222,7 @@ const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.
     });
   });
 }
+
 
 const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {
   fs.mkdirSync(dir, { recursive: true });

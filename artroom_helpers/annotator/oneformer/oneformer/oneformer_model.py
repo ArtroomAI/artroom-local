@@ -11,7 +11,8 @@ from torch.nn import functional as F
 
 from artroom_helpers.annotator.oneformer.detectron2.config import configurable
 from artroom_helpers.annotator.oneformer.detectron2.data import MetadataCatalog
-from artroom_helpers.annotator.oneformer.detectron2.modeling import META_ARCH_REGISTRY, build_backbone, build_sem_seg_head
+from artroom_helpers.annotator.oneformer.detectron2.modeling import META_ARCH_REGISTRY, build_backbone, \
+    build_sem_seg_head
 from artroom_helpers.annotator.oneformer.detectron2.modeling.backbone import Backbone
 from artroom_helpers.annotator.oneformer.detectron2.modeling.postprocessing import sem_seg_postprocess
 from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, ImageList, Instances, BitMasks
@@ -23,6 +24,7 @@ from .modeling.transformer_decoder.text_transformer import TextTransformer
 from .modeling.transformer_decoder.oneformer_transformer_decoder import MLP
 from artroom_helpers.annotator.oneformer.oneformer.data.tokenizer import SimpleTokenizer, Tokenize
 
+
 @META_ARCH_REGISTRY.register()
 class OneFormer(nn.Module):
     """
@@ -31,31 +33,31 @@ class OneFormer(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        sem_seg_head: nn.Module,
-        task_mlp: nn.Module,
-        text_encoder: nn.Module,
-        text_projector: nn.Module,
-        prompt_ctx: nn.Embedding,
-        num_queries: int,
-        object_mask_threshold: float,
-        overlap_threshold: float,
-        metadata,
-        size_divisibility: int,
-        sem_seg_postprocess_before_inference: bool,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
-        # inference
-        semantic_on: bool,
-        panoptic_on: bool,
-        instance_on: bool,
-        detection_on: bool,
-        test_topk_per_image: int,
-        task_seq_len: int,
-        max_seq_len: int,
-        is_demo: bool,
+            self,
+            *,
+            backbone: Backbone,
+            sem_seg_head: nn.Module,
+            task_mlp: nn.Module,
+            text_encoder: nn.Module,
+            text_projector: nn.Module,
+            prompt_ctx: nn.Embedding,
+            num_queries: int,
+            object_mask_threshold: float,
+            overlap_threshold: float,
+            metadata,
+            size_divisibility: int,
+            sem_seg_postprocess_before_inference: bool,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
+            # inference
+            semantic_on: bool,
+            panoptic_on: bool,
+            instance_on: bool,
+            detection_on: bool,
+            test_topk_per_image: int,
+            task_seq_len: int,
+            max_seq_len: int,
+            is_demo: bool,
     ):
         """
         Args:
@@ -123,11 +125,11 @@ class OneFormer(nn.Module):
 
         if cfg.MODEL.IS_TRAIN:
             text_encoder = TextTransformer(context_length=cfg.MODEL.TEXT_ENCODER.CONTEXT_LENGTH,
-                                    width=cfg.MODEL.TEXT_ENCODER.WIDTH,
-                                    layers=cfg.MODEL.TEXT_ENCODER.NUM_LAYERS,
-                                    vocab_size=cfg.MODEL.TEXT_ENCODER.VOCAB_SIZE)
-            text_projector = MLP(text_encoder.width, cfg.MODEL.ONE_FORMER.HIDDEN_DIM, 
-                                cfg.MODEL.ONE_FORMER.HIDDEN_DIM, cfg.MODEL.TEXT_ENCODER.PROJ_NUM_LAYERS)
+                                           width=cfg.MODEL.TEXT_ENCODER.WIDTH,
+                                           layers=cfg.MODEL.TEXT_ENCODER.NUM_LAYERS,
+                                           vocab_size=cfg.MODEL.TEXT_ENCODER.VOCAB_SIZE)
+            text_projector = MLP(text_encoder.width, cfg.MODEL.ONE_FORMER.HIDDEN_DIM,
+                                 cfg.MODEL.ONE_FORMER.HIDDEN_DIM, cfg.MODEL.TEXT_ENCODER.PROJ_NUM_LAYERS)
             if cfg.MODEL.TEXT_ENCODER.N_CTX > 0:
                 prompt_ctx = nn.Embedding(cfg.MODEL.TEXT_ENCODER.N_CTX, cfg.MODEL.TEXT_ENCODER.WIDTH)
             else:
@@ -138,7 +140,7 @@ class OneFormer(nn.Module):
             prompt_ctx = None
 
         task_mlp = MLP(cfg.INPUT.TASK_SEQ_LEN, cfg.MODEL.ONE_FORMER.HIDDEN_DIM,
-                        cfg.MODEL.ONE_FORMER.HIDDEN_DIM, 2)
+                       cfg.MODEL.ONE_FORMER.HIDDEN_DIM, 2)
 
         # Loss parameters:
         deep_supervision = cfg.MODEL.ONE_FORMER.DEEP_SUPERVISION
@@ -149,7 +151,7 @@ class OneFormer(nn.Module):
         dice_weight = cfg.MODEL.ONE_FORMER.DICE_WEIGHT
         mask_weight = cfg.MODEL.ONE_FORMER.MASK_WEIGHT
         contrastive_weight = cfg.MODEL.ONE_FORMER.CONTRASTIVE_WEIGHT
-        
+
         # building criterion
         matcher = HungarianMatcher(
             cost_class=class_weight,
@@ -158,10 +160,9 @@ class OneFormer(nn.Module):
             num_points=cfg.MODEL.ONE_FORMER.TRAIN_NUM_POINTS,
         )
 
-        weight_dict = {"loss_ce": class_weight, "loss_mask": mask_weight, 
-                        "loss_dice": dice_weight, "loss_contrastive": contrastive_weight}
+        weight_dict = {"loss_ce": class_weight, "loss_mask": mask_weight,
+                       "loss_dice": dice_weight, "loss_contrastive": contrastive_weight}
 
-        
         if deep_supervision:
             dec_layers = cfg.MODEL.ONE_FORMER.DEC_LAYERS
             aux_weight_dict = {}
@@ -184,9 +185,9 @@ class OneFormer(nn.Module):
             "metadata": MetadataCatalog.get(cfg.DATASETS.TRAIN[0]),
             "size_divisibility": cfg.MODEL.ONE_FORMER.SIZE_DIVISIBILITY,
             "sem_seg_postprocess_before_inference": (
-                cfg.MODEL.TEST.SEM_SEG_POSTPROCESSING_BEFORE_INFERENCE
-                or cfg.MODEL.TEST.PANOPTIC_ON
-                or cfg.MODEL.TEST.INSTANCE_ON
+                    cfg.MODEL.TEST.SEM_SEG_POSTPROCESSING_BEFORE_INFERENCE
+                    or cfg.MODEL.TEST.PANOPTIC_ON
+                    or cfg.MODEL.TEST.INSTANCE_ON
             ),
             "pixel_mean": cfg.MODEL.PIXEL_MEAN,
             "pixel_std": cfg.MODEL.PIXEL_STD,
@@ -225,9 +226,9 @@ class OneFormer(nn.Module):
             if self.prompt_ctx is not None:
                 text_ctx = self.prompt_ctx.weight.unsqueeze(0).repeat(text_x.shape[0], 1, 1)
                 text_x = torch.cat([text_x, text_ctx], dim=1)
-        
+
         return {"texts": text_x}
-    
+
     def forward(self, batched_inputs):
         """
         Args:
@@ -264,7 +265,8 @@ class OneFormer(nn.Module):
         outputs = self.sem_seg_head(features, tasks)
 
         if self.training:
-            texts = torch.cat([self.text_tokenizer(x["text"]).to(self.device).unsqueeze(0) for x in batched_inputs], dim=0)
+            texts = torch.cat([self.text_tokenizer(x["text"]).to(self.device).unsqueeze(0) for x in batched_inputs],
+                              dim=0)
             texts_x = self.encode_text(texts)
 
             outputs = {**outputs, **texts_x}
@@ -301,7 +303,7 @@ class OneFormer(nn.Module):
 
             processed_results = []
             for i, data in enumerate(zip(
-                mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+                    mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
             )):
                 mask_cls_result, mask_pred_result, input_per_image, image_size = data
                 height = input_per_image.get("height", image_size[0])
@@ -325,7 +327,7 @@ class OneFormer(nn.Module):
                 if self.panoptic_on:
                     panoptic_r = retry_if_cuda_oom(self.panoptic_inference)(mask_cls_result, mask_pred_result)
                     processed_results[-1]["panoptic_seg"] = panoptic_r
-                
+
                 # instance segmentation inference
                 if self.instance_on:
                     instance_r = retry_if_cuda_oom(self.instance_inference)(mask_cls_result, mask_pred_result)
@@ -423,8 +425,9 @@ class OneFormer(nn.Module):
 
         # [Q, K]
         scores = F.softmax(mask_cls, dim=-1)[:, :-1]
-        labels = torch.arange(self.sem_seg_head.num_classes, device=self.device).unsqueeze(0).repeat(self.num_queries, 1).flatten(0, 1)
-        
+        labels = torch.arange(self.sem_seg_head.num_classes, device=self.device).unsqueeze(0).repeat(self.num_queries,
+                                                                                                     1).flatten(0, 1)
+
         # scores_per_image, topk_indices = scores.flatten(0, 1).topk(self.num_queries, sorted=False)
         scores_per_image, topk_indices = scores.flatten(0, 1).topk(self.test_topk_per_image, sorted=False)
         labels_per_image = labels[topk_indices]
@@ -449,7 +452,7 @@ class OneFormer(nn.Module):
             scores_per_image = scores_per_image[keep]
             labels_per_image = labels_per_image[keep]
             mask_pred = mask_pred[keep]
-        
+
         if 'ade20k' in self.metadata.name:
             for i in range(labels_per_image.shape[0]):
                 labels_per_image[i] = self.thing_indices.index(labels_per_image[i].item())
@@ -464,7 +467,8 @@ class OneFormer(nn.Module):
             result.pred_boxes = Boxes(torch.zeros(mask_pred.size(0), 4))
 
         # calculate average mask prob
-        mask_scores_per_image = (mask_pred.sigmoid().flatten(1) * result.pred_masks.flatten(1)).sum(1) / (result.pred_masks.flatten(1).sum(1) + 1e-6)
+        mask_scores_per_image = (mask_pred.sigmoid().flatten(1) * result.pred_masks.flatten(1)).sum(1) / (
+                    result.pred_masks.flatten(1).sum(1) + 1e-6)
         result.scores = scores_per_image * mask_scores_per_image
         result.pred_classes = labels_per_image
         return result

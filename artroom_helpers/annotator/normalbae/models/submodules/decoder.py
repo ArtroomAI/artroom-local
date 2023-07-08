@@ -57,19 +57,20 @@ class Decoder(nn.Module):
         )
 
     def forward(self, features, gt_norm_mask=None, mode='test'):
-        x_block0, x_block1, x_block2, x_block3, x_block4 = features[4], features[5], features[6], features[8], features[11]
+        x_block0, x_block1, x_block2, x_block3, x_block4 = features[4], features[5], features[6], features[8], features[
+            11]
 
         # generate feature-map
 
-        x_d0 = self.conv2(x_block4)                     # x_d0 : [2, 2048, 15, 20]      1/32 res
-        x_d1 = self.up1(x_d0, x_block3)                 # x_d1 : [2, 1024, 30, 40]      1/16 res
-        x_d2 = self.up2(x_d1, x_block2)                 # x_d2 : [2, 512, 60, 80]       1/8 res
-        x_d3 = self.up3(x_d2, x_block1)                 # x_d3: [2, 256, 120, 160]      1/4 res
-        x_d4 = self.up4(x_d3, x_block0)                 # x_d4: [2, 128, 240, 320]      1/2 res
+        x_d0 = self.conv2(x_block4)  # x_d0 : [2, 2048, 15, 20]      1/32 res
+        x_d1 = self.up1(x_d0, x_block3)  # x_d1 : [2, 1024, 30, 40]      1/16 res
+        x_d2 = self.up2(x_d1, x_block2)  # x_d2 : [2, 512, 60, 80]       1/8 res
+        x_d3 = self.up3(x_d2, x_block1)  # x_d3: [2, 256, 120, 160]      1/4 res
+        x_d4 = self.up4(x_d3, x_block0)  # x_d4: [2, 128, 240, 320]      1/2 res
 
         # 1/8 res output
-        out_res8 = self.out_conv_res8(x_d2)             # out_res8: [2, 4, 60, 80]      1/8 res output
-        out_res8 = norm_normalize(out_res8)             # out_res8: [2, 4, 60, 80]      1/8 res output
+        out_res8 = self.out_conv_res8(x_d2)  # out_res8: [2, 4, 60, 80]      1/8 res output
+        out_res8 = norm_normalize(out_res8)  # out_res8: [2, 4, 60, 80]      1/8 res output
 
         ################################################################################################################
         # out_res4
@@ -199,4 +200,3 @@ class Decoder(nn.Module):
         return [out_res8, out_res4, out_res2, out_res1], \
                [out_res8, samples_pred_res4, samples_pred_res2, samples_pred_res1], \
                [None, point_coords_res4, point_coords_res2, point_coords_res1]
-

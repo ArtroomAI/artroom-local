@@ -13,7 +13,6 @@ import warnings
 import onnx
 from onnx import optimizer
 
-
 parser = argparse.ArgumentParser(description="Optimize ONNX model")
 
 parser.add_argument("model", help="The ONNX model")
@@ -45,7 +44,7 @@ def main():
 
     # Optimizer passes to perform
     passes = [
-        #'eliminate_deadend',
+        # 'eliminate_deadend',
         'eliminate_identity',
         'eliminate_nop_dropout',
         'eliminate_nop_pad',
@@ -58,10 +57,10 @@ def main():
         'fuse_consecutive_reduce_unsqueeze',
         'fuse_consecutive_squeezes',
         'fuse_consecutive_transposes',
-        #'fuse_matmul_add_bias_into_gemm',
+        # 'fuse_matmul_add_bias_into_gemm',
         'fuse_pad_into_conv',
-        #'fuse_transpose_into_gemm',
-        #'lift_lexical_references',
+        # 'fuse_transpose_into_gemm',
+        # 'lift_lexical_references',
     ]
 
     # Apply the optimization on the original serialized model

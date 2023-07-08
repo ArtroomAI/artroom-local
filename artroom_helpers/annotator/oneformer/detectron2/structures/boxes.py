@@ -76,7 +76,7 @@ class BoxMode(IntEnum):
 
         if from_mode == BoxMode.XYWHA_ABS and to_mode == BoxMode.XYXY_ABS:
             assert (
-                arr.shape[-1] == 5
+                    arr.shape[-1] == 5
             ), "The last dimension of input shape must be 5 for XYWHA format"
             original_dtype = arr.dtype
             arr = arr.double()
@@ -254,10 +254,10 @@ class Boxes:
         """
         height, width = box_size
         inds_inside = (
-            (self.tensor[..., 0] >= -boundary_threshold)
-            & (self.tensor[..., 1] >= -boundary_threshold)
-            & (self.tensor[..., 2] < width + boundary_threshold)
-            & (self.tensor[..., 3] < height + boundary_threshold)
+                (self.tensor[..., 0] >= -boundary_threshold)
+                & (self.tensor[..., 1] >= -boundary_threshold)
+                & (self.tensor[..., 2] < width + boundary_threshold)
+                & (self.tensor[..., 3] < height + boundary_threshold)
         )
         return inds_inside
 

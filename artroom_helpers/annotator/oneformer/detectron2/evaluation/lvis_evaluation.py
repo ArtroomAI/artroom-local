@@ -26,13 +26,13 @@ class LVISEvaluator(DatasetEvaluator):
     """
 
     def __init__(
-        self,
-        dataset_name,
-        tasks=None,
-        distributed=True,
-        output_dir=None,
-        *,
-        max_dets_per_image=None,
+            self,
+            dataset_name,
+            tasks=None,
+            distributed=True,
+            output_dir=None,
+            *,
+            max_dets_per_image=None,
     ):
         """
         Args:
@@ -238,14 +238,14 @@ def _evaluate_box_proposals(dataset_predictions, lvis_api, thresholds=None, area
         "512-inf": 7,
     }
     area_ranges = [
-        [0**2, 1e5**2],  # all
-        [0**2, 32**2],  # small
-        [32**2, 96**2],  # medium
-        [96**2, 1e5**2],  # large
-        [96**2, 128**2],  # 96-128
-        [128**2, 256**2],  # 128-256
-        [256**2, 512**2],  # 256-512
-        [512**2, 1e5**2],
+        [0 ** 2, 1e5 ** 2],  # all
+        [0 ** 2, 32 ** 2],  # small
+        [32 ** 2, 96 ** 2],  # medium
+        [96 ** 2, 1e5 ** 2],  # large
+        [96 ** 2, 128 ** 2],  # 96-128
+        [128 ** 2, 256 ** 2],  # 128-256
+        [256 ** 2, 512 ** 2],  # 256-512
+        [512 ** 2, 1e5 ** 2],
     ]  # 512-inf
     assert area in areas, "Unknown area range: {}".format(area)
     area_range = area_ranges[areas[area]]
@@ -329,7 +329,7 @@ def _evaluate_box_proposals(dataset_predictions, lvis_api, thresholds=None, area
 
 
 def _evaluate_predictions_on_lvis(
-    lvis_gt, lvis_results, iou_type, max_dets_per_image=None, class_names=None
+        lvis_gt, lvis_results, iou_type, max_dets_per_image=None, class_names=None
 ):
     """
     Args:

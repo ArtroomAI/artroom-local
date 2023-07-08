@@ -36,14 +36,14 @@ class CascadeROIHeads(StandardROIHeads):
 
     @configurable
     def __init__(
-        self,
-        *,
-        box_in_features: List[str],
-        box_pooler: ROIPooler,
-        box_heads: List[nn.Module],
-        box_predictors: List[nn.Module],
-        proposal_matchers: List[Matcher],
-        **kwargs,
+            self,
+            *,
+            box_in_features: List[str],
+            box_pooler: ROIPooler,
+            box_heads: List[nn.Module],
+            box_predictors: List[nn.Module],
+            proposal_matchers: List[Matcher],
+            **kwargs,
     ):
         """
         NOTE: this interface is experimental.
@@ -86,15 +86,15 @@ class CascadeROIHeads(StandardROIHeads):
     @classmethod
     def _init_box_head(cls, cfg, input_shape):
         # fmt: off
-        in_features              = cfg.MODEL.ROI_HEADS.IN_FEATURES
-        pooler_resolution        = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
-        pooler_scales            = tuple(1.0 / input_shape[k].stride for k in in_features)
-        sampling_ratio           = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
-        pooler_type              = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        in_features = cfg.MODEL.ROI_HEADS.IN_FEATURES
+        pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
+        pooler_scales = tuple(1.0 / input_shape[k].stride for k in in_features)
+        sampling_ratio = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        pooler_type = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
         cascade_bbox_reg_weights = cfg.MODEL.ROI_BOX_CASCADE_HEAD.BBOX_REG_WEIGHTS
-        cascade_ious             = cfg.MODEL.ROI_BOX_CASCADE_HEAD.IOUS
+        cascade_ious = cfg.MODEL.ROI_BOX_CASCADE_HEAD.IOUS
         assert len(cascade_bbox_reg_weights) == len(cascade_ious)
-        assert cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG,  \
+        assert cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG, \
             "CascadeROIHeads only support class-agnostic regression now!"
         assert cascade_ious[0] == cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS[0]
         # fmt: on

@@ -12,7 +12,6 @@ def create_model(
         in_chans=3,
         checkpoint_path='',
         **kwargs):
-
     model_kwargs = dict(num_classes=num_classes, in_chans=in_chans, pretrained=pretrained, **kwargs)
 
     if model_name in globals():

@@ -16,16 +16,16 @@ from .wrappers import _NewEmptyTensorOp
 class _DeformConv(Function):
     @staticmethod
     def forward(
-        ctx,
-        input,
-        offset,
-        weight,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        deformable_groups=1,
-        im2col_step=64,
+            ctx,
+            input,
+            offset,
+            weight,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            deformable_groups=1,
+            im2col_step=64,
     ):
         if input is not None and input.dim() != 4:
             raise ValueError(
@@ -187,17 +187,17 @@ class _DeformConv(Function):
 class _ModulatedDeformConv(Function):
     @staticmethod
     def forward(
-        ctx,
-        input,
-        offset,
-        mask,
-        weight,
-        bias=None,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        deformable_groups=1,
+            ctx,
+            input,
+            offset,
+            mask,
+            weight,
+            bias=None,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            deformable_groups=1,
     ):
         ctx.stride = stride
         ctx.padding = padding
@@ -210,10 +210,10 @@ class _ModulatedDeformConv(Function):
         if not input.is_cuda:
             raise NotImplementedError("Deformable Conv is not supported on CPUs!")
         if (
-            weight.requires_grad
-            or mask.requires_grad
-            or offset.requires_grad
-            or input.requires_grad
+                weight.requires_grad
+                or mask.requires_grad
+                or offset.requires_grad
+                or input.requires_grad
         ):
             ctx.save_for_backward(input, offset, mask, weight, bias)
         output = input.new_empty(_ModulatedDeformConv._infer_shape(ctx, input, weight))
@@ -301,11 +301,11 @@ class _ModulatedDeformConv(Function):
         height, width = input.shape[2:4]
         kernel_h, kernel_w = weight.shape[2:4]
         height_out = (
-            height + 2 * ctx.padding - (ctx.dilation * (kernel_h - 1) + 1)
-        ) // ctx.stride + 1
+                             height + 2 * ctx.padding - (ctx.dilation * (kernel_h - 1) + 1)
+                     ) // ctx.stride + 1
         width_out = (
-            width + 2 * ctx.padding - (ctx.dilation * (kernel_w - 1) + 1)
-        ) // ctx.stride + 1
+                            width + 2 * ctx.padding - (ctx.dilation * (kernel_w - 1) + 1)
+                    ) // ctx.stride + 1
         return n, channels_out, height_out, width_out
 
 
@@ -315,18 +315,18 @@ modulated_deform_conv = _ModulatedDeformConv.apply
 
 class DeformConv(nn.Module):
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        deformable_groups=1,
-        bias=False,
-        norm=None,
-        activation=None,
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            deformable_groups=1,
+            bias=False,
+            norm=None,
+            activation=None,
     ):
         """
         Deformable convolution from :paper:`deformconv`.
@@ -345,7 +345,7 @@ class DeformConv(nn.Module):
             in_channels, groups
         )
         assert (
-            out_channels % groups == 0
+                out_channels % groups == 0
         ), "out_channels {} cannot be divisible by groups {}".format(out_channels, groups)
 
         self.in_channels = in_channels
@@ -412,18 +412,18 @@ class DeformConv(nn.Module):
 
 class ModulatedDeformConv(nn.Module):
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        deformable_groups=1,
-        bias=True,
-        norm=None,
-        activation=None,
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            deformable_groups=1,
+            bias=True,
+            norm=None,
+            activation=None,
     ):
         """
         Modulated deformable convolution from :paper:`deformconv2`.

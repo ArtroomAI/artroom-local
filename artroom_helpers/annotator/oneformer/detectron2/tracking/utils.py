@@ -6,10 +6,10 @@ from artroom_helpers.annotator.oneformer.detectron2.structures import Instances
 
 
 def create_prediction_pairs(
-    instances: Instances,
-    prev_instances: Instances,
-    iou_all: np.ndarray,
-    threshold: float = 0.5,
+        instances: Instances,
+        prev_instances: Instances,
+        iou_all: np.ndarray,
+        threshold: float = 0.5,
 ) -> List:
     """
     Args:

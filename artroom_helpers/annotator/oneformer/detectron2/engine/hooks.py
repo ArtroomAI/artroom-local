@@ -41,7 +41,6 @@ __all__ = [
     "TorchMemoryStats",
 ]
 
-
 """
 Implement some common hooks.
 """
@@ -175,7 +174,7 @@ class PeriodicWriter(HookBase):
 
     def after_step(self):
         if (self.trainer.iter + 1) % self._period == 0 or (
-            self.trainer.iter == self.trainer.max_iter - 1
+                self.trainer.iter == self.trainer.max_iter - 1
         ):
             for writer in self._writers:
                 writer.write()
@@ -216,12 +215,12 @@ class BestCheckpointer(HookBase):
     """
 
     def __init__(
-        self,
-        eval_period: int,
-        checkpointer: Checkpointer,
-        val_metric: str,
-        mode: str = "max",
-        file_prefix: str = "model_best",
+            self,
+            eval_period: int,
+            checkpointer: Checkpointer,
+            val_metric: str,
+            mode: str = "max",
+            file_prefix: str = "model_best",
     ) -> None:
         """
         Args:
@@ -292,9 +291,9 @@ class BestCheckpointer(HookBase):
         # same conditions as `EvalHook`
         next_iter = self.trainer.iter + 1
         if (
-            self._period > 0
-            and next_iter % self._period == 0
-            and next_iter != self.trainer.max_iter
+                self._period > 0
+                and next_iter % self._period == 0
+                and next_iter != self.trainer.max_iter
         ):
             self._best_checking()
 
@@ -658,7 +657,7 @@ class TorchMemoryStats(HookBase):
             return
 
         if (self.trainer.iter + 1) % self._period == 0 or (
-            self.trainer.iter == self.trainer.max_iter - 1
+                self.trainer.iter == self.trainer.max_iter - 1
         ):
             if torch.cuda.is_available():
                 max_reserved_mb = torch.cuda.max_memory_reserved() / 1024.0 / 1024.0

@@ -19,7 +19,6 @@ __all__ = [
     "ROI_MASK_HEAD_REGISTRY",
 ]
 
-
 ROI_MASK_HEAD_REGISTRY = Registry("ROI_MASK_HEAD")
 ROI_MASK_HEAD_REGISTRY.__doc__ = """
 Registry for mask heads, which predicts instance masks given

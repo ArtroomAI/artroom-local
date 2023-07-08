@@ -13,7 +13,6 @@ from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes
 # 1000px box (based on a small anchor, 16px, and a typical image size, 1000px).
 _DEFAULT_SCALE_CLAMP = math.log(1000.0 / 16)
 
-
 __all__ = ["Box2BoxTransform", "Box2BoxTransformRotated", "Box2BoxTransformLinear"]
 
 
@@ -26,7 +25,7 @@ class Box2BoxTransform(object):
     """
 
     def __init__(
-        self, weights: Tuple[float, float, float, float], scale_clamp: float = _DEFAULT_SCALE_CLAMP
+            self, weights: Tuple[float, float, float, float], scale_clamp: float = _DEFAULT_SCALE_CLAMP
     ):
         """
         Args:
@@ -127,9 +126,9 @@ class Box2BoxTransformRotated(object):
     """
 
     def __init__(
-        self,
-        weights: Tuple[float, float, float, float, float],
-        scale_clamp: float = _DEFAULT_SCALE_CLAMP,
+            self,
+            weights: Tuple[float, float, float, float, float],
+            scale_clamp: float = _DEFAULT_SCALE_CLAMP,
     ):
         """
         Args:
@@ -308,13 +307,13 @@ class Box2BoxTransformLinear(object):
 
 
 def _dense_box_regression_loss(
-    anchors: List[Union[Boxes, torch.Tensor]],
-    box2box_transform: Box2BoxTransform,
-    pred_anchor_deltas: List[torch.Tensor],
-    gt_boxes: List[torch.Tensor],
-    fg_mask: torch.Tensor,
-    box_reg_loss_type="smooth_l1",
-    smooth_l1_beta=0.0,
+        anchors: List[Union[Boxes, torch.Tensor]],
+        box2box_transform: Box2BoxTransform,
+        pred_anchor_deltas: List[torch.Tensor],
+        gt_boxes: List[torch.Tensor],
+        fg_mask: torch.Tensor,
+        box_reg_loss_type="smooth_l1",
+        smooth_l1_beta=0.0,
 ):
     """
     Compute loss for dense multi-level box regression.

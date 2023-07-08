@@ -7,9 +7,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 
 
 # convert arg line to args
@@ -102,7 +102,6 @@ def make_dir_from_list(dirpath_list):
         makedir(dirpath)
 
 
-
 ########################################################################################################################
 # Visualization
 ########################################################################################################################
@@ -110,6 +109,8 @@ def make_dir_from_list(dirpath_list):
 
 # unnormalize image
 __imagenet_stats = {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}
+
+
 def unnormalize(img_in):
     img_out = np.zeros(img_in.shape)
     for ich in range(3):
@@ -153,9 +154,9 @@ def visualize(args, img, gt_norm, gt_norm_mask, norm_out_list, total_iter):
         pred_kappa_list.append(pred_kappa)
 
     # to numpy arrays
-    img = img.detach().cpu().permute(0, 2, 3, 1).numpy()                     # (B, H, W, 3)
-    gt_norm = gt_norm.detach().cpu().permute(0, 2, 3, 1).numpy()             # (B, H, W, 3)
-    gt_norm_mask = gt_norm_mask.detach().cpu().permute(0, 2, 3, 1).numpy()   # (B, H, W, 1)
+    img = img.detach().cpu().permute(0, 2, 3, 1).numpy()  # (B, H, W, 3)
+    gt_norm = gt_norm.detach().cpu().permute(0, 2, 3, 1).numpy()  # (B, H, W, 3)
+    gt_norm_mask = gt_norm_mask.detach().cpu().permute(0, 2, 3, 1).numpy()  # (B, H, W, 1)
 
     # input image
     target_path = '%s/%08d_img.jpg' % (args.exp_vis_dir, total_iter)

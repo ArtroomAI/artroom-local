@@ -23,14 +23,14 @@ class FPN(Backbone):
     _fuse_type: torch.jit.Final[str]
 
     def __init__(
-        self,
-        bottom_up,
-        in_features,
-        out_channels,
-        norm="",
-        top_block=None,
-        fuse_type="sum",
-        square_pad=0,
+            self,
+            bottom_up,
+            in_features,
+            out_channels,
+            norm="",
+            top_block=None,
+            fuse_type="sum",
+            square_pad=0,
     ):
         """
         Args:
@@ -143,7 +143,7 @@ class FPN(Backbone):
 
         # Reverse feature maps into top-down order (from low to high resolution)
         for idx, (lateral_conv, output_conv) in enumerate(
-            zip(self.lateral_convs, self.output_convs)
+                zip(self.lateral_convs, self.output_convs)
         ):
             # Slicing of ModuleList is not supported https://github.com/pytorch/pytorch/issues/47336
             # Therefore we loop over all modules but skip the first one

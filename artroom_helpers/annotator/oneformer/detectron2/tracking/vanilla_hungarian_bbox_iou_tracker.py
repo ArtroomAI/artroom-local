@@ -22,16 +22,16 @@ class VanillaHungarianBBoxIOUTracker(BaseHungarianTracker):
 
     @configurable
     def __init__(
-        self,
-        *,
-        video_height: int,
-        video_width: int,
-        max_num_instances: int = 200,
-        max_lost_frame_count: int = 0,
-        min_box_rel_dim: float = 0.02,
-        min_instance_period: int = 1,
-        track_iou_threshold: float = 0.5,
-        **kwargs,
+            self,
+            *,
+            video_height: int,
+            video_width: int,
+            max_num_instances: int = 200,
+            max_lost_frame_count: int = 0,
+            min_box_rel_dim: float = 0.02,
+            min_instance_period: int = 1,
+            track_iou_threshold: float = 0.5,
+            **kwargs,
     ):
         """
         Args:

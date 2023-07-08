@@ -14,7 +14,8 @@ class PidiNetDetector:
             from basicsr.utils.download_util import load_file_from_url
             load_file_from_url(remote_model_path, model_dir=annotator_ckpts_path)
         self.netNetwork = pidinet()
-        self.netNetwork.load_state_dict({k.replace('module.', ''): v for k, v in torch.load(modelpath)['state_dict'].items()})
+        self.netNetwork.load_state_dict(
+            {k.replace('module.', ''): v for k, v in torch.load(modelpath)['state_dict'].items()})
         self.netNetwork = self.netNetwork.cuda()
         self.netNetwork.eval()
 

@@ -18,14 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 def find_top_rrpn_proposals(
-    proposals,
-    pred_objectness_logits,
-    image_sizes,
-    nms_thresh,
-    pre_nms_topk,
-    post_nms_topk,
-    min_box_size,
-    training,
+        proposals,
+        pred_objectness_logits,
+        image_sizes,
+        nms_thresh,
+        pre_nms_topk,
+        post_nms_topk,
+        min_box_size,
+        training,
 ):
     """
     For each feature map, select the `pre_nms_topk` highest scoring proposals,
@@ -65,7 +65,7 @@ def find_top_rrpn_proposals(
     level_ids = []  # #lvl Tensor, each of shape (topk,)
     batch_idx = torch.arange(num_images, device=device)
     for level_id, proposals_i, logits_i in zip(
-        itertools.count(), proposals, pred_objectness_logits
+            itertools.count(), proposals, pred_objectness_logits
     ):
         Hi_Wi_A = logits_i.shape[1]
         if isinstance(Hi_Wi_A, torch.Tensor):  # it's a tensor in tracing

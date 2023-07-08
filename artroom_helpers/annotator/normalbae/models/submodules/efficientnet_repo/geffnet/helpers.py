@@ -4,6 +4,7 @@ Copyright 2020 Ross Wightman
 import torch
 import os
 from collections import OrderedDict
+
 try:
     from torch.hub import load_state_dict_from_url
 except ImportError:

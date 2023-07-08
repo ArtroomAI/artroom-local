@@ -85,7 +85,7 @@ class COCOPanopticEvaluator(DatasetEvaluator):
                         continue
                     pred_class = panoptic_label // label_divisor
                     isthing = (
-                        pred_class in self._metadata.thing_dataset_id_to_contiguous_id.values()
+                            pred_class in self._metadata.thing_dataset_id_to_contiguous_id.values()
                     )
                     segments_info.append(
                         {

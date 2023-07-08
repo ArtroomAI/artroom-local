@@ -220,21 +220,21 @@ class AnyNet(Backbone):
     """AnyNet model. See :paper:`dds`."""
 
     def __init__(
-        self,
-        *,
-        stem_class,
-        stem_width,
-        block_class,
-        depths,
-        widths,
-        group_widths,
-        strides,
-        bottleneck_ratios,
-        se_ratio,
-        activation_class,
-        freeze_at=0,
-        norm="BN",
-        out_features=None,
+            self,
+            *,
+            stem_class,
+            stem_width,
+            block_class,
+            depths,
+            widths,
+            group_widths,
+            strides,
+            bottleneck_ratios,
+            se_ratio,
+            activation_class,
+            freeze_at=0,
+            norm="BN",
+            out_features=None,
     ):
         """
         Args:
@@ -276,7 +276,7 @@ class AnyNet(Backbone):
         prev_w = stem_width
 
         for i, (d, w, s, b, g) in enumerate(
-            zip(depths, widths, strides, bottleneck_ratios, group_widths)
+                zip(depths, widths, strides, bottleneck_ratios, group_widths)
         ):
             params = {"bot_mul": b, "group_w": g, "se_r": se_ratio}
             stage = AnyStage(prev_w, w, s, d, block_class, norm, activation_class, params)
@@ -388,23 +388,23 @@ class RegNet(AnyNet):
     """RegNet model. See :paper:`dds`."""
 
     def __init__(
-        self,
-        *,
-        stem_class,
-        stem_width,
-        block_class,
-        depth,
-        w_a,
-        w_0,
-        w_m,
-        group_width,
-        stride=2,
-        bottleneck_ratio=1.0,
-        se_ratio=0.0,
-        activation_class=None,
-        freeze_at=0,
-        norm="BN",
-        out_features=None,
+            self,
+            *,
+            stem_class,
+            stem_width,
+            block_class,
+            depth,
+            w_a,
+            w_0,
+            w_m,
+            group_width,
+            stride=2,
+            bottleneck_ratio=1.0,
+            se_ratio=0.0,
+            activation_class=None,
+            freeze_at=0,
+            norm="BN",
+            out_features=None,
     ):
         """
         Build a RegNet from the parameterization described in :paper:`dds` Section 3.3.

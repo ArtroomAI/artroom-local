@@ -178,7 +178,7 @@ def print_instances_class_histogram(dataset_dicts, class_names):
         if len(classes):
             assert classes.min() >= 0, f"Got an invalid category_id={classes.min()}"
             assert (
-                classes.max() < num_classes
+                    classes.max() < num_classes
             ), f"Got an invalid category_id={classes.max()} for a dataset of {num_classes} classes"
         histogram += np.histogram(classes, bins=hist_bins)[0]
 
@@ -214,11 +214,11 @@ def print_instances_class_histogram(dataset_dicts, class_names):
 
 
 def get_detection_dataset_dicts(
-    names,
-    filter_empty=True,
-    min_keypoints=0,
-    proposal_files=None,
-    check_consistency=True,
+        names,
+        filter_empty=True,
+        min_keypoints=0,
+        proposal_files=None,
+        check_consistency=True,
 ):
     """
     Load and prepare dataset dicts for instance detection/segmentation and semantic segmentation.
@@ -280,13 +280,13 @@ def get_detection_dataset_dicts(
 
 
 def build_batch_data_loader(
-    dataset,
-    sampler,
-    total_batch_size,
-    *,
-    aspect_ratio_grouping=False,
-    num_workers=0,
-    collate_fn=None,
+        dataset,
+        sampler,
+        total_batch_size,
+        *,
+        aspect_ratio_grouping=False,
+        num_workers=0,
+        collate_fn=None,
 ):
     """
     Build a batched dataloader. The main differences from `torch.utils.data.DataLoader` are:
@@ -306,7 +306,7 @@ def build_batch_data_loader(
     """
     world_size = get_world_size()
     assert (
-        total_batch_size > 0 and total_batch_size % world_size == 0
+            total_batch_size > 0 and total_batch_size % world_size == 0
     ), "Total batch size ({}) must be divisible by the number of gpus ({}).".format(
         total_batch_size, world_size
     )
@@ -388,14 +388,14 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
 
 @configurable(from_config=_train_loader_from_config)
 def build_detection_train_loader(
-    dataset,
-    *,
-    mapper,
-    sampler=None,
-    total_batch_size,
-    aspect_ratio_grouping=True,
-    num_workers=0,
-    collate_fn=None,
+        dataset,
+        *,
+        mapper,
+        sampler=None,
+        total_batch_size,
+        aspect_ratio_grouping=True,
+        num_workers=0,
+        collate_fn=None,
 ):
     """
     Build a dataloader for object detection with some default features.
@@ -481,13 +481,13 @@ def _test_loader_from_config(cfg, dataset_name, mapper=None):
 
 @configurable(from_config=_test_loader_from_config)
 def build_detection_test_loader(
-    dataset: Union[List[Any], torchdata.Dataset],
-    *,
-    mapper: Callable[[Dict[str, Any]], Any],
-    sampler: Optional[torchdata.Sampler] = None,
-    batch_size: int = 1,
-    num_workers: int = 0,
-    collate_fn: Optional[Callable[[List[Any]], Any]] = None,
+        dataset: Union[List[Any], torchdata.Dataset],
+        *,
+        mapper: Callable[[Dict[str, Any]], Any],
+        sampler: Optional[torchdata.Sampler] = None,
+        batch_size: int = 1,
+        num_workers: int = 0,
+        collate_fn: Optional[Callable[[List[Any]], Any]] = None,
 ) -> torchdata.DataLoader:
     """
     Similar to `build_detection_train_loader`, with default batch size = 1,
@@ -552,5 +552,5 @@ def trivial_batch_collator(batch):
 
 
 def worker_init_reset_seed(worker_id):
-    initial_seed = torch.initial_seed() % 2**31
+    initial_seed = torch.initial_seed() % 2 ** 31
     seed_all_rng(initial_seed + worker_id)

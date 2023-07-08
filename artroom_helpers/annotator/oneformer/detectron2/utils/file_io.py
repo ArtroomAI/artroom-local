@@ -4,7 +4,6 @@ from iopath.common.file_io import PathManager as PathManagerBase
 
 __all__ = ["PathManager", "PathHandler"]
 
-
 PathManager = PathManagerBase()
 """
 This is a detectron2 project-specific PathManager.
@@ -25,12 +24,12 @@ class Detectron2Handler(PathHandler):
         return [self.PREFIX]
 
     def _get_local_path(self, path, **kwargs):
-        name = path[len(self.PREFIX) :]
+        name = path[len(self.PREFIX):]
         return PathManager.get_local_path(self.S3_DETECTRON2_PREFIX + name, **kwargs)
 
     def _open(self, path, mode="r", **kwargs):
         return PathManager.open(
-            self.S3_DETECTRON2_PREFIX + path[len(self.PREFIX) :], mode, **kwargs
+            self.S3_DETECTRON2_PREFIX + path[len(self.PREFIX):], mode, **kwargs
         )
 
 

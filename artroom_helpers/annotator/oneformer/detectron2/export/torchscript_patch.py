@@ -56,7 +56,7 @@ def patch_instances(fields):
     """
 
     with tempfile.TemporaryDirectory(prefix="detectron2") as dir, tempfile.NamedTemporaryFile(
-        mode="w", encoding="utf-8", suffix=".py", dir=dir, delete=False
+            mode="w", encoding="utf-8", suffix=".py", dir=dir, delete=False
     ) as f:
         try:
             # Objects that use Instances should not reuse previously-compiled
@@ -329,10 +329,10 @@ def patch_builtin_len(modules=()):
 
     with ExitStack() as stack:
         MODULES = [
-            "detectron2.modeling.roi_heads.fast_rcnn",
-            "detectron2.modeling.roi_heads.mask_head",
-            "detectron2.modeling.roi_heads.keypoint_head",
-        ] + list(modules)
+                      "detectron2.modeling.roi_heads.fast_rcnn",
+                      "detectron2.modeling.roi_heads.mask_head",
+                      "detectron2.modeling.roi_heads.keypoint_head",
+                  ] + list(modules)
         ctxs = [stack.enter_context(mock.patch(mod + ".len")) for mod in MODULES]
         for m in ctxs:
             m.side_effect = _new_len

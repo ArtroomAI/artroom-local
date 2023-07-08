@@ -22,7 +22,6 @@ __all__ = [
     "build_sem_seg_head",
 ]
 
-
 SEM_SEG_HEADS_REGISTRY = Registry("SEM_SEG_HEADS")
 SEM_SEG_HEADS_REGISTRY.__doc__ = """
 Registry for semantic segmentation heads, which make semantic segmentation predictions
@@ -38,12 +37,12 @@ class SemanticSegmentor(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        sem_seg_head: nn.Module,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
+            self,
+            *,
+            backbone: Backbone,
+            sem_seg_head: nn.Module,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
     ):
         """
         Args:
@@ -151,15 +150,15 @@ class SemSegFPNHead(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        num_classes: int,
-        conv_dims: int,
-        common_stride: int,
-        loss_weight: float = 1.0,
-        norm: Optional[Union[str, Callable]] = None,
-        ignore_value: int = -1,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            num_classes: int,
+            conv_dims: int,
+            common_stride: int,
+            loss_weight: float = 1.0,
+            norm: Optional[Union[str, Callable]] = None,
+            ignore_value: int = -1,
     ):
         """
         NOTE: this interface is experimental.
@@ -187,7 +186,7 @@ class SemSegFPNHead(nn.Module):
 
         self.scale_heads = []
         for in_feature, stride, channels in zip(
-            self.in_features, feature_strides, feature_channels
+                self.in_features, feature_strides, feature_channels
         ):
             head_ops = []
             head_length = max(1, int(np.log2(stride) - np.log2(self.common_stride)))

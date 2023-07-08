@@ -25,6 +25,7 @@ def _ntuple(n):
         if isinstance(x, collections.abc.Iterable):
             return x
         return tuple(repeat(x, n))
+
     return parse
 
 
@@ -193,6 +194,7 @@ def get_condconv_initializer(initializer, num_experts, expert_shape):
                 'CondConv variables must have shape [num_experts, num_params]'))
         for i in range(num_experts):
             initializer(weight[i].view(expert_shape))
+
     return condconv_initializer
 
 

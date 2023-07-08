@@ -17,13 +17,13 @@ from artroom_helpers.annotator.oneformer.detectron2.modeling import SEM_SEG_HEAD
 from ..pixel_decoder.fpn import build_pixel_decoder
 from ..transformer_decoder.oneformer_transformer_decoder import build_transformer_decoder
 
+
 @SEM_SEG_HEADS_REGISTRY.register()
 class OneFormerHead(nn.Module):
-
     _version = 2
 
     def _load_from_state_dict(
-        self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+            self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
     ):
         version = local_metadata.get("version", None)
         if version is None or version < 2:
@@ -48,16 +48,16 @@ class OneFormerHead(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        num_classes: int,
-        pixel_decoder: nn.Module,
-        loss_weight: float = 1.0,
-        ignore_value: int = -1,
-        # extra parameters
-        transformer_predictor: nn.Module,
-        transformer_in_feature: str,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            num_classes: int,
+            pixel_decoder: nn.Module,
+            loss_weight: float = 1.0,
+            ignore_value: int = -1,
+            # extra parameters
+            transformer_predictor: nn.Module,
+            transformer_in_feature: str,
     ):
         """
         NOTE: this interface is experimental.
@@ -118,14 +118,15 @@ class OneFormerHead(nn.Module):
         return self.layers(features, tasks, mask)
 
     def layers(self, features, tasks, mask=None):
-        mask_features, transformer_encoder_features, multi_scale_features, _, _ = self.pixel_decoder.forward_features(features)
-        
+        mask_features, transformer_encoder_features, multi_scale_features, _, _ = self.pixel_decoder.forward_features(
+            features)
+
         if self.transformer_in_feature == "multi_scale_pixel_decoder":
             predictions = self.predictor(multi_scale_features, mask_features, tasks, mask)
         else:
             if self.transformer_in_feature == "transformer_encoder":
                 assert (
-                    transformer_encoder_features is not None
+                        transformer_encoder_features is not None
                 ), "Please use the TransformerEncoderPixelDecoder."
                 predictions = self.predictor(transformer_encoder_features, mask_features, mask)
             elif self.transformer_in_feature == "pixel_embedding":

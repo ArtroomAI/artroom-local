@@ -142,7 +142,7 @@ class _TorchSerializedList(object):
         self._addr = np.asarray([len(x) for x in self._lst], dtype=np.int64)
         self._addr = torch.from_numpy(np.cumsum(self._addr))
         self._lst = torch.from_numpy(np.concatenate(self._lst))
-        logger.info("Serialized dataset takes {:.2f} MiB".format(len(self._lst) / 1024**2))
+        logger.info("Serialized dataset takes {:.2f} MiB".format(len(self._lst) / 1024 ** 2))
 
     def __len__(self):
         return len(self._addr)
@@ -178,10 +178,10 @@ class DatasetFromList(data.Dataset):
     """
 
     def __init__(
-        self,
-        lst: list,
-        copy: bool = True,
-        serialize: Union[bool, Callable] = True,
+            self,
+            lst: list,
+            copy: bool = True,
+            serialize: Union[bool, Callable] = True,
     ):
         """
         Args:

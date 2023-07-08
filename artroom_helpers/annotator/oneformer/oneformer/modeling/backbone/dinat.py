@@ -11,36 +11,36 @@ import torch.nn as nn
 from timm.models.layers import DropPath
 from artroom_helpers.annotator.oneformer.detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
 
+
 class NeighborhoodAttention(nn.Module):
     """
     Neighborhood Attention 2D Module
     """
 
     def __init__(
-        self,
-        dim,
-        num_heads,
-        kernel_size,
-        dilation=1,
-        bias=True,
-        qkv_bias=True,
-        qk_scale=None,
-        attn_drop=0.0,
-        proj_drop=0.0,
+            self,
+            dim,
+            num_heads,
+            kernel_size,
+            dilation=1,
+            bias=True,
+            qkv_bias=True,
+            qk_scale=None,
+            attn_drop=0.0,
+            proj_drop=0.0,
     ):
         super().__init__()
 
-
     def forward(self, x):
-
         return x
 
     def extra_repr(self) -> str:
         return (
-            f"head_dim={self.head_dim}, num_heads={self.num_heads}, "
-            + f"kernel_size={self.kernel_size}, dilation={self.dilation}, "
-            + f"rel_pos_bias={self.rpb is not None}"
+                f"head_dim={self.head_dim}, num_heads={self.num_heads}, "
+                + f"kernel_size={self.kernel_size}, dilation={self.dilation}, "
+                + f"rel_pos_bias={self.rpb is not None}"
         )
+
 
 class ConvTokenizer(nn.Module):
     def __init__(self, in_chans=3, embed_dim=96, norm_layer=None):
@@ -131,9 +131,8 @@ class NATLayer(nn.Module):
         return x
 
 
-
 class NATBlock(nn.Module):
-    def __init__(self, dim, depth, num_heads, kernel_size,  dilations=None,
+    def __init__(self, dim, depth, num_heads, kernel_size, dilations=None,
                  downsample=True,
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
                  drop_path=0., norm_layer=nn.LayerNorm, layer_scale=None):
@@ -258,7 +257,7 @@ class DiNAT(nn.Module):
 @BACKBONE_REGISTRY.register()
 class D2DiNAT(DiNAT, Backbone):
     def __init__(self, cfg, input_shape):
-        
+
         embed_dim = cfg.MODEL.DiNAT.EMBED_DIM
         mlp_ratio = cfg.MODEL.DiNAT.MLP_RATIO
         depths = cfg.MODEL.DiNAT.DEPTHS
@@ -302,7 +301,7 @@ class D2DiNAT(DiNAT, Backbone):
             dict[str->Tensor]: names and the corresponding features
         """
         assert (
-            x.dim() == 4
+                x.dim() == 4
         ), f"DiNAT takes an input of shape (N, C, H, W). Got {x.shape} instead!"
         outputs = {}
         y = super().forward(x)

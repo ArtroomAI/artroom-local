@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from artroom_helpers.annotator.uniformer.mmcv.cnn import (Conv2d, Linear, build_activation_layer, build_norm_layer,
-                                          constant_init, kaiming_init, normal_init)
+                                                          constant_init, kaiming_init, normal_init)
 from artroom_helpers.annotator.uniformer.mmcv.runner import _load_checkpoint
 from artroom_helpers.annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 

@@ -20,14 +20,14 @@ def _is_tracing():
 
 
 def find_top_rpn_proposals(
-    proposals: List[torch.Tensor],
-    pred_objectness_logits: List[torch.Tensor],
-    image_sizes: List[Tuple[int, int]],
-    nms_thresh: float,
-    pre_nms_topk: int,
-    post_nms_topk: int,
-    min_box_size: float,
-    training: bool,
+        proposals: List[torch.Tensor],
+        pred_objectness_logits: List[torch.Tensor],
+        image_sizes: List[Tuple[int, int]],
+        nms_thresh: float,
+        pre_nms_topk: int,
+        post_nms_topk: int,
+        min_box_size: float,
+        training: bool,
 ):
     """
     For each feature map, select the `pre_nms_topk` highest scoring proposals,
@@ -136,7 +136,7 @@ def find_top_rpn_proposals(
 
 
 def add_ground_truth_to_proposals(
-    gt: Union[List[Instances], List[Boxes]], proposals: List[Instances]
+        gt: Union[List[Instances], List[Boxes]], proposals: List[Instances]
 ) -> List[Instances]:
     """
     Call `add_ground_truth_to_proposals_single_image` for all images.
@@ -165,7 +165,7 @@ def add_ground_truth_to_proposals(
 
 
 def add_ground_truth_to_proposals_single_image(
-    gt: Union[Instances, Boxes], proposals: Instances
+        gt: Union[Instances, Boxes], proposals: Instances
 ) -> Instances:
     """
     Augment `proposals` with `gt`.

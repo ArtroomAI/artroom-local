@@ -20,7 +20,6 @@ __all__ = [
 FLOPS_MODE = "flops"
 ACTIVATIONS_MODE = "activations"
 
-
 # Some extra ops to ignore from counting, including elementwise and reduction ops
 _IGNORED_OPS = {
     "aten::add",
@@ -101,7 +100,7 @@ def flop_count_operators(model: nn.Module, inputs: list) -> typing.DefaultDict[s
 
 
 def activation_count_operators(
-    model: nn.Module, inputs: list, **kwargs
+        model: nn.Module, inputs: list, **kwargs
 ) -> typing.DefaultDict[str, float]:
     """
     Implement operator-level activations counting using jit.
@@ -126,7 +125,7 @@ def activation_count_operators(
 
 
 def _wrapper_count_operators(
-    model: nn.Module, inputs: list, mode: str, **kwargs
+        model: nn.Module, inputs: list, mode: str, **kwargs
 ) -> typing.DefaultDict[str, float]:
     # ignore some ops
     supported_ops = {k: lambda *args, **kwargs: {} for k in _IGNORED_OPS}

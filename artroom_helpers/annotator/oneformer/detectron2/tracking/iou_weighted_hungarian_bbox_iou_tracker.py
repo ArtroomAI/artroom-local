@@ -20,16 +20,16 @@ class IOUWeightedHungarianBBoxIOUTracker(VanillaHungarianBBoxIOUTracker):
 
     @configurable
     def __init__(
-        self,
-        *,
-        video_height: int,
-        video_width: int,
-        max_num_instances: int = 200,
-        max_lost_frame_count: int = 0,
-        min_box_rel_dim: float = 0.02,
-        min_instance_period: int = 1,
-        track_iou_threshold: float = 0.5,
-        **kwargs,
+            self,
+            *,
+            video_height: int,
+            video_width: int,
+            max_num_instances: int = 200,
+            max_lost_frame_count: int = 0,
+            min_box_rel_dim: float = 0.02,
+            min_instance_period: int = 1,
+            track_iou_threshold: float = 0.5,
+            **kwargs,
     ):
         """
         Args:
@@ -76,7 +76,8 @@ class IOUWeightedHungarianBBoxIOUTracker(VanillaHungarianBBoxIOUTracker):
         min_instance_period = cfg.TRACKER_HEADS.get("MIN_INSTANCE_PERIOD", 1)
         track_iou_threshold = cfg.TRACKER_HEADS.get("TRACK_IOU_THRESHOLD", 0.5)
         return {
-            "_target_": "detectron2.tracking.iou_weighted_hungarian_bbox_iou_tracker.IOUWeightedHungarianBBoxIOUTracker",  # noqa
+            "_target_": "detectron2.tracking.iou_weighted_hungarian_bbox_iou_tracker.IOUWeightedHungarianBBoxIOUTracker",
+            # noqa
             "video_height": video_height,
             "video_width": video_width,
             "max_num_instances": max_num_instances,

@@ -5,7 +5,8 @@ import torch
 from torch import nn
 from torchvision.ops import RoIPool
 
-from artroom_helpers.annotator.oneformer.detectron2.layers import ROIAlign, ROIAlignRotated, cat, nonzero_tuple, shapes_to_tensor
+from artroom_helpers.annotator.oneformer.detectron2.layers import ROIAlign, ROIAlignRotated, cat, nonzero_tuple, \
+    shapes_to_tensor
 from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes
 from artroom_helpers.annotator.oneformer.detectron2.utils.tracing import assert_fx_safe, is_fx_tracing
 
@@ -21,11 +22,11 @@ __all__ = ["ROIPooler"]
 
 
 def assign_boxes_to_levels(
-    box_lists: List[Boxes],
-    min_level: int,
-    max_level: int,
-    canonical_box_size: int,
-    canonical_level: int,
+        box_lists: List[Boxes],
+        min_level: int,
+        max_level: int,
+        canonical_box_size: int,
+        canonical_level: int,
 ):
     """
     Map each box in `box_lists` to a feature map level index and return the assignment
@@ -100,11 +101,11 @@ def convert_boxes_to_pooler_format(box_lists: List[Boxes]):
 
 @torch.jit.script_if_tracing
 def _create_zeros(
-    batch_target: Optional[torch.Tensor],
-    channels: int,
-    height: int,
-    width: int,
-    like_tensor: torch.Tensor,
+        batch_target: Optional[torch.Tensor],
+        channels: int,
+        height: int,
+        width: int,
+        like_tensor: torch.Tensor,
 ) -> torch.Tensor:
     batches = batch_target.shape[0] if batch_target is not None else 0
     sizes = (batches, channels, height, width)
@@ -118,13 +119,13 @@ class ROIPooler(nn.Module):
     """
 
     def __init__(
-        self,
-        output_size,
-        scales,
-        sampling_ratio,
-        pooler_type,
-        canonical_box_size=224,
-        canonical_level=4,
+            self,
+            output_size,
+            scales,
+            sampling_ratio,
+            pooler_type,
+            canonical_box_size=224,
+            canonical_level=4,
     ):
         """
         Args:
@@ -196,7 +197,7 @@ class ROIPooler(nn.Module):
         self.min_level = int(min_level)
         self.max_level = int(max_level)
         assert (
-            len(scales) == self.max_level - self.min_level + 1
+                len(scales) == self.max_level - self.min_level + 1
         ), "[ROIPooler] Sizes of input featuremaps do not form a pyramid!"
         assert 0 <= self.min_level and self.min_level <= self.max_level
         self.canonical_level = canonical_level

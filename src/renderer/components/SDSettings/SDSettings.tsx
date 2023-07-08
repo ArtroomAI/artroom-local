@@ -182,51 +182,48 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
                     </FormControl>
 
                     <SDSettingsAccordion header={`Advanced Settings`}>
-                        { tab === 'paint' ? (
-                            <FormControl className="strength-input">
-                                <HStack>
-                                    <FormLabel htmlFor="Strength">
-                                        Image Variation Strength:
-                                    </FormLabel>
-                                    <Spacer />
-                                    <Tooltip
-                                        fontSize="md"
-                                        label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                        placement="left"
-                                        shouldWrapChildren
-                                    >
-                                        <FaQuestionCircle color="#777" />
-                                    </Tooltip>
-                                </HStack>
-
-                                <Slider
-                                    defaultValue={0.75}
-                                    id="strength"
-                                    max={0.95}
-                                    min={0.03}
-                                    name="strength"
-                                    onChange={setStrength}        
-                                    step={0.01}
-                                    value={strength}
-                                    variant="outline"
+                        <FormControl className="strength-input">
+                            <HStack>
+                                <FormLabel htmlFor="Strength">
+                                    Image Variation Strength:
+                                </FormLabel>
+                                <Spacer />
+                                <Tooltip
+                                    fontSize="md"
+                                    label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                                    placement="left"
+                                    shouldWrapChildren
                                 >
-                                    <SliderTrack bg="#EEEEEE">
-                                        <SliderFilledTrack bg="#4f8ff8" />
-                                    </SliderTrack>
+                                    <FaQuestionCircle color="#777" />
+                                </Tooltip>
+                            </HStack>
 
-                                    <Tooltip
-                                        bg="#4f8ff8"
-                                        color="white"
-                                        isOpen={true}
-                                        label={`${strength}`}
-                                        placement="right"
-                                    >
-                                        <SliderThumb />
-                                    </Tooltip>
-                                </Slider>
-                            </FormControl>
-                        ) : null }
+                            <Slider
+                                defaultValue={0.75}
+                                id="strength"
+                                max={0.95}
+                                min={0.03}
+                                name="strength"
+                                onChange={setStrength}        
+                                step={0.01}
+                                value={strength}
+                                variant="outline"
+                            >
+                                <SliderTrack bg="#EEEEEE">
+                                    <SliderFilledTrack bg="#4f8ff8" />
+                                </SliderTrack>
 
+                                <Tooltip
+                                    bg="#4f8ff8"
+                                    color="white"
+                                    isOpen={true}
+                                    label={`${strength}`}
+                                    placement="right"
+                                >
+                                    <SliderThumb />
+                                </Tooltip>
+                            </Slider>
+                        </FormControl>
                         <HStack mt={4} alignItems="end">
                             <FormControl width="60%" className="steps-input">
                                 <HStack>

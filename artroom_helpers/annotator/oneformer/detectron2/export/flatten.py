@@ -55,7 +55,7 @@ class Schema:
         if len(sizes):
             expected_len = sum(sizes)
             assert (
-                len(values) == expected_len
+                    len(values) == expected_len
             ), f"Values has length {len(values)} but expect length {expected_len}."
         ret = []
         for k in range(len(sizes)):
@@ -223,11 +223,11 @@ class TracingAdapter(nn.Module):
     """
 
     def __init__(
-        self,
-        model: nn.Module,
-        inputs,
-        inference_func: Optional[Callable] = None,
-        allow_non_tensor: bool = False,
+            self,
+            model: nn.Module,
+            inputs,
+            inference_func: Optional[Callable] = None,
+            allow_non_tensor: bool = False,
     ):
         """
         Args:
@@ -282,7 +282,7 @@ class TracingAdapter(nn.Module):
                 inputs_orig_format = self.inputs_schema(args)
             else:
                 if len(args) != len(self.flattened_inputs) or any(
-                    x is not y for x, y in zip(args, self.flattened_inputs)
+                        x is not y for x, y in zip(args, self.flattened_inputs)
                 ):
                     raise ValueError(
                         "TracingAdapter does not contain valid inputs_schema."

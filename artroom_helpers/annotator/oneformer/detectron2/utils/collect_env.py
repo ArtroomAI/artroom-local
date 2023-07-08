@@ -225,8 +225,6 @@ def _test_nccl_worker(rank, num_gpu, dist_url):
 if __name__ == "__main__":
     try:
         from artroom_helpers.annotator.oneformer.detectron2.utils.collect_env import collect_env_info as f
-
-        print(f())
     except ImportError:
         print(collect_env_info())
 

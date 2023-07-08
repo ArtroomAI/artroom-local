@@ -89,7 +89,7 @@ class DetectionCheckpointer(Checkpointer):
             with PathManager.open(filename, "rb") as f:
                 data = torch.load(f)
             assert (
-                "model_state" in data
+                    "model_state" in data
             ), f"Cannot load .pyth file {filename}; pycls checkpoints must contain 'model_state'."
             model_state = {
                 k: v

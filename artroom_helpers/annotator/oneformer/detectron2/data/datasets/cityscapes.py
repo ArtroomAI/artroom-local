@@ -2,7 +2,7 @@
 import functools
 import json
 import logging
-import multiprocessing as mp
+import torch.multiprocessing as mp
 import numpy as np
 import os
 from itertools import chain
@@ -19,7 +19,6 @@ try:
 except ImportError:
     # OpenCV is an optional dependency at the moment
     pass
-
 
 logger = logging.getLogger(__name__)
 

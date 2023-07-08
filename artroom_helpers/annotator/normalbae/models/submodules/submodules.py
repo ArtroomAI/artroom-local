@@ -47,12 +47,12 @@ class Conv2d(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1, groups=1, bias=True):
         super(Conv2d, self).__init__(in_channels, out_channels, kernel_size, stride,
-                 padding, dilation, groups, bias)
+                                     padding, dilation, groups, bias)
 
     def forward(self, x):
         weight = self.weight
         weight_mean = weight.mean(dim=1, keepdim=True).mean(dim=2,
-                                  keepdim=True).mean(dim=3, keepdim=True)
+                                                            keepdim=True).mean(dim=3, keepdim=True)
         weight = weight - weight_mean
         std = weight.view(weight.size(0), -1).std(dim=1).view(-1, 1, 1, 1) + 1e-5
         weight = weight / std.expand_as(weight)
@@ -92,10 +92,10 @@ def sample_points(init_normal, gt_norm_mask, sampling_ratio, beta):
 
     # importance sampling
     if int(beta * N) > 0:
-        importance = idx[:, :int(beta * N)]    # B, beta*N
+        importance = idx[:, :int(beta * N)]  # B, beta*N
 
         # remaining
-        remaining = idx[:, int(beta * N):]     # B, H*W - beta*N
+        remaining = idx[:, int(beta * N):]  # B, H*W - beta*N
 
         # coverage
         num_coverage = N - int(beta * N)
@@ -105,10 +105,10 @@ def sample_points(init_normal, gt_norm_mask, sampling_ratio, beta):
         else:
             coverage_list = []
             for i in range(B):
-                idx_c = torch.randperm(remaining.size()[1])    # shuffles "H*W - beta*N"
-                coverage_list.append(remaining[i, :][idx_c[:num_coverage]].view(1, -1))     # 1, N-beta*N
-            coverage = torch.cat(coverage_list, dim=0)                                      # B, N-beta*N
-            samples = torch.cat((importance, coverage), dim=1)                              # B, N
+                idx_c = torch.randperm(remaining.size()[1])  # shuffles "H*W - beta*N"
+                coverage_list.append(remaining[i, :][idx_c[:num_coverage]].view(1, -1))  # 1, N-beta*N
+            coverage = torch.cat(coverage_list, dim=0)  # B, N-beta*N
+            samples = torch.cat((importance, coverage), dim=1)  # B, N
 
     else:
         # remaining
@@ -125,16 +125,16 @@ def sample_points(init_normal, gt_norm_mask, sampling_ratio, beta):
         samples = coverage
 
     # point coordinates
-    rows_int = samples // W         # 0 for first row, H-1 for last row
-    rows_float = rows_int / float(H-1)         # 0 to 1.0
-    rows_float = (rows_float * 2.0) - 1.0       # -1.0 to 1.0
+    rows_int = samples // W  # 0 for first row, H-1 for last row
+    rows_float = rows_int / float(H - 1)  # 0 to 1.0
+    rows_float = (rows_float * 2.0) - 1.0  # -1.0 to 1.0
 
-    cols_int = samples % W          # 0 for first column, W-1 for last column
-    cols_float = cols_int / float(W-1)         # 0 to 1.0
-    cols_float = (cols_float * 2.0) - 1.0       # -1.0 to 1.0
+    cols_int = samples % W  # 0 for first column, W-1 for last column
+    cols_float = cols_int / float(W - 1)  # 0 to 1.0
+    cols_float = (cols_float * 2.0) - 1.0  # -1.0 to 1.0
 
     point_coords = torch.zeros(B, 1, N, 2)
-    point_coords[:, 0, :, 0] = cols_float             # x coord
-    point_coords[:, 0, :, 1] = rows_float             # y coord
+    point_coords[:, 0, :, 0] = cols_float  # x coord
+    point_coords[:, 0, :, 1] = rows_float  # y coord
     point_coords = point_coords.to(device)
     return point_coords, rows_int, cols_int

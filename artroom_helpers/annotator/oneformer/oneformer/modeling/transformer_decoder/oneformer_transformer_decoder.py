@@ -18,7 +18,6 @@ from .transformer import Transformer
 
 from artroom_helpers.annotator.oneformer.detectron2.utils.registry import Registry
 
-
 TRANSFORMER_DECODER_REGISTRY = Registry("TRANSFORMER_MODULE")
 TRANSFORMER_DECODER_REGISTRY.__doc__ = """
 Registry for transformer module in OneFormer.
@@ -47,7 +46,7 @@ class SelfAttentionLayer(nn.Module):
         self.normalize_before = normalize_before
 
         self._reset_parameters()
-    
+
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
@@ -77,7 +76,7 @@ class SelfAttentionLayer(nn.Module):
         tgt2 = self.self_attn(q, k, value=tgt2, attn_mask=tgt_mask,
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout(tgt2)
-        
+
         return tgt
 
     def forward(self, tgt,
@@ -105,7 +104,7 @@ class CrossAttentionLayer(nn.Module):
         self.normalize_before = normalize_before
 
         self._reset_parameters()
-    
+
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
@@ -125,7 +124,7 @@ class CrossAttentionLayer(nn.Module):
                                    key_padding_mask=memory_key_padding_mask)[0]
         tgt = tgt + self.dropout(tgt2)
         tgt = self.norm(tgt)
-        
+
         return tgt
 
     def forward_pre(self, tgt, memory,
@@ -170,7 +169,7 @@ class FFNLayer(nn.Module):
         self.normalize_before = normalize_before
 
         self._reset_parameters()
-    
+
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
@@ -225,11 +224,10 @@ class MLP(nn.Module):
 
 @TRANSFORMER_DECODER_REGISTRY.register()
 class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
-
     _version = 2
 
     def _load_from_state_dict(
-        self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+            self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
     ):
         version = local_metadata.get("version", None)
         if version is None or version < 2:
@@ -253,24 +251,24 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        in_channels,
-        mask_classification=True,
-        *,
-        num_classes: int,
-        hidden_dim: int,
-        num_queries: int,
-        nheads: int,
-        dropout: float,
-        dim_feedforward: int,
-        enc_layers: int,
-        is_train: bool,
-        dec_layers: int,
-        class_dec_layers: int,
-        pre_norm: bool,
-        mask_dim: int,
-        enforce_input_project: bool,
-        use_task_norm: bool,
+            self,
+            in_channels,
+            mask_classification=True,
+            *,
+            num_classes: int,
+            hidden_dim: int,
+            num_queries: int,
+            nheads: int,
+            dropout: float,
+            dim_feedforward: int,
+            enc_layers: int,
+            is_train: bool,
+            dec_layers: int,
+            class_dec_layers: int,
+            pre_norm: bool,
+            mask_dim: int,
+            enforce_input_project: bool,
+            use_task_norm: bool,
     ):
         """
         NOTE: this interface is experimental.
@@ -362,7 +360,7 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
                 weight_init.c2_xavier_fill(self.input_proj[-1])
             else:
                 self.input_proj.append(nn.Sequential())
-        
+
         self.class_input_proj = Conv2d(in_channels, hidden_dim, kernel_size=1)
         weight_init.c2_xavier_fill(self.class_input_proj)
 
@@ -376,7 +374,7 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
         ret = {}
         ret["in_channels"] = in_channels
         ret["mask_classification"] = mask_classification
-        
+
         ret["num_classes"] = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
         ret["hidden_dim"] = cfg.MODEL.ONE_FORMER.HIDDEN_DIM
         ret["num_queries"] = cfg.MODEL.ONE_FORMER.NUM_OBJECT_QUERIES
@@ -402,7 +400,7 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
 
         return ret
 
-    def forward(self, x, mask_features, tasks, mask = None):
+    def forward(self, x, mask_features, tasks, mask=None):
         # x is a list of multi-scale feature
         assert len(x) == self.num_feature_levels
         src = []
@@ -428,15 +426,15 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
         tasks = tasks.unsqueeze(0)
         if self.use_task_norm:
             tasks = self.decoder_norm(tasks)
-        
+
         feats = self.pe_layer(mask_features, None)
 
-        out_t, _ = self.class_transformer(feats, None, 
-                                    self.query_embed.weight[:-1], 
-                                    self.class_input_proj(mask_features),
-                                    tasks if self.use_task_norm else None)
+        out_t, _ = self.class_transformer(feats, None,
+                                          self.query_embed.weight[:-1],
+                                          self.class_input_proj(mask_features),
+                                          tasks if self.use_task_norm else None)
         out_t = out_t[0].permute(1, 0, 2)
-        
+
         out = torch.cat([out_t, tasks], dim=0)
 
         output = out.clone()
@@ -445,7 +443,8 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
         predictions_mask = []
 
         # prediction heads on learnable query features
-        outputs_class, outputs_mask, attn_mask = self.forward_prediction_heads(output, mask_features, attn_mask_target_size=size_list[0], i=0)
+        outputs_class, outputs_mask, attn_mask = self.forward_prediction_heads(output, mask_features,
+                                                                               attn_mask_target_size=size_list[0], i=0)
         predictions_class.append(outputs_class)
         predictions_mask.append(outputs_mask)
 
@@ -465,16 +464,19 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
                 tgt_key_padding_mask=None,
                 query_pos=query_embed
             )
-            
+
             # FFN
             output = self.transformer_ffn_layers[i](
                 output
             )
 
-            outputs_class, outputs_mask, attn_mask = self.forward_prediction_heads(output, mask_features, attn_mask_target_size=size_list[(i + 1) % self.num_feature_levels], i=i+1)
+            outputs_class, outputs_mask, attn_mask = self.forward_prediction_heads(output, mask_features,
+                                                                                   attn_mask_target_size=size_list[(
+                                                                                                                               i + 1) % self.num_feature_levels],
+                                                                                   i=i + 1)
             predictions_class.append(outputs_class)
             predictions_mask.append(outputs_mask)
-            
+
         assert len(predictions_class) == self.num_layers + 1
         if self.is_train:
             query_class = out.permute(1, 0, 2)
@@ -485,8 +487,8 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
             'pred_logits': predictions_class[-1],
             'pred_masks': predictions_mask[-1],
             'aux_outputs': self._set_aux_loss(
-                predictions_class if self.mask_classification else None, 
-                predictions_mask, 
+                predictions_class if self.mask_classification else None,
+                predictions_mask,
             )
         }
 
@@ -502,12 +504,13 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
         # NOTE: prediction is of higher-resolution
         # [B, Q, H, W] -> [B, Q, H*W] -> [B, h, Q, H*W] -> [B*h, Q, HW]
         attn_mask = F.interpolate(outputs_mask, size=attn_mask_target_size, mode="bilinear", align_corners=False)
-        
+
         # save_attn_masks(attn_mask.sigmoid() < 0.5, fname=f'demo/maps/{i}_pre_bool')
-        
+
         # must use bool type
         # If a BoolTensor is provided, positions with ``True`` are not allowed to attend while ``False`` values will be unchanged.
-        attn_mask = (attn_mask.sigmoid().flatten(2).unsqueeze(1).repeat(1, self.num_heads, 1, 1).flatten(0, 1) < 0.5).bool()
+        attn_mask = (attn_mask.sigmoid().flatten(2).unsqueeze(1).repeat(1, self.num_heads, 1, 1).flatten(0,
+                                                                                                         1) < 0.5).bool()
         attn_mask = attn_mask.detach()
 
         return outputs_class, outputs_mask, attn_mask
@@ -524,5 +527,5 @@ class ContrastiveMultiScaleMaskedTransformerDecoder(nn.Module):
             ]
         else:
             aux_list = [{"pred_masks": b} for b, in outputs_seg_masks[:-1]]
-        
+
         return aux_list

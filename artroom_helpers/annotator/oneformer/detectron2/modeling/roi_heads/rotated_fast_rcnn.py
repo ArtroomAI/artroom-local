@@ -44,7 +44,7 @@ Naming convention:
 
 
 def fast_rcnn_inference_rotated(
-    boxes, scores, image_shapes, score_thresh, nms_thresh, topk_per_image
+        boxes, scores, image_shapes, score_thresh, nms_thresh, topk_per_image
 ):
     """
     Call `fast_rcnn_inference_single_image_rotated` for all images.
@@ -82,7 +82,7 @@ def fast_rcnn_inference_rotated(
 
 @torch.no_grad()
 def fast_rcnn_inference_single_image_rotated(
-    boxes, scores, image_shape, score_thresh, nms_thresh, topk_per_image
+        boxes, scores, image_shape, score_thresh, nms_thresh, topk_per_image
 ):
     """
     Single-image inference. Return rotated bounding-box detection results by thresholding
@@ -179,18 +179,18 @@ class RROIHeads(StandardROIHeads):
         """
         super().__init__(**kwargs)
         assert (
-            not self.mask_on and not self.keypoint_on
+                not self.mask_on and not self.keypoint_on
         ), "Mask/Keypoints not supported in Rotated ROIHeads."
         assert not self.train_on_pred_boxes, "train_on_pred_boxes not implemented for RROIHeads!"
 
     @classmethod
     def _init_box_head(cls, cfg, input_shape):
         # fmt: off
-        in_features       = cfg.MODEL.ROI_HEADS.IN_FEATURES
+        in_features = cfg.MODEL.ROI_HEADS.IN_FEATURES
         pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
-        pooler_scales     = tuple(1.0 / input_shape[k].stride for k in in_features)
-        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
-        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        pooler_scales = tuple(1.0 / input_shape[k].stride for k in in_features)
+        sampling_ratio = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        pooler_type = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
         # fmt: on
         assert pooler_type in ["ROIAlignRotated"], pooler_type
         # assume all channel counts are equal

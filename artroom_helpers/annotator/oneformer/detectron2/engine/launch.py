@@ -25,14 +25,14 @@ def _find_free_port():
 
 
 def launch(
-    main_func,
-    # Should be num_processes_per_machine, but kept for compatibility.
-    num_gpus_per_machine,
-    num_machines=1,
-    machine_rank=0,
-    dist_url=None,
-    args=(),
-    timeout=DEFAULT_TIMEOUT,
+        main_func,
+        # Should be num_processes_per_machine, but kept for compatibility.
+        num_gpus_per_machine,
+        num_machines=1,
+        machine_rank=0,
+        dist_url=None,
+        args=(),
+        timeout=DEFAULT_TIMEOUT,
 ):
     """
     Launch multi-process or distributed training.
@@ -85,14 +85,14 @@ def launch(
 
 
 def _distributed_worker(
-    local_rank,
-    main_func,
-    world_size,
-    num_gpus_per_machine,
-    machine_rank,
-    dist_url,
-    args,
-    timeout=DEFAULT_TIMEOUT,
+        local_rank,
+        main_func,
+        world_size,
+        num_gpus_per_machine,
+        machine_rank,
+        dist_url,
+        args,
+        timeout=DEFAULT_TIMEOUT,
 ):
     has_gpu = torch.cuda.is_available()
     if has_gpu:

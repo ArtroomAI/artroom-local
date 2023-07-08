@@ -20,7 +20,6 @@ from artroom_helpers.annotator.oneformer.detectron2.modeling import build_model
 from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, Instances, ROIMasks
 from artroom_helpers.annotator.oneformer.detectron2.utils.file_io import PathManager
 
-
 """
 Internal utilities for tests. Don't use except for writing tests.
 """
@@ -125,13 +124,13 @@ def assert_instances_allclose(input, other, *, rtol=1e-5, msg="", size_as_tensor
         if isinstance(val1, (Boxes, ROIMasks)):
             # boxes in the range of O(100) and can have a larger tolerance
             assert torch.allclose(val1.tensor, val2.tensor, atol=100 * rtol), (
-                msg + f"Field {f} differs too much!"
+                    msg + f"Field {f} differs too much!"
             )
         elif isinstance(val1, torch.Tensor):
             if val1.dtype.is_floating_point:
                 mag = torch.abs(val1).max().cpu().item()
                 assert torch.allclose(val1, val2, atol=mag * rtol), (
-                    msg + f"Field {f} differs too much!"
+                        msg + f"Field {f} differs too much!"
                 )
             else:
                 assert torch.equal(val1, val2), msg + f"Field {f} is different!"
@@ -192,7 +191,7 @@ def has_dynamic_axes(onnx_model):
 
 
 def register_custom_op_onnx_export(
-    opname: str, symbolic_fn: Callable, opset_version: int, min_version: str
+        opname: str, symbolic_fn: Callable, opset_version: int, min_version: str
 ) -> None:
     """
     Register `symbolic_fn` as PyTorch's symbolic `opname`-`opset_version` for ONNX export.
@@ -230,7 +229,7 @@ def unregister_custom_op_onnx_export(opname: str, opset_version: int, min_versio
                     ns, op_name = get_ns_op_name_from_custom_op(symbolic_name)
                 except ImportError as import_error:
                     if not bool(
-                        re.match(r"^[a-zA-Z0-9-_]*::[a-zA-Z-_]+[a-zA-Z0-9-_]*$", symbolic_name)
+                            re.match(r"^[a-zA-Z0-9-_]*::[a-zA-Z-_]+[a-zA-Z0-9-_]*$", symbolic_name)
                     ):
                         raise ValueError(
                             f"Invalid symbolic name {symbolic_name}. Must be `domain::name`"
@@ -314,13 +313,13 @@ def _pytorch1111_symbolic_opset9_to(g, self, *args):
         if len(args) == 4:
             # aten::to(Tensor, Device, bool, bool, memory_format)
             return (
-                args[0].node().kind() == "prim::device"
-                or args[0].type().isSubtypeOf(ListType.ofInts())
-                or (
-                    sym_help._is_value(args[0])
-                    and args[0].node().kind() == "onnx::Constant"
-                    and isinstance(args[0].node()["value"], str)
-                )
+                    args[0].node().kind() == "prim::device"
+                    or args[0].type().isSubtypeOf(ListType.ofInts())
+                    or (
+                            sym_help._is_value(args[0])
+                            and args[0].node().kind() == "onnx::Constant"
+                            and isinstance(args[0].node()["value"], str)
+                    )
             )
         elif len(args) == 5:
             # aten::to(Tensor, Device, ScalarType, bool, bool, memory_format)
@@ -382,7 +381,6 @@ def _pytorch1111_symbolic_opset9_to(g, self, *args):
 
 # TODO: Remove after PyTorch 1.11.1+ is used by detectron2's CI
 def _pytorch1111_symbolic_opset9_repeat_interleave(g, self, repeats, dim=None, output_size=None):
-
     # from torch.onnx.symbolic_helper import ScalarType
     from torch.onnx.symbolic_opset9 import expand, unsqueeze
 
@@ -445,7 +443,7 @@ def _pytorch1111_symbolic_opset9_repeat_interleave(g, self, repeats, dim=None, o
                 "repeat_interleave", 9, 13, "Unsupported for cases with dynamic repeats"
             )
         assert (
-            repeats_sizes[0] == input_sizes[dim]
+                repeats_sizes[0] == input_sizes[dim]
         ), "repeats must have the same size as input along dim"
         reps = repeats_sizes[0]
     else:
@@ -464,7 +462,7 @@ def _pytorch1111_symbolic_opset9_repeat_interleave(g, self, repeats, dim=None, o
         r_concat = [
             g.op("Constant", value_t=torch.LongTensor(input_sizes_temp[: dim + 1])),
             r_split,
-            g.op("Constant", value_t=torch.LongTensor(input_sizes_temp[dim + 1 :])),
+            g.op("Constant", value_t=torch.LongTensor(input_sizes_temp[dim + 1:])),
         ]
         r_concat = g.op("Concat", *r_concat, axis_i=0)
         i_split = expand(g, i_split, r_concat, None)

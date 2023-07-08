@@ -78,7 +78,7 @@ class RotatedCOCOeval(COCOeval):
         inds = np.argsort([-d["score"] for d in dt], kind="mergesort")
         dt = [dt[i] for i in inds]
         if len(dt) > p.maxDets[-1]:
-            dt = dt[0 : p.maxDets[-1]]
+            dt = dt[0: p.maxDets[-1]]
 
         assert p.iouType == "bbox", "unsupported iouType for iou computation"
 

@@ -9,7 +9,6 @@ import argparse
 from caffe2.python import core, workspace, model_helper
 from caffe2.proto import caffe2_pb2
 
-
 parser = argparse.ArgumentParser(description='Caffe2 Model Benchmark')
 parser.add_argument('--c2-prefix', default='', type=str, metavar='NAME',
                     help='caffe2 model pb name prefix')
@@ -45,9 +44,9 @@ def main():
     model.net = core.Net(predict_net_proto)
 
     # CUDA performance not impressive
-    #device_opts = core.DeviceOption(caffe2_pb2.PROTO_CUDA, args.gpu_id)
-    #model.net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=True)
-    #model.param_init_net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=True)
+    # device_opts = core.DeviceOption(caffe2_pb2.PROTO_CUDA, args.gpu_id)
+    # model.net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=True)
+    # model.param_init_net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=True)
 
     input_blob = model.net.external_inputs[0]
     model.param_init_net.GaussianFill(

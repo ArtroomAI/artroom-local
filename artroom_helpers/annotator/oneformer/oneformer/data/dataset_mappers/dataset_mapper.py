@@ -37,19 +37,19 @@ class DatasetMapper:
 
     @configurable
     def __init__(
-        self,
-        is_train: bool,
-        *,
-        augmentations: List[Union[T.Augmentation, T.Transform]],
-        image_format: str,
-        task_seq_len: int,
-        task: str = "panoptic",
-        use_instance_mask: bool = False,
-        use_keypoint: bool = False,
-        instance_mask_format: str = "polygon",
-        keypoint_hflip_indices: Optional[np.ndarray] = None,
-        precomputed_proposal_topk: Optional[int] = None,
-        recompute_boxes: bool = False,
+            self,
+            is_train: bool,
+            *,
+            augmentations: List[Union[T.Augmentation, T.Transform]],
+            image_format: str,
+            task_seq_len: int,
+            task: str = "panoptic",
+            use_instance_mask: bool = False,
+            use_keypoint: bool = False,
+            instance_mask_format: str = "polygon",
+            keypoint_hflip_indices: Optional[np.ndarray] = None,
+            precomputed_proposal_topk: Optional[int] = None,
+            recompute_boxes: bool = False,
     ):
         """
         NOTE: this interface is experimental.
@@ -71,15 +71,15 @@ class DatasetMapper:
         if recompute_boxes:
             assert use_instance_mask, "recompute_boxes requires instance masks"
         # fmt: off
-        self.is_train               = is_train
-        self.augmentations          = T.AugmentationList(augmentations)
-        self.image_format           = image_format
-        self.use_instance_mask      = use_instance_mask
-        self.instance_mask_format   = instance_mask_format
-        self.use_keypoint           = use_keypoint
+        self.is_train = is_train
+        self.augmentations = T.AugmentationList(augmentations)
+        self.image_format = image_format
+        self.use_instance_mask = use_instance_mask
+        self.instance_mask_format = instance_mask_format
+        self.use_keypoint = use_keypoint
         self.keypoint_hflip_indices = keypoint_hflip_indices
-        self.proposal_topk          = precomputed_proposal_topk
-        self.recompute_boxes        = recompute_boxes
+        self.proposal_topk = precomputed_proposal_topk
+        self.recompute_boxes = recompute_boxes
         self.task_tokenizer = Tokenize(SimpleTokenizer(), max_seq_len=task_seq_len)
         self.task = task
         assert self.task in ["panoptic", "semantic", "instance"]
@@ -162,7 +162,7 @@ class DatasetMapper:
         # USER: Write your own image loading if it's not from a file
         image = utils.read_image(dataset_dict["file_name"], format=self.image_format)
         utils.check_image_size(dataset_dict, image)
-        
+
         task = f"The task is {self.task}"
         dataset_dict["task"] = task
 

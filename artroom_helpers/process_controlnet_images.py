@@ -1,174 +1,181 @@
-import gc
 import os
 import cv2
 import numpy as np
-import torch.cuda
+import torch
+from einops import rearrange
 
-from artroom_helpers.annotator.hed import HEDdetector, nms
+from artroom_helpers.annotator.hed import HEDdetector
 from artroom_helpers.annotator.midas import MidasDetector
-from artroom_helpers.annotator.zoe import ZoeDetector
 from artroom_helpers.annotator.openpose import OpenposeDetector
 from artroom_helpers.annotator.normalbae import NormalBaeDetector
 from artroom_helpers.annotator.pidinet import PidiNetDetector
 from artroom_helpers.annotator.mlsd import MLSDdetector
 from artroom_helpers.annotator.lineart import LineartDetector
 from artroom_helpers.annotator.lineart_anime import LineartAnimeDetector
+from artroom_helpers.annotator.shuffle import ContentShuffleDetector
 
-apply_openpose = None
-apply_midas = None
-apply_zoe = None
-apply_pidi = None 
-apply_hed_d = None
-apply_normalbae_d = None
-apply_mlsd_d = None
-apply_lineart_d = None 
-apply_lineart_anime_d = None
+annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
 
 def apply_controlnet(image, controlnet_mode):
     match controlnet_mode:
         case "canny":
-            image = apply_canny(image)
-        case "pose":
-            image = apply_pose(image)
+            control = apply_canny(image)
         case "depth":
-            image = apply_depth(image)
-        case "normal": #deprecitated for normalbae
-            #image = apply_normal(image)
-            image = apply_normalbae(image)
+            control = apply_depth(image)
+        case "pose":
+            control = apply_pose(image)
+        case "normal":  # deprecitated for normalbae
+            control = apply_normalbae(image)
         case "scribble":
-            image = apply_scribble(image)
+            control = apply_scribble(image)
         case "hed":
-            image = apply_hed(image)
+            control = apply_hed(image)
         case "ip2p":
-            image = HWC3(image) #I don't think the image gets changed?
+            control = apply_base(image)
         case "softedge":
-            image = apply_softedge(image)
+            control = apply_softedge(image)
         case "mlsd":
-            image = apply_mlsd(image)
-        # case "inpaint":
-        #     image = 
-        # case "lineart":
-        #     image = 
-        # case "lineart_anime":
-        #     image = 
-        # case "ip2p":
-        #     image = 
-
-        # case "tile":
-        #     image = 
-        # case "shuffle":
-        #     image = 
+            control = apply_mlsd(image)
+        case "lineart":
+            control = apply_lineart(image)
+        case "lineart_anime":
+            control = apply_lineart_anime(image)
+        case "shuffle":
+            control = apply_shuffle(image)
+        case "inpaint":
+            control = image
+        case "qrcode":
+            control = apply_base(image)
         case _:
             print("Unknown control mode:", controlnet_mode)
-    return image 
+            return None
 
-def init_cnet_stuff(controlnet_mode, models_dir):
-    global apply_openpose, apply_midas, apply_hed_d, apply_normalbae_d, apply_pidi, apply_zoe, apply_mlsd_d, apply_lineart_d, apply_lineart_anime_d
-
-    annotator_ckpts_path = os.path.join(models_dir, "ControlNet", "ControlNetConfigs")
-
-    match controlnet_mode:
-        case "pose":
-            if apply_openpose is None:
-                apply_openpose = OpenposeDetector(annotator_ckpts_path)
-        case "depth":
-            if apply_midas is None:
-                apply_midas = MidasDetector(annotator_ckpts_path)
-            # if apply_zoe is None:
-            #     apply_zoe = ZoeDetector(annotator_ckpts_path)
-        case "hed":
-            if apply_hed_d is None:
-                apply_hed_d = HEDdetector(annotator_ckpts_path)
-        case "normal":
-            if apply_midas is None:
-                apply_midas = MidasDetector(annotator_ckpts_path)
-            if apply_normalbae_d is None:
-                apply_normalbae_d = NormalBaeDetector(annotator_ckpts_path)
-        case "softedge":
-            if apply_pidi is None:
-                apply_pidi = PidiNetDetector(annotator_ckpts_path)
-        case "mlsd":
-            if apply_mlsd_d is None:
-                apply_mlsd_d = MLSDdetector(annotator_ckpts_path)
-        case "lineart":
-            if apply_lineart_d is None:
-                apply_lineart_d = LineartDetector(annotator_ckpts_path)
-        case "lineart_anime":
-            if apply_lineart_anime_d is None:
-                apply_lineart_anime_d = LineartAnimeDetector(annotator_ckpts_path)
-
-def deinit_cnet_stuff():
-    global apply_openpose, apply_midas, apply_hed_d
-    del apply_openpose, apply_midas, apply_hed_d
-    apply_openpose, apply_midas, apply_hed_d = None, None, None
-    gc.collect()
-    torch.cuda.empty_cache()
+    control = torch.stack([control for _ in range(1)], dim=0)
+    control = rearrange(control, 'b h w c -> b c h w').clone()
+    return control
 
 
 def apply_canny(img, low_thr=100, high_thr=200):
     img = cv2.Canny(img, low_thr, high_thr)
     img = HWC3(img)
-    return img
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
 
 
 def apply_pose(img):
-    img = apply_openpose(img, True) #True passes full openpose
+    apply_openpose = OpenposeDetector(annotator_ckpts_path)
+    img = apply_openpose(img, True)  # True passes full openpose
     img = HWC3(img)
-    return img
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
 
 
 def apply_depth(img):
-    if apply_midas is not None:
-       img, _ = apply_midas(img)
-    else:
-        img, _ = apply_zoe(img)
+    apply_midas = MidasDetector(annotator_ckpts_path)
+    img, _ = apply_midas(img)
     img = HWC3(img)
-    return img
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
 
 
 def apply_normal(img):
+    apply_midas = MidasDetector(annotator_ckpts_path)
     _, img = apply_midas(img)
     img = HWC3(img)
     img = img[:, :, ::-1]
-    return img
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
+
 
 def apply_normalbae(img):
+    apply_normalbae_d = NormalBaeDetector(annotator_ckpts_path)
     img = apply_normalbae_d(img)
     img = HWC3(img)
-    return img
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
+
 
 def apply_hed(img):
+    apply_hed_d = HEDdetector(annotator_ckpts_path)
     img = apply_hed_d(img)
     img = HWC3(img)
-    return img
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
 
 
 def apply_scribble(img):
     detected_map = np.zeros_like(img, dtype=np.uint8)
     detected_map[np.min(img, axis=2) < 127] = 255
-    return detected_map
+    control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+    return control
+
 
 def apply_softedge(img):
-    img= apply_pidi(img)
+    apply_pidi = PidiNetDetector(annotator_ckpts_path)
+    img = apply_pidi(img)
+    img = HWC3(img)
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
+
+
+def apply_mlsd(img, value_threshold=0.1, distance_threshold=0.1):
+    apply_mlsd_d = MLSDdetector(annotator_ckpts_path)
+    img = apply_mlsd_d(img, value_threshold, distance_threshold)
     img = HWC3(img)
     return img
 
-def apply_mlsd(img, value_threshold = 0.1, distance_threshold = 0.1):
-    img= apply_mlsd_d(img, value_threshold, distance_threshold)
-    img = HWC3(img)
-    return img
 
-
-def apply_lineart(img):
-    img= apply_lineart_d(img)
+def apply_lineart(img, coarse=False):
+    H, W, _ = img.shape
+    apply_lineart_d = LineartDetector(annotator_ckpts_path)
+    img = apply_lineart_d(img, coarse)
     img = HWC3(img)
-    return img
+    img = cv2.resize(img, (W, H), interpolation=cv2.INTER_LINEAR)
+    control = 1 - torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
 
 
 def apply_lineart_anime(img):
-    img= apply_lineart_anime_d(img)
+    H, W, _ = img.shape
+    apply_lineart_anime_d = LineartAnimeDetector(annotator_ckpts_path)
+    img = apply_lineart_anime_d(img)
     img = HWC3(img)
+    img = cv2.resize(img, (W, H), interpolation=cv2.INTER_LINEAR)
+    control = 1 - torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
+
+
+def apply_shuffle(img):
+    H, W, _ = img.shape
+    apply_content_shuffle = ContentShuffleDetector()
+    img = apply_content_shuffle(img, w=W, h=H, f=256)
+    img = HWC3(img)
+    img = cv2.resize(img, (W, H), interpolation=cv2.INTER_LINEAR)
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
+
+
+def apply_base(img):
+    img = HWC3(img)
+    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    return control
+
+
+def apply_inpaint(img, mask):
+    H, W, _ = img.shape
+    mask_array = np.array(mask)
+    mask_pixel = cv2.resize(mask_array, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.float32) / 255.0
+    mask_pixel = cv2.GaussianBlur(mask_pixel, (0, 0), 8)
+
+    detected_map = img.copy()
+    detected_map[mask_pixel > 0.5] = - 255.0
+    control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+    return control
+
+
+def identity(img, **kwargs):
     return img
+
 
 def HWC3(x):
     assert x.dtype == np.uint8

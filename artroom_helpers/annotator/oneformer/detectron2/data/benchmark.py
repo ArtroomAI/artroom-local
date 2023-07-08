@@ -33,7 +33,7 @@ class _EmptyMapDataset(torch.utils.data.Dataset):
 
 
 def iter_benchmark(
-    iterator, num_iter: int, warmup: int = 5, max_time_seconds: float = 60
+        iterator, num_iter: int, warmup: int = 5, max_time_seconds: float = 60
 ) -> Tuple[float, List[float]]:
     """
     Benchmark an iterator/iterable for `num_iter` iterations with an extra
@@ -69,14 +69,14 @@ class DataLoaderBenchmark:
     """
 
     def __init__(
-        self,
-        dataset,
-        *,
-        mapper,
-        sampler=None,
-        total_batch_size,
-        num_workers=0,
-        max_time_seconds: int = 90,
+            self,
+            dataset,
+            *,
+            mapper,
+            sampler=None,
+            total_batch_size,
+            num_workers=0,
+            max_time_seconds: int = 90,
     ):
         """
         Args:
@@ -107,7 +107,7 @@ class DataLoaderBenchmark:
         percentiles = [np.percentile(all_times, k, interpolation="nearest") for k in [1, 5, 95, 99]]
         if not distributed:
             logger.info(
-                f"{msg}: avg={1.0/avg:.1f} it/s, "
+                f"{msg}: avg={1.0 / avg:.1f} it/s, "
                 f"p1={percentiles[0]:.2g}s, p5={percentiles[1]:.2g}s, "
                 f"p95={percentiles[2]:.2g}s, p99={percentiles[3]:.2g}s."
             )
@@ -118,7 +118,7 @@ class DataLoaderBenchmark:
             return
         for idx, avg, percentiles in zip(count(), avg_per_gpu, percentiles_per_gpu):
             logger.info(
-                f"GPU{idx} {msg}: avg={1.0/avg:.1f} it/s, "
+                f"GPU{idx} {msg}: avg={1.0 / avg:.1f} it/s, "
                 f"p1={percentiles[0]:.2g}s, p5={percentiles[1]:.2g}s, "
                 f"p95={percentiles[2]:.2g}s, p99={percentiles[3]:.2g}s."
             )

@@ -29,6 +29,7 @@ if _PROJECT_ROOT.is_dir():
                 return
             return importlib.util.spec_from_file_location(name, target_file)
 
+
     import sys
 
     sys.meta_path.append(_D2ProjectsFinder())

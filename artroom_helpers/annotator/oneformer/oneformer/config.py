@@ -2,8 +2,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 from artroom_helpers.annotator.oneformer.detectron2.config import CfgNode as CN
 
-__all__ = ["add_common_config", "add_oneformer_config", "add_swin_config", 
-            "add_dinat_config", "add_beit_adapter_config", "add_convnext_config"]
+__all__ = ["add_common_config", "add_oneformer_config", "add_swin_config",
+           "add_dinat_config", "add_beit_adapter_config", "add_convnext_config"]
+
 
 def add_common_config(cfg):
     """
@@ -96,6 +97,7 @@ def add_common_config(cfg):
     cfg.MODEL.SEM_SEG_HEAD.DEFORMABLE_TRANSFORMER_ENCODER_N_POINTS = 4
     cfg.MODEL.SEM_SEG_HEAD.DEFORMABLE_TRANSFORMER_ENCODER_N_HEADS = 8
 
+
 def add_oneformer_config(cfg):
     """
     Add config for ONE_FORMER.
@@ -147,11 +149,12 @@ def add_oneformer_config(cfg):
     # the original paper.
     cfg.MODEL.ONE_FORMER.IMPORTANCE_SAMPLE_RATIO = 0.75
 
+
 def add_swin_config(cfg):
     """
     Add config forSWIN Backbone.
     """
-    
+
     # swin transformer backbone
     cfg.MODEL.SWIN = CN()
     cfg.MODEL.SWIN.PRETRAIN_IMG_SIZE = 224
@@ -173,6 +176,7 @@ def add_swin_config(cfg):
     ## Semask additions
     cfg.MODEL.SWIN.SEM_WINDOW_SIZE = 7
     cfg.MODEL.SWIN.NUM_SEM_BLOCKS = 1
+
 
 def add_dinat_config(cfg):
     """
@@ -196,11 +200,12 @@ def add_dinat_config(cfg):
     cfg.MODEL.DiNAT.ATTN_DROP_RATE = 0.
     cfg.MODEL.DiNAT.IN_PATCH_SIZE = 4
 
+
 def add_convnext_config(cfg):
     """
     Add config for ConvNeXt Backbone.
     """
-    
+
     # swin transformer backbone
     cfg.MODEL.CONVNEXT = CN()
     cfg.MODEL.CONVNEXT.IN_CHANNELS = 3
@@ -210,6 +215,7 @@ def add_convnext_config(cfg):
     cfg.MODEL.CONVNEXT.LSIT = 1.0
     cfg.MODEL.CONVNEXT.OUT_INDICES = [0, 1, 2, 3]
     cfg.MODEL.CONVNEXT.OUT_FEATURES = ["res2", "res3", "res4", "res5"]
+
 
 def add_beit_adapter_config(cfg):
     """
@@ -235,5 +241,5 @@ def add_beit_adapter_config(cfg):
     cfg.MODEL.BEiTAdapter.CFFN_RATIO = 0.25
     cfg.MODEL.BEiTAdapter.DEFORM_RATIO = 0.5
     cfg.MODEL.BEiTAdapter.WITH_CP = True
-    cfg.MODEL.BEiTAdapter.INTERACTION_INDEXES=[[0, 5], [6, 11], [12, 17], [18, 23]]
+    cfg.MODEL.BEiTAdapter.INTERACTION_INDEXES = [[0, 5], [6, 11], [12, 17], [18, 23]]
     cfg.MODEL.BEiTAdapter.OUT_FEATURES = ["res2", "res3", "res4", "res5"]
