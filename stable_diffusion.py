@@ -4,7 +4,7 @@ import gc
 import sys
 
 from glob import glob
-from artroom_helpers.gpu_detect import get_device
+from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
 
@@ -47,7 +47,6 @@ class Model:
         self.vae = None
         self.clipvision = None
         self.controlnet = None
-        self.can_use_half_vae = True
 
         self.vae_path = None
 
@@ -165,7 +164,8 @@ class StableDiffusion:
         self.highres_fix = False
         self.running = False
         self.device = get_device()
-        
+        self.gpu_architecture = get_gpu_architecture() #
+
     def callback_fn(self, job_id, x0=None, enabled=True):
         if not enabled:
             return
@@ -212,8 +212,7 @@ class StableDiffusion:
 
         return init_image.to(self.device), H, W
 
-    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none",
-                           use_preprocessed_controlnet=False):
+    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none", use_preprocessed_controlnet=False):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -361,7 +360,7 @@ class StableDiffusion:
             print(f"Applying controlnet {controlnet}")
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.self.device)
+            mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.to(self.device))
             init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]        
             init_image = self.nodes.SetLatentNoiseMask.set_mask(init_image, mask_image)[0]
 
@@ -530,12 +529,19 @@ class StableDiffusion:
             init_image, H, W = self.load_image(starting_image, H, W, mask_image=mask_image,
                                                inpainting=(mask_image is not None or background_removal_type != 'none'))
             if controlnet != "none":
-                control_image = self.load_control_image(starting_image, H, W, mask_image=mask_image,
-                                                        inpainting=(
-                                                                mask_image is not None or background_removal_type != 'none'),
-                                                        controlnet_mode=controlnet)
-        
-        torch.cuda.empty_cache()
+                control_image = self.load_control_image(
+                            starting_image, 
+                            H, 
+                            W, 
+                            mask_image=mask_image,
+                            inpainting=(
+                                    mask_image is not None or background_removal_type != 'none'),
+                            controlnet_mode=controlnet.lower(),
+                            use_preprocessed_controlnet=use_preprocessed_controlnet
+                            )
+                
+        if self.gpu_architecture == 'NVIDIA':
+            torch.cuda.empty_cache()
         gc.collect()
 
         prompts_data = [batch_size * text_prompts]
@@ -675,7 +681,8 @@ class StableDiffusion:
 
     def clean_up(self):
         self.running = False
-        torch.cuda.empty_cache()
+        if self.gpu_architecture == 'NVIDIA':
+            torch.cuda.empty_cache()
         gc.collect()
 
     def interrupt(self):

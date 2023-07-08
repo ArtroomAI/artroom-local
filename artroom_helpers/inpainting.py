@@ -129,6 +129,16 @@ def infill_patchmatch(im: Image.Image) -> Image:
 
     return im_patched
 
+def infill_noise(im: Image.Image) -> Image:
+    if im.mode != 'RGBA':
+        print("Patchmatch failed, not RGBA")
+        return im
+
+    im_patched_np = patch_match.inpaint(im.convert('RGB'), ImageOps.invert(im.split()[-1]), patch_size=3)
+    im_patched = Image.fromarray(im_patched_np, mode='RGB')
+
+    return im_patched
+
 
 def get_tile_images(image: np.ndarray, width=8, height=8):
     _nrows, _ncols, depth = image.shape

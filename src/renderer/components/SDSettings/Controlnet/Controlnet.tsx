@@ -87,16 +87,16 @@ const Controlnet = () => {
                             Instruct Pix2Pix
                         </option>
 
-                        <option disabled={true} value="inpaint">
+                        <option value="inpaint">
                             Inpaint
                         </option>
 
+                        <option value="shuffle">
+                            Shuffle
+                        </option>
+                        
                         <option disabled={true} value="tile">
                             Tile
-                        </option>
-
-                        <option disabled={true} value="shuffle">
-                            Shuffle
                         </option>
                     </Select>
                     <Button

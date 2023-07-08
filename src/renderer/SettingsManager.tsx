@@ -192,7 +192,7 @@ export const loraState = atom<Lora[]>({
 
 export const controlnetState = atom<string>({
     key: "controlnet",
-    default: "None",
+    default: "none",
     effects_UNSTABLE: [persistAtom]
 });
 
