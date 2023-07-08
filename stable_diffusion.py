@@ -40,7 +40,7 @@ class NodeModules:
 
 
 class Model:
-    def __init__(self, ckpt, vae = '', device = 'cuda:0'):
+    def __init__(self, ckpt, socketio, vae = '', device = 'cuda:0'):
         self.controlnet_path = None
         self.model = None
         self.clip = None
@@ -55,6 +55,7 @@ class Model:
 
         self.ckpt = ckpt
         self.device = device
+        self.socketio = socketio 
 
         self.steps = 0
         self.current_num = 0
@@ -64,6 +65,7 @@ class Model:
             self.load_model()
         if vae != '':
             self.load_vae(vae)
+        
         # self.prompt_appendices = []
 
     def load_model(self):
@@ -103,8 +105,7 @@ class Model:
         if len(loras) > 0:
             for lora in loras:
                 try:
-                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'],
-                                     controlnet=(controlnet_path is not None))
+                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
                 except Exception as e:
                     self.socketio.emit('status', toast_status(title=f"Failed to load in Lora {lora} {e}", status="error"))
         print("device: ", self.device)
@@ -160,7 +161,7 @@ class StableDiffusion:
         self.upscaler = Upscaler
         self.socketio = socketio
         self.nodes = NodeModules()
-        self.active_model = Model(ckpt='')
+        self.active_model = Model(ckpt='', socketio = self.socketio)
         self.highres_fix = False
         self.running = False
         self.device = get_device()
@@ -464,7 +465,7 @@ class StableDiffusion:
             id="loading-model", title="Loading model...", status="info",
             position="bottom-right", duration=None, isClosable=False))
         if model_key != self.active_model.ckpt:
-            self.active_model = Model(ckpt, device=self.device)
+            self.active_model = Model(ckpt, socketio=self.socketio, device=self.device)
         
         self.active_model.setup(vae, loras, controlnet_path)
         
