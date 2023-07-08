@@ -22,7 +22,7 @@ import { aspectRatioState, heightState, initImageState, widthState } from "../..
 import { getImageDimensions } from "../Utils/image";
 
 const MAX_VALUE = 3840;
-const MIN_VALUE = 256;
+const MIN_VALUE = 512;
 const STEP = 64;
 
 const ASPECT_RATIOS = [

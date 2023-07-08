@@ -149,7 +149,7 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
     const URL = gpuType === 'AMD' ? 
       'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/artroom_backend_amd.zip' 
       : 
-      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/artroom_backend.zip';
+      'https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/artroom_backend_nvidia.zip';
 
     const PATH = path.join(artroomPath, "\\artroom\\artroom_backend");
     console.log(`ARTROOM PATH: ${PATH}`)
