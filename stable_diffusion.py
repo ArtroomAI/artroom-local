@@ -273,7 +273,6 @@ class StableDiffusion:
             image = self.upscaler.upscale(models_dir=models_dir,
                                         images=[temp_save_path], upscaler=upscaler_model,upscale_factor=highres_multiplier,
                                         upscale_dest = os.path.join(models_dir,'upscale_highres'))['content']['output_images'][0]
-            image.save('test.png')
         except Exception as e:
             print("Failed with UltraSharp. Make sure the UltraSharp pth is correct. Retrying with RealESGRGAN")
             upscaler_model = "RealESRGAN"

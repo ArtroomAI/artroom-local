@@ -88,13 +88,14 @@ class Upscaler():
         self.running = False 
 
     def get_dest_path(self, upscale_dest, upscaler, image_path):
-            if upscale_dest == "":
-                upscale_dest = os.path.dirname(image_path)
-            elif upscale_dest[-1] == "/":
-                upscale_dest = upscale_dest[:-1]
-                
-            upscale_dest += f"/{upscaler.replace(' ','')}"
-            return upscale_dest
+        if upscale_dest == "":
+            upscale_dest = os.path.dirname(image_path)
+        elif upscale_dest[-1] == "/":
+            upscale_dest = upscale_dest[:-1]
+            
+        upscale_dest += f"/{upscaler.replace(' ','')}"
+        os.makedirs(upscale_dest, exist_ok=True)
+        return upscale_dest
 
     def upscale(self, models_dir, images, upscaler, upscale_factor, upscale_dest):
         self.running = True
@@ -236,7 +237,6 @@ class Upscaler():
         filename = path
 
         state_dict = torch.load(filename)
-
         if "params_ema" in state_dict:
             state_dict = state_dict["params_ema"]
         elif "params" in state_dict:

@@ -109,8 +109,8 @@ try:
                 status='error', duration=5000, isClosable=False))
             return
 
-        if data['upscale_dest'] == '':
-            data['upscale_dest'] = data['image_save_path'] + '/upscale_outputs'
+        if 'upscale_dest' not in data or data['upscale_dest'] == '':
+            data['upscale_dest'] = os.path.dirname(data['upscale_images'][0]) + '/upscale_outputs'
 
         UP.upscale(
             data['models_dir'], 
