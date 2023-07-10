@@ -4,6 +4,7 @@ import { ipcMain } from 'electron';
 
 function runPyTests(artroomPath: string) {
   return new Promise((resolve, reject) => {
+    console.log("TEST ARTROOM PATH", artroomPath)
     const pyTestCmd = `${artroomPath}\\artroom\\artroom_backend\\python.exe`;
     let childPython = spawn(pyTestCmd, ['pytest.py']);
     let result = '';

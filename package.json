@@ -11,11 +11,12 @@
     "delete": "del-cli --force dist",
     "electron:serve": "yarn generate && yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
-    "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
+    "electron:build_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish never",
+    "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --mac --publish always",
     "electron:start": "electron ./build/main.js",
     "lint": "eslint . --resolve-plugins-relative-to . --ext .ts,.tsx",
     "generate": "typia generate --input src/interfaces/templates --output src/interfaces/generated --project tsconfig.json"
-  },
+  },  
   "repository": {
     "type": "git",
     "url": "https://github.com/ArtroomAI/artroomai-beta.git"
@@ -34,6 +35,14 @@
       ],
       "target": "nsis",
       "icon": "./artroom_icon.ico"
+    },
+    "mac": {
+      "category": "Art & Illustration",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "./artroom_icon.icns"  
     },
     "nsis": {
       "oneClick": false,

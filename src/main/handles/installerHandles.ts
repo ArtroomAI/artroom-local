@@ -90,6 +90,8 @@ function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.B
     yauzl.open(PATH_zip, { lazyEntries: true }, (error, zipFile) => {
       if (error) {
         console.error(`Error opening ZIP archive: ${error}`);
+        mainWindow.webContents.send('fixButtonProgress', `Error opening ZIP archive: ${error}`);
+        resolve('');
         return;
       }
     
