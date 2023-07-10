@@ -147,14 +147,12 @@ async function download_via_https(name: string, URL: string, file_path: string, 
       response.data.on("data", (chunk: any) => {
         cur += chunk.length;
         ++chunk_counter;
-        if (chunk_counter === 5000) {
+        if (chunk_counter >= 2000) {
           console.log(`Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`);
-          setImmediate(() => {
-            mainWindow.webContents.send(
-              "fixButtonProgress",
-              `Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`
-            );
-          });
+          mainWindow.webContents.send(
+            "fixButtonProgress",
+            `Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`
+          );
           chunk_counter = 0;
         }
       });
