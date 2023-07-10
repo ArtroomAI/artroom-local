@@ -20,6 +20,7 @@ from artroom_helpers.toast_status import toast_status
 
 tflogging.set_verbosity_error()
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 class NodeModules:
     def __init__(self):

@@ -1,4 +1,9 @@
 try:
+    import warnings 
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
+    import logging
+    logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
     import numpy as np
     import json
     import ctypes
@@ -431,7 +436,7 @@ try:
 
 
     if __name__ == '__main__':
-        socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
+        socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True, debug=False)
 except Exception as e:
     import time
 

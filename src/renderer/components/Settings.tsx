@@ -353,7 +353,7 @@ function Settings () {
                         colorScheme="red"
                         alignContent="center"
                         className="reinstall-python-dependencies"
-                        onClick={()=>{window.api.pythonInstallDependencies(artroomPath)}}>
+                        onClick={()=>{window.api.pythonInstallDependencies(artroomPath, "NVIDIA")}}>
                         Update Packages
                     </Button>
                 </Flex>

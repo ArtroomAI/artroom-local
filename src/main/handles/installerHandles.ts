@@ -25,66 +25,6 @@ function removeDirectoryIfExists(PATH: fs.PathLike) {
   }
 }
 
-async function download_via_https(name: string, URL: string, file_path: string, mainWindow: Electron.BrowserWindow, retries = 5): Promise<boolean> {
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  async function downloadWithRetry(retryCount: number): Promise<boolean> {
-    if (retryCount === 0) {
-      throw new Error(`Failed to download ${name} after ${retries} retries`);
-    }
-
-    try {
-      const response = await axios.get(URL, {
-        responseType: "stream",
-        timeout: 10000, // 10 seconds timeout
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      });
-
-      const len = parseInt(response.headers["content-length"], 10);
-      let cur = 0;
-      let chunk_counter = 0;
-
-      response.data.on("data", (chunk: any) => {
-        cur += chunk.length;
-        ++chunk_counter;
-        if (chunk_counter === 5000) {
-          console.log(`Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`);
-          mainWindow.webContents.send(
-            "fixButtonProgress",
-            `Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`
-          );
-          chunk_counter = 0;
-        }
-      });
-
-      await pipeline(
-        response.data,
-        (function () {
-          const file = fs.createWriteStream(file_path);
-          file.on("finish", () => {
-            mainWindow.webContents.send("fixButtonProgress", `Downloaded ${name} successfully.`);
-          });
-          file.on("error", (e) => {
-            throw e;
-          });
-          return file;
-        })()
-      );
-
-      return true;
-    } catch (error) {
-      mainWindow.webContents.send("fixButtonProgress", `Error: ${error.message}`);
-      console.error(`Error downloading ${name}: ${error.message}`);
-      await delay(1000 * Math.pow(2, retries - retryCount)); // Exponential backoff
-      return downloadWithRetry(retryCount - 1);
-    }
-  }
-
-  return downloadWithRetry(retries);
-}
-
 function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.BrowserWindow) {
   return new Promise<string>((resolve) => {
     yauzl.open(PATH_zip, { lazyEntries: true }, (error, zipFile) => {
@@ -177,53 +117,112 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
     if(!success) return;
 
     await unzipFile(PATH_zip, artroomPath, mainWindow);
-    await reinstallPythonDependencies(artroomPath, mainWindow);
+    await reinstallPythonDependencies(artroomPath, mainWindow, gpuType);
+    mainWindow.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
+    console.log('DONE')
+    return
 };
 
-const reinstallPythonDependencies = (artroomPath: string, mainWindow?: Electron.BrowserWindow) => {
-  return new Promise<string>((resolve) => {
-    console.log("REINSTALLING DEPENDENCIES");
-    const PATH = path.join(artroomPath, "artroom\\artroom_backend");
-    const PATH_requirements = path.resolve('requirements.txt');
-    const installationCommand = `"${PATH}/python.exe" -m pip install --upgrade pip && "${PATH}/python.exe" -m pip install -r "${PATH_requirements}" && pause && set /p choice= "Finished! Please exit out of this window or press enter to close"`;
+async function download_via_https(name: string, URL: string, file_path: string, mainWindow: Electron.BrowserWindow, retries = 5): Promise<boolean> {
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    let installationProcess = spawn(installationCommand, { shell: true, detached: true });
+  async function downloadWithRetry(retryCount: number): Promise<boolean> {
+    if (retryCount === 0) {
+      throw new Error(`Failed to download ${name} after ${retries} retries`);
+    }
 
-    installationProcess.stdout.on('data', function(data) {
-      console.log("Child data: " + data);
-      resolve('');
+    try {
+      const response = await axios.get(URL, {
+        responseType: "stream",
+        timeout: 10000, // 10 seconds timeout
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
+      const len = parseInt(response.headers["content-length"], 10);
+      let cur = 0;
+      let chunk_counter = 0;
+
+      response.data.on("data", (chunk: any) => {
+        cur += chunk.length;
+        ++chunk_counter;
+        if (chunk_counter === 5000) {
+          console.log(`Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`);
+          setImmediate(() => {
+            mainWindow.webContents.send(
+              "fixButtonProgress",
+              `Downloading ${name} ${(100 * cur / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(len)}mb`
+            );
+          });
+          chunk_counter = 0;
+        }
+      });
+      
+
+      await pipeline(
+        response.data,
+        (function () {
+          const file = fs.createWriteStream(file_path);
+          file.on("finish", () => {
+            mainWindow.webContents.send("fixButtonProgress", `Downloaded ${name} successfully.`);
+          });
+          file.on("error", (e) => {
+            throw e;
+          });
+          return file;
+        })()
+      );
+
+      return true;
+    } catch (error) {
+      mainWindow.webContents.send("fixButtonProgress", `Error: ${error.message}`);
+      console.error(`Error downloading ${name}: ${error.message}`);
+      await delay(1000 * Math.pow(2, retries - retryCount)); // Exponential backoff
+      return downloadWithRetry(retryCount - 1);
+    }
+  }
+
+  return downloadWithRetry(retries);
+}
+
+const MAX_INSTALL_RETRIES = 3;
+
+const reinstallPythonDependencies = async (artroomPath: string, mainWindow?: Electron.BrowserWindow, gpuType?: string) => {
+  console.log("REINSTALLING DEPENDENCIES");
+  const PATH = path.join(artroomPath, "artroom", "artroom_backend");
+  const PATH_requirements = gpuType === 'AMD' ? 
+  path.resolve('requirements_amd.txt') 
+  : 
+  path.resolve('requirements_nvidia.txt');
+
+  const installationCommand = `"${PATH}/python" -m pip install --upgrade pip && "${PATH}/python" -m pip install -r "${PATH_requirements}"`;
+
+  try {
+    await executeInstallationCommand(installationCommand);
+    mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
+    return;
+  } catch (error) {
+    console.error(`Error reinstalling Python dependencies: ${error}`);
+    mainWindow?.webContents.send('fixButtonProgress', `Error: ${error.message}`);
+  }
+  mainWindow?.webContents.send('fixButtonProgress', `Failed to reinstall Python dependencies after ${MAX_INSTALL_RETRIES} retries.`);
+};
+
+async function executeInstallationCommand(command: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    installationProcess = spawn(command, { shell: true, detached: true });
+
+    installationProcess.on('error', (error) => {
+      reject(error);
     });
 
-    installationProcess.on('error', function () {
-      console.log("Failed to start child.");
-      resolve('');
-    });
-
-    installationProcess.on('close', function (code) {
-      console.log('Child process exited with code ' + code);
-      mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
-      resolve('');
-    });
-
-    installationProcess.stderr.on('data', function (err) {
-      console.log(`error: ${err}`);
-      resolve('');
-    });
-
-    installationProcess.on('message', (msg) => {
-      console.log(`msg ${msg}`);
-      resolve('');
-    });
-
-    installationProcess.stderr.on('message', (msg) => {
-      console.log(`ermsg ${msg}`);
-      resolve('');
-    });
-
-    installationProcess.stdout.on('end', function () {
-      console.log('Finished collecting data chunks.');
-      mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
-      resolve('');
+    installationProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Installation command failed with exit code ${code}`));
+      }
     });
   });
 }
@@ -249,15 +248,15 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
 
   if (realisticStarter) {
     console.log(`DOWNLOADING FROM ${realisticURL}`)
-    await download_via_https('Realistic Model', realisticURL, realisticPath, mainWindow);
+    await download_via_https(realisticModel, realisticURL, realisticPath, mainWindow);
   }
   if (animeStarter) {
     console.log(`DOWNLOADING FROM ${animeURL}`)
-    await download_via_https('Anime Model', animeURL, animePath, mainWindow);
+    await download_via_https(animeModel, animeURL, animePath, mainWindow);
   }
   if (landscapesStarter) {
     console.log(`DOWNLOADING FROM ${landscapesURL}`)
-    await download_via_https('Landscape Model', landscapesURL, landscapesPath, mainWindow);
+    await download_via_https(landscapesModel, landscapesURL, landscapesPath, mainWindow);
   }
   console.log("All downloads complete!");
 }
@@ -266,8 +265,8 @@ export const installerHandles = (mainWindow: Electron.BrowserWindow) => {
   ipcMain.handle('pythonInstall', (_, artroomPath, gpuType) => {
     return backupPythonInstallation(mainWindow, artroomPath, gpuType);
   });    
-  ipcMain.handle('pythonInstallDependencies', (_, artroomPath) => {
-    return reinstallPythonDependencies(artroomPath);
+  ipcMain.handle('pythonInstallDependencies', (_, artroomPath, gpuType) => {
+    return reinstallPythonDependencies(artroomPath, gpuType);
   });    
   ipcMain.handle('downloadStarterModels', (_, dir, realisticStarter, animeStarter, landscapesStarter) => {
     return downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);
