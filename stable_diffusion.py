@@ -4,23 +4,34 @@ import gc
 import sys
 
 from glob import glob
+
+sys.path.append("ComfyUI/")
+from ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
 
-sys.path.append("backend/")
-from backend.nodes import *
+from ComfyUI.nodes import *
+from ComfyUI.comfy.cli_args import args
 
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
 from artroom_helpers import support, inpainting
 from artroom_helpers.toast_status import toast_status
 
-
-
 tflogging.set_verbosity_error()
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+
+
+def patch_comfy_args():
+    try:
+        import torch_directml
+        directml_enabled = True
+    except:
+        directml_enabled = False
+    args.directml = 0 if directml_enabled else None
+
 
 class NodeModules:
     def __init__(self):
@@ -43,7 +54,7 @@ class NodeModules:
 
 
 class Model:
-    def __init__(self, ckpt, socketio, device = 'cuda:0'):
+    def __init__(self, ckpt, socketio, device='cuda:0'):
         self.controlnet_path = None
         self.model = None
         self.clip = None
@@ -56,7 +67,7 @@ class Model:
 
         self.ckpt = ckpt
         self.device = device
-        self.socketio = socketio 
+        self.socketio = socketio
 
         self.steps = 0
         self.current_num = 0
@@ -64,7 +75,7 @@ class Model:
         self.total_steps = 0
         if ckpt != '':
             self.load_model()
-        
+
         # self.prompt_appendices = []
 
     def load_model(self):
@@ -97,11 +108,13 @@ class Model:
 
         if len(loras) > 0:
             for lora in loras:
-                try:
-                    self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
-                except Exception as e:
-                    self.socketio.emit('status', toast_status(title=f"Failed to load in Lora {lora} {e}", status="error"))
-        
+                if lora not in self.loras:
+                    try:
+                        self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
+                    except Exception as e:
+                        self.socketio.emit('status',
+                                           toast_status(title=f"Failed to load in Lora {lora} {e}", status="error"))
+
         self.loras = loras
 
     def get_steps(self):
@@ -110,10 +123,18 @@ class Model:
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         lora = comfy.utils.load_torch_file(path, safe_load=True)
-        self.model, self.clip = comfy.sd.load_lora_for_models(self.model, self.clip, lora, weight_unet, weight_tenc)
+        key_map = model_lora_keys_unet(self.model.model)
+        key_map = model_lora_keys_clip(self.clip.cond_stage_model, key_map)
+        loaded = load_lora(lora, key_map)
+
+        self.model.add_patches(loaded, weight_unet)
+        self.clip.add_patches(loaded, weight_tenc)
 
     def deinject_lora(self, delete=True):
-        self.load_model()
+        self.model.unpatch_model()
+        self.clip.unpatch_model()
+
+    # self.load_model()
 
     def inject_controlnet(self, controlnet_path, existing=False):
         self.controlnet = comfy.sd.load_controlnet(controlnet_path)
@@ -132,12 +153,13 @@ class Model:
         self.vae.device = device
         self.vae.first_stage_model.to(device).to(torch.float32)
 
+
 #         self.model.model.to(device).to(dtype)
 
-        # self.clip.device = device
-        # self.clip.cond_stage_model.device = device
-        # self.clip.patcher.model.to(device).to(dtype)
-        # self.clip.cond_stage_model.to(device).to(dtype)
+# self.clip.device = device
+# self.clip.cond_stage_model.device = device
+# self.clip.patcher.model.to(device).to(dtype)
+# self.clip.cond_stage_model.to(device).to(dtype)
 
 #         if hasattr(self.clip.cond_stage_model, "clip_l"):
 #             print("found")
@@ -158,11 +180,12 @@ class StableDiffusion:
         self.upscaler = Upscaler
         self.socketio = socketio
         self.nodes = NodeModules()
-        self.active_model = Model(ckpt='', socketio = self.socketio)
+        self.active_model = Model(ckpt='', socketio=self.socketio)
         self.highres_fix = False
         self.running = False
         self.device = get_device()
-        self.gpu_architecture = get_gpu_architecture() #
+        self.gpu_architecture = get_gpu_architecture()  #
+        patch_comfy_args()
 
     def callback_fn(self, job_id, x0=None, enabled=True):
         if not enabled:
@@ -170,7 +193,7 @@ class StableDiffusion:
 
         current_num, total_num, current_step, total_steps = self.active_model.get_steps()
         if current_step % 5 == 0:
-            pass 
+            pass
 
     def get_image(self, init_image_str, mask_image, job_id):
         init_image = support.b64_to_image(init_image_str)
@@ -206,11 +229,12 @@ class StableDiffusion:
         init_image = torch.from_numpy(image)[None,]
         init_image = init_image.to(self.device)
         _, H, W, _ = init_image.shape
-        #init_image = init_image.half()
+        # init_image = init_image.half()
 
         return init_image.to(self.device), H, W
 
-    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none", use_preprocessed_controlnet=False):
+    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none",
+                           use_preprocessed_controlnet=False):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -255,31 +279,35 @@ class StableDiffusion:
             models_dir=""
     ):
         # try:
-        if keep_size:   
+        if keep_size:
             print("Running experimental diffusion touchup")
             original_W, original_H = image.size
             W = int(W * highres_multiplier)
             H = int(H * highres_multiplier)
-        
+
         original_image = image.copy()
 
-        os.makedirs(os.path.join(models_dir,'upscale_highres'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'upscale_highres'), exist_ok=True)
 
-        temp_save_path = os.path.join(models_dir,'upscale_highres',f'diffusion_touchup.png')
+        temp_save_path = os.path.join(models_dir, 'upscale_highres', f'diffusion_touchup.png')
         image.save(temp_save_path)
 
         print("Upscaling image")
         try:
             upscaler_model = "UltraSharp"
             image = self.upscaler.upscale(models_dir=models_dir,
-                                        images=[temp_save_path], upscaler=upscaler_model,upscale_factor=highres_multiplier,
-                                        upscale_dest = os.path.join(models_dir,'upscale_highres'))['content']['output_images'][0]
+                                          images=[temp_save_path], upscaler=upscaler_model,
+                                          upscale_factor=highres_multiplier,
+                                          upscale_dest=os.path.join(models_dir, 'upscale_highres'))['content'][
+                'output_images'][0]
         except Exception as e:
             print("Failed with UltraSharp. Make sure the UltraSharp pth is correct. Retrying with RealESGRGAN")
             upscaler_model = "RealESRGAN"
             image = self.upscaler.upscale(models_dir=models_dir,
-                                        images=[temp_save_path], upscaler=upscaler_model,upscale_factor=highres_multiplier,
-                                        upscale_dest = os.path.join(models_dir,'upscale_highres'))['content']['output_images'][0] 
+                                          images=[temp_save_path], upscaler=upscaler_model,
+                                          upscale_factor=highres_multiplier,
+                                          upscale_dest=os.path.join(models_dir, 'upscale_highres'))['content'][
+                'output_images'][0]
         image.resize((W, H))  # Ensures final dimensions are correct
 
         # image.save(f'{job_id}_{n}_upscaled.png')
@@ -306,7 +334,7 @@ class StableDiffusion:
             clip_skip=clip_skip,
             callback_fn=self.callback_fn,
             strength=highres_strength
-        )     
+        )
 
         try:
             os.remove(temp_save_path)
@@ -346,7 +374,7 @@ class StableDiffusion:
             callback_fn=None,
             strength=1.0
     ):
-        
+
         self.running = True
         if isinstance(prompts_data, list):
             prompts_data = prompts_data[0]
@@ -367,14 +395,14 @@ class StableDiffusion:
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
             mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.to(self.device))
-            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]        
+            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
             init_image = self.nodes.SetLatentNoiseMask.set_mask(init_image, mask_image)[0]
 
         elif init_image is not None:
-            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]        
+            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
             init_image = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
-        
+
         self.active_model.to(self.device)
         scheduler = "karras"  # ["normal", "karras", "exponential", "simple", "ddim_uniform"]
         out_image = self.nodes.KSampler.sample(self.active_model.model, seed, steps, cfg_scale, sampler, scheduler,
@@ -388,39 +416,39 @@ class StableDiffusion:
         return out_image
 
     def generate(self,
-                job_id="",
-                image_save_path="",
-                highres_fix=False,
-                long_save_path=False,
-                show_intermediates = False,
-                use_preprocessed_controlnet = False,
-                remove_background = False,
-                use_removed_background = False,
-                models_dir = "",
-                text_prompts="",
-                negative_prompts="",
-                init_image_str="",
-                mask_str="",
-                invert=False,
-                steps=50,
-                H=512,
-                W=512,
-                strength=0.75,
-                cfg_scale=7.5,
-                seed=-1,
-                sampler="ddim",
-                n_iter=4,
-                batch_size=1,
-                ckpt="",
-                vae="",
-                loras=None,
-                controlnet="none",
-                background_removal_type="none",
-                clip_skip=1,
-                generation_mode='',
-                highres_steps=10,
-                highres_strength=0.1
-                ):
+                 job_id="",
+                 image_save_path="",
+                 highres_fix=False,
+                 long_save_path=False,
+                 show_intermediates=False,
+                 use_preprocessed_controlnet=False,
+                 remove_background=False,
+                 use_removed_background=False,
+                 models_dir="",
+                 text_prompts="",
+                 negative_prompts="",
+                 init_image_str="",
+                 mask_str="",
+                 invert=False,
+                 steps=50,
+                 H=512,
+                 W=512,
+                 strength=0.75,
+                 cfg_scale=7.5,
+                 seed=-1,
+                 sampler="ddim",
+                 n_iter=4,
+                 batch_size=1,
+                 ckpt="",
+                 vae="",
+                 loras=None,
+                 controlnet="none",
+                 background_removal_type="none",
+                 clip_skip=1,
+                 generation_mode='',
+                 highres_steps=10,
+                 highres_strength=0.1
+                 ):
 
         if long_save_path:
             sample_path = os.path.join(image_save_path, re.sub(
@@ -472,14 +500,14 @@ class StableDiffusion:
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Loading model...", status="info",
             position="bottom-right", duration=None, isClosable=False))
-        
-        if model_key != self.active_model.ckpt or not support.check_array_dict_equality(self.active_model.loras,loras):
+
+        if model_key != self.active_model.ckpt or not support.check_array_dict_equality(self.active_model.loras, loras):
             self.active_model = Model(ckpt, socketio=self.socketio, device=self.device)
             self.active_model.setup_lora(loras)
 
         self.active_model.load_vae(vae)
         self.active_model.setup_controlnet(controlnet_path)
-        self.active_model.to(self.device) 
+        self.active_model.to(self.device)
 
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Finished Loading Model",
@@ -488,25 +516,26 @@ class StableDiffusion:
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Generating",
             status="info", position="bottom-right", duration=2000))
-        def resize_dims_balanced(width, height, base = 512):
+
+        def resize_dims_balanced(width, height, base=512):
             # Calculate the aspect ratio of the original dimensions
             aspect_ratio = width / height
 
             # Scale the width and height so their sum is 2048
-            new_width = ((base*2) * aspect_ratio) / (aspect_ratio + 1)
-            new_height = ((base*2) * 1) / (aspect_ratio + 1)
+            new_width = ((base * 2) * aspect_ratio) / (aspect_ratio + 1)
+            new_height = ((base * 2) * 1) / (aspect_ratio + 1)
 
             # Adjust to the nearest multiple of 64
             new_width = round(new_width / 64) * 64
             new_height = round(new_height / 64) * 64
             print(f"New WxH: {new_width}x{new_height}")
             return int(new_width), int(new_height)
-        
+
         starting_image = None
         init_image = None
         mask_image = None
         control_image = None
-        
+
         if generation_mode == 'highresfix':
             highres_fix = True
 
@@ -517,11 +546,10 @@ class StableDiffusion:
                 base = 1024
             else:
                 base = 768
-            W, H = resize_dims_balanced(W,H, base)
-        
+            W, H = resize_dims_balanced(W, H, base)
+
         if len(mask_str) > 0 and len(init_image_str) > 0:
             mask_image = support.b64_to_image(mask_str).convert('L')
-        
 
         # Get image and extract mask from image if needed
         if len(init_image_str) > 0:
@@ -545,16 +573,16 @@ class StableDiffusion:
                                                inpainting=(mask_image is not None or background_removal_type != 'none'))
             if controlnet != "none":
                 control_image = self.load_control_image(
-                            starting_image, 
-                            H, 
-                            W, 
-                            mask_image=mask_image,
-                            inpainting=(
-                                    mask_image is not None or background_removal_type != 'none'),
-                            controlnet_mode=controlnet.lower(),
-                            use_preprocessed_controlnet=use_preprocessed_controlnet
-                            )
-                
+                    starting_image,
+                    H,
+                    W,
+                    mask_image=mask_image,
+                    inpainting=(
+                            mask_image is not None or background_removal_type != 'none'),
+                    controlnet_mode=controlnet.lower(),
+                    use_preprocessed_controlnet=use_preprocessed_controlnet
+                )
+
         if self.gpu_architecture == 'NVIDIA':
             torch.cuda.empty_cache()
         gc.collect()
@@ -593,7 +621,7 @@ class StableDiffusion:
             Vae: {vae}, 
             Loras: {loras}, 
             Controlnet: {controlnet}''')
-        
+
         base_count = len(os.listdir(sample_path))
         with torch.no_grad():
             for n in range(1, n_iter + 1):
@@ -631,12 +659,12 @@ class StableDiffusion:
                         out_image = support.repaste_and_color_correct(
                             result=out_image,
                             init_image=starting_image,
-                            init_mask=original_mask, 
+                            init_mask=original_mask,
                             mask_blur_radius=8
                         )
 
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
-                    
+
                     if highres_fix:
                         out_image = self.diffusion_upscale(
                             job_id=job_id,
@@ -647,7 +675,7 @@ class StableDiffusion:
                             mask_image=mask_image,
                             highres_steps=highres_steps,
                             highres_strength=highres_strength,
-                            highres_multiplier=min(old_H/H,old_W/W),
+                            highres_multiplier=min(old_H / H, old_W / W),
                             cfg_scale=cfg_scale,
                             H=old_H,
                             W=old_W,
@@ -655,7 +683,7 @@ class StableDiffusion:
                             sampler=sampler,
                             clip_skip=clip_skip,
                             keep_size=False,
-                            models_dir = models_dir
+                            models_dir=models_dir
                         )
 
                     exif_data = out_image.getexif()
