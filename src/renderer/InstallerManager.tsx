@@ -36,9 +36,9 @@ export const InstallerManager = () => {
     const [downloadMessage, setDownloadMessage] = useState('');
     const [downloading, setDownloading] = useState(false);
 
-    const [realisticStarter, setRealisticStarter] = useState(true);
+    const [realisticStarter, setRealisticStarter] = useState(false);
     const [animeStarter, setAnimeStarter] = useState(false);
-    const [landscapesStarter, setLandscapesStarter] = useState(false);
+    const [landscapesStarter, setLandscapesStarter] = useState(true);
 
     useEffect(() => {
         if(cloudOnly) return;
@@ -158,9 +158,10 @@ export const InstallerManager = () => {
                         </Link>
                     </Text>
                     <VStack alignItems='flex-start'>
-                        <Checkbox isChecked={realisticStarter} onChange={() => { setRealisticStarter(!realisticStarter) }}>{`(Realistic) Umi Aphrodite by Dutch Alex `}</Checkbox>   
-                        <Checkbox isChecked={animeStarter} onChange={() => { setAnimeStarter(!animeStarter) }}>{`(Anime) Umi Macross by Dutch Alex `}</Checkbox>                      
-                        <Checkbox isChecked={landscapesStarter} onChange={() => { setLandscapesStarter(!landscapesStarter) }}>{`(Landscapes) Umi Olympus by Dutch Alex `}</Checkbox>  
+                        <Checkbox isChecked={landscapesStarter} onChange={() => { setLandscapesStarter(!landscapesStarter) }}>{`(Popular) DreamShaper `}</Checkbox>  
+                        <Checkbox isChecked={realisticStarter} onChange={() => { setRealisticStarter(!realisticStarter) }}>{`(Realistic) ChilloutMix `}</Checkbox>   
+                        <Checkbox isChecked={animeStarter} onChange={() => { setAnimeStarter(!animeStarter) }}>{`(Anime) Counterfeit `}</Checkbox>                      
+
                     </VStack>
                     {
                     downloadMessage && (
@@ -174,7 +175,7 @@ export const InstallerManager = () => {
 
                 <ModalFooter justifyContent='center'>
                     <Button isLoading={downloading} isDisabled={downloading} onClick={handleRunClick}>Install Artroom</Button>
-                    <Button onClick={() => setCloudOnly(true)}>I want cloud only</Button>
+                    {/* <Button onClick={() => setCloudOnly(true)}>I want cloud only</Button> */}
                 </ModalFooter>
             </ModalContent>
         </Modal>

@@ -478,6 +478,7 @@ class StableDiffusion:
 
         self.active_model.load_vae(vae)
         self.active_model.setup_controlnet(controlnet_path)
+        self.active_model.to(self.device) 
 
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Finished Loading Model",

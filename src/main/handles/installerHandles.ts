@@ -233,14 +233,13 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
   fs.mkdirSync(path.join(dir, 'ControlNet'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'Lora'), { recursive: true });
 
-  const bucketPath = "https://pub-060d7c8cf5e64af8b884ebb86d34de1a.r2.dev/models/models/"
-  const realisticModel = "UmiAIMythologyAndBabes_aphroditeRealisticV1.safetensors"
-  const animeModel = "UmiAIMythologyAndBabes_macrossAnimeUltimate1.safetensors"
-  const landscapesModel = "UmiAIMythologyAndBabes_olympusLandscapesV10.safetensors"
+  const realisticModel = "ChilloutMix.safetensors"
+  const animeModel = "Counterfeit.safetensors"
+  const landscapesModel = "Dreamshaper.safetensors"
 
-  const realisticURL = path.join(bucketPath, realisticModel);
-  const animeURL = path.join(bucketPath, animeModel);
-  const landscapesURL = path.join(bucketPath, landscapesModel);
+  const realisticURL = "https://civitai.com/api/download/models/11745";
+  const animeURL = "https://civitai.com/api/download/models/57618";
+  const landscapesURL = "https://civitai.com/api/download/models/109123";
 
   const realisticPath = path.join(dir, realisticModel);
   const animePath = path.join(dir, animeModel);
