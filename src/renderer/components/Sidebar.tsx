@@ -9,6 +9,9 @@ import {
     FaDiscord
 } from 'react-icons/fa';
 import {
+    GiGraduateCap
+} from 'react-icons/gi'
+import {
     FiGitMerge,
     FiMenu,
 } from 'react-icons/fi';
@@ -17,9 +20,8 @@ import {
     GiResize
 } from 'react-icons/gi';
 import NavItem from './NavItem';
-import Tour from './ProjectTour/Tour';
-import EquilibriumLogo from '../images/equilibriumai.png';
 import CivitaiLogo from '../images/civitai.png';
+import ArtroomLogo from '../images/ArtroomLogo.png';
 
 interface SidebarProps {
     navSize: 'large' | 'small';
@@ -105,7 +107,14 @@ export default function Sidebar ({ navSize, setNavSize } : SidebarProps) {
                     p="5%"
                     pb="20px"
                     w="100%">
-                    
+
+                    <NavItem
+                        className="artroom-website-link"
+                        title="Go to Website"
+                        icon={ArtroomLogo}
+                        navSize={navSize}
+                        onClick={window.api.openWebsite} />
+
                     <NavItem
                         className="discord-link"
                         title="Join Discord"
@@ -116,9 +125,9 @@ export default function Sidebar ({ navSize, setNavSize } : SidebarProps) {
                     <NavItem
                         className="equilibrium-link"
                         title="Learn More"
-                        icon={EquilibriumLogo}
+                        icon={GiGraduateCap}
                         navSize={navSize}
-                        onClick={window.api.openEquilibrium} />
+                        onClick={window.api.openTutorial} />
                         
                     <NavItem
                         className="civitai-link"
