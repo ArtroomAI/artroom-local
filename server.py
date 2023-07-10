@@ -95,7 +95,7 @@ try:
 
     @socketio.on('upscale')
     def upscale(data):
-        print('Running upscale...')
+        print('Running upscale...', data)
         if UP.running:
             print('Failure to upscale, upscale is already running')
             socketio.emit('status', toast_status(
@@ -112,8 +112,12 @@ try:
         if data['upscale_dest'] == '':
             data['upscale_dest'] = data['image_save_path'] + '/upscale_outputs'
 
-        UP.upscale(data['models_dir'], data['upscale_images'], data['upscaler'], data['upscale_factor'],
-                   data['upscale_dest'])
+        UP.upscale(
+            data['models_dir'], 
+            data['upscale_images'], 
+            data['upscaler'], 
+            data['upscale_factor'],
+            data['upscale_dest'])
         socketio.emit('status', toast_status(
             title='Upscale Completed', description='Your upscale has completed',
             status='success', duration=2000, isClosable=False))
@@ -226,11 +230,6 @@ try:
             try:
                 print("Starting gen...")
                 print(data)
-                # SD.generate(
-                #     generation_mode=data.get('generation_mode'),
-                #     highres_steps=data.get('highres_steps'),
-                #     highres_strength=data.get('highres_strength')
-                # )
                 SD.generate(                 
                     image_save_path=data['image_save_path'],
                     long_save_path=data['long_save_path'],
@@ -259,7 +258,10 @@ try:
                     loras=lora_paths,
                     controlnet=data['controlnet'],
                     background_removal_type="none",
-                    clip_skip=max(int(data['clip_skip']), 1)
+                    clip_skip=max(int(data['clip_skip']), 1),
+                    generation_mode=data.get('generation_mode'),
+                    highres_steps=data.get('highres_steps'),
+                    highres_strength=data.get('highres_strength')
                     )
             except Exception as e:
                 print(f"Generation failed! {e}")

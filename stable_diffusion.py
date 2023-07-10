@@ -16,6 +16,8 @@ from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, ap
 from artroom_helpers import support, inpainting
 from artroom_helpers.toast_status import toast_status
 
+
+
 tflogging.set_verbosity_error()
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -40,15 +42,14 @@ class NodeModules:
 
 
 class Model:
-    def __init__(self, ckpt, socketio, vae = '', device = 'cuda:0'):
+    def __init__(self, ckpt, socketio, device = 'cuda:0'):
         self.controlnet_path = None
         self.model = None
         self.clip = None
         self.vae = None
         self.clipvision = None
         self.controlnet = None
-
-        self.vae_path = None
+        self.loras = []
 
         self.nodes = NodeModules()
 
@@ -62,8 +63,6 @@ class Model:
         self.total_steps = 0
         if ckpt != '':
             self.load_model()
-        if vae != '':
-            self.load_vae(vae)
         
         # self.prompt_appendices = []
 
@@ -83,23 +82,17 @@ class Model:
         #     textual_inversion = os.path.basename(textual_inversion)
         #     self.prompt_appendices.append(f"embedding:{textual_inversion}")
 
-    def setup(self, vae, loras=None, controlnet_path=None):
-        if loras is None:
-            loras = []
-
+    def setup_controlnet(self, controlnet_path=None):
         self.controlnet_path = controlnet_path
         try:
             if self.controlnet_path is not None:
                 self.inject_controlnet(controlnet_path)
         except Exception as e:
             self.socketio.emit('status', toast_status(title=f"Controlnet failed to load {e}", status="error"))
-        if vae != self.vae_path:
-            try:
-                if '.vae' in vae:
-                    self.load_vae(vae)
-            except:
-                print("Failed to load vae")
-        self.vae_path = vae
+
+    def setup_lora(self, loras=None):
+        if loras is None:
+            loras = []
 
         if len(loras) > 0:
             for lora in loras:
@@ -107,8 +100,8 @@ class Model:
                     self.inject_lora(path=lora['path'], weight_tenc=lora['weight'], weight_unet=lora['weight'])
                 except Exception as e:
                     self.socketio.emit('status', toast_status(title=f"Failed to load in Lora {lora} {e}", status="error"))
-        print("device: ", self.device)
-        self.to(self.device)
+        
+        self.loras = loras
 
     def get_steps(self):
         return self.current_num, self.total_num, self.model.current_step + self.steps * (
@@ -128,7 +121,11 @@ class Model:
         del self.controlnet
 
     def load_vae(self, vae_path: str):
-        self.vae = comfy.sd.VAE(ckpt_path=vae_path, device=self.device)
+        try:
+            if '.vae' in vae_path:
+                self.vae = comfy.sd.VAE(ckpt_path=vae_path, device=self.device)
+        except:
+            print("Failed to load vae")
 
     def to(self, device, dtype=torch.float32):
         self.vae.device = device
@@ -253,7 +250,8 @@ class StableDiffusion:
             mode="default",
             clip_skip=1,
             batch_size=1,
-            keep_size=False
+            keep_size=False,
+            models_dir=""
     ):
         # try:
         if keep_size:   
@@ -263,17 +261,25 @@ class StableDiffusion:
             H = int(H * highres_multiplier)
         
         original_image = image.copy()
-        upscaler_model = "RealESRGAN"
 
-        temp_save_path = f'{job_id}_{n}_diffusion_touchup.png'
+        os.makedirs(os.path.join(models_dir,'upscale_highres'), exist_ok=True)
+
+        temp_save_path = os.path.join(models_dir,'upscale_highres',f'diffusion_touchup.png')
         image.save(temp_save_path)
 
         print("Upscaling image")
-        image = \
-            self.upscaler.upscale(images=[temp_save_path], upscaler=upscaler_model,
-                                  upscale_factor=highres_multiplier)[
-                0]
-
+        try:
+            upscaler_model = "UltraSharp"
+            image = self.upscaler.upscale(models_dir=models_dir,
+                                        images=[temp_save_path], upscaler=upscaler_model,upscale_factor=highres_multiplier,
+                                        upscale_dest = os.path.join(models_dir,'upscale_highres'))['content']['output_images'][0]
+            image.save('test.png')
+        except Exception as e:
+            print("Failed with UltraSharp. Make sure the UltraSharp pth is correct. Retrying with RealESGRGAN")
+            upscaler_model = "RealESRGAN"
+            image = self.upscaler.upscale(models_dir=models_dir,
+                                        images=[temp_save_path], upscaler=upscaler_model,upscale_factor=highres_multiplier,
+                                        upscale_dest = os.path.join(models_dir,'upscale_highres'))['content']['output_images'][0] 
         image.resize((W, H))  # Ensures final dimensions are correct
 
         # image.save(f'{job_id}_{n}_upscaled.png')
@@ -410,7 +416,10 @@ class StableDiffusion:
                 loras=None,
                 controlnet="none",
                 background_removal_type="none",
-                clip_skip=1
+                clip_skip=1,
+                generation_mode='',
+                highres_steps=10,
+                highres_strength=0.1
                 ):
 
         if long_save_path:
@@ -463,11 +472,14 @@ class StableDiffusion:
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Loading model...", status="info",
             position="bottom-right", duration=None, isClosable=False))
-        if model_key != self.active_model.ckpt:
+        
+        if model_key != self.active_model.ckpt or not support.check_array_dict_equality(self.active_model.loras,loras):
             self.active_model = Model(ckpt, socketio=self.socketio, device=self.device)
-        
-        self.active_model.setup(vae, loras, controlnet_path)
-        
+            self.active_model.setup_lora(loras)
+
+        self.active_model.load_vae(vae)
+        self.active_model.setup_controlnet(controlnet_path)
+
         self.socketio.emit('status', toast_status(
             id="loading-model", title="Finished Loading Model",
             status="info", position="bottom-right", duration=2000))
@@ -493,8 +505,10 @@ class StableDiffusion:
         init_image = None
         mask_image = None
         control_image = None
-        highres_fix = False
         
+        if generation_mode == 'highresfix':
+            highres_fix = True
+
         if highres_fix:
             old_H = H
             old_W = W
@@ -588,25 +602,29 @@ class StableDiffusion:
                 self.active_model.current_num = n
                 try:
                     print(f'Generating on gpu {self.device} image {n}')
-                    out_image = self.generate_image(
-                        job_id=job_id,
-                        prompts_data=prompts_data,
-                        negative_prompts_data=negative_prompts_data,
-                        control_image=control_image,
-                        init_image=init_image,
-                        mask_image=mask_image,
-                        steps=steps,
-                        H=H,
-                        W=W,
-                        cfg_scale=cfg_scale,
-                        seed=seed,
-                        sampler=sampler,
-                        batch_size=batch_size,
-                        controlnet=controlnet,
-                        clip_skip=clip_skip,
-                        callback_fn=self.callback_fn,
-                        strength=strength if starting_image is not None else 1.0
-                    )
+                    if generation_mode != 'highresfix':
+                        out_image = self.generate_image(
+                            job_id=job_id,
+                            prompts_data=prompts_data,
+                            negative_prompts_data=negative_prompts_data,
+                            control_image=control_image,
+                            init_image=init_image,
+                            mask_image=mask_image,
+                            steps=steps,
+                            H=H,
+                            W=W,
+                            cfg_scale=cfg_scale,
+                            seed=seed,
+                            sampler=sampler,
+                            batch_size=batch_size,
+                            controlnet=controlnet,
+                            clip_skip=clip_skip,
+                            callback_fn=self.callback_fn,
+                            strength=strength if starting_image is not None else 1.0
+                        )
+
+                    else:
+                        out_image = starting_image
 
                     if mask_image is not None:
                         out_image = support.repaste_and_color_correct(
@@ -626,8 +644,8 @@ class StableDiffusion:
                             negative_prompts_data=negative_prompts_data,
                             image=out_image,
                             mask_image=mask_image,
-                            highres_steps=15,
-                            highres_strength=0.2,
+                            highres_steps=highres_steps,
+                            highres_strength=highres_strength,
                             highres_multiplier=min(old_H/H,old_W/W),
                             cfg_scale=cfg_scale,
                             H=old_H,
@@ -635,7 +653,8 @@ class StableDiffusion:
                             seed=seed,
                             sampler=sampler,
                             clip_skip=clip_skip,
-                            keep_size=False
+                            keep_size=False,
+                            models_dir = models_dir
                         )
 
                     exif_data = out_image.getexif()
@@ -676,7 +695,6 @@ class StableDiffusion:
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
 
-        self.active_model.load_model()
         self.clean_up()
 
     def clean_up(self):

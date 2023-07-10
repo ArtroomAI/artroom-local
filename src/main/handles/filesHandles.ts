@@ -19,7 +19,7 @@ const getFiles = async (folder_path: string, ext: string[], excludeFolders?: str
   return new Promise<string[]>((resolve) => {
     if (folder_path.length) {
       glob(`${folder_path}/**/*.{${exts}}`, {}, (err, files) => {
-        if (err) {
+        if (err || !files.length) {
           console.log("ERROR");
           resolve([]);
         }
