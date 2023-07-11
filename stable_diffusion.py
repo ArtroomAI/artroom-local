@@ -5,14 +5,14 @@ import sys
 
 from glob import glob
 
-sys.path.append("ComfyUI/")
-from ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
+sys.path.append("backend/ComfyUI/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
 
-from ComfyUI.nodes import *
-from ComfyUI.comfy.cli_args import args
+from backend.ComfyUI.nodes import *
+from backend.ComfyUI.comfy.cli_args import args
+from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
