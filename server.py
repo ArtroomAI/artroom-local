@@ -276,8 +276,9 @@ try:
 
     @socketio.on('stop_queue')
     def stop_queue():
-        SD.interrupt()
-        socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
+        pass
+        #SD.interrupt()
+        #socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
 
 
     @app.route('/xyplot', methods=['POST'])
