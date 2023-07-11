@@ -53,6 +53,16 @@ class NodeModules:
         self.EmptyLatentImage = EmptyLatentImage()
 
 
+class Mute:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
+
 class Model:
     def __init__(self, ckpt, socketio, device='cuda:0'):
         self.controlnet_path = None
@@ -79,11 +89,12 @@ class Model:
         # self.prompt_appendices = []
 
     def load_model(self):
-        self.model, self.clip, self.vae, clipvision = comfy.sd.load_checkpoint_guess_config(self.ckpt,
-                                                                                            output_vae=True,
-                                                                                            output_clip=True,
-                                                                                            embedding_directory=folder_paths.get_folder_paths(
-                                                                                                "embeddings"))
+        with Mute():
+            self.model, self.clip, self.vae, clipvision = comfy.sd.load_checkpoint_guess_config(self.ckpt,
+                                                                                                output_vae=True,
+                                                                                                output_clip=True,
+                                                                                                embedding_directory=folder_paths.get_folder_paths(
+                                                                                                    "embeddings"))
         # if hasattr(self.clip.cond_stage_model, "clip_l"):  # sdxl
         #     self.can_use_half_vae = False
         del clipvision  # because dafuq
