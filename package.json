@@ -7,7 +7,8 @@
   "homepage": "./",
   "scripts": {
     "start": "cross-env NODE_ENV=development node scripts/serve.js",
-    "build": "yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
+    "build": "npm run obfuscate && yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
+    "obfuscate": "obfuscate.bat",
     "delete": "del-cli --force dist",
     "electron:serve": "yarn generate && yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",

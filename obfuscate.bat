@@ -23,6 +23,4 @@ for %%F in ("%startDir%\*.py") do (
     )
 )
 
-
 endlocal
-pause
