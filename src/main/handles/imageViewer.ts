@@ -21,7 +21,7 @@ export const setupImageViewer = (mainWindow: Electron.BrowserWindow) => {
           isImage: dirent.isFile() && IMAGE_EXTENSIONS.includes(getExtname(name) as EXTENSION)
         }
       })
-      .filter(dirent => dirent.isFolder || dirent.isImage)
+      ?.filter(dirent => dirent.isFolder || dirent.isImage)
       .sort((a, b) => a.isFolder ? -1 : b.isFolder ? 1 : 0)
 
     return {
@@ -33,7 +33,7 @@ export const setupImageViewer = (mainWindow: Electron.BrowserWindow) => {
   ipcMain.handle('getDisks', () => {
     return execSync('wmic logicaldisk get deviceid /value', { encoding: 'utf-8' })
       .split('\r\r\n')
-      .filter(Boolean)
+      ?.filter(Boolean)
       .map(s => s.replace('DeviceID=', ''));
   });
 

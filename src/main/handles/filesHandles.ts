@@ -12,26 +12,34 @@ import { FileWatcher } from "../utils/fileWatcher";
 const getFiles = async (folder_path: string, ext: string[], excludeFolders?: string[]) => {
   const exts = ext.join(',');
 
-  if(!fs.existsSync(folder_path)) {
+  if (!fs.existsSync(folder_path)) {
     fs.mkdirSync(folder_path, { recursive: true });
   }
 
   return new Promise<string[]>((resolve) => {
     if (folder_path.length) {
       glob(`${folder_path}/**/*.{${exts}}`, {}, (err, files) => {
-        if (err || !files.length) {
+        if (err) {
           console.log("ERROR");
           resolve([]);
+        } else if (!files || !files.length) {
+          resolve([]);
+        } else {
+          resolve(
+            files
+              .filter((match) =>
+                excludeFolders ? !excludeFolders.some((folder) => match.includes(folder)) : true
+              )
+              .map((match) => path.relative(folder_path, match))
+          );
         }
-        resolve(
-          files.filter((match) =>
-            excludeFolders ? !excludeFolders.some((folder) => match.includes(folder)) : true
-          ).map((match) => path.relative(folder_path, match))
-        );
       });
+    } else {
+      resolve([]);
     }
   });
 };
+
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {

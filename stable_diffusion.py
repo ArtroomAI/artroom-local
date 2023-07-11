@@ -675,8 +675,8 @@ class StableDiffusion:
                         )
 
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
-
                     if highres_fix:
+                        self.clean_up()
                         out_image = self.diffusion_upscale(
                             job_id=job_id,
                             n=n,
@@ -696,6 +696,7 @@ class StableDiffusion:
                             keep_size=False,
                             models_dir=models_dir
                         )
+                    self.clean_up()
 
                     exif_data = out_image.getexif()
                     # Does not include Mask, ImageB64, or if Inverted. Only settings for now
@@ -736,9 +737,9 @@ class StableDiffusion:
                 seed += 1
 
         self.clean_up()
+        self.running = False
 
     def clean_up(self):
-        self.running = False
         if self.gpu_architecture == 'NVIDIA':
             torch.cuda.empty_cache()
         gc.collect()
