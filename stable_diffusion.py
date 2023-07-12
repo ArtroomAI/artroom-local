@@ -386,7 +386,6 @@ class StableDiffusion:
             strength=1.0
     ):
 
-        self.running = True
         if isinstance(prompts_data, list):
             prompts_data = prompts_data[0]
 
@@ -634,6 +633,7 @@ class StableDiffusion:
             Controlnet: {controlnet}''')
 
         base_count = len(os.listdir(sample_path))
+        self.running = True
         with torch.no_grad():
             for n in range(1, n_iter + 1):
                 if not self.running:
