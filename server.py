@@ -276,9 +276,8 @@ try:
 
     @socketio.on('stop_queue')
     def stop_queue():
-        pass
-        #SD.interrupt()
-        #socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
+        SD.interrupt()
+        socketio.emit("status", toast_status(title="Queue interrupted. Generations will stop after this one.", status="info", duration=2000))
 
 
     @app.route('/xyplot', methods=['POST'])
@@ -426,14 +425,14 @@ try:
     def handle_message(data):
         '''event listener when client types a message'''
         print('data from the front end: ', str(data))
-        socketio.emit('message', {'data': data, 'id': request.sid}, broadcast=True)
+        socketio.emit('message', {'data': data, 'id': request.sid})
 
 
     @socketio.on('disconnect')
     def disconnected():
         '''event listener when client disconnects to the server'''
         print('user disconnected')
-        socketio.emit('disconnect', f'user {request.sid} disconnected', broadcast=True)
+        socketio.emit('disconnect', f'user {request.sid} disconnected')
 
 
     if __name__ == '__main__':
