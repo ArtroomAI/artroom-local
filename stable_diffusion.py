@@ -160,28 +160,27 @@ class Model:
         except:
             print("Failed to load vae")
 
-    def to(self, device, dtype=torch.float32):
+    def to(self, device, dtype=torch.float16):
         self.vae.device = device
         self.vae.first_stage_model.to(device).to(torch.float32)
 
+        self.model.model.to(device).to(dtype)
+        self.model.model_patches_to(device)
+        self.model.model_patches_to(dtype)
+        
+        self.clip.device = device
+        self.clip.cond_stage_model.device = device
+        self.clip.patcher.model.to(device).to(dtype)
+        self.clip.cond_stage_model.to(device).to(dtype)
 
-#         self.model.model.to(device).to(dtype)
+        if hasattr(self.clip.cond_stage_model, "clip_l"):
+            self.clip.cond_stage_model.clip_l.device = device
+            self.clip.cond_stage_model.clip_g.device = device
+            self.dtype = dtype
 
-# self.clip.device = device
-# self.clip.cond_stage_model.device = device
-# self.clip.patcher.model.to(device).to(dtype)
-# self.clip.cond_stage_model.to(device).to(dtype)
-
-#         if hasattr(self.clip.cond_stage_model, "clip_l"):
-#             print("found")
-#             self.clip.cond_stage_model.clip_l.device = device
-#             self.clip.cond_stage_model.clip_g.device = device
-#         else:
-#             print(dir(self.clip.cond_stage_model))
-
-#         # self.clipvision.to(device)
-#         if self.controlnet is not None:
-#             self.controlnet.to(device)
+        if self.controlnet is not None:
+            self.controlnet.control_model.to(device)
+            self.controlnet.device = device
 
 
 class StableDiffusion:
