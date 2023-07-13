@@ -10,7 +10,7 @@
     "build": "npm run obfuscate && yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
     "obfuscate": "obfuscate.bat",
     "delete": "del-cli --force dist",
-    "electron:serve": "yarn generate && yarn start",
+    "electron:serve": "npm run obfuscate && yarn generate && yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
     "electron:build_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish never",
     "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",

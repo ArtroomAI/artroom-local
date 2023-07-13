@@ -2,6 +2,7 @@ import re
 import warnings
 import gc
 import sys
+from einops import rearrange
 
 from glob import glob
 
@@ -243,8 +244,7 @@ class StableDiffusion:
 
         return init_image.to(self.device), H, W
 
-    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none",
-                           use_preprocessed_controlnet=False):
+    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none", use_preprocessed_controlnet=False, models_dir=""):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -260,20 +260,21 @@ class StableDiffusion:
             if controlnet_mode == 'inpaint' and mask_image:
                 control = apply_inpaint(image, mask_image)
             else:
-                control = apply_controlnet(image, controlnet_mode)
-
+                control = apply_controlnet(image, controlnet_mode, models_dir)
+        else:
+            control = 1 - torch.from_numpy(image.copy()).float().cuda() / 255.0
+            control = torch.stack([control for _ in range(1)], dim=0)
+            control = rearrange(control, 'b h w c -> b c h w').clone()
         return control.to(self.device)
 
     def diffusion_upscale(
             self,
             job_id=0,
             n=0,
-            prompts_data=None,
-            negative_prompts_data=None,
+            positive_cond=None,
+            negative_prompt=None,
             image=None,
             mask_image=None,
-            control_image=None,
-            controlnet="none",
             highres_steps=10,
             highres_strength=0.2,
             highres_multiplier=2,
@@ -328,9 +329,8 @@ class StableDiffusion:
         print("Generating upscaled image")
         image = self.generate_image(
             job_id=job_id,
-            prompts_data=prompts_data,
-            negative_prompts_data=negative_prompts_data,
-            control_image=control_image,
+            positive_cond=positive_cond,
+            negative_prompt=negative_prompt,
             init_image=highres_init_image.to(self.device),
             mask_image=mask_image,
             steps=highres_steps,
@@ -340,7 +340,6 @@ class StableDiffusion:
             seed=seed,
             sampler=sampler,
             batch_size=batch_size,
-            controlnet=controlnet,
             clip_skip=clip_skip,
             callback_fn=self.callback_fn,
             strength=highres_strength
@@ -366,41 +365,24 @@ class StableDiffusion:
     def generate_image(
             self,
             job_id="",
-            prompts_data=None,
-            negative_prompts_data=None,
-            control_image=None,
+            positive_cond=None,
+            negative_prompt=None,
             init_image=None,
             mask_image=None,
             steps=50,
             H=512,
             W=512,
-            controlnet_strength=1,
             cfg_scale=7.5,
             seed=-1,
             sampler="ddim",
             batch_size=1,
-            controlnet="none",
             clip_skip=1,
             callback_fn=None,
             strength=1.0
     ):
 
-        if isinstance(prompts_data, list):
-            prompts_data = prompts_data[0]
+        dtype = torch.float16
 
-        if isinstance(negative_prompts_data, list):
-            negative_prompts_data = negative_prompts_data[0]
-
-        dtype = torch.float32
-
-        positive_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
-        negative_prompt = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
-
-        if controlnet is not None and controlnet != "none":
-            control_image = control_image.permute(0, 2, 3, 1)
-            positive_cond = self.nodes.ControlNetApply.apply_controlnet(
-                positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
-            print(f"Applying controlnet {controlnet}")
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
             mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.to(self.device))
@@ -414,7 +396,8 @@ class StableDiffusion:
 
         self.active_model.to(self.device)
         scheduler = "karras"  # ["normal", "karras", "exponential", "simple", "ddim_uniform"]
-        out_image = self.nodes.KSampler.sample(self.active_model.model, seed, steps, cfg_scale, sampler, scheduler,
+        out_image = self.nodes.KSampler.sample(self.active_model.model, seed, steps, 
+                                               cfg_scale, sampler, scheduler,
                                                positive_cond, negative_prompt, init_image, denoise=strength)[0]
         out_image["samples"] = out_image["samples"].to(dtype)
 
@@ -452,6 +435,7 @@ class StableDiffusion:
                  vae="",
                  loras=None,
                  controlnet="none",
+                 controlnet_strength=1,
                  background_removal_type="none",
                  clip_skip=1,
                  generation_mode='',
@@ -589,7 +573,8 @@ class StableDiffusion:
                     inpainting=(
                             mask_image is not None or background_removal_type != 'none'),
                     controlnet_mode=controlnet.lower(),
-                    use_preprocessed_controlnet=use_preprocessed_controlnet
+                    use_preprocessed_controlnet=use_preprocessed_controlnet,
+                    models_dir=models_dir
                 )
 
         if self.gpu_architecture == 'NVIDIA':
@@ -633,6 +618,22 @@ class StableDiffusion:
 
         base_count = len(os.listdir(sample_path))
         self.running = True
+        if isinstance(prompts_data, list):
+            prompts_data = prompts_data[0]
+
+        if isinstance(negative_prompts_data, list):
+            negative_prompts_data = negative_prompts_data[0]
+
+
+        positive_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
+        negative_prompt = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
+
+        if controlnet is not None and controlnet != "none":
+            control_image = control_image.permute(0, 2, 3, 1)
+            positive_cond = self.nodes.ControlNetApply.apply_controlnet(
+                positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
+            print(f"Applying controlnet {controlnet}")
+
         with torch.no_grad():
             for n in range(1, n_iter + 1):
                 if not self.running:
@@ -644,9 +645,8 @@ class StableDiffusion:
                     if generation_mode != 'highresfix':
                         out_image = self.generate_image(
                             job_id=job_id,
-                            prompts_data=prompts_data,
-                            negative_prompts_data=negative_prompts_data,
-                            control_image=control_image,
+                            positive_cond=positive_cond,
+                            negative_prompt=negative_prompt,
                             init_image=init_image,
                             mask_image=mask_image,
                             steps=steps,
@@ -656,7 +656,6 @@ class StableDiffusion:
                             seed=seed,
                             sampler=sampler,
                             batch_size=batch_size,
-                            controlnet=controlnet,
                             clip_skip=clip_skip,
                             callback_fn=self.callback_fn,
                             strength=strength if starting_image is not None else 1.0
@@ -675,12 +674,11 @@ class StableDiffusion:
 
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
                     if highres_fix:
-                        self.clean_up()
                         out_image = self.diffusion_upscale(
                             job_id=job_id,
                             n=n,
-                            prompts_data=prompts_data,
-                            negative_prompts_data=negative_prompts_data,
+                            positive_cond=positive_cond,
+                            negative_prompt=negative_prompt,
                             image=out_image,
                             mask_image=mask_image,
                             highres_steps=highres_steps,
@@ -695,7 +693,6 @@ class StableDiffusion:
                             keep_size=False,
                             models_dir=models_dir
                         )
-                    self.clean_up()
 
                     exif_data = out_image.getexif()
                     # Does not include Mask, ImageB64, or if Inverted. Only settings for now
@@ -716,7 +713,7 @@ class StableDiffusion:
                         "clip_skip": clip_skip
                     }
                     # 0x9286 Exif Code for UserComment
-                    exif_data[0x9286] = json.dumps(settings_data)
+                    exif_data[0x010E] = "\nArtroom Settings:\n" + json.dumps(settings_data, indent=4) + "\nEND"
 
                     if long_save_path:
                         save_name = f"{base_count:05}_seed_{str(seed)}.png"

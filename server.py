@@ -171,7 +171,7 @@ try:
             w, h = map(lambda x: x - x % 64, (w, h))
             image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
-            image = preview_controlnet(image, data["controlnet"])
+            image = preview_controlnet(image, data["controlnet"], data["models_dir"])
             print("DONE PREVIEW")
             image = HWC3(np.array(image))
             output = support.image_to_b64(Image.fromarray(image))

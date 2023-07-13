@@ -201,8 +201,8 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
                             <Slider
                                 defaultValue={0.75}
                                 id="strength"
-                                max={0.95}
-                                min={0.03}
+                                max={1}
+                                min={0}
                                 name="strength"
                                 onChange={setStrength}        
                                 step={0.01}

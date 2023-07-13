@@ -14,9 +14,13 @@ from artroom_helpers.annotator.lineart import LineartDetector
 from artroom_helpers.annotator.lineart_anime import LineartAnimeDetector
 from artroom_helpers.annotator.shuffle import ContentShuffleDetector
 
+global annotator_ckpts_path
 annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
 
-def apply_controlnet(image, controlnet_mode):
+def apply_controlnet(image, controlnet_mode, models_dir):
+    global annotator_ckpts_path
+    annotator_ckpts_path = os.path.join(models_dir, 'ControlNet', 'annotators_(not_your_models)' 'ckpts')
+    os.makedirs(annotator_ckpts_path, exist_ok=True)
     match controlnet_mode:
         case "canny":
             control = apply_canny(image)
@@ -54,7 +58,10 @@ def apply_controlnet(image, controlnet_mode):
     control = rearrange(control, 'b h w c -> b c h w').clone()
     return control
 
-def preview_controlnet(image, controlnet_mode):
+def preview_controlnet(image, controlnet_mode, models_dir):
+    global annotator_ckpts_path
+    annotator_ckpts_path = os.path.join(models_dir, 'ControlNet', 'annotators_(not_your_models)' 'ckpts')
+    os.makedirs(annotator_ckpts_path, exist_ok=True)
     match controlnet_mode:
         case "canny":
             control = apply_canny(image, preview=True)

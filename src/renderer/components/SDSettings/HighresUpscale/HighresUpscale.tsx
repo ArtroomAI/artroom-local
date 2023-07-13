@@ -41,8 +41,8 @@ export default function HighresUpscale() {
                 <Slider
                     defaultValue={0.15}
                     id="highres_strength"
-                    max={0.95}
-                    min={0.03}
+                    max={1}
+                    min={0.0}
                     name="highres_strength"
                     onChange={setHighresStrength}        
                     step={0.01}
