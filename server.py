@@ -313,6 +313,7 @@ try:
 
         for data in xyplot_data["xyplots"]:
             try:
+                SD.running = True
                 mask_b64 = data['mask_image']
                 data['mask_image'] = data['mask_image'][:100] + "..."
                 init_image_str = data['init_image']
@@ -323,20 +324,23 @@ try:
                 ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
                 vae_path = os.path.join(data['models_dir'], 'Vae', data['vae']).replace(os.sep, '/')
                 lora_paths = []
-                if len(data['lora']) > 0:
-                    for lora in data['lora']:
+                if len(data['loras']) > 0:
+                    for lora in data['loras']:
                         lora_paths.append({
                             'path': os.path.join(data['models_dir'], 'Lora', lora['name']).replace(os.sep, '/'),
+                            'name': lora['name'],
                             'weight': lora['weight']
                         })
             except Exception as e:
                 print(f"Failed to add to queue {e}")
+                SD.running = False
                 socketio.emit('job_done')
                 return
             try:
                 print("Starting gen...")
+                print(data)
                 SD.generate(                 
-                    image_save_path=image_save_path,
+                    image_save_path=data['image_save_path'],
                     long_save_path=data['long_save_path'],
                     highres_fix=data['highres_fix'],
                     show_intermediates=data['show_intermediates'],
@@ -363,17 +367,16 @@ try:
                     loras=lora_paths,
                     controlnet=data['controlnet'],
                     background_removal_type="none",
-                    clip_skip=max(int(data['clip_skip']), 1)
+                    clip_skip=max(int(data['clip_skip']), 1),
+                    generation_mode=data.get('generation_mode'),
+                    highres_steps=data.get('highres_steps'),
+                    highres_strength=data.get('highres_strength')
                     )
-
-                socketio.emit('job_done')
-
             except Exception as e:
                 print(f"Generation failed! {e}")
                 SD.running = False
+            socketio.emit('job_done')
 
-                SD.clean_up()
-                socketio.emit('job_done')
 
         # Load the images into a list
         image_files = sorted(os.listdir(image_save_path))

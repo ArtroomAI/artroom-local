@@ -6,35 +6,19 @@ server_ip = 'localhost'
 run_job_url = f'http://{server_ip}:5300/xyplot'
 
 x_key = "text_prompts"
-x_values = ["blue hair", "red hair", "blonde hair", "gray hair"]
-y_key = "lora"
-y_values = [
-    { 
-        "name" : "Character/JinxLol.safetensors",
-        "weight" : 0.6,
-        "trigger" : "Jinxlol"
-    },
-    { 
-        "name" : "Character/shinobuKochouDemon_v10.safetensors",
-        "weight" : 0.6,
-        "trigger" : "Shinobu Kochou"
-     },
-    { 
-        "name" : "Character/shrekLORA_shrekLORAV1.safetensors",
-        "weight" : 0.6,
-        "trigger" : "Shrek"
-    },
-]
+x_values = ["8k", "best quality", "digital art", "highest detail", "highly detailed", "intricate detail", "masterpiece", "photo realistic", "trending on artstation", ]
+y_key = "ckpt"
+y_values = ["sd_xl_base_0.9.safetensors", "ProtoGen_X3.4-pruned-fp16.safetensors", "v1-5-pruned.ckpt"]
 
 # X/Y candidates
-clip_skip = 2
-cfg_scale = 7
-steps = 50
-sampler = "ddim" #"ddim", "dpmpp_2m", "dpmpp_2s_ancestral", "euler", "euler_a", "dpm_2", "dpm_a", "lms", "heun", "plms"
-remove_background = "face" # "face", "u2net", "u2net_human_seg"
+clip_skip = 1
+cfg_scale = 7.5
+steps = 30
+sampler = "euler_a" #"ddim", "dpmpp_2m", "dpmpp_2s_ancestral", "euler", "euler_a", "dpm_2", "dpm_a", "lms", "heun", "plms"
+remove_background = "none" # "face", "u2net", "u2net_human_seg"
 controlnet = "none" # "none", "canny", "pose", "depth", "hed", "normal", "scribble"
-vae = "Anything-V3.0.vae.pt"
-lora = [] 
+vae = "vae_rmada-cold.vae.pt" #"none"
+loras = [] 
 """
 Format for lora:
 [
@@ -50,15 +34,15 @@ Format for lora:
     }
 ]
 """
-ckpt = "AnythingV5V3_v5PrtRE.safetensors"
-width = 512
-height = 512
+ckpt = "sd_xl_base_0.9.safetensors"
+width = 1024
+height = 1024
 strength = 0.65
 
 # Probably Fixed Parameters 
 n_iter = 1 # Probably makes the most sense to keep this at 1
 seed = 5   # Probably makes sense to keep this fixed
-text_prompts = "*** portrait, beautiful, epic"
+text_prompts = "a cat ***"
 negative_prompts = "mutated, deformed, amateur drawing, lowres, worst quality, low quality, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship"
 init_image = ""
 mask_image = ""
@@ -67,7 +51,7 @@ mask_image = ""
 models_dir = "E:\\Model_Weights"
 image_save_path = "E:\\Artroom\\ArtroomOuputs"
 show_intermediates = False 
-highres_fix = False 
+highres_fix = True 
 long_save_path = False 
 speed = "High"
 save_grid = False
@@ -98,7 +82,7 @@ for y_value in y_values:
             "remove_background": remove_background,
             "controlnet": controlnet,
             "vae": vae,
-            "lora": lora,
+            "loras": loras,
             "ckpt":ckpt,
             "width": width,
             "height": height,
