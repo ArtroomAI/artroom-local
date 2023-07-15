@@ -24,14 +24,7 @@ tflogging.set_verbosity_error()
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-
-def patch_comfy_args():
-    try:
-        import torch_directml
-        directml_enabled = True
-    except:
-        directml_enabled = False
-    args.directml = 0 if directml_enabled else None
+import traceback
 
 
 class NodeModules:
@@ -75,6 +68,7 @@ class Model:
         self.loras = []
 
         self.nodes = NodeModules()
+        self.device = get_device()
 
         self.ckpt = ckpt
         self.device = device
@@ -91,14 +85,14 @@ class Model:
 
     def load_model(self):
         with Mute():
-            self.model, self.clip, self.vae, clipvision = comfy.sd.load_checkpoint_guess_config(self.ckpt,
-                                                                                                output_vae=True,
-                                                                                                output_clip=True,
-                                                                                                embedding_directory=folder_paths.get_folder_paths(
-                                                                                                    "embeddings"))
+            self.model, self.clip, self.vae, clipvision = comfy.sd.load_checkpoint_guess_config(
+                self.ckpt,
+                output_vae=True,
+                output_clip=True,
+                embedding_directory=folder_paths.get_folder_paths("embeddings"))
         # if hasattr(self.clip.cond_stage_model, "clip_l"):  # sdxl
         #     self.can_use_half_vae = False
-        del clipvision  # because dafuq
+        del clipvision
 
     def load_textual_inversions(self, textual_inversion_list):
         pass
@@ -146,38 +140,37 @@ class Model:
         self.model.unpatch_model()
         self.clip.unpatch_model()
 
-    # self.load_model()
-
     def inject_controlnet(self, controlnet_path, existing=False):
         self.controlnet = comfy.sd.load_controlnet(controlnet_path)
 
     def deinject_controlnet(self, delete=True):
         del self.controlnet
+        self.controlnet = None 
 
     def load_vae(self, vae_path: str):
         try:
-            if '.vae' in vae_path:
+            if os.path.basename(vae_path) != 'none':
                 self.vae = comfy.sd.VAE(ckpt_path=vae_path, device=self.device)
-        except:
+        except Exception as e:
             print("Failed to load vae")
 
     def to(self, device, dtype=torch.float16):
         self.vae.device = device
         self.vae.first_stage_model.to(device).to(torch.float32)
 
-        self.model.model.to(device).to(dtype)
-        self.model.model_patches_to(device)
-        self.model.model_patches_to(dtype)
+        # self.model.model.to(device).to(dtype)
+        # self.model.model_patches_to(device)
+        # self.model.model_patches_to(dtype)
         
-        self.clip.device = device
-        self.clip.cond_stage_model.device = device
-        self.clip.patcher.model.to(device).to(dtype)
-        self.clip.cond_stage_model.to(device).to(dtype)
+        # self.clip.device = device
+        # self.clip.cond_stage_model.device = device
+        # self.clip.patcher.model.to(device).to(dtype)
+        # self.clip.cond_stage_model.to(device).to(dtype)
 
-        if hasattr(self.clip.cond_stage_model, "clip_l"):
-            self.clip.cond_stage_model.clip_l.device = device
-            self.clip.cond_stage_model.clip_g.device = device
-            self.dtype = dtype
+        # if hasattr(self.clip.cond_stage_model, "clip_l"):
+        #     self.clip.cond_stage_model.clip_l.device = device
+        #     self.clip.cond_stage_model.clip_g.device = device
+        #     self.dtype = dtype
 
         if self.controlnet is not None:
             self.controlnet.control_model.to(device)
@@ -191,12 +184,11 @@ class StableDiffusion:
         self.upscaler = Upscaler
         self.socketio = socketio
         self.nodes = NodeModules()
-        self.active_model = Model(ckpt='', socketio=self.socketio)
         self.highres_fix = False
         self.running = False
         self.device = get_device()
         self.gpu_architecture = get_gpu_architecture()  #
-        patch_comfy_args()
+        self.active_model = Model(ckpt='', socketio=self.socketio, device=self.device)
 
     def callback_fn(self, job_id, x0=None, enabled=True):
         if not enabled:
@@ -262,9 +254,11 @@ class StableDiffusion:
             else:
                 control = apply_controlnet(image, controlnet_mode, models_dir)
         else:
-            control = 1 - torch.from_numpy(image.copy()).float().cuda() / 255.0
+            control = 1 - torch.from_numpy(image.copy()).float() / 255.0
             control = torch.stack([control for _ in range(1)], dim=0)
             control = rearrange(control, 'b h w c -> b c h w').clone()
+        if self.gpu_architecture == 'NVIDIA':
+            control = control.cuda()
         return control.to(self.device)
 
     def diffusion_upscale(
@@ -381,11 +375,9 @@ class StableDiffusion:
             strength=1.0
     ):
 
-        dtype = torch.float16
-
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(dtype).to(init_image.to(self.device))
+            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.to(self.device))
             init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
             init_image = self.nodes.SetLatentNoiseMask.set_mask(init_image, mask_image)[0]
 
@@ -396,10 +388,17 @@ class StableDiffusion:
 
         self.active_model.to(self.device)
         scheduler = "karras"  # ["normal", "karras", "exponential", "simple", "ddim_uniform"]
-        out_image = self.nodes.KSampler.sample(self.active_model.model, seed, steps, 
-                                               cfg_scale, sampler, scheduler,
-                                               positive_cond, negative_prompt, init_image, denoise=strength)[0]
-        out_image["samples"] = out_image["samples"].to(dtype)
+        out_image = self.nodes.KSampler.sample(self.active_model.model, 
+                                               seed, 
+                                               steps, 
+                                               cfg_scale, 
+                                               sampler, 
+                                               scheduler,
+                                               positive_cond, 
+                                               negative_prompt, 
+                                               init_image, 
+                                               denoise=strength)[0]
+        out_image["samples"] = out_image["samples"].to(self.active_model.device)
 
         out_image = self.nodes.VAEDecode.decode(self.active_model.vae, out_image)[0]
         out_image = 255. * out_image[0].cpu().numpy()
@@ -462,7 +461,9 @@ class StableDiffusion:
 
         if vae is not None and len(vae) > 0:
             vae = os.path.join(models_dir, "Vae", vae)
-
+        else:
+            vae = "none"
+            
         def get_contronet_path(controlnet):
             controlnet_folder = os.path.join(models_dir, "ControlNet")
 
@@ -539,7 +540,10 @@ class StableDiffusion:
                 base = 1024
             else:
                 base = 768
-            W, H = resize_dims_balanced(W, H, base)
+            if W > base or H > base:
+                W, H = resize_dims_balanced(W, H, base)
+            else:
+                highres_fix = False 
 
         if len(mask_str) > 0 and len(init_image_str) > 0:
             mask_image = support.b64_to_image(mask_str).convert('L')
@@ -633,6 +637,8 @@ class StableDiffusion:
             positive_cond = self.nodes.ControlNetApply.apply_controlnet(
                 positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
             print(f"Applying controlnet {controlnet}")
+
+        self.active_model.to(self.device)
 
         with torch.no_grad():
             for n in range(1, n_iter + 1):
@@ -729,11 +735,16 @@ class StableDiffusion:
                                                       'path': os.path.join(sample_path, save_name),
                                                       'batch_id': job_id})
                 except Exception as e:
+                    tb = traceback.extract_tb(e.__traceback__)
+                    file_name, line_number, _, _ = tb[-1]
+                    print(f"Failure in file {file_name} at line {line_number}: {e}")
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
 
         self.clean_up()
         self.running = False
+        self.active_model.deinject_controlnet()
+        self.active_model.deinject_lora()
 
     def clean_up(self):
         if self.gpu_architecture == 'NVIDIA':

@@ -30,9 +30,8 @@ export const InstallerManager = () => {
 
     const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
     const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
-    const [modelsDir, setModelsDir] = useRecoilState(modelsDirState)
-    const [sameModelDirAndArtroomPath, setSameModelDirAndArtroomPath] = useState(false);
-    const [gpuType, setGpuType] = useState('NVIDIA');
+    const [modelsDir, setModelsDir] = useRecoilState(modelsDirState || path.join(artroomPath, 'artroom', 'model_weights'))
+    const [sameModelDirAndArtroomPath, setSameModelDirAndArtroomPath] = useState(true);
     const [downloadMessage, setDownloadMessage] = useState('');
     const [downloading, setDownloading] = useState(false);
 
@@ -73,7 +72,7 @@ export const InstallerManager = () => {
 
     const handleRunClick = async () => {
         toast({
-            title: 'Reinstalling Artroom Backend',
+            title: 'Installing Artroom Backend',
             status: 'success',
             position: 'top',
             duration: 2000,
@@ -89,7 +88,7 @@ export const InstallerManager = () => {
                 dir = path.join(artroomPath, 'artroom', 'model_weights')
                 setModelsDir(dir)
             }
-            await window.api.pythonInstall(artroomPath, gpuType);
+            await window.api.pythonInstall(artroomPath);
             await window.api.downloadStarterModels(dir, realisticStarter, animeStarter, landscapesStarter);
             setDownloading(false);
             setShowArtroomInstaller(false);
@@ -117,16 +116,22 @@ export const InstallerManager = () => {
             >
             <ModalOverlay bg='blackAlpha.900'/>
             <ModalContent>
-                <ModalHeader>Artroom Installer</ModalHeader>
+                <ModalHeader>{`Artroom Installer (~6GB)`}</ModalHeader>
                 <ModalBody>
-                    <Text>Enter the path where you want to install Artroom</Text>
-                    <Text mb='4'>(Note: This is ~11GB of data. Please make sure your drive has enough storage space)</Text>
+                    <Text>Artroom Engine Backend Install Location</Text>
+                    {!sameModelDirAndArtroomPath && <Text mb='4'>{`(Note: Do NOT select the Artroom folder that was installed on startup)`}</Text>
+                    }
                     <Flex flexDirection='row' justifyItems='center' alignItems='center' mb='4'>
-                        <Input width="80%" placeholder='Artroom will be saved in YourPath/artroom' value={artroomPath} onChange={(event) => {setArtroomPath(event.target.value)}} mr='4' />
+                        <Input 
+                            width="80%" 
+                            placeholder='Artroom will be saved in YourPath/artroom' 
+                            value={artroomPath} 
+                            onChange={(event) => {setArtroomPath(event.target.value)}} 
+                            isDisabled={sameModelDirAndArtroomPath} 
+                            mr='4' />
                         <Button onClick={handleSelectArtroomClick}>Select</Button>
                     </Flex>
-                    <Text mb='1'>Where do you want to keep your models? This can be changed later in Settings</Text>
-                    <Checkbox isChecked={sameModelDirAndArtroomPath} onChange={() => { setSameModelDirAndArtroomPath(!sameModelDirAndArtroomPath) }}>Use Artroom Path</Checkbox>   
+                    <Text mb='1'>{`Model Path (This can be changed later in Settings)`}</Text>
                     <Flex flexDirection='row' alignItems='center' mb='4'>
                         <Input 
                             width="80%" 
@@ -137,17 +142,7 @@ export const InstallerManager = () => {
                             mr='4' />
                         <Button onClick={handleSelectModelClick}>Select</Button>
                     </Flex>
-                    <RadioGroup value={gpuType} onChange={(event)=>{setGpuType(event)}} mb='4'>
-                        <Text mb='4'>Do you have an NVIDIA or AMD GPU?</Text>
-                        <Flex flexDirection='row' alignItems='center'>
-                            <Radio value='NVIDIA' mr='2' />
-                            NVIDIA
-                        </Flex>
-                        <Flex flexDirection='row' alignItems='center'>
-                            <Radio value='AMD' mr='2' />
-                            AMD
-                        </Flex>
-                    </RadioGroup>
+                    <Checkbox isChecked={!sameModelDirAndArtroomPath} onChange={() => { setSameModelDirAndArtroomPath(!sameModelDirAndArtroomPath) }}>Use Custom Path</Checkbox>  
                     <Text>
                         {`Do you want a starter model (optional)?`}
                     </Text>

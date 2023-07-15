@@ -103,7 +103,7 @@ def apply_canny(img, low_thr=100, high_thr=200, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -114,7 +114,7 @@ def apply_pose(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -125,7 +125,7 @@ def apply_depth(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -137,7 +137,7 @@ def apply_normal(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -148,7 +148,7 @@ def apply_normalbae(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -159,14 +159,14 @@ def apply_hed(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
 def apply_scribble(img, preview=False):
     detected_map = np.zeros_like(img, dtype=np.uint8)
     detected_map[np.min(img, axis=2) < 127] = 255
-    control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(detected_map.copy()).float() / 255.0
     return control
 
 
@@ -177,7 +177,7 @@ def apply_softedge(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -200,7 +200,7 @@ def apply_lineart(img, coarse=False, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = 1 - torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = 1 - torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -213,7 +213,7 @@ def apply_lineart_anime(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = 1 - torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = 1 - torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -226,7 +226,7 @@ def apply_shuffle(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -235,7 +235,7 @@ def apply_base(img, preview=False):
     if preview:
         img = HWC3(img)
         return img
-    control = torch.from_numpy(img.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(img.copy()).float() / 255.0
     return control
 
 
@@ -247,7 +247,7 @@ def apply_inpaint(img, mask, preview=False):
 
     detected_map = img.copy()
     detected_map[mask_pixel > 0.5] = - 255.0
-    control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+    control = torch.from_numpy(detected_map.copy()).float() / 255.0
     return control
 
 

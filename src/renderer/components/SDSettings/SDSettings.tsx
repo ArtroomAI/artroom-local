@@ -202,7 +202,7 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
                                 defaultValue={0.75}
                                 id="strength"
                                 max={1}
-                                min={0}
+                                min={0.01}
                                 name="strength"
                                 onChange={setStrength}        
                                 step={0.01}

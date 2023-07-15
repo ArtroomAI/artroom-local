@@ -7,7 +7,15 @@ import {
     IconButton,
     ButtonGroup,
     Tooltip,
-    VStack
+    VStack,
+    FormControl,
+    HStack,
+    FormLabel,
+    Spacer,
+    Slider,
+    SliderTrack,
+    SliderFilledTrack,
+    SliderThumb
 } from '@chakra-ui/react';
 import {
     FiUpload
@@ -15,7 +23,7 @@ import {
 import {
     FaTrashAlt, FaClipboardList, FaQuestionCircle
 } from 'react-icons/fa';
-import { aspectRatioState, initImageState } from '../../SettingsManager';
+import { aspectRatioState, initImageState, strengthState } from '../../SettingsManager';
 import { getImageDimensions } from '../Utils/image';
 import { useDropzone } from 'react-dropzone';
 
@@ -24,6 +32,7 @@ const DragDropFile = () => {
     const [aspectRatioSelection, setAspectRatioSelection] = useRecoilState(aspectRatioSelectionState);
     const [initImage, setInitImage] = useRecoilState(initImageState);
     const setAspectRatio = useSetRecoilState(aspectRatioState);
+    const [strength, setStrength] = useRecoilState(strengthState);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         handleFile(acceptedFiles[0]);
@@ -58,6 +67,50 @@ const DragDropFile = () => {
 
     return (
         <VStack>
+            { initImage.length > 0 &&
+                <FormControl className="strength-input">
+                    <HStack align='center'>
+                        <FormLabel htmlFor="Strength">
+                            Strength:
+                        </FormLabel>
+                        <Spacer />
+                        <Tooltip
+                            fontSize="md"
+                            label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                            placement="left"
+                            shouldWrapChildren
+                        >
+                            <FaQuestionCircle color="#777" />
+                        </Tooltip>
+                    </HStack>
+                    <Slider
+                        defaultValue={0.75}
+                        id="strength"
+                        max={1}
+                        min={0.01}
+                        name="strength"
+                        onChange={setStrength}        
+                        step={0.01}
+                        value={strength}
+                        variant="outline"
+                    >
+                        <SliderTrack bg="#EEEEEE">
+                            <SliderFilledTrack bg="#4f8ff8" />
+                        </SliderTrack>
+    
+                        <Tooltip
+                            bg="#4f8ff8"
+                            color="white"
+                            isOpen={true}
+                            label={`${strength}`}
+                            placement="right"
+                        >
+                            <SliderThumb />
+                        </Tooltip>
+                    </Slider>
+                </FormControl> 
+            }
+
             <Box
                 bg="#080B16"
                 height="180px"
@@ -82,7 +135,7 @@ const DragDropFile = () => {
                             fit="contain"
                             rounded="md"
                             src={initImage}
-                        />
+                        />                     
                         : <>
                             Click or Drag A Starting Image Here
                             <Tooltip

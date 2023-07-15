@@ -28,6 +28,18 @@ def check_array_dict_equality(array1, array2):
 
     return True
 
+def invert_rgb_mask(mask_image):
+    # Convert RGB mask to grayscale
+    grayscale_mask = mask_image.convert('L')
+
+    # Invert the grayscale mask
+    inverted_grayscale_mask = ImageOps.invert(grayscale_mask)
+
+    # Convert the inverted grayscale mask back to RGB
+    inverted_rgb_mask = inverted_grayscale_mask.convert('RGB')
+
+    return inverted_rgb_mask
+
 def image_to_b64(image):
     image_file = io.BytesIO()
     image.save(image_file, format='PNG')

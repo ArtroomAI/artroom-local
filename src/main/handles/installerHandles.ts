@@ -6,9 +6,49 @@ import yauzl from "yauzl";
 import axios from 'axios';
 import { pipeline as _pipeline } from 'stream';
 import { promisify } from 'util';
+
 const pipeline = promisify(_pipeline);
 
 let installationProcess: ChildProcessWithoutNullStreams;
+
+const detectGPU = async () => {
+  try {
+    // Check if it's a Mac
+    if (process.platform === 'darwin') {
+      return 'Mac';
+    }
+
+    // Check if it's a NVIDIA GPU on Windows
+    if (process.platform === 'win32') {
+      const gpus = await gpuInfo();
+      const nvidiaGPU = gpus.find(
+        (gpu : any) => gpu.vendor.toLowerCase() === 'nvidia'
+      );
+      if (nvidiaGPU) {
+        return 'NVIDIA';
+      }
+    }
+
+    // Check if it's an AMD GPU on Windows
+    if (process.platform === 'win32') {
+      const gpus = await gpuInfo();
+      const amdGPU = gpus.find(
+        (gpu : any) => gpu.vendor.toLowerCase() === 'amd'
+      );
+      if (amdGPU) {
+        return 'AMD';
+      }
+    }
+
+    // Add detection logic for other GPU vendors if needed
+
+    // No GPU detected
+    return 'NVIDIA';
+  } catch (error) {
+    console.error('GPU detection failed:', error);
+    return 'NVIDIA';
+  }
+};
 
 const toMB = (n: number) => (n / 1048576).toFixed(2); //1048576 - bytes in 1 MB
 
@@ -85,7 +125,8 @@ function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.B
   })
 }
 
-const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => {
+const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artroomPath: string) => {
+    const gpuType = await detectGPU();
     console.log("REINSTALL BACKEND")
     console.log(`VANILLA PATH: ${artroomPath}`)
     const URL = gpuType === 'AMD' ? 
@@ -117,7 +158,7 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
     if(!success) return;
 
     await unzipFile(PATH_zip, artroomPath, mainWindow);
-    await reinstallPythonDependencies(artroomPath, mainWindow, gpuType);
+    await reinstallPythonDependencies(artroomPath, mainWindow);
     mainWindow.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
     console.log('DONE')
     return
@@ -186,7 +227,8 @@ async function download_via_https(name: string, URL: string, file_path: string, 
 
 const MAX_INSTALL_RETRIES = 3;
 
-const reinstallPythonDependencies = async (artroomPath: string, mainWindow?: Electron.BrowserWindow, gpuType?: string) => {
+const reinstallPythonDependencies = async (artroomPath: string, mainWindow?: Electron.BrowserWindow) => {
+  const gpuType = await detectGPU();
   console.log("REINSTALLING DEPENDENCIES");
   const PATH = path.join(artroomPath, "artroom", "artroom_backend");
   const PATH_requirements = gpuType === 'AMD' ? 
@@ -260,11 +302,11 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
 }
 
 export const installerHandles = (mainWindow: Electron.BrowserWindow) => {
-  ipcMain.handle('pythonInstall', (_, artroomPath, gpuType) => {
-    return backupPythonInstallation(mainWindow, artroomPath, gpuType);
+  ipcMain.handle('pythonInstall', (_, artroomPath) => {
+    return backupPythonInstallation(mainWindow, artroomPath);
   });    
-  ipcMain.handle('pythonInstallDependencies', (_, artroomPath, gpuType) => {
-    return reinstallPythonDependencies(artroomPath, gpuType);
+  ipcMain.handle('pythonInstallDependencies', (_, artroomPath) => {
+    return reinstallPythonDependencies(artroomPath);
   });    
   ipcMain.handle('downloadStarterModels', (_, dir, realisticStarter, animeStarter, landscapesStarter) => {
     return downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);

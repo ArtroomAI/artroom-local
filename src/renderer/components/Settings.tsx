@@ -20,9 +20,8 @@ import {
 import {
     FaQuestionCircle
 } from 'react-icons/fa';
-import DebugInstallerModal from './Modals/DebugInstallerModal';
 import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState, artroomPathState, debugModeState } from '../SettingsManager';
-
+  
 function Settings () {
     const toast = useToast({});
 
@@ -353,7 +352,9 @@ function Settings () {
                         colorScheme="red"
                         alignContent="center"
                         className="reinstall-python-dependencies"
-                        onClick={()=>{window.api.pythonInstallDependencies(artroomPath, "NVIDIA")}}>
+                        onClick={()=>{
+                                window.api.pythonInstallDependencies(artroomPath) 
+                           }}>
                         Update Packages
                     </Button>
                 </Flex>
