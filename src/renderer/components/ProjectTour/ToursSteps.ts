@@ -129,10 +129,8 @@ export const TOUR_STEPS_SETTINGS = [{
 }, {
     target: '.model-ckpt-dir-input',
     content: 'You can save your model ckpts in any drive or folder you\'d like. Just make sure it\'s an actual folder (So do E:/model_weights instead of just E:/)'
-}, {
-    target: '.speed-input',
-    content: 'You can also choose how fast your want your images. Increasing speed takes more VRAM though, so how much you can handle would depend on your GPU\'s GB'
-}, {
+},
+{
     target: '.highres-fix-input',
     content: 'If you turn on highres fix, once you get past 1024x1024, Artroom will generate a smaller image, upscale, and then img2img to improve quality and avoid weirdness that comes from bigger generations'
 }, {

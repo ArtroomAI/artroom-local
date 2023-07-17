@@ -1,12 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, spawn, exec } from 'child_process';
 import { ipcMain } from "electron";
 import yauzl from "yauzl";
 import axios from 'axios';
 import { pipeline as _pipeline } from 'stream';
 import { promisify } from 'util';
-
+import gpuInfo from 'gpu-info';
 const pipeline = promisify(_pipeline);
 
 let installationProcess: ChildProcessWithoutNullStreams;
@@ -267,6 +267,23 @@ async function executeInstallationCommand(command: string): Promise<void> {
   });
 }
 
+const backupDownload = async (artroomPath?: string, mainWindow?: Electron.BrowserWindow) => {
+    const options = {
+      detached: true,
+      shell: true,
+  };
+
+  exec('start cmd.exe /K "installer.bat"', (error, stdout, stderr) => {
+    
+    if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+    }
+    console.log(`stdout: ${stdout}`);
+    console.error(`stderr: ${stderr}`);
+});
+}
+
 
 const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: string, realisticStarter: boolean, animeStarter: boolean, landscapesStarter: boolean) => {
   fs.mkdirSync(dir, { recursive: true });
@@ -306,9 +323,14 @@ export const installerHandles = (mainWindow: Electron.BrowserWindow) => {
     return backupPythonInstallation(mainWindow, artroomPath);
   });    
   ipcMain.handle('pythonInstallDependencies', (_, artroomPath) => {
-    return reinstallPythonDependencies(artroomPath);
+    return reinstallPythonDependencies(artroomPath, mainWindow);
+  });    
+  ipcMain.handle('backupDownload', (_, artroomPath) => {
+    return backupDownload(artroomPath, mainWindow);
   });    
   ipcMain.handle('downloadStarterModels', (_, dir, realisticStarter, animeStarter, landscapesStarter) => {
     return downloadStarterModels(mainWindow, dir, realisticStarter, animeStarter, landscapesStarter);
   });    
 }
+
+

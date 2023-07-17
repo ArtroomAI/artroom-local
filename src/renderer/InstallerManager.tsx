@@ -20,6 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { artroomPathState, debugModeState, modelsDirState, cloudOnlyState } from './SettingsManager';
 import path from 'path';
+import { spawn } from 'child_process';
 
 export const InstallerManager = () => {
     const toast = useToast({});
@@ -31,13 +32,15 @@ export const InstallerManager = () => {
     const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
     const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
     const [modelsDir, setModelsDir] = useRecoilState(modelsDirState || path.join(artroomPath, 'artroom', 'model_weights'))
-    const [sameModelDirAndArtroomPath, setSameModelDirAndArtroomPath] = useState(true);
+    const [customPath, setCustomPath] = useState(false);
     const [downloadMessage, setDownloadMessage] = useState('');
     const [downloading, setDownloading] = useState(false);
 
     const [realisticStarter, setRealisticStarter] = useState(false);
     const [animeStarter, setAnimeStarter] = useState(false);
     const [landscapesStarter, setLandscapesStarter] = useState(true);
+    
+    const [stillHavingTrouble, setStillHavingTrouble] = useState(false);
 
     useEffect(() => {
         if(cloudOnly) return;
@@ -84,7 +87,7 @@ export const InstallerManager = () => {
         setDownloading(true);
         try {
             let dir = modelsDir;
-            if (sameModelDirAndArtroomPath) {
+            if (!customPath) {
                 dir = path.join(artroomPath, 'artroom', 'model_weights')
                 setModelsDir(dir)
             }
@@ -97,6 +100,10 @@ export const InstallerManager = () => {
             console.error(error);
             setDownloading(false);
         }
+    }
+
+    const handleBackupDownloader = () => {
+        window.api.backupDownload(artroomPath)
     }
 
     function handleSelectArtroomClick() {
@@ -119,7 +126,7 @@ export const InstallerManager = () => {
                 <ModalHeader>{`Artroom Installer (~6GB)`}</ModalHeader>
                 <ModalBody>
                     <Text>Artroom Engine Backend Install Location</Text>
-                    {!sameModelDirAndArtroomPath && <Text mb='4'>{`(Note: Do NOT select the Artroom folder that was installed on startup)`}</Text>
+                    {customPath && <Text mb='4'>{`(Note: Do NOT select the Artroom folder that was installed on startup)`}</Text>
                     }
                     <Flex flexDirection='row' justifyItems='center' alignItems='center' mb='4'>
                         <Input 
@@ -127,9 +134,9 @@ export const InstallerManager = () => {
                             placeholder='Artroom will be saved in YourPath/artroom' 
                             value={artroomPath} 
                             onChange={(event) => {setArtroomPath(event.target.value)}} 
-                            isDisabled={sameModelDirAndArtroomPath} 
+                            isDisabled={!customPath} 
                             mr='4' />
-                        <Button onClick={handleSelectArtroomClick}>Select</Button>
+                        {customPath && <Button onClick={handleSelectArtroomClick}>Select</Button>}
                     </Flex>
                     <Text mb='1'>{`Model Path (This can be changed later in Settings)`}</Text>
                     <Flex flexDirection='row' alignItems='center' mb='4'>
@@ -138,11 +145,11 @@ export const InstallerManager = () => {
                             placeholder='Model will be saved in YourPath/artroom/model_weights' 
                             value={modelsDir} 
                             onChange={(event) => {setModelsDir(event.target.value)}} 
-                            isDisabled={sameModelDirAndArtroomPath} 
+                            isDisabled={!customPath} 
                             mr='4' />
-                        <Button onClick={handleSelectModelClick}>Select</Button>
+                        {customPath && <Button onClick={handleSelectModelClick}>Select</Button>}
                     </Flex>
-                    <Checkbox isChecked={!sameModelDirAndArtroomPath} onChange={() => { setSameModelDirAndArtroomPath(!sameModelDirAndArtroomPath) }}>Use Custom Path</Checkbox>  
+                    <Checkbox isChecked={customPath} onChange={() => { setCustomPath(!customPath) }}>Use Custom Path</Checkbox>  
                     <Text>
                         {`Do you want a starter model (optional)?`}
                     </Text>
@@ -156,6 +163,31 @@ export const InstallerManager = () => {
                         <Checkbox isChecked={landscapesStarter} onChange={() => { setLandscapesStarter(!landscapesStarter) }}>{`(Popular) DreamShaper `}</Checkbox>  
                         <Checkbox isChecked={realisticStarter} onChange={() => { setRealisticStarter(!realisticStarter) }}>{`(Realistic) ChilloutMix `}</Checkbox>   
                         <Checkbox isChecked={animeStarter} onChange={() => { setAnimeStarter(!animeStarter) }}>{`(Anime) Counterfeit `}</Checkbox>                      
+                        <Text 
+                            _hover={{
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                            }}
+                            onClick={() => {
+                                handleBackupDownloader()
+                                setStillHavingTrouble(true);
+                            }}
+                            >
+                            {`Trouble Downloading? Click Here to launch the backup installer`}
+                            </Text>
+                            {stillHavingTrouble && 
+                                <Text 
+                                _hover={{
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                }}
+                                onClick={() => {
+                                    window.api.openInstallTutorial()
+                                }}
+                                >
+                                {`Still Having Trouble Downloading? Click Here to get manual install instructions (Don't worry, it's easy)`}
+                                </Text>
+                            }
 
                     </VStack>
                     {

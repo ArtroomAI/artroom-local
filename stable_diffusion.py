@@ -124,8 +124,9 @@ class Model:
         self.loras = loras
 
     def get_steps(self):
-        return self.current_num, self.total_num, self.model.current_step + self.steps * (
-                self.current_num - 1), self.total_steps
+        if self.model is None:
+            return 0, 0, 0, 0
+        return self.current_num, self.total_num, self.model.current_step + self.steps * (self.current_num - 1), self.total_steps
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         lora = comfy.utils.load_torch_file(path, safe_load=True)

@@ -61,34 +61,40 @@ try:
         def flush(self):
             self.original_stdout.flush()
 
+    progress_pattern = re.compile(r'\[(.*?)\]')
+    current_num_pattern = re.compile(r'\d+(?=/)')
 
     def your_callback_function(text: str):
         socketio.emit('messagesss', text)
+        
         if 'OutOfMemoryError' in text:
-            socketio.emit('status', toast_status(
-                title="Cuda Out of Memory Error - try generating smaller image or change speed in settings",
-                status="error"))
-        elif 'Decoding image:' in text:
-            current_num, total_num, current_step, total_steps = SD.get_steps()
-            match = re.search(r'\[(.*?)\]', text)
-            time_spent = ""
-            eta = ""
-            iterations_per_sec = ""
-            if match:
-                parts = match.group(1).split(',')
-                time_spent = parts[0].split('<')[0].strip()
-                eta = parts[0].split('<')[1].strip()
-                iterations_per_sec = parts[1].strip()
+            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller images", status="error"))
 
-            socketio.emit('get_progress', {
-                'current_step': current_step + 1,
-                'total_steps': total_steps,
-                'current_num': current_num,
-                'total_num': total_num,
-                'time_spent': time_spent,
-                'eta': eta,
-                'iterations_per_sec': iterations_per_sec
-            })
+        try:
+            active_model = SD.active_model
+            if active_model is not None:
+                match = progress_pattern.search(text)
+                if match:
+                    parts = match.group(1).split(',')
+                    time_spent = parts[0].split('<')[0].strip()
+                    eta = parts[0].split('<')[1].strip()
+                    iterations_per_sec = parts[1].strip()
+
+                    current_step_match = current_num_pattern.search(text)
+                    current_step = int(current_step_match.group()) if current_step_match else 0
+
+                    socketio.emit('get_progress', {
+                        'current_step': current_step,
+                        'total_steps': active_model.steps,
+                        'current_num': active_model.current_num-1,
+                        'total_num': active_model.total_num,
+                        'time_spent': time_spent,
+                        'eta': eta,
+                        'iterations_per_sec': iterations_per_sec
+                    })
+        except Exception as e:
+            pass
+        
         return text
 
 

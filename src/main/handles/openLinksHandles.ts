@@ -16,4 +16,8 @@ export const openLinksHandles = () => {
   ipcMain.handle("openTutorial", () => {
     shell.openExternal(`https://artroomai.gitbook.io/tutorials/artroom-basics/overview/`);
   });
+
+  ipcMain.handle("openInstallTutorial", () => {
+    shell.openExternal(`https://artroomai.gitbook.io/local_tutorials/artroom-basics/common-issues-and-solutions/debugging-installation/`);
+  });
 }

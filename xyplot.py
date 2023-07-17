@@ -53,7 +53,6 @@ image_save_path = "E:\\Artroom\\ArtroomOuputs"
 show_intermediates = False 
 highres_fix = True 
 long_save_path = False 
-speed = "High"
 save_grid = False
 invert = False
 use_removed_background = False 
@@ -98,7 +97,6 @@ for y_value in y_values:
             "image_save_path": image_save_path,
             "n_iter": n_iter,
             "save_grid": save_grid,
-            "speed": speed,
             "long_save_path": long_save_path,
             "highres_fix": highres_fix,
             "show_intermediates": show_intermediates,
