@@ -27,17 +27,15 @@ lowvram_available = True
 xpu_available = False
 
 directml_enabled = False
-if args.directml is not None:
+try:
     import torch_directml
     directml_enabled = True
-    device_index = args.directml
-    if device_index < 0:
-        directml_device = torch_directml.device()
-    else:
-        directml_device = torch_directml.device(device_index)
-    print("Using directml with device:", torch_directml.device_name(device_index))
+    directml_device = torch_directml.device()
+    print("Using directml with device:", directml_device)
     # torch_directml.disable_tiled_resources(True)
     lowvram_available = False #TODO: need to find a way to get free memory in directml before this can be enabled by default.
+except:
+    pass 
 
 try:
     import intel_extension_for_pytorch as ipex
