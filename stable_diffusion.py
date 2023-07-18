@@ -1,9 +1,12 @@
+import os.path
 import re
 import time
 import warnings
 import gc
 import sys
 import traceback
+
+import torch
 from einops import rearrange
 
 from glob import glob
@@ -73,6 +76,7 @@ class Model:
         self.device = get_device()
 
         self.ckpt = ckpt
+        self.embedding_path = os.path.join(os.path.dirname(ckpt), "Embeddings")
         self.device = device
         self.socketio = socketio
 
@@ -91,7 +95,7 @@ class Model:
                 self.ckpt,
                 output_vae=True,
                 output_clip=True,
-                embedding_directory=folder_paths.get_folder_paths("embeddings"))
+                embedding_directory=self.embedding_path)
         del clipvision
 
     def load_textual_inversions(self, textual_inversion_list):
@@ -408,12 +412,18 @@ class StableDiffusion:
 
         return out_image
 
-    def generate_mem_prof(self, *args, **kwargs):
-        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True,
-                     record_shapes=True) as prof:
-            self.generate(*args, **kwargs)
-            prof.export_chrome_trace(f"trace{time.ctime()}.json")
+    def generate_profile(self, *args, debug_enabled=False, **kwargs):
+        with torch.no_grad():
+            if debug_enabled:
+                f = f"trace{time.ctime()}.json".replace(" ", "").replace(":", "")
+                print(f"Profiling {f}")
+                with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+                    self.generate(*args, **kwargs)
+                prof.export_chrome_trace(f)
+            else:
+                self.generate(*args, **kwargs)
 
+    @torch.no_grad()
     def generate(self,
                  job_id="",
                  image_save_path="",
