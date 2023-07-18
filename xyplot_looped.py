@@ -69,9 +69,7 @@ image_save_path = "E:\\Artroom\\ArtroomOuputs"
 show_intermediates = False 
 highres_fix = False 
 long_save_path = False 
-speed = "High"
 save_grid = False
-palette_fix = False 
 invert = False
 use_removed_background = False 
 use_preprocessed_controlnet = False
@@ -113,13 +111,11 @@ for i in range(0, len(x_values), batch_size):
                 "init_image": init_image,
                 "mask_image": mask_image,
                 "invert": invert,
-                "palette_fix": palette_fix,
                 "use_removed_background": use_removed_background,
                 "use_preprocessed_controlnet": use_preprocessed_controlnet,
                 "image_save_path": image_save_path,
                 "n_iter": n_iter,
                 "save_grid": save_grid,
-                "speed": speed,
                 "long_save_path": long_save_path,
                 "highres_fix": highres_fix,
                 "show_intermediates": show_intermediates,

@@ -12,7 +12,6 @@ See "Data Augmentation" tutorial for an overview of the system:
 https://detectron2.readthedocs.io/tutorials/augmentation.html
 """
 
-
 __all__ = [
     "Augmentation",
     "AugmentationList",
@@ -29,7 +28,7 @@ def _check_img_dtype(img):
         type(img)
     )
     assert not isinstance(img.dtype, np.integer) or (
-        img.dtype == np.uint8
+            img.dtype == np.uint8
     ), "[Augmentation] Got image of type {}, use uint8 or floating points instead!".format(
         img.dtype
     )
@@ -52,8 +51,8 @@ def _get_aug_input_args(aug, aug_input) -> List[Any]:
             names = []
             for name, prm in prms:
                 if prm.kind in (
-                    inspect.Parameter.VAR_POSITIONAL,
-                    inspect.Parameter.VAR_KEYWORD,
+                        inspect.Parameter.VAR_POSITIONAL,
+                        inspect.Parameter.VAR_KEYWORD,
                 ):
                     raise TypeError(
                         f""" \
@@ -194,7 +193,7 @@ class Augmentation:
             argstr = []
             for name, param in sig.parameters.items():
                 assert (
-                    param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
+                        param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
                 ), "The default __repr__ doesn't support *args or **kwargs"
                 assert hasattr(self, name), (
                     "Attribute {} not found! "
@@ -308,11 +307,11 @@ class AugInput:
 
     # TODO maybe should support more builtin data types here
     def __init__(
-        self,
-        image: np.ndarray,
-        *,
-        boxes: Optional[np.ndarray] = None,
-        sem_seg: Optional[np.ndarray] = None,
+            self,
+            image: np.ndarray,
+            *,
+            boxes: Optional[np.ndarray] = None,
+            sem_seg: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -342,7 +341,7 @@ class AugInput:
             self.sem_seg = tfm.apply_segmentation(self.sem_seg)
 
     def apply_augmentations(
-        self, augmentations: List[Union[Augmentation, Transform]]
+            self, augmentations: List[Union[Augmentation, Transform]]
     ) -> TransformList:
         """
         Equivalent of ``AugmentationList(augmentations)(self)``

@@ -87,7 +87,6 @@ class compute_loss(nn.Module):
 
         return loss
 
-
     def forward_UG(self, pred_list, coord_list, gt_norm, gt_norm_mask):
         loss = 0.0
         for (pred, coord) in zip(pred_list, coord_list):
@@ -99,8 +98,8 @@ class compute_loss(nn.Module):
                     dot = torch.cosine_similarity(pred_norm, gt_norm, dim=1)
 
                     valid_mask = gt_norm_mask[:, 0, :, :].float() \
-                                * (dot.detach() < 0.999).float() \
-                                * (dot.detach() > -0.999).float()
+                                 * (dot.detach() < 0.999).float() \
+                                 * (dot.detach() > -0.999).float()
                     valid_mask = valid_mask > 0.5
 
                     # mask
@@ -116,8 +115,8 @@ class compute_loss(nn.Module):
                     dot = torch.cosine_similarity(pred_norm, gt_norm, dim=1)
 
                     valid_mask = gt_norm_mask[:, 0, :, :].float() \
-                                * (dot.detach() < 0.999).float() \
-                                * (dot.detach() > -0.999).float()
+                                 * (dot.detach() < 0.999).float() \
+                                 * (dot.detach() > -0.999).float()
                     valid_mask = valid_mask > 0.5
 
                     dot = dot[valid_mask]
@@ -135,7 +134,8 @@ class compute_loss(nn.Module):
                 # coord: B, 1, N, 2
                 # pred: B, 4, N
                 gt_norm_ = F.grid_sample(gt_norm, coord, mode='nearest', align_corners=True)  # (B, 3, 1, N)
-                gt_norm_mask_ = F.grid_sample(gt_norm_mask.float(), coord, mode='nearest', align_corners=True)  # (B, 1, 1, N)
+                gt_norm_mask_ = F.grid_sample(gt_norm_mask.float(), coord, mode='nearest',
+                                              align_corners=True)  # (B, 1, 1, N)
                 gt_norm_ = gt_norm_[:, :, 0, :]  # (B, 3, N)
                 gt_norm_mask_ = gt_norm_mask_[:, :, 0, :] > 0.5  # (B, 1, N)
 

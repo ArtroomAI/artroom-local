@@ -7,7 +7,7 @@ __all__ = ["subsample_labels"]
 
 
 def subsample_labels(
-    labels: torch.Tensor, num_samples: int, positive_fraction: float, bg_label: int
+        labels: torch.Tensor, num_samples: int, positive_fraction: float, bg_label: int
 ):
     """
     Return `num_samples` (or fewer, if not enough found)

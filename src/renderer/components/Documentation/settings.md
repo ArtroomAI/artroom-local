@@ -14,10 +14,6 @@
 
 	Select a model from your saved model weights.
 
-- **Choose Generation Speed**
-
-	Select between `Low`, `Medium`, and `High`.  A higher speed will mean more GPU memory is used.
-
 - **VRAM Saver**
 
 	Slows down image generation to allow for larger images to fit on the GPU memory.

@@ -20,9 +20,8 @@ import {
 import {
     FaQuestionCircle
 } from 'react-icons/fa';
-import DebugInstallerModal from './Modals/DebugInstallerModal';
-import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, speedState, showIntermediatesState, artroomPathState, debugModeState } from '../SettingsManager';
-
+import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, showIntermediatesState, artroomPathState, debugModeState } from '../SettingsManager';
+  
 function Settings () {
     const toast = useToast({});
 
@@ -30,7 +29,6 @@ function Settings () {
     const [longSavePath, setLongSavePath] = useRecoilState(longSavePathState);
     const [highresFix, setHighresFix] = useRecoilState(highresFixState);
     const [showIntermediates, setShowIntermediates] = useRecoilState(showIntermediatesState);
-    const [speed, setSpeed] = useRecoilState(speedState);
     const [imageSavePath, setImageSavePath] = useRecoilState(imageSavePathState);
     const [saveGrid, setSaveGrid] = useRecoilState(saveGridState);
     const [modelsDir, setModelsDir] = useRecoilState(modelsDirState);
@@ -39,7 +37,6 @@ function Settings () {
     const [longSavePathTemp, setLongSavePathTemp] = useState(longSavePath);
     const [highresFixTemp, setHighresFixTemp] = useState(highresFix);
     const [showIntermediatesTemp, setShowIntermediatesTemp] = useState(showIntermediates);
-    const [speedTemp, setSpeedTemp] = useState(speed);
     const [imageSavePathTemp, setImageSavePathTemp] = useState(imageSavePath);
     const [saveGridTemp, setSaveGridTemp] = useState(saveGrid);
     const [modelsDirTemp, setModelsDirTemp] = useState(modelsDir);
@@ -54,7 +51,6 @@ function Settings () {
         setLongSavePathTemp(longSavePath);
         setHighresFixTemp(highresFix);
         setShowIntermediatesTemp(showIntermediates);
-        setSpeedTemp(speed);
         setImageSavePathTemp(imageSavePath);
         setSaveGridTemp(saveGrid);
         setModelsDirTemp(modelsDir);
@@ -87,7 +83,6 @@ function Settings () {
         setLongSavePath(longSavePathTemp);
         setHighresFix(highresFixTemp);
         setShowIntermediates(showIntermediatesTemp);
-        setSpeed(speedTemp);
         setImageSavePath(imageSavePathTemp);
         setSaveGrid(saveGridTemp);
         setModelsDir(modelsDirTemp);
@@ -101,7 +96,7 @@ function Settings () {
                 pointerEvents: 'none'
             }
         });
-    }, [toast, debugModeTemp, highresFixTemp, imageSavePathTemp, longSavePathTemp, modelsDirTemp, saveGridTemp, speedTemp]);
+    }, [toast, debugModeTemp, highresFixTemp, imageSavePathTemp, longSavePathTemp, modelsDirTemp, saveGridTemp]);
 
     useEffect(() => {
         const handlerDiscard = window.api.fixButtonProgress((_, str) => {
@@ -189,46 +184,6 @@ function Settings () {
                     </HStack>
                 </FormControl>
 
-                <FormControl className="speed-input">
-                    <HStack>
-                        <Tooltip
-                            fontSize="md"
-                            label="Generate faster but use more GPU memory. Be careful of OOM (Out of Memory) error"
-                            mt="3"
-                            placement="right"
-                            shouldWrapChildren>
-                            <FaQuestionCircle color="#777" />
-                        </Tooltip>
-
-                        <FormLabel htmlFor="Speed">
-                            Choose Generation Speed
-                        </FormLabel>
-                    </HStack>
-
-                    <RadioGroup
-                        id="speed"
-                        name="speed"
-                        onChange={setSpeedTemp}
-                        value={speedTemp}>
-                        <Stack
-                            direction="row"
-                            spacing="20">
-                            ``
-                            <Radio value="Low">
-                                Low
-                            </Radio>
-
-                            <Radio value="Medium">
-                                Medium
-                            </Radio>
-
-                            <Radio value="High">
-                                High
-                            </Radio>
-                        </Stack>
-                    </RadioGroup>
-                </FormControl>
-
                 <HStack className="show-intermediates-input">
                     <Checkbox
                         id="show_intermediates"
@@ -238,7 +193,7 @@ function Settings () {
                             setShowIntermediatesTemp((si) => !si);
                         }}
                     >
-                        Show Intermediates
+                        Show Intermediates (Coming Soon!)
                     </Checkbox>
 
                     <Tooltip
@@ -353,7 +308,9 @@ function Settings () {
                         colorScheme="red"
                         alignContent="center"
                         className="reinstall-python-dependencies"
-                        onClick={()=>{window.api.pythonInstallDependencies(artroomPath)}}>
+                        onClick={()=>{
+                                window.api.pythonInstallDependencies(artroomPath) 
+                           }}>
                         Update Packages
                     </Button>
                 </Flex>

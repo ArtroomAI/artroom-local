@@ -7,13 +7,14 @@ from torch.nn import functional as F
 
 from artroom_helpers.annotator.oneformer.detectron2.config import configurable
 from artroom_helpers.annotator.oneformer.detectron2.data.detection_utils import get_fed_loss_cls_weights
-from artroom_helpers.annotator.oneformer.detectron2.layers import ShapeSpec, batched_nms, cat, cross_entropy, nonzero_tuple
-from artroom_helpers.annotator.oneformer.detectron2.modeling.box_regression import Box2BoxTransform, _dense_box_regression_loss
+from artroom_helpers.annotator.oneformer.detectron2.layers import ShapeSpec, batched_nms, cat, cross_entropy, \
+    nonzero_tuple
+from artroom_helpers.annotator.oneformer.detectron2.modeling.box_regression import Box2BoxTransform, \
+    _dense_box_regression_loss
 from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, Instances
 from artroom_helpers.annotator.oneformer.detectron2.utils.events import get_event_storage
 
 __all__ = ["fast_rcnn_inference", "FastRCNNOutputLayers"]
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +45,12 @@ Naming convention:
 
 
 def fast_rcnn_inference(
-    boxes: List[torch.Tensor],
-    scores: List[torch.Tensor],
-    image_shapes: List[Tuple[int, int]],
-    score_thresh: float,
-    nms_thresh: float,
-    topk_per_image: int,
+        boxes: List[torch.Tensor],
+        scores: List[torch.Tensor],
+        image_shapes: List[Tuple[int, int]],
+        score_thresh: float,
+        nms_thresh: float,
+        topk_per_image: int,
 ):
     """
     Call `fast_rcnn_inference_single_image` for all images.
@@ -116,12 +117,12 @@ def _log_classification_stats(pred_logits, gt_classes, prefix="fast_rcnn"):
 
 
 def fast_rcnn_inference_single_image(
-    boxes,
-    scores,
-    image_shape: Tuple[int, int],
-    score_thresh: float,
-    nms_thresh: float,
-    topk_per_image: int,
+        boxes,
+        scores,
+        image_shape: Tuple[int, int],
+        score_thresh: float,
+        nms_thresh: float,
+        topk_per_image: int,
 ):
     """
     Single-image inference. Return bounding-box detection results by thresholding
@@ -181,22 +182,22 @@ class FastRCNNOutputLayers(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        input_shape: ShapeSpec,
-        *,
-        box2box_transform,
-        num_classes: int,
-        test_score_thresh: float = 0.0,
-        test_nms_thresh: float = 0.5,
-        test_topk_per_image: int = 100,
-        cls_agnostic_bbox_reg: bool = False,
-        smooth_l1_beta: float = 0.0,
-        box_reg_loss_type: str = "smooth_l1",
-        loss_weight: Union[float, Dict[str, float]] = 1.0,
-        use_fed_loss: bool = False,
-        use_sigmoid_ce: bool = False,
-        get_fed_loss_cls_weights: Optional[Callable] = None,
-        fed_loss_num_classes: int = 50,
+            self,
+            input_shape: ShapeSpec,
+            *,
+            box2box_transform,
+            num_classes: int,
+            test_score_thresh: float = 0.0,
+            test_nms_thresh: float = 0.5,
+            test_topk_per_image: int = 100,
+            cls_agnostic_bbox_reg: bool = False,
+            smooth_l1_beta: float = 0.0,
+            box_reg_loss_type: str = "smooth_l1",
+            loss_weight: Union[float, Dict[str, float]] = 1.0,
+            use_fed_loss: bool = False,
+            use_sigmoid_ce: bool = False,
+            get_fed_loss_cls_weights: Optional[Callable] = None,
+            fed_loss_num_classes: int = 50,
     ):
         """
         NOTE: this interface is experimental.
@@ -260,7 +261,7 @@ class FastRCNNOutputLayers(nn.Module):
             assert self.use_sigmoid_ce, "Please use sigmoid cross entropy loss with federated loss"
             fed_loss_cls_weights = get_fed_loss_cls_weights()
             assert (
-                len(fed_loss_cls_weights) == self.num_classes
+                    len(fed_loss_cls_weights) == self.num_classes
             ), "Please check the provided fed_loss_cls_weights. Their size should match num_classes"
             self.register_buffer("fed_loss_cls_weights", fed_loss_cls_weights)
 
@@ -270,18 +271,20 @@ class FastRCNNOutputLayers(nn.Module):
             "input_shape": input_shape,
             "box2box_transform": Box2BoxTransform(weights=cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_WEIGHTS),
             # fmt: off
-            "num_classes"               : cfg.MODEL.ROI_HEADS.NUM_CLASSES,
-            "cls_agnostic_bbox_reg"     : cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG,
-            "smooth_l1_beta"            : cfg.MODEL.ROI_BOX_HEAD.SMOOTH_L1_BETA,
-            "test_score_thresh"         : cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST,
-            "test_nms_thresh"           : cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST,
-            "test_topk_per_image"       : cfg.TEST.DETECTIONS_PER_IMAGE,
-            "box_reg_loss_type"         : cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_LOSS_TYPE,
-            "loss_weight"               : {"loss_box_reg": cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_LOSS_WEIGHT},  # noqa
-            "use_fed_loss"              : cfg.MODEL.ROI_BOX_HEAD.USE_FED_LOSS,
-            "use_sigmoid_ce"            : cfg.MODEL.ROI_BOX_HEAD.USE_SIGMOID_CE,
-            "get_fed_loss_cls_weights"  : lambda: get_fed_loss_cls_weights(dataset_names=cfg.DATASETS.TRAIN, freq_weight_power=cfg.MODEL.ROI_BOX_HEAD.FED_LOSS_FREQ_WEIGHT_POWER),  # noqa
-            "fed_loss_num_classes"      : cfg.MODEL.ROI_BOX_HEAD.FED_LOSS_NUM_CLASSES,
+            "num_classes": cfg.MODEL.ROI_HEADS.NUM_CLASSES,
+            "cls_agnostic_bbox_reg": cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG,
+            "smooth_l1_beta": cfg.MODEL.ROI_BOX_HEAD.SMOOTH_L1_BETA,
+            "test_score_thresh": cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST,
+            "test_nms_thresh": cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST,
+            "test_topk_per_image": cfg.TEST.DETECTIONS_PER_IMAGE,
+            "box_reg_loss_type": cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_LOSS_TYPE,
+            "loss_weight": {"loss_box_reg": cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_LOSS_WEIGHT},  # noqa
+            "use_fed_loss": cfg.MODEL.ROI_BOX_HEAD.USE_FED_LOSS,
+            "use_sigmoid_ce": cfg.MODEL.ROI_BOX_HEAD.USE_SIGMOID_CE,
+            "get_fed_loss_cls_weights": lambda: get_fed_loss_cls_weights(dataset_names=cfg.DATASETS.TRAIN,
+                                                                         freq_weight_power=cfg.MODEL.ROI_BOX_HEAD.FED_LOSS_FREQ_WEIGHT_POWER),
+            # noqa
+            "fed_loss_num_classes": cfg.MODEL.ROI_BOX_HEAD.FED_LOSS_NUM_CLASSES,
             # fmt: on
         }
 
@@ -521,7 +524,7 @@ class FastRCNNOutputLayers(nn.Module):
         return predict_boxes.split(num_prop_per_image)
 
     def predict_boxes(
-        self, predictions: Tuple[torch.Tensor, torch.Tensor], proposals: List[Instances]
+            self, predictions: Tuple[torch.Tensor, torch.Tensor], proposals: List[Instances]
     ):
         """
         Args:
@@ -547,7 +550,7 @@ class FastRCNNOutputLayers(nn.Module):
         return predict_boxes.split(num_prop_per_image)
 
     def predict_probs(
-        self, predictions: Tuple[torch.Tensor, torch.Tensor], proposals: List[Instances]
+            self, predictions: Tuple[torch.Tensor, torch.Tensor], proposals: List[Instances]
     ):
         """
         Args:

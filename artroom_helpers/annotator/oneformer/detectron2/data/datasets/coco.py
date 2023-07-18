@@ -21,7 +21,6 @@ from .. import DatasetCatalog, MetadataCatalog
 This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".
 """
 
-
 logger = logging.getLogger(__name__)
 
 __all__ = ["load_coco_json", "load_sem_seg", "convert_to_coco_json", "register_coco_instances"]
@@ -222,7 +221,7 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
                 num_instances_without_valid_segmentation
             )
             + "There might be issues in your dataset generation process.  Please "
-            "check https://detectron2.readthedocs.io/en/latest/tutorials/datasets.html carefully"
+              "check https://detectron2.readthedocs.io/en/latest/tutorials/datasets.html carefully"
         )
     return dataset_dicts
 

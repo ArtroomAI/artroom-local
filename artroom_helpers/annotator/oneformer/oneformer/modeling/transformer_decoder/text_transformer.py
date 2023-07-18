@@ -29,6 +29,7 @@ from torch import nn
 from collections import OrderedDict
 from timm.models.layers import trunc_normal_
 
+
 class Attention(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.):
         super().__init__()
@@ -40,7 +41,6 @@ class Attention(nn.Module):
         self.q_proj = nn.Linear(dim, dim, bias=qkv_bias)
         self.k_proj = nn.Linear(dim, dim, bias=qkv_bias)
         self.v_proj = nn.Linear(dim, dim, bias=qkv_bias)
-
 
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
@@ -64,12 +64,13 @@ class Attention(nn.Module):
         x = self.proj_drop(x)
         return x
 
+
 class TransformerDecoderLayer(nn.Module):
     def __init__(
-        self,
-        d_model,
-        nhead,
-        dropout=0.1,
+            self,
+            d_model,
+            nhead,
+            dropout=0.1,
     ):
         super().__init__()
         self.self_attn = Attention(d_model, nhead, proj_drop=dropout)
@@ -118,9 +119,9 @@ class ContextDecoder(nn.Module):
         )
 
         self.decoder = nn.ModuleList([
-                    TransformerDecoderLayer(transformer_width, transformer_heads, dropout) for _ in range(transformer_layers)
-                ])
-        
+            TransformerDecoderLayer(transformer_width, transformer_heads, dropout) for _ in range(transformer_layers)
+        ])
+
         self.out_proj = nn.Sequential(
             nn.LayerNorm(transformer_width),
             nn.Linear(transformer_width, visual_dim)
@@ -137,7 +138,6 @@ class ContextDecoder(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    
     def forward(self, text, visual):
         B, N, C = visual.shape
         visual = self.memory_proj(visual)
@@ -145,7 +145,7 @@ class ContextDecoder(nn.Module):
 
         for layer in self.decoder:
             x = layer(x, visual)
-        
+
         return self.out_proj(x)
 
 
@@ -177,6 +177,7 @@ class ResidualAttentionBlock(nn.Module):
         x = x + self.mlp(self.ln_2(x))
         return x
 
+
 class Transformer(nn.Module):
 
     def __init__(self, width: int, layers: int, heads: int, attn_mask: torch.Tensor = None, use_checkpoint=False):
@@ -184,9 +185,9 @@ class Transformer(nn.Module):
         self.width = width
         self.layers = layers
         self.resblocks = nn.Sequential(*[ResidualAttentionBlock(width, heads, attn_mask) for _ in range(layers)])
-        proj_std = (self.width**-0.5) * ((2 * self.layers)**-0.5)
-        attn_std = self.width**-0.5
-        fc_std = (2 * self.width)**-0.5
+        proj_std = (self.width ** -0.5) * ((2 * self.layers) ** -0.5)
+        attn_std = self.width ** -0.5
+        fc_std = (2 * self.width) ** -0.5
         for block in self.resblocks:
             nn.init.normal_(block.attn.in_proj_weight, std=attn_std)
             nn.init.normal_(block.attn.out_proj.weight, std=proj_std)
@@ -207,14 +208,13 @@ class Transformer(nn.Module):
 class TextTransformer(nn.Module):
 
     def __init__(
-        self,
-        context_length: int,
-        width: int,
-        layers: int,
-        vocab_size,
-        use_checkpoint=False,
+            self,
+            context_length: int,
+            width: int,
+            layers: int,
+            vocab_size,
+            use_checkpoint=False,
     ):
-
         super().__init__()
         heads = width // 64
         self.context_length = context_length

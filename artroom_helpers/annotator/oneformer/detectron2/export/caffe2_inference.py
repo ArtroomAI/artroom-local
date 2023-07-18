@@ -112,7 +112,7 @@ class ProtobufModel(torch.nn.Module):
 
         outputs = []
         for name, c2_output, device in zip(
-            self.net.Proto().external_output, c2_outputs, output_devices
+                self.net.Proto().external_output, c2_outputs, output_devices
         ):
             if not isinstance(c2_output, np.ndarray):
                 raise RuntimeError(

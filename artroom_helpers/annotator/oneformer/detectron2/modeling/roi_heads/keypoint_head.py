@@ -12,14 +12,12 @@ from artroom_helpers.annotator.oneformer.detectron2.utils.registry import Regist
 
 _TOTAL_SKIPPED = 0
 
-
 __all__ = [
     "ROI_KEYPOINT_HEAD_REGISTRY",
     "build_keypoint_head",
     "BaseKeypointRCNNHead",
     "KRCNNConvDeconvUpsampleHead",
 ]
-
 
 ROI_KEYPOINT_HEAD_REGISTRY = Registry("ROI_KEYPOINT_HEAD")
 ROI_KEYPOINT_HEAD_REGISTRY.__doc__ = """
@@ -124,7 +122,7 @@ def keypoint_rcnn_inference(pred_keypoint_logits: torch.Tensor, pred_instances: 
     heatmap_results = pred_keypoint_logits.split(num_instances_per_image, dim=0)
 
     for keypoint_results_per_image, heatmap_results_per_image, instances_per_image in zip(
-        keypoint_results, heatmap_results, pred_instances
+            keypoint_results, heatmap_results, pred_instances
     ):
         # keypoint_results_per_image is (num instances)x(num keypoints)x(x, y, score)
         # heatmap_results_per_image is (num instances)x(num keypoints)x(side)x(side)
@@ -170,7 +168,7 @@ class BaseKeypointRCNNHead(nn.Module):
             batch_size_per_image = cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE
             positive_sample_fraction = cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION
             ret["loss_normalizer"] = (
-                ret["num_keypoints"] * batch_size_per_image * positive_sample_fraction
+                    ret["num_keypoints"] * batch_size_per_image * positive_sample_fraction
             )
         else:
             ret["loss_normalizer"] = "visible"
@@ -198,7 +196,7 @@ class BaseKeypointRCNNHead(nn.Module):
             )
             return {
                 "loss_keypoint": keypoint_rcnn_loss(x, instances, normalizer=normalizer)
-                * self.loss_weight
+                                 * self.loss_weight
             }
         else:
             keypoint_rcnn_inference(x, instances)

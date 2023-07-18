@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib
 import cv2
 
-
 eps = 0.01
 
 
@@ -40,19 +39,19 @@ def padRightDownCorner(img, stride, padValue):
     w = img.shape[1]
 
     pad = 4 * [None]
-    pad[0] = 0 # up
-    pad[1] = 0 # left
-    pad[2] = 0 if (h % stride == 0) else stride - (h % stride) # down
-    pad[3] = 0 if (w % stride == 0) else stride - (w % stride) # right
+    pad[0] = 0  # up
+    pad[1] = 0  # left
+    pad[2] = 0 if (h % stride == 0) else stride - (h % stride)  # down
+    pad[3] = 0 if (w % stride == 0) else stride - (w % stride)  # right
 
     img_padded = img
-    pad_up = np.tile(img_padded[0:1, :, :]*0 + padValue, (pad[0], 1, 1))
+    pad_up = np.tile(img_padded[0:1, :, :] * 0 + padValue, (pad[0], 1, 1))
     img_padded = np.concatenate((pad_up, img_padded), axis=0)
-    pad_left = np.tile(img_padded[:, 0:1, :]*0 + padValue, (1, pad[1], 1))
+    pad_left = np.tile(img_padded[:, 0:1, :] * 0 + padValue, (1, pad[1], 1))
     img_padded = np.concatenate((pad_left, img_padded), axis=1)
-    pad_down = np.tile(img_padded[-2:-1, :, :]*0 + padValue, (pad[2], 1, 1))
+    pad_down = np.tile(img_padded[-2:-1, :, :] * 0 + padValue, (pad[2], 1, 1))
     img_padded = np.concatenate((img_padded, pad_down), axis=0)
-    pad_right = np.tile(img_padded[:, -2:-1, :]*0 + padValue, (1, pad[3], 1))
+    pad_right = np.tile(img_padded[:, -2:-1, :] * 0 + padValue, (1, pad[3], 1))
     img_padded = np.concatenate((img_padded, pad_right), axis=1)
 
     return img_padded, pad
@@ -126,7 +125,8 @@ def draw_handpose(canvas, all_hand_peaks):
             x2 = int(x2 * W)
             y2 = int(y2 * H)
             if x1 > eps and y1 > eps and x2 > eps and y2 > eps:
-                cv2.line(canvas, (x1, y1), (x2, y2), matplotlib.colors.hsv_to_rgb([ie / float(len(edges)), 1.0, 1.0]) * 255, thickness=2)
+                cv2.line(canvas, (x1, y1), (x2, y2),
+                         matplotlib.colors.hsv_to_rgb([ie / float(len(edges)), 1.0, 1.0]) * 255, thickness=2)
 
         for i, keyponit in enumerate(peaks):
             x, y = keyponit
@@ -165,7 +165,7 @@ def handDetect(candidate, subset, oriImg):
         if not (has_left or has_right):
             continue
         hands = []
-        #left hand
+        # left hand
         if has_left:
             left_shoulder_index, left_elbow_index, left_wrist_index = person[[5, 6, 7]]
             x1, y1 = candidate[left_shoulder_index][:2]

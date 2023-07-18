@@ -8,12 +8,26 @@ export class Server {
   private server: ChildProcessWithoutNullStreams;
 
   public start(artroomPath: string, debug_mode: boolean) {
-    const command = `"${artroomPath}\\artroom\\miniconda3\\Scripts\\conda" run --no-capture-output -p "${artroomPath}/artroom/miniconda3/envs/artroom-ldm" python server.py`;
-    console.log(`debug mode: ${debug_mode}`)
+    const command = `"${artroomPath}/artroom/artroom_backend/python.exe" server.pyc`;
     this.kill();
-    this.server = spawn(command, { detached: debug_mode, shell: true });
+    const options = {
+      detached: debug_mode,
+      shell: true,
+      windowsHide: true, // Add this line to hide the CMD window
+    };
+    this.server = spawn(command, options);
+
+    this.server.on('error', (error) => {
+      console.log(`Error: ${error.message}`);
+    });
+
+    this.server.stderr.on('data', (data) => {
+      console.log(`stderr: ${data}`);
+    });
   }
 
+
+  
   public kill() {
     if (this.server && this.server.pid) {
       kill(this.server.pid);

@@ -5,6 +5,7 @@ import torch
 
 from artroom_helpers.annotator.oneformer.detectron2.solver.lr_scheduler import LRScheduler, _get_warmup_factor_at_iter
 
+
 # NOTE: PyTorch's LR scheduler interface uses names that assume the LR changes
 # only on epoch boundaries. We typically use iteration based schedules instead.
 # As a result, "epoch" (e.g., as in self.last_epoch) should be understood to mean
@@ -23,15 +24,15 @@ class WarmupPolyLR(LRScheduler):
     """
 
     def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        max_iters: int,
-        warmup_factor: float = 0.001,
-        warmup_iters: int = 1000,
-        warmup_method: str = "linear",
-        last_epoch: int = -1,
-        power: float = 0.9,
-        constant_ending: float = 0.0,
+            self,
+            optimizer: torch.optim.Optimizer,
+            max_iters: int,
+            warmup_factor: float = 0.001,
+            warmup_iters: int = 1000,
+            warmup_method: str = "linear",
+            last_epoch: int = -1,
+            power: float = 0.9,
+            constant_ending: float = 0.0,
     ):
         self.max_iters = max_iters
         self.warmup_factor = warmup_factor
@@ -48,8 +49,8 @@ class WarmupPolyLR(LRScheduler):
         if self.constant_ending > 0 and warmup_factor == 1.0:
             # Constant ending lr.
             if (
-                math.pow((1.0 - self.last_epoch / self.max_iters), self.power)
-                < self.constant_ending
+                    math.pow((1.0 - self.last_epoch / self.max_iters), self.power)
+                    < self.constant_ending
             ):
                 return [base_lr * self.constant_ending for base_lr in self.base_lrs]
         return [

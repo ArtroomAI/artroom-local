@@ -31,13 +31,13 @@ class DenseDetector(nn.Module):
     """
 
     def __init__(
-        self,
-        backbone: Backbone,
-        head: nn.Module,
-        head_in_features: Optional[List[str]] = None,
-        *,
-        pixel_mean,
-        pixel_std,
+            self,
+            backbone: Backbone,
+            head: nn.Module,
+            head_in_features: Optional[List[str]] = None,
+            *,
+            pixel_mean,
+            pixel_std,
     ):
         """
         Args:
@@ -109,7 +109,7 @@ class DenseDetector(nn.Module):
 
             processed_results = []
             for results_per_image, input_per_image, image_size in zip(
-                results, batched_inputs, images.image_sizes
+                    results, batched_inputs, images.image_sizes
             ):
                 height = input_per_image.get("height", image_size[0])
                 width = input_per_image.get("width", image_size[1])
@@ -134,7 +134,7 @@ class DenseDetector(nn.Module):
         return images
 
     def _transpose_dense_predictions(
-        self, predictions: List[List[Tensor]], dims_per_anchor: List[int]
+            self, predictions: List[List[Tensor]], dims_per_anchor: List[int]
     ) -> List[List[Tensor]]:
         """
         Transpose the dense per-level predictions.
@@ -184,13 +184,13 @@ class DenseDetector(nn.Module):
         return new
 
     def _decode_per_level_predictions(
-        self,
-        anchors: Boxes,
-        pred_scores: Tensor,
-        pred_deltas: Tensor,
-        score_thresh: float,
-        topk_candidates: int,
-        image_size: Tuple[int, int],
+            self,
+            anchors: Boxes,
+            pred_scores: Tensor,
+            pred_deltas: Tensor,
+            score_thresh: float,
+            topk_candidates: int,
+            image_size: Tuple[int, int],
     ) -> Instances:
         """
         Decode boxes and classification predictions of one featuer level, by
@@ -233,13 +233,13 @@ class DenseDetector(nn.Module):
         )
 
     def _decode_multi_level_predictions(
-        self,
-        anchors: List[Boxes],
-        pred_scores: List[Tensor],
-        pred_deltas: List[Tensor],
-        score_thresh: float,
-        topk_candidates: int,
-        image_size: Tuple[int, int],
+            self,
+            anchors: List[Boxes],
+            pred_scores: List[Tensor],
+            pred_deltas: List[Tensor],
+            score_thresh: float,
+            topk_candidates: int,
+            image_size: Tuple[int, int],
     ) -> Instances:
         """
         Run `_decode_per_level_predictions` for all feature levels and concat the results.

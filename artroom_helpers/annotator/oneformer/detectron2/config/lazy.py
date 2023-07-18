@@ -144,10 +144,10 @@ Within a config file, relative import can only import other config files.
 
     def new_import(name, globals=None, locals=None, fromlist=(), level=0):
         if (
-            # Only deal with relative imports inside config files
-            level != 0
-            and globals is not None
-            and (globals.get("__package__", "") or "").startswith(_CFG_PACKAGE_NAME)
+                # Only deal with relative imports inside config files
+                level != 0
+                and globals is not None
+                and (globals.get("__package__", "") or "").startswith(_CFG_PACKAGE_NAME)
         ):
             cur_file = find_relative_file(globals["__file__"], name, level)
             _validate_py_syntax(cur_file)
@@ -241,7 +241,7 @@ class LazyConfig:
                         name: _cast_to_config(value)
                         for name, value in ret.items()
                         if isinstance(value, (DictConfig, ListConfig, dict))
-                        and not name.startswith("_")
+                           and not name.startswith("_")
                     },
                     flags={"allow_objects": True},
                 )

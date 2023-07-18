@@ -12,7 +12,7 @@ import { FileWatcher } from "../utils/fileWatcher";
 const getFiles = async (folder_path: string, ext: string[], excludeFolders?: string[]) => {
   const exts = ext.join(',');
 
-  if(!fs.existsSync(folder_path)) {
+  if (!fs.existsSync(folder_path)) {
     fs.mkdirSync(folder_path, { recursive: true });
   }
 
@@ -22,16 +22,24 @@ const getFiles = async (folder_path: string, ext: string[], excludeFolders?: str
         if (err) {
           console.log("ERROR");
           resolve([]);
+        } else if (!files || !files.length) {
+          resolve([]);
+        } else {
+          resolve(
+            files
+              .filter((match) =>
+                excludeFolders ? !excludeFolders.some((folder) => match.includes(folder)) : true
+              )
+              .map((match) => path.relative(folder_path, match))
+          );
         }
-        resolve(
-          files.filter((match) =>
-            excludeFolders ? !excludeFolders.some((folder) => match.includes(folder)) : true
-          ).map((match) => path.relative(folder_path, match))
-        );
       });
+    } else {
+      resolve([]);
     }
   });
 };
+
 
 async function getImage(image_path: string) {
   return fs.promises.readFile(image_path).then(buffer => {
@@ -49,9 +57,9 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
   const modelsWatcher = new FileWatcher();
 
   const getModels = async (folder: string) => ({
-    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Loras', 'ControlNet', 'Vaes', 'upscalers']),
-    loras: await getFiles(path.join(folder, 'Loras'), MODELS_EXTENSIONS),
-    vaes: await getFiles(path.join(folder, 'Vaes'), MODELS_EXTENSIONS)
+    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Lora', 'ControlNet', 'Vae', 'upscalers']),
+    loras: await getFiles(path.join(folder, 'Lora'), MODELS_EXTENSIONS),
+    vaes: await getFiles(path.join(folder, 'Vae'), MODELS_EXTENSIONS)
   })
 
   const modelsWatcherCallback = (folder: string) => async () => {

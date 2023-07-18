@@ -25,13 +25,13 @@ class PanopticFPN(GeneralizedRCNN):
 
     @configurable
     def __init__(
-        self,
-        *,
-        sem_seg_head: nn.Module,
-        combine_overlap_thresh: float = 0.5,
-        combine_stuff_area_thresh: float = 4096,
-        combine_instances_score_thresh: float = 0.5,
-        **kwargs,
+            self,
+            *,
+            sem_seg_head: nn.Module,
+            combine_overlap_thresh: float = 0.5,
+            combine_stuff_area_thresh: float = 4096,
+            combine_instances_score_thresh: float = 0.5,
+            **kwargs,
     ):
         """
         NOTE: this interface is experimental.
@@ -159,7 +159,7 @@ class PanopticFPN(GeneralizedRCNN):
         if do_postprocess:
             processed_results = []
             for sem_seg_result, detector_result, input_per_image, image_size in zip(
-                sem_seg_results, detector_results, batched_inputs, images.image_sizes
+                    sem_seg_results, detector_results, batched_inputs, images.image_sizes
             ):
                 height = input_per_image.get("height", image_size[0])
                 width = input_per_image.get("width", image_size[1])
@@ -182,11 +182,11 @@ class PanopticFPN(GeneralizedRCNN):
 
 
 def combine_semantic_and_instance_outputs(
-    instance_results,
-    semantic_results,
-    overlap_threshold,
-    stuff_area_thresh,
-    instances_score_thresh,
+        instance_results,
+        semantic_results,
+        overlap_threshold,
+        stuff_area_thresh,
+        instances_score_thresh,
 ):
     """
     Implement a simple combining logic following

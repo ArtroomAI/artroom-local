@@ -8,7 +8,8 @@ from torch import nn
 from torch.nn import functional as F
 
 from artroom_helpers.annotator.oneformer.detectron2.layers import ShapeSpec, batched_nms
-from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, ImageList, Instances, pairwise_point_box_distance
+from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, ImageList, Instances, \
+    pairwise_point_box_distance
 from artroom_helpers.annotator.oneformer.detectron2.utils.events import get_event_storage
 
 from ..anchor_generator import DefaultAnchorGenerator
@@ -28,22 +29,22 @@ class FCOS(DenseDetector):
     """
 
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        head: nn.Module,
-        head_in_features: Optional[List[str]] = None,
-        box2box_transform=None,
-        num_classes,
-        center_sampling_radius: float = 1.5,
-        focal_loss_alpha=0.25,
-        focal_loss_gamma=2.0,
-        test_score_thresh=0.2,
-        test_topk_candidates=1000,
-        test_nms_thresh=0.6,
-        max_detections_per_image=100,
-        pixel_mean,
-        pixel_std,
+            self,
+            *,
+            backbone: Backbone,
+            head: nn.Module,
+            head_in_features: Optional[List[str]] = None,
+            box2box_transform=None,
+            num_classes,
+            center_sampling_radius: float = 1.5,
+            focal_loss_alpha=0.25,
+            focal_loss_gamma=2.0,
+            test_score_thresh=0.2,
+            test_topk_candidates=1000,
+            test_nms_thresh=0.6,
+            max_detections_per_image=100,
+            pixel_mean,
+            pixel_std,
     ):
         """
         Args:
@@ -120,7 +121,7 @@ class FCOS(DenseDetector):
         lower_bound = anchor_sizes * 4
         lower_bound[: num_anchors_per_level[0]] = 0
         upper_bound = anchor_sizes * 8
-        upper_bound[-num_anchors_per_level[-1] :] = float("inf")
+        upper_bound[-num_anchors_per_level[-1]:] = float("inf")
 
         gt_centers = gt_boxes.get_centers()
 
@@ -141,7 +142,7 @@ class FCOS(DenseDetector):
         # for certain scale range.
         pairwise_dist = pairwise_dist.max(dim=2).values
         match_quality_matrix &= (pairwise_dist > lower_bound[None, :]) & (
-            pairwise_dist < upper_bound[None, :]
+                pairwise_dist < upper_bound[None, :]
         )
         # Match the GT box with minimum area, if there are multiple GT matches.
         gt_areas = gt_boxes.area()  # (M, )
@@ -191,7 +192,7 @@ class FCOS(DenseDetector):
         return gt_labels, matched_gt_boxes
 
     def losses(
-        self, anchors, pred_logits, gt_labels, pred_anchor_deltas, gt_boxes, pred_centerness
+            self, anchors, pred_logits, gt_labels, pred_anchor_deltas, gt_boxes, pred_centerness
     ):
         """
         This method is almost identical to :meth:`RetinaNet.losses`, with an extra
@@ -207,8 +208,8 @@ class FCOS(DenseDetector):
 
         # classification and regression loss
         gt_labels_target = F.one_hot(gt_labels, num_classes=self.num_classes + 1)[
-            :, :, :-1
-        ]  # no loss for the last (background) class
+                           :, :, :-1
+                           ]  # no loss for the last (background) class
         loss_cls = sigmoid_focal_loss_jit(
             torch.cat(pred_logits, dim=1),
             gt_labels_target.to(pred_logits[0].dtype),
@@ -246,15 +247,15 @@ class FCOS(DenseDetector):
         left_right = reg_targets[:, :, [0, 2]]
         top_bottom = reg_targets[:, :, [1, 3]]
         ctrness = (left_right.min(dim=-1)[0] / left_right.max(dim=-1)[0]) * (
-            top_bottom.min(dim=-1)[0] / top_bottom.max(dim=-1)[0]
+                top_bottom.min(dim=-1)[0] / top_bottom.max(dim=-1)[0]
         )
         return torch.sqrt(ctrness)
 
     def forward_inference(
-        self,
-        images: ImageList,
-        features: List[torch.Tensor],
-        predictions: List[List[torch.Tensor]],
+            self,
+            images: ImageList,
+            features: List[torch.Tensor],
+            predictions: List[List[torch.Tensor]],
     ):
         pred_logits, pred_anchor_deltas, pred_centerness = self._transpose_dense_predictions(
             predictions, [self.num_classes, 4, 1]
@@ -277,11 +278,11 @@ class FCOS(DenseDetector):
         return results
 
     def inference_single_image(
-        self,
-        anchors: List[Boxes],
-        box_cls: List[torch.Tensor],
-        box_delta: List[torch.Tensor],
-        image_size: Tuple[int, int],
+            self,
+            anchors: List[Boxes],
+            box_cls: List[torch.Tensor],
+            box_delta: List[torch.Tensor],
+            image_size: Tuple[int, int],
     ):
         """
         Identical to :meth:`RetinaNet.inference_single_image.

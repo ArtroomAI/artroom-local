@@ -38,20 +38,20 @@ class OneFormerUnifiedDatasetMapper:
 
     @configurable
     def __init__(
-        self,
-        is_train=True,
-        *,
-        name,
-        num_queries,
-        meta,
-        augmentations,
-        image_format,
-        ignore_label,
-        size_divisibility,
-        task_seq_len,
-        max_seq_len,
-        semantic_prob,
-        instance_prob,
+            self,
+            is_train=True,
+            *,
+            name,
+            num_queries,
+            meta,
+            augmentations,
+            image_format,
+            ignore_label,
+            size_divisibility,
+            task_seq_len,
+            max_seq_len,
+            semantic_prob,
+            instance_prob,
     ):
         """
         NOTE: this interface is experimental.
@@ -74,16 +74,16 @@ class OneFormerUnifiedDatasetMapper:
         logger = logging.getLogger(__name__)
         mode = "training" if is_train else "inference"
         logger.info(f"[{self.__class__.__name__}] Augmentations used in {mode}: {augmentations}")
-    
+
         self.things = []
-        for k,v in self.meta.thing_dataset_id_to_contiguous_id.items():
+        for k, v in self.meta.thing_dataset_id_to_contiguous_id.items():
             self.things.append(v)
         self.class_names = self.meta.stuff_classes
         self.text_tokenizer = Tokenize(SimpleTokenizer(), max_seq_len=max_seq_len)
         self.task_tokenizer = Tokenize(SimpleTokenizer(), max_seq_len=task_seq_len)
         self.semantic_prob = semantic_prob
         self.instance_prob = instance_prob
-    
+
     @classmethod
     def from_config(cls, cfg, is_train=True):
         # Build augmentation
@@ -131,7 +131,7 @@ class OneFormerUnifiedDatasetMapper:
     def _get_semantic_dict(self, pan_seg_gt, image_shape, segments_info, num_class_obj):
         pan_seg_gt = pan_seg_gt.numpy()
         instances = Instances(image_shape)
-        
+
         classes = []
         texts = ["a semantic photo"] * self.num_queries
         masks = []
@@ -152,7 +152,7 @@ class OneFormerUnifiedDatasetMapper:
                         masks[idx] += mask
                         masks[idx] = np.clip(masks[idx], 0, 1).astype(np.bool)
                     label[mask] = class_id
-        
+
         num = 0
         for i, cls_name in enumerate(self.class_names):
             if num_class_obj[cls_name] > 0:
@@ -161,7 +161,7 @@ class OneFormerUnifiedDatasetMapper:
                         break
                     texts[num] = f"a photo with a {cls_name}"
                     num += 1
-                    
+
         classes = np.array(classes)
         instances.gt_classes = torch.tensor(classes, dtype=torch.int64)
         if len(masks) == 0:
@@ -176,11 +176,11 @@ class OneFormerUnifiedDatasetMapper:
             # Placeholder bounding boxes for stuff regions. Note that these are not used during training.
             instances.gt_bboxes = torch.stack([torch.tensor([0., 0., 1., 1.])] * instances.gt_masks.shape[0])
         return instances, texts, label
-    
+
     def _get_instance_dict(self, pan_seg_gt, image_shape, segments_info, num_class_obj):
         pan_seg_gt = pan_seg_gt.numpy()
         instances = Instances(image_shape)
-        
+
         classes = []
         texts = ["an instance photo"] * self.num_queries
         masks = []
@@ -197,7 +197,7 @@ class OneFormerUnifiedDatasetMapper:
                         masks.append(mask)
                         num_class_obj[cls_name] += 1
                         label[mask] = class_id
-        
+
         num = 0
         for i, cls_name in enumerate(self.class_names):
             if num_class_obj[cls_name] > 0:
@@ -206,7 +206,7 @@ class OneFormerUnifiedDatasetMapper:
                         break
                     texts[num] = f"a photo with a {cls_name}"
                     num += 1
-                    
+
         classes = np.array(classes)
         instances.gt_classes = torch.tensor(classes, dtype=torch.int64)
         if len(masks) == 0:
@@ -220,11 +220,11 @@ class OneFormerUnifiedDatasetMapper:
             instances.gt_masks = masks.tensor
             instances.gt_bboxes = masks_to_boxes(instances.gt_masks)
         return instances, texts, label
-    
+
     def _get_panoptic_dict(self, pan_seg_gt, image_shape, segments_info, num_class_obj):
         pan_seg_gt = pan_seg_gt.numpy()
         instances = Instances(image_shape)
-        
+
         classes = []
         texts = ["a panoptic photo"] * self.num_queries
         masks = []
@@ -240,7 +240,7 @@ class OneFormerUnifiedDatasetMapper:
                     masks.append(mask)
                     num_class_obj[cls_name] += 1
                     label[mask] = class_id
-        
+
         num = 0
         for i, cls_name in enumerate(self.class_names):
             if num_class_obj[cls_name] > 0:
@@ -249,7 +249,7 @@ class OneFormerUnifiedDatasetMapper:
                         break
                     texts[num] = f"a photo with a {cls_name}"
                     num += 1
-                    
+
         classes = np.array(classes)
         instances.gt_classes = torch.tensor(classes, dtype=torch.int64)
         if len(masks) == 0:
@@ -267,7 +267,7 @@ class OneFormerUnifiedDatasetMapper:
                 if instances.gt_classes[i].item() not in self.things:
                     instances.gt_bboxes[i] = torch.tensor([0., 0., 1., 1.])
         return instances, texts, label
-    
+
     def __call__(self, dataset_dict):
         """
         Args:
@@ -348,7 +348,7 @@ class OneFormerUnifiedDatasetMapper:
         if "annotations" in dataset_dict:
             raise ValueError("Pemantic segmentation dataset should not have 'annotations'.")
 
-        prob_task = np.random.uniform(0,1.)
+        prob_task = np.random.uniform(0, 1.)
 
         num_class_obj = {}
 
@@ -371,5 +371,5 @@ class OneFormerUnifiedDatasetMapper:
         dataset_dict["task"] = task
         dataset_dict["text"] = text
         dataset_dict["thing_ids"] = self.things
-        
+
         return dataset_dict

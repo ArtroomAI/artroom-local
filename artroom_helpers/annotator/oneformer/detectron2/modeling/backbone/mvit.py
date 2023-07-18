@@ -14,7 +14,6 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
-
 __all__ = ["MViT"]
 
 
@@ -34,20 +33,20 @@ class MultiScaleAttention(nn.Module):
     """Multiscale Multi-head Attention block."""
 
     def __init__(
-        self,
-        dim,
-        dim_out,
-        num_heads,
-        qkv_bias=True,
-        norm_layer=nn.LayerNorm,
-        pool_kernel=(3, 3),
-        stride_q=1,
-        stride_kv=1,
-        residual_pooling=True,
-        window_size=0,
-        use_rel_pos=False,
-        rel_pos_zero_init=True,
-        input_size=None,
+            self,
+            dim,
+            dim_out,
+            num_heads,
+            qkv_bias=True,
+            norm_layer=nn.LayerNorm,
+            pool_kernel=(3, 3),
+            stride_q=1,
+            stride_kv=1,
+            residual_pooling=True,
+            window_size=0,
+            use_rel_pos=False,
+            rel_pos_zero_init=True,
+            input_size=None,
     ):
         """
         Args:
@@ -67,7 +66,7 @@ class MultiScaleAttention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim_out // num_heads
-        self.scale = head_dim**-0.5
+        self.scale = head_dim ** -0.5
 
         self.qkv = nn.Linear(dim, dim_out * 3, bias=qkv_bias)
         self.proj = nn.Linear(dim_out, dim_out)
@@ -178,23 +177,23 @@ class MultiScaleBlock(nn.Module):
     """Multiscale Transformer blocks"""
 
     def __init__(
-        self,
-        dim,
-        dim_out,
-        num_heads,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-        act_layer=nn.GELU,
-        qkv_pool_kernel=(3, 3),
-        stride_q=1,
-        stride_kv=1,
-        residual_pooling=True,
-        window_size=0,
-        use_rel_pos=False,
-        rel_pos_zero_init=True,
-        input_size=None,
+            self,
+            dim,
+            dim_out,
+            num_heads,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            drop_path=0.0,
+            norm_layer=nn.LayerNorm,
+            act_layer=nn.GELU,
+            qkv_pool_kernel=(3, 3),
+            stride_q=1,
+            stride_kv=1,
+            residual_pooling=True,
+            window_size=0,
+            use_rel_pos=False,
+            rel_pos_zero_init=True,
+            input_size=None,
     ):
         """
         Args:
@@ -274,32 +273,32 @@ class MViT(Backbone):
     """
 
     def __init__(
-        self,
-        img_size=224,
-        patch_kernel=(7, 7),
-        patch_stride=(4, 4),
-        patch_padding=(3, 3),
-        in_chans=3,
-        embed_dim=96,
-        depth=16,
-        num_heads=1,
-        last_block_indexes=(0, 2, 11, 15),
-        qkv_pool_kernel=(3, 3),
-        adaptive_kv_stride=4,
-        adaptive_window_size=56,
-        residual_pooling=True,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        drop_path_rate=0.0,
-        norm_layer=nn.LayerNorm,
-        act_layer=nn.GELU,
-        use_abs_pos=False,
-        use_rel_pos=True,
-        rel_pos_zero_init=True,
-        use_act_checkpoint=False,
-        pretrain_img_size=224,
-        pretrain_use_cls_token=True,
-        out_features=("scale2", "scale3", "scale4", "scale5"),
+            self,
+            img_size=224,
+            patch_kernel=(7, 7),
+            patch_stride=(4, 4),
+            patch_padding=(3, 3),
+            in_chans=3,
+            embed_dim=96,
+            depth=16,
+            num_heads=1,
+            last_block_indexes=(0, 2, 11, 15),
+            qkv_pool_kernel=(3, 3),
+            adaptive_kv_stride=4,
+            adaptive_window_size=56,
+            residual_pooling=True,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            drop_path_rate=0.0,
+            norm_layer=nn.LayerNorm,
+            act_layer=nn.GELU,
+            use_abs_pos=False,
+            use_rel_pos=True,
+            rel_pos_zero_init=True,
+            use_act_checkpoint=False,
+            pretrain_img_size=224,
+            pretrain_use_cls_token=True,
+            out_features=("scale2", "scale3", "scale4", "scale5"),
     ):
         """
         Args:
@@ -344,7 +343,7 @@ class MViT(Backbone):
         if use_abs_pos:
             # Initialize absoluate positional embedding with pretrain image size.
             num_patches = (pretrain_img_size // patch_stride[0]) * (
-                pretrain_img_size // patch_stride[1]
+                    pretrain_img_size // patch_stride[1]
             )
             num_positions = (num_patches + 1) if pretrain_use_cls_token else num_patches
             self.pos_embed = nn.Parameter(torch.zeros(1, num_positions, embed_dim))

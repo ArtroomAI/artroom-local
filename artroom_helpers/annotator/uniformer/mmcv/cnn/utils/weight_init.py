@@ -482,7 +482,7 @@ class PretrainedInit(object):
 
     def __call__(self, module):
         from artroom_helpers.annotator.uniformer.mmcv.runner import (_load_checkpoint_with_prefix, load_checkpoint,
-                                                     load_state_dict)
+                                                                     load_state_dict)
         logger = get_logger('mmcv')
         if self.prefix is None:
             print_log(f'load model from: {self.checkpoint}', logger=logger)

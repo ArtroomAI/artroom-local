@@ -41,7 +41,7 @@ class CityscapesEvaluator(DatasetEvaluator):
         # All workers will write to the same results directory
         # TODO this does not work in distributed training
         assert (
-            comm.get_local_size() == comm.get_world_size()
+                comm.get_local_size() == comm.get_world_size()
         ), "CityscapesEvaluator currently do not work with multiple machines."
         self._temp_dir = comm.all_gather(self._temp_dir)[0]
         if self._temp_dir != self._working_dir.name:

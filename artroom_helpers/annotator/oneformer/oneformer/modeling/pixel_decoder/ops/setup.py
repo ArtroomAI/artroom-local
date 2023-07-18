@@ -23,6 +23,7 @@ from setuptools import setup
 
 requirements = ["torch", "torchvision"]
 
+
 def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
     extensions_dir = os.path.join(this_dir, "src")
@@ -51,7 +52,8 @@ def get_extensions():
         if CUDA_HOME is None:
             raise NotImplementedError('CUDA_HOME is None. Please set environment variable CUDA_HOME.')
         else:
-            raise NotImplementedError('No CUDA runtime is found. Please set FORCE_CUDA=1 or test it by running torch.cuda.is_available().')
+            raise NotImplementedError(
+                'No CUDA runtime is found. Please set FORCE_CUDA=1 or test it by running torch.cuda.is_available().')
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
     include_dirs = [extensions_dir]
@@ -65,6 +67,7 @@ def get_extensions():
         )
     ]
     return ext_modules
+
 
 setup(
     name="MultiScaleDeformableAttention",

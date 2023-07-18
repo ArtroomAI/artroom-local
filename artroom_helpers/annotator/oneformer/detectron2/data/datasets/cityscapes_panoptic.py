@@ -11,7 +11,6 @@ from artroom_helpers.annotator.oneformer.detectron2.utils.file_io import PathMan
 This file contains functions to register the Cityscapes panoptic dataset to the DatasetCatalog.
 """
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -85,7 +84,7 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
     ret = []
     for image_file, label_file, segments_info in files:
         sem_label_file = (
-            image_file.replace("leftImg8bit", "gtFine").split(".")[0] + "_labelTrainIds.png"
+                image_file.replace("leftImg8bit", "gtFine").split(".")[0] + "_labelTrainIds.png"
         )
         segments_info = [_convert_category_id(x, meta) for x in segments_info]
         ret.append(

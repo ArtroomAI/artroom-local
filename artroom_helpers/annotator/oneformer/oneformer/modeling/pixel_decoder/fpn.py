@@ -15,7 +15,8 @@ from artroom_helpers.annotator.oneformer.detectron2.layers import Conv2d, Deform
 from artroom_helpers.annotator.oneformer.detectron2.modeling import SEM_SEG_HEADS_REGISTRY
 
 from ..transformer_decoder.position_encoding import PositionEmbeddingSine
-from ..transformer_decoder.transformer import TransformerEncoder, TransformerEncoderLayer, _get_clones, _get_activation_fn
+from ..transformer_decoder.transformer import TransformerEncoder, TransformerEncoderLayer, _get_clones, \
+    _get_activation_fn
 
 
 def build_pixel_decoder(cfg, input_shape):
@@ -38,12 +39,12 @@ def build_pixel_decoder(cfg, input_shape):
 class BasePixelDecoder(nn.Module):
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        conv_dim: int,
-        mask_dim: int,
-        norm: Optional[Union[str, Callable]] = None,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            conv_dim: int,
+            mask_dim: int,
+            norm: Optional[Union[str, Callable]] = None,
     ):
         """
         NOTE: this interface is experimental.
@@ -161,14 +162,14 @@ class BasePixelDecoder(nn.Module):
 
 class TransformerEncoderOnly(nn.Module):
     def __init__(
-        self,
-        d_model=512,
-        nhead=8,
-        num_encoder_layers=6,
-        dim_feedforward=2048,
-        dropout=0.1,
-        activation="relu",
-        normalize_before=False,
+            self,
+            d_model=512,
+            nhead=8,
+            num_encoder_layers=6,
+            dim_feedforward=2048,
+            dropout=0.1,
+            activation="relu",
+            normalize_before=False,
     ):
         super().__init__()
 
@@ -205,17 +206,17 @@ class TransformerEncoderOnly(nn.Module):
 class TransformerEncoderPixelDecoder(BasePixelDecoder):
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        transformer_dropout: float,
-        transformer_nheads: int,
-        transformer_dim_feedforward: int,
-        transformer_enc_layers: int,
-        transformer_pre_norm: bool,
-        conv_dim: int,
-        mask_dim: int,
-        norm: Optional[Union[str, Callable]] = None,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            transformer_dropout: float,
+            transformer_nheads: int,
+            transformer_dim_feedforward: int,
+            transformer_enc_layers: int,
+            transformer_pre_norm: bool,
+            conv_dim: int,
+            mask_dim: int,
+            norm: Optional[Union[str, Callable]] = None,
     ):
         """
         NOTE: this interface is experimental.

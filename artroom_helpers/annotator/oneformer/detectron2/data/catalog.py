@@ -80,8 +80,8 @@ class _DatasetCatalog(UserDict):
 
 DatasetCatalog = _DatasetCatalog()
 DatasetCatalog.__doc__ = (
-    _DatasetCatalog.__doc__
-    + """
+        _DatasetCatalog.__doc__
+        + """
     .. automethod:: detectron2.data.catalog.DatasetCatalog.register
     .. automethod:: detectron2.data.catalog.DatasetCatalog.get
 """
@@ -229,8 +229,8 @@ class _MetadataCatalog(UserDict):
 
 MetadataCatalog = _MetadataCatalog()
 MetadataCatalog.__doc__ = (
-    _MetadataCatalog.__doc__
-    + """
+        _MetadataCatalog.__doc__
+        + """
     .. automethod:: detectron2.data.catalog.MetadataCatalog.get
 """
 )

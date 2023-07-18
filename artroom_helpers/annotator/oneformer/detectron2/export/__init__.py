@@ -15,7 +15,6 @@ except ImportError:
 else:
     from .api import *
 
-
 # TODO: Update ONNX Opset version and run tests when a newer PyTorch is supported
 STABLE_ONNX_OPSET_VERSION = 11
 

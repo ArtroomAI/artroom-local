@@ -8,7 +8,8 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 
 from artroom_helpers.annotator.oneformer.detectron2.config import configurable
-from artroom_helpers.annotator.oneformer.detectron2.layers import CycleBatchNormList, ShapeSpec, batched_nms, cat, get_norm
+from artroom_helpers.annotator.oneformer.detectron2.layers import CycleBatchNormList, ShapeSpec, batched_nms, cat, \
+    get_norm
 from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, ImageList, Instances, pairwise_iou
 from artroom_helpers.annotator.oneformer.detectron2.utils.events import get_event_storage
 
@@ -21,7 +22,6 @@ from .dense_detector import DenseDetector, permute_to_N_HWA_K  # noqa
 
 __all__ = ["RetinaNet"]
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -33,27 +33,27 @@ class RetinaNet(DenseDetector):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        head: nn.Module,
-        head_in_features,
-        anchor_generator,
-        box2box_transform,
-        anchor_matcher,
-        num_classes,
-        focal_loss_alpha=0.25,
-        focal_loss_gamma=2.0,
-        smooth_l1_beta=0.0,
-        box_reg_loss_type="smooth_l1",
-        test_score_thresh=0.05,
-        test_topk_candidates=1000,
-        test_nms_thresh=0.5,
-        max_detections_per_image=100,
-        pixel_mean,
-        pixel_std,
-        vis_period=0,
-        input_format="BGR",
+            self,
+            *,
+            backbone: Backbone,
+            head: nn.Module,
+            head_in_features,
+            anchor_generator,
+            box2box_transform,
+            anchor_matcher,
+            num_classes,
+            focal_loss_alpha=0.25,
+            focal_loss_gamma=2.0,
+            smooth_l1_beta=0.0,
+            box_reg_loss_type="smooth_l1",
+            test_score_thresh=0.05,
+            test_topk_candidates=1000,
+            test_nms_thresh=0.5,
+            max_detections_per_image=100,
+            pixel_mean,
+            pixel_std,
+            vis_period=0,
+            input_format="BGR",
     ):
         """
         NOTE: this interface is experimental.
@@ -184,8 +184,8 @@ class RetinaNet(DenseDetector):
 
         # classification and regression loss
         gt_labels_target = F.one_hot(gt_labels[valid_mask], num_classes=self.num_classes + 1)[
-            :, :-1
-        ]  # no loss for the last (background) class
+                           :, :-1
+                           ]  # no loss for the last (background) class
         loss_cls = sigmoid_focal_loss_jit(
             cat(pred_logits, dim=1)[valid_mask],
             gt_labels_target.to(pred_logits[0].dtype),
@@ -255,7 +255,7 @@ class RetinaNet(DenseDetector):
         return gt_labels, matched_gt_boxes
 
     def forward_inference(
-        self, images: ImageList, features: List[Tensor], predictions: List[List[Tensor]]
+            self, images: ImageList, features: List[Tensor], predictions: List[List[Tensor]]
     ):
         pred_logits, pred_anchor_deltas = self._transpose_dense_predictions(
             predictions, [self.num_classes, 4]
@@ -273,11 +273,11 @@ class RetinaNet(DenseDetector):
         return results
 
     def inference_single_image(
-        self,
-        anchors: List[Boxes],
-        box_cls: List[Tensor],
-        box_delta: List[Tensor],
-        image_size: Tuple[int, int],
+            self,
+            anchors: List[Boxes],
+            box_cls: List[Tensor],
+            box_delta: List[Tensor],
+            image_size: Tuple[int, int],
     ):
         """
         Single-image inference. Return bounding-box detection results by thresholding
@@ -316,14 +316,14 @@ class RetinaNetHead(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        *,
-        input_shape: List[ShapeSpec],
-        num_classes,
-        num_anchors,
-        conv_dims: List[int],
-        norm="",
-        prior_prob=0.01,
+            self,
+            *,
+            input_shape: List[ShapeSpec],
+            num_classes,
+            num_anchors,
+            conv_dims: List[int],
+            norm="",
+            prior_prob=0.01,
     ):
         """
         NOTE: this interface is experimental.
@@ -362,7 +362,7 @@ class RetinaNetHead(nn.Module):
         cls_subnet = []
         bbox_subnet = []
         for in_channels, out_channels in zip(
-            [input_shape[0].channels] + list(conv_dims), conv_dims
+                [input_shape[0].channels] + list(conv_dims), conv_dims
         ):
             cls_subnet.append(
                 nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
@@ -401,7 +401,7 @@ class RetinaNetHead(nn.Module):
     def from_config(cls, cfg, input_shape: List[ShapeSpec]):
         num_anchors = build_anchor_generator(cfg, input_shape).num_cell_anchors
         assert (
-            len(set(num_anchors)) == 1
+                len(set(num_anchors)) == 1
         ), "Using different number of anchors between levels is not currently supported!"
         num_anchors = num_anchors[0]
 

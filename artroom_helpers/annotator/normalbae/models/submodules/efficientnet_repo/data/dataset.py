@@ -9,7 +9,6 @@ import re
 import torch
 from PIL import Image
 
-
 IMG_EXTENSIONS = ['.png', '.jpg', '.jpeg']
 
 
@@ -59,8 +58,9 @@ class Dataset(data.Dataset):
 
         imgs, _, _ = find_images_and_targets(root)
         if len(imgs) == 0:
-            raise(RuntimeError("Found 0 images in subfolders of: " + root + "\n"
-                               "Supported image extensions are: " + ",".join(IMG_EXTENSIONS)))
+            raise (RuntimeError("Found 0 images in subfolders of: " + root + "\n"
+                                                                             "Supported image extensions are: " + ",".join(
+                IMG_EXTENSIONS)))
         self.root = root
         self.imgs = imgs
         self.transform = transform

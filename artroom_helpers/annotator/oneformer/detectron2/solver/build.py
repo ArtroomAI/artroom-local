@@ -47,17 +47,17 @@ def _create_gradient_clipper(cfg: CfgNode) -> _GradientClipper:
 
 
 def _generate_optimizer_class_with_gradient_clipping(
-    optimizer: Type[torch.optim.Optimizer],
-    *,
-    per_param_clipper: Optional[_GradientClipper] = None,
-    global_clipper: Optional[_GradientClipper] = None,
+        optimizer: Type[torch.optim.Optimizer],
+        *,
+        per_param_clipper: Optional[_GradientClipper] = None,
+        global_clipper: Optional[_GradientClipper] = None,
 ) -> Type[torch.optim.Optimizer]:
     """
     Dynamically creates a new type that inherits the type of a given instance
     and overrides the `step` method to add gradient clipping
     """
     assert (
-        per_param_clipper is None or global_clipper is None
+            per_param_clipper is None or global_clipper is None
     ), "Not allowed to use both per-parameter clipping and global clipping"
 
     def optimizer_wgc_step(self, closure=None):
@@ -81,7 +81,7 @@ def _generate_optimizer_class_with_gradient_clipping(
 
 
 def maybe_add_gradient_clipping(
-    cfg: CfgNode, optimizer: Type[torch.optim.Optimizer]
+        cfg: CfgNode, optimizer: Type[torch.optim.Optimizer]
 ) -> Type[torch.optim.Optimizer]:
     """
     If gradient clipping is enabled through config options, wraps the existing
@@ -140,14 +140,14 @@ def build_optimizer(cfg: CfgNode, model: torch.nn.Module) -> torch.optim.Optimiz
 
 
 def get_default_optimizer_params(
-    model: torch.nn.Module,
-    base_lr: Optional[float] = None,
-    weight_decay: Optional[float] = None,
-    weight_decay_norm: Optional[float] = None,
-    bias_lr_factor: Optional[float] = 1.0,
-    weight_decay_bias: Optional[float] = None,
-    lr_factor_func: Optional[Callable] = None,
-    overrides: Optional[Dict[str, Dict[str, float]]] = None,
+        model: torch.nn.Module,
+        base_lr: Optional[float] = None,
+        weight_decay: Optional[float] = None,
+        weight_decay_norm: Optional[float] = None,
+        bias_lr_factor: Optional[float] = 1.0,
+        weight_decay_bias: Optional[float] = None,
+        lr_factor_func: Optional[Callable] = None,
+        overrides: Optional[Dict[str, Dict[str, float]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Get default param list for optimizer, with support for a few types of
@@ -282,7 +282,7 @@ def build_lr_scheduler(cfg: CfgNode, optimizer: torch.optim.Optimizer) -> LRSche
                 "These values will be ignored."
             )
         sched = MultiStepParamScheduler(
-            values=[cfg.SOLVER.GAMMA**k for k in range(len(steps) + 1)],
+            values=[cfg.SOLVER.GAMMA ** k for k in range(len(steps) + 1)],
             milestones=steps,
             num_updates=cfg.SOLVER.MAX_ITER,
         )

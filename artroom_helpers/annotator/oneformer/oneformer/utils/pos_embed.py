@@ -106,7 +106,7 @@ def interpolate_pos_embed(model, checkpoint_model, pos_embed_key):
 
 
 def interpolate_pos_embed_online(
-    pos_embed, orig_size: Tuple[int], new_size: Tuple[int], num_extra_tokens: int
+        pos_embed, orig_size: Tuple[int], new_size: Tuple[int], num_extra_tokens: int
 ):
     extra_tokens = pos_embed[:, :num_extra_tokens]
     pos_tokens = pos_embed[:, num_extra_tokens:]

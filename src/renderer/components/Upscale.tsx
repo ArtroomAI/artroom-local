@@ -141,7 +141,7 @@ function Upscale () {
                             <Input
                                 id="upscale_images"
                                 name="upscale_images"
-                                onChange={(event) => setUpscaleImages(event.target.value.split(',').filter(e => e !== ''))}
+                                onChange={(event) => setUpscaleImages(event.target.value.split(',')?.filter(e => e !== ''))}
                                 type="text"
                                 value={upscale_images}
                                 variant="outline"

@@ -51,7 +51,7 @@ class CfgNode(_CfgNode):
 
         latest_ver = _C.VERSION
         assert (
-            latest_ver == self.VERSION
+                latest_ver == self.VERSION
         ), "CfgNode.merge_from_file is only allowed on a config object of latest version!"
 
         logger = logging.getLogger(__name__)
@@ -169,9 +169,9 @@ def configurable(init_func=None, *, from_config=None):
 
     if init_func is not None:
         assert (
-            inspect.isfunction(init_func)
-            and from_config is None
-            and init_func.__name__ == "__init__"
+                inspect.isfunction(init_func)
+                and from_config is None
+                and init_func.__name__ == "__init__"
         ), "Incorrect use of @configurable. Check API documentation for examples."
 
         @functools.wraps(init_func)

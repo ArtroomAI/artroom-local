@@ -41,12 +41,12 @@ class MMDetBackbone(Backbone):
     """
 
     def __init__(
-        self,
-        backbone: Union[nn.Module, Mapping],
-        neck: Union[nn.Module, Mapping, None] = None,
-        *,
-        output_shapes: List[ShapeSpec],
-        output_names: Optional[List[str]] = None,
+            self,
+            backbone: Union[nn.Module, Mapping],
+            neck: Union[nn.Module, Mapping, None] = None,
+            *,
+            output_shapes: List[ShapeSpec],
+            output_names: Optional[List[str]] = None,
     ):
         """
         Args:
@@ -123,14 +123,14 @@ class MMDetDetector(nn.Module):
     """
 
     def __init__(
-        self,
-        detector: Union[nn.Module, Mapping],
-        *,
-        # Default is 32 regardless of model:
-        # https://github.com/open-mmlab/mmdetection/tree/master/configs/_base_/datasets
-        size_divisibility=32,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
+            self,
+            detector: Union[nn.Module, Mapping],
+            *,
+            # Default is 32 regardless of model:
+            # https://github.com/open-mmlab/mmdetection/tree/master/configs/_base_/datasets
+            size_divisibility=32,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
     ):
         """
         Args:
@@ -151,7 +151,7 @@ class MMDetDetector(nn.Module):
         self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
         assert (
-            self.pixel_mean.shape == self.pixel_std.shape
+                self.pixel_mean.shape == self.pixel_std.shape
         ), f"{self.pixel_mean} and {self.pixel_std} have different shapes!"
 
     def forward(self, batched_inputs: List[Dict[str, torch.Tensor]]):

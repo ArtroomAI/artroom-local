@@ -67,12 +67,12 @@ def load_midas_transform(model_type):
 
 def load_model(model_type, annotator_ckpts_path):
     ISL_PATHS = {
-    "dpt_large": os.path.join(annotator_ckpts_path, "dpt_large-midas-2f21e586.pt"),
-    "dpt_hybrid": os.path.join(annotator_ckpts_path, "dpt_hybrid-midas-501f0c75.pt"),
-    "midas_v21": "",
-    "midas_v21_small": "",
+        "dpt_large": os.path.join(annotator_ckpts_path, "dpt_large-midas-2f21e586.pt"),
+        "dpt_hybrid": os.path.join(annotator_ckpts_path, "dpt_hybrid-midas-501f0c75.pt"),
+        "midas_v21": "",
+        "midas_v21_small": "",
     }
-    
+
     # https://github.com/isl-org/MiDaS/blob/master/run.py
     # load network
     model_path = ISL_PATHS[model_type]

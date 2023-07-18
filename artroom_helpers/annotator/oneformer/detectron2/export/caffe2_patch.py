@@ -77,13 +77,13 @@ def patch_generalized_rcnn(model):
 
 @contextlib.contextmanager
 def mock_fastrcnn_outputs_inference(
-    tensor_mode, check=True, box_predictor_type=FastRCNNOutputLayers
+        tensor_mode, check=True, box_predictor_type=FastRCNNOutputLayers
 ):
     with mock.patch.object(
-        box_predictor_type,
-        "inference",
-        autospec=True,
-        side_effect=Caffe2FastRCNNOutputsInference(tensor_mode),
+            box_predictor_type,
+            "inference",
+            autospec=True,
+            side_effect=Caffe2FastRCNNOutputsInference(tensor_mode),
     ) as mocked_func:
         yield
     if check:
@@ -93,7 +93,7 @@ def mock_fastrcnn_outputs_inference(
 @contextlib.contextmanager
 def mock_mask_rcnn_inference(tensor_mode, patched_module, check=True):
     with mock.patch(
-        "{}.mask_rcnn_inference".format(patched_module), side_effect=Caffe2MaskRCNNInference()
+            "{}.mask_rcnn_inference".format(patched_module), side_effect=Caffe2MaskRCNNInference()
     ) as mocked_func:
         yield
     if check:
@@ -103,8 +103,8 @@ def mock_mask_rcnn_inference(tensor_mode, patched_module, check=True):
 @contextlib.contextmanager
 def mock_keypoint_rcnn_inference(tensor_mode, patched_module, use_heatmap_max_keypoint, check=True):
     with mock.patch(
-        "{}.keypoint_rcnn_inference".format(patched_module),
-        side_effect=Caffe2KeypointRCNNInference(use_heatmap_max_keypoint),
+            "{}.keypoint_rcnn_inference".format(patched_module),
+            side_effect=Caffe2KeypointRCNNInference(use_heatmap_max_keypoint),
     ) as mocked_func:
         yield
     if check:

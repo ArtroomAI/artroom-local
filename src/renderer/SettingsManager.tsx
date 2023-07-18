@@ -108,7 +108,7 @@ export const clipSkipState = atom<string>({
 
 export const samplerState = atom<string>({
     key: "sampler",
-    default: "ddim",
+    default: "euler_a",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -160,12 +160,6 @@ export const highresFixState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
-export const speedState = atom<string>({
-    key: "speed",
-    default: "High",
-    effects_UNSTABLE: [persistAtom]
-});
-
 export const saveGridState = atom<boolean>({
     key: "save_grid",
     default: false,
@@ -192,7 +186,7 @@ export const loraState = atom<Lora[]>({
 
 export const controlnetState = atom<string>({
     key: "controlnet",
-    default: "None",
+    default: "none",
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -222,7 +216,7 @@ export const runTypeState = atom<string>({
 
 export const debugModeState = atom<boolean>({
     key: 'debug_mode',
-    default: true,
+    default: false,
     effects_UNSTABLE: [persistAtom]
 });
 
@@ -313,7 +307,6 @@ export const queueSettingsSelector = selector<QueueType>({
             // generation options
             n_iter: parseAndCheckFloat(get(iterationsState), 1),
             save_grid: get(saveGridState),
-            speed: get(speedState),
             device: undefined, // ? CPU / GPU
             long_save_path: get(longSavePathState),
             highres_fix: get(highresFixState),

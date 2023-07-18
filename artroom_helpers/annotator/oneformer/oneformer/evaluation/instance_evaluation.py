@@ -22,7 +22,8 @@ import annotator.oneformer.detectron2.utils.comm as comm
 from artroom_helpers.annotator.oneformer.detectron2.config import CfgNode
 from artroom_helpers.annotator.oneformer.detectron2.data import MetadataCatalog
 from artroom_helpers.annotator.oneformer.detectron2.data.datasets.coco import convert_to_coco_json
-from artroom_helpers.annotator.oneformer.detectron2.evaluation.coco_evaluation import COCOEvaluator, _evaluate_predictions_on_coco
+from artroom_helpers.annotator.oneformer.detectron2.evaluation.coco_evaluation import COCOEvaluator, \
+    _evaluate_predictions_on_coco
 from artroom_helpers.annotator.oneformer.detectron2.evaluation.fast_eval_api import COCOeval_opt
 from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, BoxMode, pairwise_iou
 from artroom_helpers.annotator.oneformer.detectron2.utils.file_io import PathManager

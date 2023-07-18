@@ -13,6 +13,7 @@ from torch import nn
 from torch.cuda.amp import autocast
 import numpy as np
 
+
 # from artroom_helpers.annotator.oneformer.detectron2.projects.point_rend.point_features import point_sample
 
 
@@ -34,6 +35,7 @@ def linear_sum_assignment_with_nan(cost_matrix):
             cost_matrix[np.isnan(cost_matrix)] = 100
 
     return linear_sum_assignment(cost_matrix)
+
 
 def batch_dice_loss(inputs: torch.Tensor, targets: torch.Tensor):
     """
@@ -98,8 +100,8 @@ class HungarianMatcher(nn.Module):
     while the others are un-matched (and thus treated as non-objects).
     """
 
-    def __init__(self, cost_class: float = 1, cost_mask: float = 1, 
-                    cost_dice: float = 1, num_points: int = 0):
+    def __init__(self, cost_class: float = 1, cost_mask: float = 1,
+                 cost_dice: float = 1, num_points: int = 0):
         """Creates the matcher
 
         Params:
@@ -161,12 +163,12 @@ class HungarianMatcher(nn.Module):
                 cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
                 # Compute the dice loss betwen masks
                 cost_dice = batch_dice_loss(out_mask, tgt_mask)
-            
+
             # Final cost matrix
             C = (
-                self.cost_mask * cost_mask
-                + self.cost_class * cost_class
-                + self.cost_dice * cost_dice
+                    self.cost_mask * cost_mask
+                    + self.cost_class * cost_class
+                    + self.cost_dice * cost_dice
             )
             C = C.reshape(num_queries, -1).cpu()
 

@@ -20,14 +20,14 @@ class BaseHungarianTracker(BaseTracker):
 
     @configurable
     def __init__(
-        self,
-        video_height: int,
-        video_width: int,
-        max_num_instances: int = 200,
-        max_lost_frame_count: int = 0,
-        min_box_rel_dim: float = 0.02,
-        min_instance_period: int = 1,
-        **kwargs
+            self,
+            video_height: int,
+            video_width: int,
+            max_num_instances: int = 200,
+            max_lost_frame_count: int = 0,
+            min_box_rel_dim: float = 0.02,
+            min_instance_period: int = 1,
+            **kwargs
     ):
         """
         Args:
@@ -95,13 +95,13 @@ class BaseHungarianTracker(BaseTracker):
         return instances
 
     def _process_matched_idx(
-        self, instances: Instances, matched_idx: np.ndarray, matched_prev_idx: np.ndarray
+            self, instances: Instances, matched_idx: np.ndarray, matched_prev_idx: np.ndarray
     ) -> Instances:
         assert matched_idx.size == matched_prev_idx.size
         for i in range(matched_idx.size):
             instances.ID[matched_idx[i]] = self._prev_instances.ID[matched_prev_idx[i]]
             instances.ID_period[matched_idx[i]] = (
-                self._prev_instances.ID_period[matched_prev_idx[i]] + 1
+                    self._prev_instances.ID_period[matched_prev_idx[i]] + 1
             )
             instances.lost_frame_count[matched_idx[i]] = 0
         return instances
@@ -116,7 +116,7 @@ class BaseHungarianTracker(BaseTracker):
         return instances
 
     def _process_unmatched_prev_idx(
-        self, instances: Instances, matched_prev_idx: np.ndarray
+            self, instances: Instances, matched_prev_idx: np.ndarray
     ) -> Instances:
         untracked_instances = Instances(
             image_size=instances.image_size,
@@ -138,10 +138,10 @@ class BaseHungarianTracker(BaseTracker):
         for idx in untracked_prev_idx:
             x_left, y_top, x_right, y_bot = prev_bboxes[idx]
             if (
-                (1.0 * (x_right - x_left) / self._video_width < self._min_box_rel_dim)
-                or (1.0 * (y_bot - y_top) / self._video_height < self._min_box_rel_dim)
-                or self._prev_instances.lost_frame_count[idx] >= self._max_lost_frame_count
-                or prev_ID_period[idx] <= self._min_instance_period
+                    (1.0 * (x_right - x_left) / self._video_width < self._min_box_rel_dim)
+                    or (1.0 * (y_bot - y_top) / self._video_height < self._min_box_rel_dim)
+                    or self._prev_instances.lost_frame_count[idx] >= self._max_lost_frame_count
+                    or prev_ID_period[idx] <= self._min_instance_period
             ):
                 continue
             untracked_instances.pred_boxes.append(list(prev_bboxes[idx].numpy()))

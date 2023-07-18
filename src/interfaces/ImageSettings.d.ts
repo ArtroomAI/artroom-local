@@ -44,7 +44,6 @@ interface QueueType {
     show_intermediates: boolean;
     n_iter: number;
     save_grid: boolean;
-    speed: string;
     device?: string; // ? CPU / GPU
     long_save_path: boolean;
     highres_fix: boolean;

@@ -4,7 +4,8 @@ import { ipcMain } from 'electron';
 
 function runPyTests(artroomPath: string) {
   return new Promise((resolve, reject) => {
-    const pyTestCmd = `${artroomPath}\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe`;
+    console.log("TEST ARTROOM PATH", artroomPath)
+    const pyTestCmd = `${artroomPath}\\artroom\\artroom_backend\\python.exe`;
     let childPython = spawn(pyTestCmd, ['pytest.py']);
     let result = '';
     childPython.stdout.on(`data`, (data) => {
@@ -17,7 +18,7 @@ function runPyTests(artroomPath: string) {
 };
 
 async function runTest(artroomPath: string) {
-  const python_path = `${artroomPath}\\artroom\\miniconda3\\envs\\artroom-ldm\\python.exe`;
+  const python_path = `${artroomPath}\\artroom\\artroom_backend\\python.exe`;
   if (!(fs.existsSync(python_path))) {
     return "cannot find python in " + python_path;
   }

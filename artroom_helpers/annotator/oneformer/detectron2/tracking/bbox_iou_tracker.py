@@ -21,16 +21,16 @@ class BBoxIOUTracker(BaseTracker):
 
     @configurable
     def __init__(
-        self,
-        *,
-        video_height: int,
-        video_width: int,
-        max_num_instances: int = 200,
-        max_lost_frame_count: int = 0,
-        min_box_rel_dim: float = 0.02,
-        min_instance_period: int = 1,
-        track_iou_threshold: float = 0.5,
-        **kwargs,
+            self,
+            *,
+            video_height: int,
+            video_width: int,
+            max_num_instances: int = 200,
+            max_lost_frame_count: int = 0,
+            min_box_rel_dim: float = 0.02,
+            min_instance_period: int = 1,
+            track_iou_threshold: float = 0.5,
+            **kwargs,
     ):
         """
         Args:
@@ -105,9 +105,9 @@ class BBoxIOUTracker(BaseTracker):
                 idx = bbox_pair["idx"]
                 prev_id = bbox_pair["prev_id"]
                 if (
-                    idx in self._matched_idx
-                    or prev_id in self._matched_ID
-                    or bbox_pair["IoU"] < self._track_iou_threshold
+                        idx in self._matched_idx
+                        or prev_id in self._matched_ID
+                        or bbox_pair["IoU"] < self._track_iou_threshold
                 ):
                     continue
                 instances.ID[idx] = prev_id
@@ -232,10 +232,10 @@ class BBoxIOUTracker(BaseTracker):
         for idx in self._untracked_prev_idx:
             x_left, y_top, x_right, y_bot = prev_bboxes[idx]
             if (
-                (1.0 * (x_right - x_left) / self._video_width < self._min_box_rel_dim)
-                or (1.0 * (y_bot - y_top) / self._video_height < self._min_box_rel_dim)
-                or self._prev_instances.lost_frame_count[idx] >= self._max_lost_frame_count
-                or prev_ID_period[idx] <= self._min_instance_period
+                    (1.0 * (x_right - x_left) / self._video_width < self._min_box_rel_dim)
+                    or (1.0 * (y_bot - y_top) / self._video_height < self._min_box_rel_dim)
+                    or self._prev_instances.lost_frame_count[idx] >= self._max_lost_frame_count
+                    or prev_ID_period[idx] <= self._min_instance_period
             ):
                 continue
             untracked_instances.pred_boxes.append(list(prev_bboxes[idx].numpy()))

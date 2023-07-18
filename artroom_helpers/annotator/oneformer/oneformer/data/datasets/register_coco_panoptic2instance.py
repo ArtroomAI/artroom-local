@@ -20,9 +20,8 @@ To add new dataset, refer to the tutorial "docs/DATASETS.md".
 """
 
 import os
-from artroom_helpers.annotator.oneformer.detectron2.data.datasets.builtin_meta import  _get_builtin_metadata
+from artroom_helpers.annotator.oneformer.detectron2.data.datasets.builtin_meta import _get_builtin_metadata
 from artroom_helpers.annotator.oneformer.detectron2.data.datasets.coco import register_coco_instances
-
 
 _PREDEFINED_SPLITS_COCO = {
     "coco_2017_val_panoptic2instance": ("coco/val2017", "coco/annotations/panoptic2instances_val2017.json"),

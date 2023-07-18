@@ -18,7 +18,6 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
-
 __all__ = ["ViT", "SimpleFeaturePyramid", "get_vit_lr_decay_rate"]
 
 
@@ -26,13 +25,13 @@ class Attention(nn.Module):
     """Multi-head Attention block with relative position embeddings."""
 
     def __init__(
-        self,
-        dim,
-        num_heads=8,
-        qkv_bias=True,
-        use_rel_pos=False,
-        rel_pos_zero_init=True,
-        input_size=None,
+            self,
+            dim,
+            num_heads=8,
+            qkv_bias=True,
+            use_rel_pos=False,
+            rel_pos_zero_init=True,
+            input_size=None,
     ):
         """
         Args:
@@ -47,7 +46,7 @@ class Attention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = head_dim**-0.5
+        self.scale = head_dim ** -0.5
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.proj = nn.Linear(dim, dim)
@@ -88,12 +87,12 @@ class ResBottleneckBlock(CNNBlockBase):
     """
 
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        bottleneck_channels,
-        norm="LN",
-        act_layer=nn.GELU,
+            self,
+            in_channels,
+            out_channels,
+            bottleneck_channels,
+            norm="LN",
+            act_layer=nn.GELU,
     ):
         """
         Args:
@@ -146,19 +145,19 @@ class Block(nn.Module):
     """Transformer blocks with support of window attention and residual propagation blocks"""
 
     def __init__(
-        self,
-        dim,
-        num_heads,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-        act_layer=nn.GELU,
-        use_rel_pos=False,
-        rel_pos_zero_init=True,
-        window_size=0,
-        use_residual_block=False,
-        input_size=None,
+            self,
+            dim,
+            num_heads,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            drop_path=0.0,
+            norm_layer=nn.LayerNorm,
+            act_layer=nn.GELU,
+            use_rel_pos=False,
+            rel_pos_zero_init=True,
+            window_size=0,
+            use_residual_block=False,
+            input_size=None,
     ):
         """
         Args:
@@ -237,28 +236,28 @@ class ViT(Backbone):
     """
 
     def __init__(
-        self,
-        img_size=1024,
-        patch_size=16,
-        in_chans=3,
-        embed_dim=768,
-        depth=12,
-        num_heads=12,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        drop_path_rate=0.0,
-        norm_layer=nn.LayerNorm,
-        act_layer=nn.GELU,
-        use_abs_pos=True,
-        use_rel_pos=False,
-        rel_pos_zero_init=True,
-        window_size=0,
-        window_block_indexes=(),
-        residual_block_indexes=(),
-        use_act_checkpoint=False,
-        pretrain_img_size=224,
-        pretrain_use_cls_token=True,
-        out_feature="last_feat",
+            self,
+            img_size=1024,
+            patch_size=16,
+            in_chans=3,
+            embed_dim=768,
+            depth=12,
+            num_heads=12,
+            mlp_ratio=4.0,
+            qkv_bias=True,
+            drop_path_rate=0.0,
+            norm_layer=nn.LayerNorm,
+            act_layer=nn.GELU,
+            use_abs_pos=True,
+            use_rel_pos=False,
+            rel_pos_zero_init=True,
+            window_size=0,
+            window_block_indexes=(),
+            residual_block_indexes=(),
+            use_act_checkpoint=False,
+            pretrain_img_size=224,
+            pretrain_use_cls_token=True,
+            out_feature="last_feat",
     ):
         """
         Args:
@@ -367,14 +366,14 @@ class SimpleFeaturePyramid(Backbone):
     """
 
     def __init__(
-        self,
-        net,
-        in_feature,
-        out_channels,
-        scale_factors,
-        top_block=None,
-        norm="LN",
-        square_pad=0,
+            self,
+            net,
+            in_feature,
+            out_channels,
+            scale_factors,
+            top_block=None,
+            norm="LN",
+            square_pad=0,
     ):
         """
         Args:
@@ -519,6 +518,6 @@ def get_vit_lr_decay_rate(name, lr_decay_rate=1.0, num_layers=12):
         if ".pos_embed" in name or ".patch_embed" in name:
             layer_id = 0
         elif ".blocks." in name and ".residual." not in name:
-            layer_id = int(name[name.find(".blocks.") :].split(".")[2]) + 1
+            layer_id = int(name[name.find(".blocks."):].split(".")[2]) + 1
 
     return lr_decay_rate ** (num_layers + 1 - layer_id)

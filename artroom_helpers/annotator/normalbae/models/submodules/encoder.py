@@ -30,5 +30,3 @@ class Encoder(nn.Module):
             else:
                 features.append(v(features[-1]))
         return features
-
-

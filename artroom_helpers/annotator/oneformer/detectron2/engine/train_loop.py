@@ -327,19 +327,19 @@ class SimpleTrainer(TrainerBase):
         self._data_loader_iter_obj = None
 
     def _write_metrics(
-        self,
-        loss_dict: Mapping[str, torch.Tensor],
-        data_time: float,
-        prefix: str = "",
+            self,
+            loss_dict: Mapping[str, torch.Tensor],
+            data_time: float,
+            prefix: str = "",
     ) -> None:
         if (self.iter + 1) % self.gather_metric_period == 0:
             SimpleTrainer.write_metrics(loss_dict, data_time, prefix)
 
     @staticmethod
     def write_metrics(
-        loss_dict: Mapping[str, torch.Tensor],
-        data_time: float,
-        prefix: str = "",
+            loss_dict: Mapping[str, torch.Tensor],
+            data_time: float,
+            prefix: str = "",
     ) -> None:
         """
         Args:
@@ -395,14 +395,14 @@ class AMPTrainer(SimpleTrainer):
     """
 
     def __init__(
-        self,
-        model,
-        data_loader,
-        optimizer,
-        gather_metric_period=1,
-        grad_scaler=None,
-        precision: torch.dtype = torch.float16,
-        log_grad_scaler: bool = False,
+            self,
+            model,
+            data_loader,
+            optimizer,
+            gather_metric_period=1,
+            grad_scaler=None,
+            precision: torch.dtype = torch.float16,
+            log_grad_scaler: bool = False,
     ):
         """
         Args:

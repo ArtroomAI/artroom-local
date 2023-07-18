@@ -1,4 +1,9 @@
 try:
+    import warnings 
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
+    import logging
+    logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
     import numpy as np
     import json
     import ctypes
@@ -6,7 +11,7 @@ try:
     import os
     import re
     import sys
-    import torch.cuda
+    sys.path.append(os.curdir)
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
@@ -56,34 +61,40 @@ try:
         def flush(self):
             self.original_stdout.flush()
 
+    progress_pattern = re.compile(r'\[(.*?)\]')
+    current_num_pattern = re.compile(r'\d+(?=/)')
 
     def your_callback_function(text: str):
         socketio.emit('messagesss', text)
+        
         if 'OutOfMemoryError' in text:
-            socketio.emit('status', toast_status(
-                title="Cuda Out of Memory Error - try generating smaller image or change speed in settings",
-                status="error"))
-        elif 'Decoding image:' in text:
-            current_num, total_num, current_step, total_steps = SD.get_steps()
-            match = re.search(r'\[(.*?)\]', text)
-            time_spent = ""
-            eta = ""
-            iterations_per_sec = ""
-            if match:
-                parts = match.group(1).split(',')
-                time_spent = parts[0].split('<')[0].strip()
-                eta = parts[0].split('<')[1].strip()
-                iterations_per_sec = parts[1].strip()
+            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller images", status="error"))
 
-            socketio.emit('get_progress', {
-                'current_step': current_step + 1,
-                'total_steps': total_steps,
-                'current_num': current_num,
-                'total_num': total_num,
-                'time_spent': time_spent,
-                'eta': eta,
-                'iterations_per_sec': iterations_per_sec
-            })
+        try:
+            active_model = SD.active_model
+            if active_model is not None:
+                match = progress_pattern.search(text)
+                if match:
+                    parts = match.group(1).split(',')
+                    time_spent = parts[0].split('<')[0].strip()
+                    eta = parts[0].split('<')[1].strip()
+                    iterations_per_sec = parts[1].strip()
+
+                    current_step_match = current_num_pattern.search(text)
+                    current_step = int(current_step_match.group()) if current_step_match else 0
+
+                    socketio.emit('get_progress', {
+                        'current_step': current_step,
+                        'total_steps': active_model.steps,
+                        'current_num': active_model.current_num-1,
+                        'total_num': active_model.total_num,
+                        'time_spent': time_spent,
+                        'eta': eta,
+                        'iterations_per_sec': iterations_per_sec
+                    })
+        except Exception as e:
+            pass
+        
         return text
 
 
@@ -95,7 +106,7 @@ try:
 
     @socketio.on('upscale')
     def upscale(data):
-        print('Running upscale...')
+        print('Running upscale...', data)
         if UP.running:
             print('Failure to upscale, upscale is already running')
             socketio.emit('status', toast_status(
@@ -109,11 +120,15 @@ try:
                 status='error', duration=5000, isClosable=False))
             return
 
-        if data['upscale_dest'] == '':
-            data['upscale_dest'] = data['image_save_path'] + '/upscale_outputs'
+        if 'upscale_dest' not in data or data['upscale_dest'] == '':
+            data['upscale_dest'] = os.path.dirname(data['upscale_images'][0]) + '/upscale_outputs'
 
-        UP.upscale(data['models_dir'], data['upscale_images'], data['upscaler'], data['upscale_factor'],
-                   data['upscale_dest'])
+        UP.upscale(
+            data['models_dir'], 
+            data['upscale_images'], 
+            data['upscaler'], 
+            data['upscale_factor'],
+            data['upscale_dest'])
         socketio.emit('status', toast_status(
             title='Upscale Completed', description='Your upscale has completed',
             status='success', duration=2000, isClosable=False))
@@ -153,7 +168,7 @@ try:
 
     @socketio.on('preview_controlnet')
     def preview_controlnet(data):
-        from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, init_cnet_stuff
+        from artroom_helpers.process_controlnet_images import preview_controlnet, HWC3
         try:
             print(f'Previewing controlnet {data["controlnet"]}')
             image = support.b64_to_image(data['initImage'])
@@ -162,8 +177,9 @@ try:
             w, h = map(lambda x: x - x % 64, (w, h))
             image = image.resize((w, h), resample=Image.LANCZOS)
             image = HWC3(np.array(image))
-            init_cnet_stuff(data["controlnet"], data['models_dir'])
-            image = apply_controlnet(image, data["controlnet"])
+            image = preview_controlnet(image, data["controlnet"], data["models_dir"])
+            print("DONE PREVIEW")
+            image = HWC3(np.array(image))
             output = support.image_to_b64(Image.fromarray(image))
             socketio.emit('get_controlnet_preview', {'controlnetPreview': output})
             print(f"Preview finished")
@@ -197,7 +213,6 @@ try:
 
     @socketio.on('generate')
     def generate(data):
-        print(SD.running)
         if not SD.running:
             try:
                 SD.running = True
@@ -209,12 +224,12 @@ try:
                 print("Saving settings to folder...")
                 save_to_settings_folder(data)
                 ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-                vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
+                vae_path = os.path.join(data['models_dir'], 'Vae', data['vae']).replace(os.sep, '/')
                 lora_paths = []
                 if len(data['loras']) > 0:
                     for lora in data['loras']:
                         lora_paths.append({
-                            'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
+                            'path': os.path.join(data['models_dir'], 'Lora', lora['name']).replace(os.sep, '/'),
                             'name': lora['name'],
                             'weight': lora['weight']
                         })
@@ -226,52 +241,49 @@ try:
             try:
                 print("Starting gen...")
                 print(data)
-
-                SD.generate(
-                    text_prompts=data['text_prompts'],
-                    negative_prompts=data['negative_prompts'],
-                    init_image_str=init_image_str,
-                    strength=data['strength'],
-                    mask_b64=mask_b64,
-                    invert=data['invert'],
-                    n_iter=int(data['n_iter']),
-                    steps=int(data['steps']),
-                    H=int(data['height']),
-                    W=int(data['width']),
-                    seed=int(data['seed']),
-                    sampler=data['sampler'],
-                    cfg_scale=float(data['cfg_scale']),
-                    clip_skip=max(int(data['clip_skip']), 1),
-                    palette_fix=data['palette_fix'],
-                    ckpt=ckpt_path,
-                    vae=vae_path,
-                    loras=lora_paths,
+                SD.generate(                 
                     image_save_path=data['image_save_path'],
-                    speed=data['speed'],
-                    skip_grid=not data['save_grid'],
                     long_save_path=data['long_save_path'],
                     highres_fix=data['highres_fix'],
                     show_intermediates=data['show_intermediates'],
-                    controlnet=data['controlnet'],
                     use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
                     remove_background=data['remove_background'],
                     use_removed_background=data['use_removed_background'],
                     models_dir=data['models_dir'],
+                    text_prompts=data['text_prompts'],
+                    negative_prompts=data['negative_prompts'],
+                    init_image_str=init_image_str,
+                    mask_str=mask_b64,
+                    invert=data['invert'],
+                    steps=int(data['steps']),
+                    H=int(data['height']),
+                    W=int(data['width']),
+                    strength=data['strength'],
+                    cfg_scale=float(data['cfg_scale']),
+                    seed=int(data['seed']),
+                    sampler=data['sampler'],
+                    n_iter=int(data['n_iter']),
+                    batch_size=1,
+                    ckpt=ckpt_path,
+                    vae=vae_path,
+                    loras=lora_paths,
+                    controlnet=data['controlnet'],
+                    background_removal_type="none",
+                    clip_skip=max(int(data['clip_skip']), 1),
                     generation_mode=data.get('generation_mode'),
                     highres_steps=data.get('highres_steps'),
                     highres_strength=data.get('highres_strength')
-                )
+                    )
             except Exception as e:
                 print(f"Generation failed! {e}")
                 SD.running = False
-                torch.cuda.empty_cache()
             socketio.emit('job_done')
 
 
     @socketio.on('stop_queue')
     def stop_queue():
         SD.interrupt()
-        socketio.emit("status", toast_status(title="Queue stopped", status="info", duration=2000), broadcast=True)
+        socketio.emit("status", toast_status(title="Queue interrupted. Generations will stop after this one.", status="info", duration=2000))
 
 
     @app.route('/xyplot', methods=['POST'])
@@ -306,69 +318,71 @@ try:
         os.makedirs(image_save_path, exist_ok=True)
 
         for data in xyplot_data["xyplots"]:
-            if not SD.running:
-                try:
-                    SD.running = True
-                    mask_b64 = data['mask_image']
-                    data['mask_image'] = data['mask_image'][:100] + "..."
-                    init_image_str = data['init_image']
-                    data['init_image'] = data['init_image'][:100] + "..."
+            try:
+                SD.running = True
+                mask_b64 = data['mask_image']
+                data['mask_image'] = data['mask_image'][:100] + "..."
+                init_image_str = data['init_image']
+                data['init_image'] = data['init_image'][:100] + "..."
 
-                    print("Saving settings to folder...")
-                    save_to_settings_folder(data)
-                    ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
-                    vae_path = os.path.join(data['models_dir'], 'Vaes', data['vae']).replace(os.sep, '/')
-                    lora_paths = []
-                    if len(data['lora']) > 0:
-                        for lora in data['lora']:
-                            lora_paths.append({
-                                'path': os.path.join(data['models_dir'], 'Loras', lora['name']).replace(os.sep, '/'),
-                                'weight': lora['weight']
-                            })
-                except Exception as e:
-                    print(f"Failed to add to queue {e}")
-                    SD.running = False
-                    socketio.emit('job_done')
-                    return
-                try:
-                    print("Starting gen...")
-                    SD.generate(
-                        text_prompts=data['text_prompts'],
-                        negative_prompts=data['negative_prompts'],
-                        init_image_str=init_image_str,
-                        strength=data['strength'],
-                        mask_b64=mask_b64,
-                        invert=data['invert'],
-                        n_iter=int(data['n_iter']),
-                        steps=int(data['steps']),
-                        H=int(data['height']),
-                        W=int(data['width']),
-                        seed=int(data['seed']),
-                        sampler=data['sampler'],
-                        cfg_scale=float(data['cfg_scale']),
-                        clip_skip=max(int(data['clip_skip']), 1),
-                        palette_fix=data['palette_fix'],
-                        ckpt=ckpt_path,
-                        vae=vae_path,
-                        loras=lora_paths,
-                        image_save_path=image_save_path,
-                        speed=data['speed'],
-                        skip_grid=not data['save_grid'],
-                        long_save_path=data['long_save_path'],
-                        highres_fix=data['highres_fix'],
-                        show_intermediates=data['show_intermediates'],
-                        controlnet=data['controlnet'],
-                        use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
-                        remove_background=data['remove_background'],
-                        use_removed_background=data['use_removed_background'],
-                        models_dir=data['models_dir'],
+                print("Saving settings to folder...")
+                save_to_settings_folder(data)
+                ckpt_path = os.path.join(data['models_dir'], data['ckpt']).replace(os.sep, '/')
+                vae_path = os.path.join(data['models_dir'], 'Vae', data['vae']).replace(os.sep, '/')
+                lora_paths = []
+                if len(data['loras']) > 0:
+                    for lora in data['loras']:
+                        lora_paths.append({
+                            'path': os.path.join(data['models_dir'], 'Lora', lora['name']).replace(os.sep, '/'),
+                            'name': lora['name'],
+                            'weight': lora['weight']
+                        })
+            except Exception as e:
+                print(f"Failed to add to queue {e}")
+                SD.running = False
+                socketio.emit('job_done')
+                return
+            try:
+                print("Starting gen...")
+                print(data)
+                SD.generate(                 
+                    image_save_path=data['image_save_path'],
+                    long_save_path=data['long_save_path'],
+                    highres_fix=data['highres_fix'],
+                    show_intermediates=data['show_intermediates'],
+                    use_preprocessed_controlnet=data['use_preprocessed_controlnet'],
+                    remove_background=data['remove_background'],
+                    use_removed_background=data['use_removed_background'],
+                    models_dir=data['models_dir'],
+                    text_prompts=data['text_prompts'],
+                    negative_prompts=data['negative_prompts'],
+                    init_image_str=init_image_str,
+                    mask_str=mask_b64,
+                    invert=data['invert'],
+                    steps=int(data['steps']),
+                    H=int(data['height']),
+                    W=int(data['width']),
+                    strength=data['strength'],
+                    cfg_scale=float(data['cfg_scale']),
+                    seed=int(data['seed']),
+                    sampler=data['sampler'],
+                    n_iter=int(data['n_iter']),
+                    batch_size=1,
+                    ckpt=ckpt_path,
+                    vae=vae_path,
+                    loras=lora_paths,
+                    controlnet=data['controlnet'],
+                    background_removal_type="none",
+                    clip_skip=max(int(data['clip_skip']), 1),
+                    generation_mode=data.get('generation_mode'),
+                    highres_steps=data.get('highres_steps'),
+                    highres_strength=data.get('highres_strength')
                     )
-                    socketio.emit('job_done')
+            except Exception as e:
+                print(f"Generation failed! {e}")
+                SD.running = False
+            socketio.emit('job_done')
 
-                except Exception as e:
-                    print(f"Generation failed! {e}")
-                    SD.clean_up()
-                    socketio.emit('job_done')
 
         # Load the images into a list
         image_files = sorted(os.listdir(image_save_path))
@@ -420,18 +434,18 @@ try:
     def handle_message(data):
         '''event listener when client types a message'''
         print('data from the front end: ', str(data))
-        socketio.emit('message', {'data': data, 'id': request.sid}, broadcast=True)
+        socketio.emit('message', {'data': data, 'id': request.sid})
 
 
     @socketio.on('disconnect')
     def disconnected():
         '''event listener when client disconnects to the server'''
         print('user disconnected')
-        socketio.emit('disconnect', f'user {request.sid} disconnected', broadcast=True)
+        socketio.emit('disconnect', f'user {request.sid} disconnected')
 
 
     if __name__ == '__main__':
-        socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True)
+        socketio.run(app, host='127.0.0.1', port=5300, allow_unsafe_werkzeug=True, debug=False)
 except Exception as e:
     import time
 

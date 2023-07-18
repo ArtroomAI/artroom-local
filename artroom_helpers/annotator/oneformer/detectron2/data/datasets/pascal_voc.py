@@ -12,13 +12,14 @@ from artroom_helpers.annotator.oneformer.detectron2.utils.file_io import PathMan
 
 __all__ = ["load_voc_instances", "register_pascal_voc"]
 
-
 # fmt: off
 CLASS_NAMES = (
     "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat",
     "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person",
     "pottedplant", "sheep", "sofa", "train", "tvmonitor"
 )
+
+
 # fmt: on
 
 

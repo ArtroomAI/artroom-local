@@ -98,14 +98,14 @@ class DatasetEvaluators(DatasetEvaluator):
             if is_main_process() and result is not None:
                 for k, v in result.items():
                     assert (
-                        k not in results
+                            k not in results
                     ), "Different evaluators produce results with the same key {}".format(k)
                     results[k] = v
         return results
 
 
 def inference_on_dataset(
-    model, data_loader, evaluator: Union[DatasetEvaluator, List[DatasetEvaluator], None]
+        model, data_loader, evaluator: Union[DatasetEvaluator, List[DatasetEvaluator], None]
 ):
     """
     Run model on the data_loader and evaluate the metrics with evaluator.

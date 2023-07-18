@@ -1,6 +1,6 @@
 import torch.nn as nn
 from artroom_helpers.annotator.uniformer.mmcv.cnn import (build_conv_layer, build_norm_layer, constant_init,
-                                          kaiming_init)
+                                                          kaiming_init)
 from artroom_helpers.annotator.uniformer.mmcv.runner import load_checkpoint
 from artroom_helpers.annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 

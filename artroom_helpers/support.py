@@ -9,6 +9,36 @@ import re
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
+def check_array_dict_equality(array1, array2):
+    if len(array1) != len(array2):
+        return False
+
+    for i in range(len(array1)):
+        dict1 = array1[i]
+        dict2 = array2[i]
+
+        # Check if the keys in both dictionaries are the same
+        if set(dict1.keys()) != set(dict2.keys()):
+            return False
+
+        # Compare the values of each key
+        for key in dict1.keys():
+            if dict1[key] != dict2[key]:
+                return False
+
+    return True
+
+def invert_rgb_mask(mask_image):
+    # Convert RGB mask to grayscale
+    grayscale_mask = mask_image.convert('L')
+
+    # Invert the grayscale mask
+    inverted_grayscale_mask = ImageOps.invert(grayscale_mask)
+
+    # Convert the inverted grayscale mask back to RGB
+    inverted_rgb_mask = inverted_grayscale_mask.convert('RGB')
+
+    return inverted_rgb_mask
 
 def image_to_b64(image):
     image_file = io.BytesIO()

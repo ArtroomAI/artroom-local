@@ -1,24 +1,27 @@
 {
   "name": "artroom-beta",
-  "version": "1.2.3-beta.1",
+  "version": "1.3.1-beta.11",
   "private": false,
-  "icon": "./icon.ico",
+  "icon": "./artroom_icon.ico",
   "main": "public/main.js",
   "homepage": "./",
   "scripts": {
     "start": "cross-env NODE_ENV=development node scripts/serve.js",
-    "build": "yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
+    "build": "npm run obfuscate && yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
+    "obfuscate": "obfuscate.bat",
     "delete": "del-cli --force dist",
-    "electron:serve": "yarn generate && yarn start",
+    "electron:serve": "npm run obfuscate && yarn generate && yarn start",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
+    "electron:build_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish never",
     "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
+    "electron:deploy_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish always",
     "electron:start": "electron ./build/main.js",
     "lint": "eslint . --resolve-plugins-relative-to . --ext .ts,.tsx",
     "generate": "typia generate --input src/interfaces/templates --output src/interfaces/generated --project tsconfig.json"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtroomAI/artroom-beta.git"
+    "url": "https://github.com/ArtroomAI/artroomai-beta.git"
   },
   "build": {
     "extends": null,
@@ -29,11 +32,19 @@
         {
           "provider": "github",
           "owner": "ArtroomAI",
-          "repo": "artroomai"
+          "repo": "artroomai-beta"
         }
       ],
       "target": "nsis",
-      "icon": "./icon.ico"
+      "icon": "./artroom_icon.ico"
+    },
+    "mac": {
+      "category": "Art & Illustration",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "./artroom_icon.icns"
     },
     "nsis": {
       "oneClick": false,
@@ -41,7 +52,7 @@
       "perMachine": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "installerHeaderIcon": "./icon.ico",
+      "installerHeaderIcon": "./artroom_icon.ico",
       "allowToChangeInstallationDirectory": true
     },
     "files": [
@@ -55,20 +66,17 @@
       "buildResources": "assets"
     },
     "extraFiles": [
-      "icon.ico",
+      "artroom_icon.ico",
       "artroom_helpers/**/*",
       "gfpgan/**/*",
-      "sd_modules/**/*",
-      "!sd_modules/models/ldm/stable-diffusion-v1/**/*",
-      "!sd_modules/src/**/*",
-      "model_downloader.json",
-      "model_merger.py",
-      "server.py",
+      "backend/**/*",
+      "!artroom_helpers/*.py",
+      "model_merger.pyc",
+      "server.pyc",
       "pytest.py",
-      "safe.py",
-      "stable_diffusion.py",
-      "upscale.py",
-      "queue_manager.py"
+      "safe.pyc",
+      "stable_diffusion.pyc",
+      "upscale.pyc"
     ]
   },
   "dependencies": {
@@ -84,7 +92,9 @@
     "electron-is-dev": "1.2.0",
     "electron-updater": "5.2.1",
     "exif-parser": "0.1.12",
+    "file-loader": "^6.2.0",
     "framer-motion": "8.4.0",
+    "gpu-info": "^0.0.1",
     "konva": "8.4.0",
     "qs": "6.11.0",
     "react": "18.2.0",
@@ -104,6 +114,7 @@
     "recoil-persist": "4.2.0",
     "socket.io-client": "4.5.4",
     "styled-components": "5.3.6",
+    "systeminformation": "^5.18.7",
     "tree-kill": "1.2.2",
     "use-image": "1.1.0",
     "uuid": "^9.0.0",
@@ -133,7 +144,6 @@
     "eslint": "8.32.0",
     "eslint-plugin-react": "7.32.2",
     "eslint-plugin-react-hooks": "4.6.0",
-    "file-loader": "6.2.0",
     "html-webpack-plugin": "5.5.0",
     "sass": "1.57.1",
     "sass-loader": "13.2.0",

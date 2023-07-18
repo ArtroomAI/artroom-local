@@ -28,4 +28,3 @@ class OneformerADE20kDetector:
 
     def __call__(self, img):
         return semantic_run(img, self.model, self.meta)
-

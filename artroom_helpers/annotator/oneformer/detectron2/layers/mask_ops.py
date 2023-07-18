@@ -7,11 +7,10 @@ from torch.nn import functional as F
 
 __all__ = ["paste_masks_in_image"]
 
-
 BYTES_PER_FLOAT = 4
 # TODO: This memory limit may be too much or too little. It would be better to
 # determine it based on available resources.
-GPU_MEM_LIMIT = 1024**3  # 1 GB memory limit
+GPU_MEM_LIMIT = 1024 ** 3  # 1 GB memory limit
 
 
 def _do_paste_mask(masks, boxes, img_h: int, img_w: int, skip_empty: bool = True):
@@ -72,7 +71,7 @@ def _do_paste_mask(masks, boxes, img_h: int, img_w: int, skip_empty: bool = True
 # Annotate boxes as Tensor (but not Boxes) in order to use scripting
 @torch.jit.script_if_tracing
 def paste_masks_in_image(
-    masks: torch.Tensor, boxes: torch.Tensor, image_shape: Tuple[int, int], threshold: float = 0.5
+        masks: torch.Tensor, boxes: torch.Tensor, image_shape: Tuple[int, int], threshold: float = 0.5
 ):
     """
     Paste a set of masks that are of a fixed resolution (e.g., 28 x 28) into an image.
@@ -122,7 +121,7 @@ def paste_masks_in_image(
         # int(img_h) because shape may be tensors in tracing
         num_chunks = int(np.ceil(N * int(img_h) * int(img_w) * BYTES_PER_FLOAT / GPU_MEM_LIMIT))
         assert (
-            num_chunks <= N
+                num_chunks <= N
         ), "Default GPU_MEM_LIMIT in mask_ops.py is too small; try increasing it"
     chunks = torch.chunk(torch.arange(N, device=device), num_chunks)
 
@@ -202,8 +201,8 @@ def paste_mask_in_image_old(mask, box, img_h, img_w, threshold):
     y_1 = min(box[3] + 1, img_h)
 
     im_mask[y_0:y_1, x_0:x_1] = mask[
-        (y_0 - box[1]) : (y_1 - box[1]), (x_0 - box[0]) : (x_1 - box[0])
-    ]
+                                (y_0 - box[1]): (y_1 - box[1]), (x_0 - box[0]): (x_1 - box[0])
+                                ]
     return im_mask
 
 
@@ -262,10 +261,10 @@ def scale_boxes(boxes, scale):
 
 @torch.jit.script_if_tracing
 def _paste_masks_tensor_shape(
-    masks: torch.Tensor,
-    boxes: torch.Tensor,
-    image_shape: Tuple[torch.Tensor, torch.Tensor],
-    threshold: float = 0.5,
+        masks: torch.Tensor,
+        boxes: torch.Tensor,
+        image_shape: Tuple[torch.Tensor, torch.Tensor],
+        threshold: float = 0.5,
 ):
     """
     A wrapper of paste_masks_in_image where image_shape is Tensor.

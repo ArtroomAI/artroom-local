@@ -10,10 +10,10 @@ from artroom_helpers.annotator.oneformer.detectron2.layers.roi_align_rotated imp
 from artroom_helpers.annotator.oneformer.detectron2.modeling import poolers
 from artroom_helpers.annotator.oneformer.detectron2.modeling.proposal_generator import rpn
 from artroom_helpers.annotator.oneformer.detectron2.modeling.roi_heads.mask_head import mask_rcnn_inference
-from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, ImageList, Instances, Keypoints, RotatedBoxes
+from artroom_helpers.annotator.oneformer.detectron2.structures import Boxes, ImageList, Instances, Keypoints, \
+    RotatedBoxes
 
 from .shared import alias, to_device
-
 
 """
 This file contains caffe2-compatible implementation of several detectron2 components.
@@ -85,7 +85,7 @@ class InstancesList(object):
             data_len = len(value)
         if len(self.batch_extra_fields):
             assert (
-                len(self) == data_len
+                    len(self) == data_len
             ), "Adding a field of length {} to a Instances of length {}".format(data_len, len(self))
         self.batch_extra_fields[name] = value
 
@@ -174,7 +174,7 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
         return ret
 
     def _generate_proposals(
-        self, images, objectness_logits_pred, anchor_deltas_pred, gt_instances=None
+            self, images, objectness_logits_pred, anchor_deltas_pred, gt_instances=None
     ):
         assert isinstance(images, ImageList)
         if self.tensor_mode:
@@ -188,10 +188,10 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
         rpn_rois_list = []
         rpn_roi_probs_list = []
         for scores, bbox_deltas, cell_anchors_tensor, feat_stride in zip(
-            objectness_logits_pred,
-            anchor_deltas_pred,
-            [b for (n, b) in self.anchor_generator.cell_anchors.named_buffers()],
-            self.anchor_generator.strides,
+                objectness_logits_pred,
+                anchor_deltas_pred,
+                [b for (n, b) in self.anchor_generator.cell_anchors.named_buffers()],
+                self.anchor_generator.strides,
         ):
             scores = scores.detach()
             bbox_deltas = bbox_deltas.detach()
@@ -328,7 +328,7 @@ class Caffe2ROIPooler(Caffe2Compatible, poolers.ROIPooler):
 
         device = pooler_fmt_boxes.device
         assert (
-            self.max_level - self.min_level + 1 == 4
+                self.max_level - self.min_level + 1 == 4
         ), "Currently DistributeFpnProposals only support 4 levels"
         fpn_outputs = torch.ops._caffe2.DistributeFpnProposals(
             to_device(pooler_fmt_boxes, "cpu"),
@@ -391,8 +391,8 @@ class Caffe2FastRCNNOutputsInference:
         if is_rotated:
             box_dim = 5
             assert box_predictor.box2box_transform.weights[4] == 1, (
-                "The weights for Rotated BBoxTransform in C2 have only 4 dimensions,"
-                + " thus enforcing the angle weight to be 1 for now"
+                    "The weights for Rotated BBoxTransform in C2 have only 4 dimensions,"
+                    + " thus enforcing the angle weight to be 1 for now"
             )
             box2box_transform_weights = box_predictor.box2box_transform.weights[:4]
         else:

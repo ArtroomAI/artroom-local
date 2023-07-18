@@ -8,27 +8,22 @@ const ExifParser = require('exif-parser');
 const getPNGEXIF = (png: Buffer) => {
   const png_string = png.toString('utf-8');
 
-  const start = png_string.indexOf(`{"text`);
+  const start = png_string.indexOf(`Artroom Settings:\n`);
 
   if(start === -1) return '';
 
-  let count = 1;
+  const end = png_string.indexOf(`\nEND`, start);
 
-  for(let i = start + 5; i < png_string.length; ++i) {
-    if(png_string[i] === '{') {
-      count++;
-    } else if (png_string[i] === '}') {
-      count--;
-    }
+  if(end === -1) return '';
 
-    if(count === 0) {
-      return png_string.substring(start, i + 1);
-    }
-  }
-  return '';
+  // Get the JSON string (not including the markers at start and end)
+  const jsonString = png_string.substring(start + 18, end);
+  console.log('JSON STRING', jsonString)
+  return jsonString;
 }
 
 const parseExifData = (buffer: string | Buffer, ext: string = ''): Partial<ExifDataType> => {
+  console.log('PARSE EXIF DATA')
   try {
     if(typeof buffer === 'string') {
       return JSON.parse(buffer);

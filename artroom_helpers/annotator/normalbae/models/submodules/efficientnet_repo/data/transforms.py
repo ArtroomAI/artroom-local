@@ -143,8 +143,8 @@ def transforms_imagenet_eval(
         tfl += [
             transforms.ToTensor(),
             transforms.Normalize(
-                     mean=torch.tensor(mean),
-                     std=torch.tensor(std))
+                mean=torch.tensor(mean),
+                std=torch.tensor(std))
         ]
 
     return transforms.Compose(tfl)

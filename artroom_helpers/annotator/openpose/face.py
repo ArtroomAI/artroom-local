@@ -11,6 +11,7 @@ from torch.nn import Conv2d, Module, ReLU, MaxPool2d, init
 
 class FaceNet(Module):
     """Model the cascading heatmaps. """
+
     def __init__(self):
         super(FaceNet, self).__init__()
         # cnn to make feature map
@@ -279,7 +280,6 @@ LOG = logging.getLogger(__name__)
 TOTEN = ToTensor()
 TOPIL = ToPILImage()
 
-
 params = {
     'gaussian_sigma': 2.5,
     'inference_img_size': 736,  # 368, 736, 1312
@@ -314,6 +314,7 @@ class Face(object):
         heatmap_peak_thresh: return landmark if over threshold, default 0.1
 
     """
+
     def __init__(self, face_model_path,
                  inference_size=None,
                  gaussian_sigma=None,

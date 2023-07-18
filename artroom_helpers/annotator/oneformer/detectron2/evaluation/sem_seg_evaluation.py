@@ -25,9 +25,9 @@ except ImportError:
 
 
 def load_image_into_numpy_array(
-    filename: str,
-    copy: bool = False,
-    dtype: Optional[Union[np.dtype, str]] = None,
+        filename: str,
+        copy: bool = False,
+        dtype: Optional[Union[np.dtype, str]] = None,
 ) -> np.ndarray:
     with PathManager.open(filename, "rb") as f:
         array = np.array(Image.open(f), copy=copy, dtype=dtype)
@@ -40,14 +40,14 @@ class SemSegEvaluator(DatasetEvaluator):
     """
 
     def __init__(
-        self,
-        dataset_name,
-        distributed=True,
-        output_dir=None,
-        *,
-        sem_seg_loading_fn=load_image_into_numpy_array,
-        num_classes=None,
-        ignore_label=None,
+            self,
+            dataset_name,
+            distributed=True,
+            output_dir=None,
+            *,
+            sem_seg_loading_fn=load_image_into_numpy_array,
+            num_classes=None,
+            ignore_label=None,
     ):
         """
         Args:
@@ -238,7 +238,7 @@ class SemSegEvaluator(DatasetEvaluator):
         for label in np.unique(sem_seg):
             if self._contiguous_id_to_dataset_id is not None:
                 assert (
-                    label in self._contiguous_id_to_dataset_id
+                        label in self._contiguous_id_to_dataset_id
                 ), "Label {} is not in the metadata info for {}".format(label, self._dataset_name)
                 dataset_id = self._contiguous_id_to_dataset_id[label]
             else:
@@ -254,7 +254,7 @@ class SemSegEvaluator(DatasetEvaluator):
     def _mask_to_boundary(self, mask: np.ndarray, dilation_ratio=0.02):
         assert mask.ndim == 2, "mask_to_boundary expects a 2-dimensional image"
         h, w = mask.shape
-        diag_len = np.sqrt(h**2 + w**2)
+        diag_len = np.sqrt(h ** 2 + w ** 2)
         dilation = max(1, int(round(dilation_ratio * diag_len)))
         kernel = np.ones((3, 3), dtype=np.uint8)
 

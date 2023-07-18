@@ -23,11 +23,10 @@ function DebugInstallerModal () {
     const toast = useToast({});
 
     const cancelRef = React.useRef();
-    const [gpuType, setGpuType] = useState('NVIDIA');
     const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
 
     const DebugInstaller = () => {
-        window.api.pythonInstall(artroomPath, gpuType);
+        window.api.pythonInstall(artroomPath);
         toast({
             title: 'Reinstalling Artroom Backend',
             status: 'success',
@@ -96,36 +95,14 @@ function DebugInstallerModal () {
                             </p>
                             <br />
                             <Flex alignItems="center">
-                            <RadioGroup value={gpuType} onChange={(event)=>{setGpuType(event)}} mb='4'>
-                                <Text mb='4'>Do you have an NVIDIA or AMD GPU?:</Text>
-                                <Flex flexDirection='row' alignItems='center'>
-                                    <Radio value='NVIDIA' mr='2' />
-                                    NVIDIA
-                                </Flex>
-                                <Flex flexDirection='row' alignItems='center'>
-                                    <Radio value='AMD' mr='2' />
-                                    AMD
-                                </Flex>
-                            </RadioGroup>
                             </Flex>
                         </AlertDialogBody>
-
 
                         <AlertDialogFooter>
                             <Button
                                 onClick={onClose}
                                 ref={cancelRef}>
                                 Cancel
-                            </Button>
-
-                            <Button
-                                backgroundColor="red.600"
-                                colorScheme="red"
-                                ml={3}
-                                onClick={() => {
-                                        DebugInstaller();
-                                }}>
-                                Install Artroom {gpuType}
                             </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>

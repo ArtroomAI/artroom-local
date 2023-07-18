@@ -37,7 +37,7 @@ from .efficientnet_builder import *
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140', 'mnasnet_small',
            'mobilenetv2_100', 'mobilenetv2_140', 'mobilenetv2_110d', 'mobilenetv2_120d',
-           'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',  'efficientnet_b3',
+           'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2', 'efficientnet_b3',
            'efficientnet_b4', 'efficientnet_b5', 'efficientnet_b6', 'efficientnet_b7', 'efficientnet_b8',
            'efficientnet_l2', 'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
            'efficientnet_cc_b0_4e', 'efficientnet_cc_b0_8e', 'efficientnet_cc_b1_8e',
@@ -54,7 +54,6 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
            'tf_efficientnet_lite0', 'tf_efficientnet_lite1', 'tf_efficientnet_lite2', 'tf_efficientnet_lite3',
            'tf_efficientnet_lite4',
            'mixnet_s', 'mixnet_m', 'mixnet_l', 'mixnet_xl', 'tf_mixnet_s', 'tf_mixnet_m', 'tf_mixnet_l']
-
 
 model_urls = {
     'mnasnet_050': None,
@@ -574,13 +573,13 @@ def _gen_efficientnet_condconv(
         variant, channel_multiplier=1.0, depth_multiplier=1.0, experts_multiplier=1, pretrained=False, **kwargs):
     """Creates an efficientnet-condconv model."""
     arch_def = [
-      ['ds_r1_k3_s1_e1_c16_se0.25'],
-      ['ir_r2_k3_s2_e6_c24_se0.25'],
-      ['ir_r2_k5_s2_e6_c40_se0.25'],
-      ['ir_r3_k3_s2_e6_c80_se0.25'],
-      ['ir_r3_k5_s1_e6_c112_se0.25_cc4'],
-      ['ir_r4_k5_s2_e6_c192_se0.25_cc4'],
-      ['ir_r1_k3_s1_e6_c320_se0.25_cc4'],
+        ['ds_r1_k3_s1_e1_c16_se0.25'],
+        ['ir_r2_k3_s2_e6_c24_se0.25'],
+        ['ir_r2_k5_s2_e6_c40_se0.25'],
+        ['ir_r3_k3_s2_e6_c80_se0.25'],
+        ['ir_r3_k5_s1_e6_c112_se0.25_cc4'],
+        ['ir_r4_k5_s2_e6_c192_se0.25_cc4'],
+        ['ir_r1_k3_s1_e6_c320_se0.25_cc4'],
     ]
     with layer_config_kwargs(kwargs):
         model_kwargs = dict(

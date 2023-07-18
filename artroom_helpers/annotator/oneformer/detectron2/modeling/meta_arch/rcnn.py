@@ -32,15 +32,15 @@ class GeneralizedRCNN(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        proposal_generator: nn.Module,
-        roi_heads: nn.Module,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
-        input_format: Optional[str] = None,
-        vis_period: int = 0,
+            self,
+            *,
+            backbone: Backbone,
+            proposal_generator: nn.Module,
+            roi_heads: nn.Module,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
+            input_format: Optional[str] = None,
+            vis_period: int = 0,
     ):
         """
         Args:
@@ -65,7 +65,7 @@ class GeneralizedRCNN(nn.Module):
         self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
         assert (
-            self.pixel_mean.shape == self.pixel_std.shape
+                self.pixel_mean.shape == self.pixel_std.shape
         ), f"{self.pixel_mean} and {self.pixel_std} have different shapes!"
 
     @classmethod
@@ -176,10 +176,10 @@ class GeneralizedRCNN(nn.Module):
         return losses
 
     def inference(
-        self,
-        batched_inputs: List[Dict[str, torch.Tensor]],
-        detected_instances: Optional[List[Instances]] = None,
-        do_postprocess: bool = True,
+            self,
+            batched_inputs: List[Dict[str, torch.Tensor]],
+            detected_instances: Optional[List[Instances]] = None,
+            do_postprocess: bool = True,
     ):
         """
         Run inference on the given inputs.
@@ -241,7 +241,7 @@ class GeneralizedRCNN(nn.Module):
         # note: private function; subject to changes
         processed_results = []
         for results_per_image, input_per_image, image_size in zip(
-            instances, batched_inputs, image_sizes
+                instances, batched_inputs, image_sizes
         ):
             height = input_per_image.get("height", image_size[0])
             width = input_per_image.get("width", image_size[1])
@@ -258,12 +258,12 @@ class ProposalNetwork(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        proposal_generator: nn.Module,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
+            self,
+            *,
+            backbone: Backbone,
+            proposal_generator: nn.Module,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
     ):
         """
         Args:
@@ -332,7 +332,7 @@ class ProposalNetwork(nn.Module):
 
         processed_results = []
         for results_per_image, input_per_image, image_size in zip(
-            proposals, batched_inputs, images.image_sizes
+                proposals, batched_inputs, images.image_sizes
         ):
             height = input_per_image.get("height", image_size[0])
             width = input_per_image.get("width", image_size[1])

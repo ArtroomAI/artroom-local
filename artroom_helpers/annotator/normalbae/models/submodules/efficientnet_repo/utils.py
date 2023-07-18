@@ -3,6 +3,7 @@ import os
 
 class AverageMeter:
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -49,4 +50,3 @@ def get_outdir(path, *paths, inc=False):
         outdir = outdir_inc
         os.makedirs(outdir)
     return outdir
-

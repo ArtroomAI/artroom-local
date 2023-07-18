@@ -273,7 +273,7 @@ def load_ade20k_panoptic_json(json_file, image_dir, gt_dir, semseg_dir, meta):
 
 
 def register_ade20k_panoptic(
-    name, metadata, image_root, panoptic_root, semantic_root, panoptic_json, instances_json=None,
+        name, metadata, image_root, panoptic_root, semantic_root, panoptic_json, instances_json=None,
 ):
     """
     Register a "standard" version of ADE20k panoptic segmentation dataset named `name`.
@@ -374,8 +374,8 @@ def get_metadata():
 def register_all_ade20k_panoptic(root):
     metadata = get_metadata()
     for (
-        prefix,
-        (image_root, panoptic_root, panoptic_json, semantic_root, instance_json),
+            prefix,
+            (image_root, panoptic_root, panoptic_json, semantic_root, instance_json),
     ) in _PREDEFINED_SPLITS_ADE20K_PANOPTIC.items():
         # The "standard" version of COCO panoptic segmentation dataset,
         # e.g. used by Panoptic-DeepLab

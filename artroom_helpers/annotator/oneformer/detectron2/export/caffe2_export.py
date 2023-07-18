@@ -77,7 +77,7 @@ def _op_stats(net_def):
 
 
 def _assign_device_option(
-    predict_net: caffe2_pb2.NetDef, init_net: caffe2_pb2.NetDef, tensor_inputs: List[torch.Tensor]
+        predict_net: caffe2_pb2.NetDef, init_net: caffe2_pb2.NetDef, tensor_inputs: List[torch.Tensor]
 ):
     """
     ONNX exported network doesn't have concept of device, assign necessary

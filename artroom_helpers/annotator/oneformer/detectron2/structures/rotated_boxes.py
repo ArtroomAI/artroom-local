@@ -375,10 +375,10 @@ class RotatedBoxes(Boxes):
         max_rect_dy = c * half_h + s * half_w
 
         inds_inside = (
-            (cnt_x - max_rect_dx >= -boundary_threshold)
-            & (cnt_y - max_rect_dy >= -boundary_threshold)
-            & (cnt_x + max_rect_dx < width + boundary_threshold)
-            & (cnt_y + max_rect_dy < height + boundary_threshold)
+                (cnt_x - max_rect_dx >= -boundary_threshold)
+                & (cnt_y - max_rect_dy >= -boundary_threshold)
+                & (cnt_x + max_rect_dx < width + boundary_threshold)
+                & (cnt_y + max_rect_dy < height + boundary_threshold)
         )
 
         return inds_inside

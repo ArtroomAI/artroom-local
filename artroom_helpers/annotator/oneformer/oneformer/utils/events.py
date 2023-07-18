@@ -100,7 +100,6 @@ class WandbWriter(EventWriter):
             storage.clear_images()
 
         if len(storage._histograms) >= 1:
-
             def create_bar(tag, bucket_limits, bucket_counts, **kwargs):
                 data = [
                     [label, val] for (label, val) in zip(bucket_limits, bucket_counts)

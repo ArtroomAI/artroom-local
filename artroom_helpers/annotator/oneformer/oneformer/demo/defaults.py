@@ -6,7 +6,6 @@ from artroom_helpers.annotator.oneformer.detectron2.data import (
 )
 from artroom_helpers.annotator.oneformer.detectron2.modeling import build_model
 
-
 __all__ = [
     "DefaultPredictor",
 ]
@@ -69,7 +68,7 @@ class DefaultPredictor:
             height, width = original_image.shape[:2]
             image = self.aug.get_transform(original_image).apply_image(original_image)
             image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
-            
+
             task = f"The task is {task}"
 
             inputs = {"image": image, "height": height, "width": width, "task": task}

@@ -153,7 +153,7 @@ class VideoVisualizer:
         return frame_visualizer.output
 
     def draw_panoptic_seg_predictions(
-        self, frame, panoptic_seg, segments_info, area_threshold=None, alpha=0.5
+            self, frame, panoptic_seg, segments_info, area_threshold=None, alpha=0.5
     ):
         frame_visualizer = Visualizer(frame, self.metadata)
         pred = _PanopticPrediction(panoptic_seg, segments_info, self.metadata)
@@ -274,7 +274,7 @@ class VideoVisualizer:
                 untracked_ids.remove(id)
             else:
                 assert (
-                    len(self._color_idx_set) >= 1
+                        len(self._color_idx_set) >= 1
                 ), f"Number of id exceeded maximum, \
                     max = {self._max_num_instances}"
                 idx = self._color_idx_set.pop()

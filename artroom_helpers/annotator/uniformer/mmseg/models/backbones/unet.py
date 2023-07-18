@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from artroom_helpers.annotator.uniformer.mmcv.cnn import (UPSAMPLE_LAYERS, ConvModule, build_activation_layer,
-                                          build_norm_layer, constant_init, kaiming_init)
+                                                          build_norm_layer, constant_init, kaiming_init)
 from artroom_helpers.annotator.uniformer.mmcv.runner import load_checkpoint
 from artroom_helpers.annotator.uniformer.mmcv.utils.parrots_wrapper import _BatchNorm
 

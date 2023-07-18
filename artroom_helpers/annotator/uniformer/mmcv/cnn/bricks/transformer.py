@@ -15,7 +15,8 @@ from .registry import (ATTENTION, FEEDFORWARD_NETWORK, POSITIONAL_ENCODING,
 
 # Avoid BC-breaking of importing MultiScaleDeformableAttention from this file
 try:
-    from artroom_helpers.annotator.uniformer.mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention  # noqa F401
+    from artroom_helpers.annotator.uniformer.mmcv.ops.multi_scale_deform_attn import \
+        MultiScaleDeformableAttention  # noqa F401
 
     warnings.warn(
         ImportWarning(

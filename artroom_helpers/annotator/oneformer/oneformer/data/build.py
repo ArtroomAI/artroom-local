@@ -4,7 +4,6 @@ import torch.utils.data as torchdata
 
 from artroom_helpers.annotator.oneformer.detectron2.config import configurable
 
-
 from artroom_helpers.annotator.oneformer.detectron2.data.common import DatasetFromList, MapDataset
 from artroom_helpers.annotator.oneformer.detectron2.data.dataset_mapper import DatasetMapper
 from artroom_helpers.annotator.oneformer.detectron2.data.samplers import (
@@ -14,6 +13,7 @@ from artroom_helpers.annotator.oneformer.detectron2.data.build import (
     get_detection_dataset_dicts,
     trivial_batch_collator
 )
+
 """
 This file contains the default logic to build a dataloader for training or testing.
 """
@@ -54,13 +54,13 @@ def _test_loader_from_config(cfg, dataset_name, mapper=None):
 
 @configurable(from_config=_test_loader_from_config)
 def build_detection_test_loader(
-    dataset: Union[List[Any], torchdata.Dataset],
-    *,
-    mapper: Callable[[Dict[str, Any]], Any],
-    sampler: Optional[torchdata.Sampler] = None,
-    batch_size: int = 1,
-    num_workers: int = 0,
-    collate_fn: Optional[Callable[[List[Any]], Any]] = None,
+        dataset: Union[List[Any], torchdata.Dataset],
+        *,
+        mapper: Callable[[Dict[str, Any]], Any],
+        sampler: Optional[torchdata.Sampler] = None,
+        batch_size: int = 1,
+        num_workers: int = 0,
+        collate_fn: Optional[Callable[[List[Any]], Any]] = None,
 ) -> torchdata.DataLoader:
     """
     Similar to `build_detection_train_loader`, with default batch size = 1,

@@ -6,7 +6,8 @@ from torch import nn
 from torch.nn import functional as F
 
 from artroom_helpers.annotator.oneformer.detectron2.config import configurable
-from artroom_helpers.annotator.oneformer.detectron2.layers import ASPP, Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
+from artroom_helpers.annotator.oneformer.detectron2.layers import ASPP, Conv2d, DepthwiseSeparableConv2d, ShapeSpec, \
+    get_norm
 from artroom_helpers.annotator.oneformer.detectron2.modeling import SEM_SEG_HEADS_REGISTRY
 
 from .loss import DeepLabCE
@@ -20,21 +21,21 @@ class DeepLabV3PlusHead(nn.Module):
 
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        project_channels: List[int],
-        aspp_dilations: List[int],
-        aspp_dropout: float,
-        decoder_channels: List[int],
-        common_stride: int,
-        norm: Union[str, Callable],
-        train_size: Optional[Tuple],
-        loss_weight: float = 1.0,
-        loss_type: str = "cross_entropy",
-        ignore_value: int = -1,
-        num_classes: Optional[int] = None,
-        use_depthwise_separable_conv: bool = False,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            project_channels: List[int],
+            aspp_dilations: List[int],
+            aspp_dropout: float,
+            decoder_channels: List[int],
+            common_stride: int,
+            norm: Union[str, Callable],
+            train_size: Optional[Tuple],
+            loss_weight: float = 1.0,
+            loss_type: str = "cross_entropy",
+            ignore_value: int = -1,
+            num_classes: Optional[int] = None,
+            use_depthwise_separable_conv: bool = False,
     ):
         """
         NOTE: this interface is experimental.
@@ -69,20 +70,20 @@ class DeepLabV3PlusHead(nn.Module):
         input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
 
         # fmt: off
-        self.in_features      = [k for k, v in input_shape]  # starting from "res2" to "res5"
-        in_channels           = [x[1].channels for x in input_shape]
-        in_strides            = [x[1].stride for x in input_shape]
-        aspp_channels         = decoder_channels[-1]
-        self.ignore_value     = ignore_value
-        self.common_stride    = common_stride  # output stride
-        self.loss_weight      = loss_weight
-        self.loss_type        = loss_type
-        self.decoder_only     = num_classes is None
+        self.in_features = [k for k, v in input_shape]  # starting from "res2" to "res5"
+        in_channels = [x[1].channels for x in input_shape]
+        in_strides = [x[1].stride for x in input_shape]
+        aspp_channels = decoder_channels[-1]
+        self.ignore_value = ignore_value
+        self.common_stride = common_stride  # output stride
+        self.loss_weight = loss_weight
+        self.loss_type = loss_type
+        self.decoder_only = num_classes is None
         self.use_depthwise_separable_conv = use_depthwise_separable_conv
         # fmt: on
 
         assert (
-            len(project_channels) == len(self.in_features) - 1
+                len(project_channels) == len(self.in_features) - 1
         ), "Expected {} project_channels, got {}".format(
             len(self.in_features) - 1, len(project_channels)
         )
@@ -195,7 +196,7 @@ class DeepLabV3PlusHead(nn.Module):
         else:
             train_size = None
         decoder_channels = [cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM] * (
-            len(cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES) - 1
+                len(cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES) - 1
         ) + [cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS]
         ret = dict(
             input_shape={
@@ -270,19 +271,19 @@ class DeepLabV3Head(nn.Module):
         super().__init__()
 
         # fmt: off
-        self.in_features      = cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
-        in_channels           = [input_shape[f].channels for f in self.in_features]
-        aspp_channels         = cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS
-        aspp_dilations        = cfg.MODEL.SEM_SEG_HEAD.ASPP_DILATIONS
-        self.ignore_value     = cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE
-        num_classes           = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
-        conv_dims             = cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM
-        self.common_stride    = cfg.MODEL.SEM_SEG_HEAD.COMMON_STRIDE  # output stride
-        norm                  = cfg.MODEL.SEM_SEG_HEAD.NORM
-        self.loss_weight      = cfg.MODEL.SEM_SEG_HEAD.LOSS_WEIGHT
-        self.loss_type        = cfg.MODEL.SEM_SEG_HEAD.LOSS_TYPE
-        train_crop_size       = cfg.INPUT.CROP.SIZE
-        aspp_dropout          = cfg.MODEL.SEM_SEG_HEAD.ASPP_DROPOUT
+        self.in_features = cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
+        in_channels = [input_shape[f].channels for f in self.in_features]
+        aspp_channels = cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS
+        aspp_dilations = cfg.MODEL.SEM_SEG_HEAD.ASPP_DILATIONS
+        self.ignore_value = cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE
+        num_classes = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
+        conv_dims = cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM
+        self.common_stride = cfg.MODEL.SEM_SEG_HEAD.COMMON_STRIDE  # output stride
+        norm = cfg.MODEL.SEM_SEG_HEAD.NORM
+        self.loss_weight = cfg.MODEL.SEM_SEG_HEAD.LOSS_WEIGHT
+        self.loss_type = cfg.MODEL.SEM_SEG_HEAD.LOSS_TYPE
+        train_crop_size = cfg.INPUT.CROP.SIZE
+        aspp_dropout = cfg.MODEL.SEM_SEG_HEAD.ASPP_DROPOUT
         use_depthwise_separable_conv = cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV
         # fmt: on
 

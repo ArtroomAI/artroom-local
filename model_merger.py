@@ -8,7 +8,6 @@ from safetensors.torch import save_file
 
 from artroom_helpers.generation.preprocess import load_model_from_config
 
-
 def weighted_sum(theta0, theta1, alpha):
     return ((1 - alpha) * theta0) + (alpha * theta1)
 
