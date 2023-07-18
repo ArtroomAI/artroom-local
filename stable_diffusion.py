@@ -1,10 +1,14 @@
 import re
+import time
 import warnings
 import gc
 import sys
+import traceback
 from einops import rearrange
 
 from glob import glob
+
+from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
@@ -23,8 +27,6 @@ from artroom_helpers.toast_status import toast_status
 tflogging.set_verbosity_error()
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
-
-import traceback
 
 
 class NodeModules:
@@ -90,8 +92,6 @@ class Model:
                 output_vae=True,
                 output_clip=True,
                 embedding_directory=folder_paths.get_folder_paths("embeddings"))
-        # if hasattr(self.clip.cond_stage_model, "clip_l"):  # sdxl
-        #     self.can_use_half_vae = False
         del clipvision
 
     def load_textual_inversions(self, textual_inversion_list):
@@ -126,7 +126,8 @@ class Model:
     def get_steps(self):
         if self.model is None:
             return 0, 0, 0, 0
-        return self.current_num, self.total_num, self.model.current_step + self.steps * (self.current_num - 1), self.total_steps
+        return self.current_num, self.total_num, self.model.current_step + self.steps * (
+                self.current_num - 1), self.total_steps
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         lora = comfy.utils.load_torch_file(path, safe_load=True)
@@ -146,7 +147,7 @@ class Model:
 
     def deinject_controlnet(self, delete=True):
         del self.controlnet
-        self.controlnet = None 
+        self.controlnet = None
 
     def load_vae(self, vae_path: str):
         try:
@@ -159,19 +160,20 @@ class Model:
         self.vae.device = device
         self.vae.first_stage_model.to(device).to(torch.float32)
 
-        # self.model.model.to(device).to(dtype)
-        # self.model.model_patches_to(device)
-        # self.model.model_patches_to(dtype)
-        
-        # self.clip.device = device
-        # self.clip.cond_stage_model.device = device
-        # self.clip.patcher.model.to(device).to(dtype)
-        # self.clip.cond_stage_model.to(device).to(dtype)
+        self.model.model.to(device).to(dtype)
 
-        # if hasattr(self.clip.cond_stage_model, "clip_l"):
-        #     self.clip.cond_stage_model.clip_l.device = device
-        #     self.clip.cond_stage_model.clip_g.device = device
-        #     self.dtype = dtype
+        self.model.model_patches_to(device)
+        self.model.model_patches_to(dtype)
+
+        self.clip.device = device
+        self.clip.cond_stage_model.device = device
+        self.clip.patcher.model.to(device).to(dtype)
+        self.clip.cond_stage_model.to(device).to(dtype)
+
+        if hasattr(self.clip.cond_stage_model, "clip_l"):
+            self.clip.cond_stage_model.clip_l.device = device
+            self.clip.cond_stage_model.clip_g.device = device
+            self.dtype = dtype
 
         if self.controlnet is not None:
             self.controlnet.control_model.to(device)
@@ -237,7 +239,8 @@ class StableDiffusion:
 
         return init_image.to(self.device), H, W
 
-    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none", use_preprocessed_controlnet=False, models_dir=""):
+    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none",
+                           use_preprocessed_controlnet=False, models_dir=""):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -375,7 +378,7 @@ class StableDiffusion:
             callback_fn=None,
             strength=1.0
     ):
-
+        self.active_model.to(self.device)
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
             mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.to(self.device))
@@ -386,18 +389,16 @@ class StableDiffusion:
             init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
             init_image = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
-
-        self.active_model.to(self.device)
         scheduler = "karras"  # ["normal", "karras", "exponential", "simple", "ddim_uniform"]
-        out_image = self.nodes.KSampler.sample(self.active_model.model, 
-                                               seed, 
-                                               steps, 
-                                               cfg_scale, 
-                                               sampler, 
+        out_image = self.nodes.KSampler.sample(self.active_model.model,
+                                               seed,
+                                               steps,
+                                               cfg_scale,
+                                               sampler,
                                                scheduler,
-                                               positive_cond, 
-                                               negative_prompt, 
-                                               init_image, 
+                                               positive_cond,
+                                               negative_prompt,
+                                               init_image,
                                                denoise=strength)[0]
         out_image["samples"] = out_image["samples"].to(self.active_model.device)
 
@@ -406,6 +407,12 @@ class StableDiffusion:
         out_image = Image.fromarray(np.clip(out_image, 0, 255).astype(np.uint8))
 
         return out_image
+
+    def generate_mem_prof(self, *args, **kwargs):
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True,
+                     record_shapes=True) as prof:
+            self.generate(*args, **kwargs)
+            prof.export_chrome_trace(f"trace{time.ctime()}.json")
 
     def generate(self,
                  job_id="",
@@ -464,7 +471,7 @@ class StableDiffusion:
             vae = os.path.join(models_dir, "Vae", vae)
         else:
             vae = "none"
-            
+
         def get_contronet_path(controlnet):
             controlnet_folder = os.path.join(models_dir, "ControlNet")
 
@@ -544,7 +551,7 @@ class StableDiffusion:
             if W > base or H > base:
                 W, H = resize_dims_balanced(W, H, base)
             else:
-                highres_fix = False 
+                highres_fix = False
 
         if len(mask_str) > 0 and len(init_image_str) > 0:
             mask_image = support.b64_to_image(mask_str).convert('L')
@@ -628,7 +635,6 @@ class StableDiffusion:
 
         if isinstance(negative_prompts_data, list):
             negative_prompts_data = negative_prompts_data[0]
-
 
         positive_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
         negative_prompt = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
