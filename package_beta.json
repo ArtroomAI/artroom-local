@@ -1,6 +1,6 @@
 {
-  "name": "artroom",
-  "version": "2.0.0",
+  "name": "artroom-beta",
+  "version": "1.3.1-beta.11",
   "private": false,
   "icon": "./artroom_icon.ico",
   "main": "public/main.js",
@@ -21,18 +21,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtroomAI/artroomai.git"
+    "url": "https://github.com/ArtroomAI/artroomai-beta.git"
   },
   "build": {
     "extends": null,
-    "appId": "com.example.Artroom",
-    "productName": "Artroom",
+    "appId": "com.example.Artroom-beta",
+    "productName": "Artroom-beta",
     "win": {
       "publish": [
         {
           "provider": "github",
           "owner": "ArtroomAI",
-          "repo": "artroomai"
+          "repo": "artroomai-beta"
         }
       ],
       "target": "nsis",
