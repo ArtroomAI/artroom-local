@@ -7,8 +7,8 @@ run_job_url = f'http://{server_ip}:5300/xyplot'
 
 x_key = "text_prompts"
 x_values = ["8k", "best quality", "digital art", "highest detail", "highly detailed", "intricate detail", "masterpiece", "photo realistic", "trending on artstation", ]
-y_key = "ckpt"
-y_values = ["sd_xl_base_0.9.safetensors", "ProtoGen_X3.4-pruned-fp16.safetensors", "v1-5-pruned.ckpt"]
+y_key = "seed"
+y_values = [1, 2, 3, 4, 5]
 
 # X/Y candidates
 clip_skip = 1
@@ -63,7 +63,7 @@ payloads = []
 def update_payload(payload, key, value):
     if key == "text_prompts" or key == "negative_prompts":
         payload[key] = payload[key].replace("***", str(x_value)).replace("@@@", str(y_value))
-    elif key == "lora":
+    elif key == "loras":
         value["trigger"] + text_prompts
         payload["text_prompts"] = f'{value["trigger"]}, {payload["text_prompts"]}'
         payload[key] = payload[key] + [value]
