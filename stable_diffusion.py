@@ -63,7 +63,7 @@ class Mute:
 
 
 class Model:
-    def __init__(self, ckpt, socketio, device='cuda:0'):
+    def __init__(self, ckpt, socketio, models_dir, device='cuda:0'):
         self.controlnet_path = None
         self.model = None
         self.clip = None
@@ -76,7 +76,8 @@ class Model:
         self.device = get_device()
 
         self.ckpt = ckpt
-        self.embedding_path = os.path.join(os.path.dirname(ckpt), "Embeddings")
+        self.embedding_path = os.path.join(models_dir, "Embeddings")
+
         self.device = device
         self.socketio = socketio
 
@@ -195,7 +196,7 @@ class StableDiffusion:
         self.running = False
         self.device = get_device()
         self.gpu_architecture = get_gpu_architecture()  #
-        self.active_model = Model(ckpt='', socketio=self.socketio, device=self.device)
+        self.active_model = Model(ckpt='', socketio=self.socketio, models_dir='', device=self.device)
 
     def callback_fn(self, job_id, x0=None, enabled=True):
         if not enabled:
@@ -382,6 +383,7 @@ class StableDiffusion:
             callback_fn=None,
             strength=1.0
     ):
+
         self.active_model.to(self.device)
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
@@ -460,6 +462,8 @@ class StableDiffusion:
                  highres_strength=0.1
                  ):
 
+        self.setup(models_dir)
+
         if long_save_path:
             sample_path = os.path.join(image_save_path, re.sub(
                 r'\W+', '', "_".join(text_prompts.split())))[:150]
@@ -514,7 +518,7 @@ class StableDiffusion:
             position="bottom-right", duration=None, isClosable=False))
 
         if model_key != self.active_model.ckpt or not support.check_array_dict_equality(self.active_model.loras, loras):
-            self.active_model = Model(ckpt, socketio=self.socketio, device=self.device)
+            self.active_model = Model(ckpt, socketio=self.socketio, models_dir=models_dir, device=self.device)
             self.active_model.setup_lora(loras)
 
         self.active_model.load_vae(vae)
@@ -771,3 +775,13 @@ class StableDiffusion:
 
     def interrupt(self):
         self.running = False
+    
+    # Make sure all folders are setup and ready
+    def setup(self, models_dir):
+        os.makedirs(os.path.join(models_dir,'ControlNet'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir,'ControlNet','annotators_(not_your_models)ckpts'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir,'Lora'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir,'Vae'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir,'Embeddings'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir,'upscalers'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir,'upscale_highres'), exist_ok=True)

@@ -290,6 +290,7 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
   fs.mkdirSync(path.join(dir, 'Vae'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'ControlNet'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'Lora'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Embeddings'), { recursive: true });
 
   const realisticModel = "ChilloutMix.safetensors"
   const animeModel = "Counterfeit.safetensors"
