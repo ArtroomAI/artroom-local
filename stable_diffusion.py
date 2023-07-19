@@ -757,7 +757,8 @@ class StableDiffusion:
                     print(f"Failure in file {file_name} at line {line_number}: {e}")
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
-
+                self.clean_up()
+                
         self.clean_up()
         self.running = False
         self.active_model.deinject_controlnet()

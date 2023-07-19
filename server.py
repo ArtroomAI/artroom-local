@@ -296,15 +296,16 @@ try:
         x_values = xyplot_data["x_values"]
         y_key = xyplot_data["y_key"]
         y_values = xyplot_data["y_values"]
-        if x_key == "lora":
+        if x_key == "loras":
             x_values = [os.path.basename(x["name"]) + ", weight: " + str(x["weight"]) for x in x_values]
 
-        if y_key == "lora":
+        if y_key == "loras":
             y_values = [os.path.basename(y["name"]) + ", weight: " + str(y["weight"]) for y in y_values]
 
         x_path = '_'.join(list(map(str, x_values)))
         y_path = '_'.join(list(map(str, y_values)))
-        xy_path = f"xyplot_{x_key}_{x_path}_{y_key}_{y_path}"[:100]
+        # xy_path = f"xyplot_{x_key}_{x_path}_{y_key}_{y_path}"[:100]
+        xy_path = f"xyplot_{y_path}_{y_key}"[:100]
         # Replace invalid characters with an empty string
         invalid_pattern = re.compile(r'[<>:"/\\|?*\x00-\x1f\s]')
         xy_path = invalid_pattern.sub('', xy_path)
@@ -412,9 +413,6 @@ try:
         # Save the figure
         fig.tight_layout()
         plt.savefig(os.path.join(image_save_path, f"{xy_path}.png"))
-
-        return "Finished"
-
 
     @app.route('/shutdown', methods=['GET'])
     def shutdown():
