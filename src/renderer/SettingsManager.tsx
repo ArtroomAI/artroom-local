@@ -216,7 +216,7 @@ export const runTypeState = atom<string>({
 
 export const debugModeState = atom<boolean>({
     key: 'debug_mode',
-    default: false,
+    default: true,
     effects_UNSTABLE: [persistAtom]
 });
 
