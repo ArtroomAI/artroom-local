@@ -70,30 +70,30 @@ try:
         if 'OutOfMemoryError' in text:
             socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller images", status="error"))
 
-        try:
-            active_model = SD.active_model
-            if active_model is not None:
-                match = progress_pattern.search(text)
-                if match:
-                    parts = match.group(1).split(',')
-                    time_spent = parts[0].split('<')[0].strip()
-                    eta = parts[0].split('<')[1].strip()
-                    iterations_per_sec = parts[1].strip()
+        # try:
+        #     active_model = SD.active_model
+        #     if active_model is not None:
+        #         match = progress_pattern.search(text)
+        #         if match:
+        #             parts = match.group(1).split(',')
+        #             time_spent = parts[0].split('<')[0].strip()
+        #             eta = parts[0].split('<')[1].strip()
+        #             iterations_per_sec = parts[1].strip()
 
-                    current_step_match = current_num_pattern.search(text)
-                    current_step = int(current_step_match.group()) if current_step_match else 0
+        #             current_step_match = current_num_pattern.search(text)
+        #             current_step = int(current_step_match.group()) if current_step_match else 0
 
-                    socketio.emit('get_progress', {
-                        'current_step': current_step,
-                        'total_steps': active_model.steps,
-                        'current_num': active_model.current_num-1,
-                        'total_num': active_model.total_num,
-                        'time_spent': time_spent,
-                        'eta': eta,
-                        'iterations_per_sec': iterations_per_sec
-                    })
-        except Exception as e:
-            pass
+        #             socketio.emit('get_progress', {
+        #                 'current_step': current_step,
+        #                 'total_steps': active_model.steps,
+        #                 'current_num': active_model.current_num-1,
+        #                 'total_num': active_model.total_num,
+        #                 'time_spent': time_spent,
+        #                 'eta': eta,
+        #                 'iterations_per_sec': iterations_per_sec
+        #             })
+        # except Exception as e:
+        #     pass
         
         return text
 
