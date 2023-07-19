@@ -417,35 +417,37 @@ class StableDiffusion:
 
     def adetailer_fix(self, positive_cond, negative_cond,
                       image: Image,
-                      strength: int = 0.3):
+                      mask_confidence: int = 0.3,
+                      model_idx=0):
+        if model_idx > 4 or model_idx < 0:
+            model_idx = 0
+            print(f"Invalid adetailer model index: {model_idx}, available: {self.adetailer_module.models_choices}")
         predictor = self.adetailer_module.predictor
-        adetailer_default_args = ADetailerArgs()  # overrideable
+        adetailer_default_args = ADetailerArgs()  # for now just hardcoding defaults
 
-        # face_yolov8n.pt face_yolov8s.pt hand_yolov8n.pt person_yolov8n-seg.pt person_yolov8s-seg.pt
-        ad_model = self.adetailer_module.get_ad_model("face_yolov8n.pt")
-        pred = predictor(ad_model, image, strength)
+        with self.adetailer_module.device:
+            ad_model = self.adetailer_module.get_ad_model(self.adetailer_module.models_choices[0])  # see more
+            pred = predictor(ad_model, image, mask_confidence)  # longest
+            masks = self.adetailer_module.pred_preprocessing(pred, adetailer_default_args)
+            if not masks:
+                print(
+                    f"[-] ADetailer: nothing detected on image."
+                )
+                return image
+            else:
+                print(f"Running adetailer on {len(masks)} faces")
 
-        masks = self.adetailer_module.pred_preprocessing(pred, adetailer_default_args)
-        if not masks:
-            print(
-                f"[-] ADetailer: nothing detected on image."
-            )
-            return image
-        else:
-            print(f"Running adetailer on {len(masks)} faces")
-
-        W, H = image.width, image.height
-
+            W, H = image.width, image.height
         for mask in masks:
             image, H, W = self.load_image(image, w0=W, h0=H)
             image = self.generate_image(
                 positive_cond=positive_cond,
                 negative_cond=negative_cond,
-                init_image=image,
-                mask_image=mask,
+                init_image=image.to(self.device),
+                mask_image=ImageOps.invert(mask),
                 W=W,
                 H=H,
-                steps=28  # They use 28 by default but I dunno, configurable
+                steps=8  # They use 28 by default but I dunno, configurable
             )
         return image
 

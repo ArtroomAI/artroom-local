@@ -55,12 +55,19 @@ def preseve_prompts(p):
 class AfterDetailerScript:
     def __init__(self, device=torch.device(0)):
         super().__init__()
-        self.ultralytics_device = device
+        self.device = torch.device(device)
 
         self.controlnet_ext = None
         self.cn_script = None
         self.cn_latest_network = None
         self.predictor = ultralytics_predict
+        self.models_choices = {
+            0: 'face_yolov8n.pt',
+            1: 'face_yolov8s.pt',
+            2: 'hand_yolov8n.pt',
+            3: 'person_yolov8n-seg.pt',
+            4: 'person_yolov8s-seg.pt'
+        }
 
     def __repr__(self):
         return f"{self.__class__.__name__}(version={__version__})"
