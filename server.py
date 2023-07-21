@@ -185,39 +185,39 @@ try:
             shutil.copy(file, os.path.join(trigger_path, os.path.basename(file)))
 
         command = (
-            f"{python_path} "
-            f"{accelerate_path} launch "
-            "--num_cpu_threads_per_process=16 "
-            f"lora_training/{train_file} "
-            f"--train_data_dir={training_images_path} "
-            f"--output_name={data['name']} "
-            f"--pretrained_model_name_or_path={data['model']} "
-            f"--resolution={data['resolution']} "
-            f"--network_alpha={data['networkAlpha']} "
-            f"--max_train_steps={data['maxTrainSteps']} "
-            f"--clip_skip={data['clipSkip']} "
-            f"--text_encoder_lr={data['textEncoderLr']} "
-            f"--unet_lr={data['unetLr']} "
-            f"--network_dim={data['networkDim']} "
-            f"--lr_scheduler_num_cycles={data['lrSchedulerNumCycles']} "
-            f"--learning_rate={data['learningRate']} "
-            f"--lr_scheduler={data['lrScheduler']} "
-            f"--train_batch_size={data['trainBatchSize']} "
-            f"--save_every_n_epochs={data['saveEveryNEpochs']} "
-            f"--optimizer_type={data['optimizerType']} "
-            f"--bucket_reso_steps={data['bucketResoSteps']} "
-            f"--min_bucket_reso={data['minBucketReso']} "
-            f"--max_bucket_reso={data['maxBucketReso']} "
-            f"--output_dir={os.path.join(data['modelsDir'],'Lora')} "
-            "--save_model_as=safetensors "
-            "--caption_extension=.txt "
-            "--mixed_precision=fp16 "
-            "--save_precision=fp16 "
-            "--enable_bucket "
-            "--network_module=networks.lora "
-            "--cache_latents "
-            "--xformers "
-            "--bucket_no_upscale "
+            f'"{python_path}" '
+            f'"{accelerate_path}" launch '
+            '--num_cpu_threads_per_process=16 '
+            f'lora_training/{train_file} '
+            f'--train_data_dir="{training_images_path}" '
+            f'--output_name="{data["name"]}" '
+            f'--pretrained_model_name_or_path="{data["model"]}" '
+            f'--resolution={data["resolution"]} '
+            f'--network_alpha={data["networkAlpha"]} '
+            f'--max_train_steps={data["maxTrainSteps"]} '
+            f'--clip_skip={data["clipSkip"]} '
+            f'--text_encoder_lr={data["textEncoderLr"]} '
+            f'--unet_lr={data["unetLr"]} '
+            f'--network_dim={data["networkDim"]} '
+            f'--lr_scheduler_num_cycles={data["lrSchedulerNumCycles"]} '
+            f'--learning_rate={data["learningRate"]} '
+            f'--lr_scheduler={data["lrScheduler"]} '
+            f'--train_batch_size={data["trainBatchSize"]} '
+            f'--save_every_n_epochs={data["saveEveryNEpochs"]} '
+            f'--optimizer_type={data["optimizerType"]} '
+            f'--bucket_reso_steps={data["bucketResoSteps"]} '
+            f'--min_bucket_reso={data["minBucketReso"]} '
+            f'--max_bucket_reso={data["maxBucketReso"]} '
+            f'--output_dir="{os.path.join(data["modelsDir"], "Lora")}" '
+            '--save_model_as=safetensors '
+            '--caption_extension=.txt '
+            '--mixed_precision=fp16 '
+            '--save_precision=fp16 '
+            '--enable_bucket '
+            '--network_module=networks.lora '
+            '--cache_latents '
+            '--xformers '
+            '--bucket_no_upscale '
         )
         try:
             subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
