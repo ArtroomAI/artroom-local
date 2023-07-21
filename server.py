@@ -13,9 +13,10 @@ try:
     import sys
     sys.path.append(os.curdir)
     sys.path.append(os.path.join(os.curdir,'lora_training'))
-
+    sys.path.append("backend/ComfyUI/")
+    from backend.ComfyUI import comfy
     from upscale import Upscaler
-    from stable_diffusion import StableDiffusion
+    from stable_diffusion import StableDiffusion, Mute
     from artroom_helpers import support
     from artroom_helpers.generation.preprocess import mask_from_face
     from artroom_helpers.toast_status import toast_status
@@ -143,14 +144,38 @@ try:
     @socketio.on('train')
     def train(data):
         print("Starting Training...")
+        def check_SDXL(path):
+            #Clear up SD so you don't run out of vram during this step
+            SD.running = False
+            del SD.active_model
+            SD.active_model = None
+
+            with Mute():
+                _, clip, _, _ = comfy.sd.load_checkpoint_guess_config(
+                    path,
+                    output_vae=False,
+                    output_clip=True,
+                    embedding_directory='')
+                if hasattr(clip.cond_stage_model, "clip_l"):
+                    return True
+                return False
+        print("Checking for SDXL...")
+        SDXL = check_SDXL(data['model'])
+        if SDXL:
+            print('Training SDXL model')
+            train_file = 'SDXL_train_network.py'
+        else:
+            print('Training non-SDXL model')
+            train_file = 'train_network.py'
+
         import subprocess
         python_path = sys.executable
         base_path = os.path.dirname(os.path.dirname(sys.executable)) #First one takes you to artroom_backend
         accelerate_path = os.path.join(os.path.dirname(python_path), "Scripts" if os.name == "nt" else "bin", "accelerate.exe")
         try:
-            import library
+            from lora_training import library
         except:
-            print("Setting up training....")
+            print("Setting up training...")
             setup_command = f"{python_path} -m pip install ./lora_training --user"
             subprocess.run((setup_command), shell=True, check=True)
         try:
@@ -167,7 +192,7 @@ try:
         os.makedirs(training_images_path, exist_ok=True)
 
         for file in data["images"]:
-            trigger_path = os.path.join(training_images_path,f"10_{data['trigger_word']}")
+            trigger_path = os.path.join(training_images_path,f"{data['numRepeats']}_{data['trigger_word']}")
             os.makedirs(trigger_path, exist_ok=True)
             shutil.copy(file, os.path.join(trigger_path, os.path.basename(file)))
 
@@ -175,7 +200,7 @@ try:
             f"{python_path} "
             f"{accelerate_path} launch "
             "--num_cpu_threads_per_process=16 "
-            "lora_training/train_network.py "
+            f"lora_training/{train_file} "
             f"--train_data_dir={training_images_path} "
             f"--output_name={data['name']} "
             f"--pretrained_model_name_or_path={data['model']} "

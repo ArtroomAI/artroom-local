@@ -24,7 +24,8 @@ import {
     AccordionIcon,
     AccordionPanel,
     GridItem,
-    Grid
+    Grid,
+    Divider
 } from '@chakra-ui/react';
 import {
     FaFolder,
@@ -51,8 +52,11 @@ function Trainer () {
 
     const [resolutionWidth, setResolutionWidth] = useState(512);
     const [resolutionHeight, setResolutionHeight] = useState(512);
+    const [numRepeats, setNumRepeats] = useState(10);
+    const [maxTrainSteps, setMaxTrainSteps] = useState(1000);
+    const [saveEveryNEpochs, setSaveEveryNEpochs] = useState(1);
+    const [trainBatchSize, setTrainBatchSize] = useState(1);
     const [networkAlpha, setNetworkAlpha] = useState(128);
-    const [maxTrainSteps, setMaxTrainSteps] = useState(3000);
     const [clipSkip, setClipSkip] = useState(1);
     const [textEncoderLr, setTextEncoderLr] = useState(0.00005);
     const [unetLr, setUnetLr] = useState(0.0001);
@@ -60,8 +64,6 @@ function Trainer () {
     const [lrSchedulerNumCycles, setLrSchedulerNumCycles] = useState(1);
     const [learningRate, setLearningRate] = useState(0.0001);
     const [lrScheduler, setLrScheduler] = useState("constant");
-    const [trainBatchSize, setTrainBatchSize] = useState(1);
-    const [saveEveryNEpochs, setSaveEveryNEpochs] = useState(1);
     const [optimizerType, setOptimizerType] = useState("AdamW");
     const [bucketResoSteps, setBucketResoSteps] = useState(64);
     const [minBucketReso, setMinBucketReso] = useState(384);
@@ -153,6 +155,7 @@ function Trainer () {
             model: path.join(modelsDir, model),
             modelsDir,
             resolution: `${resolutionWidth},${resolutionHeight}`,
+            numRepeats: `${numRepeats}`,
             networkAlpha: `${networkAlpha}`,
             maxTrainSteps: `${maxTrainSteps}`,
             clipSkip: `${clipSkip}`,
@@ -319,9 +322,9 @@ function Trainer () {
                         </Select>
                     </FormControl>
 
-                    <Accordion width='100%' allowToggle>
-                        <AccordionItem>
-                            <AccordionButton>
+                    <Accordion width='100%' allowToggle borderWidth={0} borderRadius={0}>
+                        <AccordionItem borderWidth={0} borderRadius={0}>
+                            <AccordionButton borderWidth={0} borderRadius={0} >
                                 <Box flex="1" textAlign="left">
                                 Advanced Settings
                                 </Box>
@@ -347,16 +350,43 @@ function Trainer () {
                                 </GridItem>
                                 <GridItem>
                                 <FormControl>
-                                    <FormLabel>Network Alpha</FormLabel>
-                                    <NumberInput min={0} max={1024} value={networkAlpha} onChange={value => setNetworkAlpha(parseInt(value))} >
+                                    <FormLabel>Max Training Steps</FormLabel>
+                                    <NumberInput min={1} value={maxTrainSteps} onChange={value => setMaxTrainSteps(parseInt(value))} >
                                     <NumberInputField />
                                     </NumberInput>
                                 </FormControl>
                                 </GridItem>
                                 <GridItem>
                                 <FormControl>
-                                    <FormLabel>Max Training Steps</FormLabel>
-                                    <NumberInput min={1} value={maxTrainSteps} onChange={value => setMaxTrainSteps(parseInt(value))} >
+                                    <FormLabel>Save Every N Steps</FormLabel>
+                                    <NumberInput min={1} value={saveEveryNEpochs} onChange={value => setSaveEveryNEpochs(parseInt(value))} >
+                                    <NumberInputField />
+                                    </NumberInput>
+                                </FormControl>
+                                </GridItem>
+                                <GridItem>
+                                <FormControl>
+                                    <FormLabel>Num Repeats of Each Image per Batch</FormLabel>
+                                    <NumberInput min={1}  value={numRepeats} onChange={value => setNumRepeats(parseInt(value))} >
+                                    <NumberInputField />
+                                    </NumberInput>
+                                </FormControl>
+                                </GridItem>
+                                <GridItem>
+                                <FormControl>
+                                    <FormLabel>Training Batch Size</FormLabel>
+                                    <NumberInput min={1} value={trainBatchSize} onChange={value => setTrainBatchSize(parseInt(value))}  >
+                                    <NumberInputField />
+                                    </NumberInput>
+                                </FormControl>
+                                </GridItem>
+                                <GridItem colSpan={2}>
+                                    <Divider />
+                                </GridItem>
+                                <GridItem>
+                                <FormControl>
+                                    <FormLabel>Network Alpha</FormLabel>
+                                    <NumberInput min={0} max={1024} value={networkAlpha} onChange={value => setNetworkAlpha(parseInt(value))} >
                                     <NumberInputField />
                                     </NumberInput>
                                 </FormControl>
@@ -401,14 +431,7 @@ function Trainer () {
                                     </NumberInput>
                                 </FormControl>
                                 </GridItem>
-                                <GridItem>
-                                <FormControl>
-                                    <FormLabel>Learning Rate</FormLabel>
-                                    <NumberInput min={0} max={1} value={learningRate} onChange={value => setLearningRate(parseFloat(value))}  >
-                                    <NumberInputField />
-                                    </NumberInput>
-                                </FormControl>
-                                </GridItem>
+
                                 <GridItem>
                                 <FormControl>
                                     <FormLabel>LR Scheduler</FormLabel>
@@ -421,22 +444,6 @@ function Trainer () {
                                     <option value="constant_with_warmup">Constant with warmup</option>
                                     <option value="adafactor">Adafactor</option>
                                     </Select>
-                                </FormControl>
-                                </GridItem>
-                                <GridItem>
-                                <FormControl>
-                                    <FormLabel>Training Batch Size</FormLabel>
-                                    <NumberInput min={1} value={trainBatchSize} onChange={value => setTrainBatchSize(parseInt(value))}  >
-                                    <NumberInputField />
-                                    </NumberInput>
-                                </FormControl>
-                                </GridItem>
-                                <GridItem>
-                                <FormControl>
-                                    <FormLabel>Save Every N Epochs</FormLabel>
-                                    <NumberInput min={1} value={saveEveryNEpochs} onChange={value => setSaveEveryNEpochs(parseInt(value))} >
-                                    <NumberInputField />
-                                    </NumberInput>
                                 </FormControl>
                                 </GridItem>
                                 <GridItem>
@@ -458,6 +465,14 @@ function Trainer () {
                                     <option value="DAdaptSGD">DAdaptSGD</option>
                                     <option value="Adafactor">Adafactor</option>
                                     </Select>
+                                </FormControl>
+                                </GridItem>
+                                <GridItem>
+                                <FormControl>
+                                    <FormLabel>Learning Rate</FormLabel>
+                                    <NumberInput min={0} max={1} value={learningRate} onChange={value => setLearningRate(parseFloat(value))}  >
+                                    <NumberInputField />
+                                    </NumberInput>
                                 </FormControl>
                                 </GridItem>
                                 <GridItem>

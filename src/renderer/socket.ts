@@ -45,6 +45,7 @@ export interface SocketEmitEvents {
         image_save_path: string;
         modelsDir : string,
         resolution: string,
+        numRepeats: string,
         networkAlpha: string,
         maxTrainSteps: string,
         clipSkip: string,
