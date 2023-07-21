@@ -1,5 +1,7 @@
+from functools import partial
 import os.path
 import re
+import threading
 import time
 import warnings
 import gc
@@ -21,10 +23,7 @@ from upscale import Upscaler
 from backend.ComfyUI.nodes import *
 from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
-<<<<<<< Updated upstream
-=======
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
->>>>>>> Stashed changes
 
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
@@ -663,9 +662,7 @@ class StableDiffusion:
                 positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
             print(f"Applying controlnet {controlnet}")
 
-<<<<<<< Updated upstream
         self.active_model.to(self.device)
-=======
         preview_format = "JPEG"
         if preview_format not in ["JPEG", "PNG"]:
             preview_format = "JPEG"
@@ -688,7 +685,6 @@ class StableDiffusion:
             if step % step_check == 0:
                 threading.Thread(target=send_intermediates, args=(x0,)).start()
 
->>>>>>> Stashed changes
 
         with torch.no_grad():
             for n in range(1, n_iter + 1):
@@ -713,10 +709,6 @@ class StableDiffusion:
                             sampler=sampler,
                             batch_size=batch_size,
                             clip_skip=clip_skip,
-<<<<<<< Updated upstream
-                            callback_fn=self.callback_fn,
-                            strength=strength if starting_image is not None else 1.0
-=======
                             callback=partial(
                                 callback, 
                                 current_num=n,
@@ -727,7 +719,6 @@ class StableDiffusion:
                                 previewer=previewer
                                 ),
                             denoise=strength if starting_image is not None else 1.0
->>>>>>> Stashed changes
                         )
 
                     else:
@@ -760,9 +751,6 @@ class StableDiffusion:
                             sampler=sampler,
                             clip_skip=clip_skip,
                             keep_size=False,
-<<<<<<< Updated upstream
-                            models_dir=models_dir
-=======
                             models_dir=models_dir,
                             callback=partial(
                             callback, 
@@ -773,7 +761,6 @@ class StableDiffusion:
                             job_total_steps=steps+highres_steps,
                             show_intermediates=show_intermediates,
                             previewer=previewer)
->>>>>>> Stashed changes
                         )
 
                     exif_data = out_image.getexif()

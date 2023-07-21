@@ -1,10 +1,6 @@
 {
   "name": "artroom-beta",
-<<<<<<< Updated upstream
-  "version": "1.3.1-beta.11",
-=======
   "version": "2.0.1-beta.1",
->>>>>>> Stashed changes
   "private": false,
   "icon": "./artroom_icon.ico",
   "main": "public/main.js",
