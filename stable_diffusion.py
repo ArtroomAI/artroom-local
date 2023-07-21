@@ -1,9 +1,11 @@
+from functools import partial
+import io
 import re
+import threading
 import warnings
 import gc
 import sys
 from einops import rearrange
-
 from glob import glob
 
 sys.path.append("backend/ComfyUI/")
@@ -14,6 +16,7 @@ from upscale import Upscaler
 from backend.ComfyUI.nodes import *
 from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
+from backend.ComfyUI.comfy import utils
 
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
@@ -71,7 +74,6 @@ class Model:
         self.device = get_device()
 
         self.ckpt = ckpt
-        self.device = device
         self.socketio = socketio
 
         self.steps = 0
@@ -191,14 +193,6 @@ class StableDiffusion:
         self.gpu_architecture = get_gpu_architecture()  #
         self.active_model = Model(ckpt='', socketio=self.socketio, device=self.device)
 
-    def callback_fn(self, job_id, x0=None, enabled=True):
-        if not enabled:
-            return
-
-        current_num, total_num, current_step, total_steps = self.active_model.get_steps()
-        if current_step % 5 == 0:
-            pass
-
     def get_image(self, init_image_str, mask_image, job_id):
         init_image = support.b64_to_image(init_image_str)
 
@@ -266,8 +260,8 @@ class StableDiffusion:
             self,
             job_id=0,
             n=0,
-            positive_cond=None,
-            negative_prompt=None,
+            positive=None,
+            negative=None,
             image=None,
             mask_image=None,
             highres_steps=10,
@@ -282,7 +276,8 @@ class StableDiffusion:
             clip_skip=1,
             batch_size=1,
             keep_size=False,
-            models_dir=""
+            models_dir="",
+            callback=None,
     ):
         # try:
         if keep_size:
@@ -324,8 +319,8 @@ class StableDiffusion:
         print("Generating upscaled image")
         image = self.generate_image(
             job_id=job_id,
-            positive_cond=positive_cond,
-            negative_prompt=negative_prompt,
+            positive=positive,
+            negative=negative,
             init_image=highres_init_image.to(self.device),
             mask_image=mask_image,
             steps=highres_steps,
@@ -336,8 +331,8 @@ class StableDiffusion:
             sampler=sampler,
             batch_size=batch_size,
             clip_skip=clip_skip,
-            callback_fn=self.callback_fn,
-            strength=highres_strength
+            callback=callback,
+            denoise=highres_strength
         )
 
         try:
@@ -360,8 +355,8 @@ class StableDiffusion:
     def generate_image(
             self,
             job_id="",
-            positive_cond=None,
-            negative_prompt=None,
+            positive=None,
+            negative=None,
             init_image=None,
             mask_image=None,
             steps=50,
@@ -371,41 +366,68 @@ class StableDiffusion:
             seed=-1,
             sampler="ddim",
             batch_size=1,
+            device='cuda:0',
             clip_skip=1,
-            callback_fn=None,
-            strength=1.0
+            callback=None,
+            denoise=1.0,
+            disable_noise=False,
+            start_step=None, 
+            last_step=None, 
+            force_full_denoise=False
     ):
 
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.to(self.device))
-            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
-            init_image = self.nodes.SetLatentNoiseMask.set_mask(init_image, mask_image)[0]
-
+            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.device)
+            latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
+            latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
         elif init_image is not None:
-            init_image = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
+            latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
-            init_image = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
+            latent = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
 
-        self.active_model.to(self.device)
+        self.active_model.to(device)
+
         scheduler = "karras"  # ["normal", "karras", "exponential", "simple", "ddim_uniform"]
-        out_image = self.nodes.KSampler.sample(self.active_model.model, 
-                                               seed, 
-                                               steps, 
-                                               cfg_scale, 
-                                               sampler, 
-                                               scheduler,
-                                               positive_cond, 
-                                               negative_prompt, 
-                                               init_image, 
-                                               denoise=strength)[0]
-        out_image["samples"] = out_image["samples"].to(self.active_model.device)
 
-        out_image = self.nodes.VAEDecode.decode(self.active_model.vae, out_image)[0]
-        out_image = 255. * out_image[0].cpu().numpy()
-        out_image = Image.fromarray(np.clip(out_image, 0, 255).astype(np.uint8))
+        latent_image = latent["samples"]
 
-        return out_image
+        if disable_noise:
+            noise = torch.zeros(latent_image.size(), dtype=latent_image.dtype, layout=latent_image.layout, device="cpu")
+        else:
+            batch_inds = latent["batch_index"] if "batch_index" in latent else None
+            noise = comfy.sample.prepare_noise(latent_image, seed, batch_inds)
+
+        noise_mask = None
+        if "noise_mask" in latent:
+            noise_mask = latent["noise_mask"]
+
+        samples = comfy.sample.sample(
+            self.active_model.model, 
+            noise, 
+            steps, 
+            cfg_scale, 
+            sampler, 
+            scheduler, 
+            positive, 
+            negative, 
+            latent_image,
+            denoise=denoise, 
+            disable_noise=disable_noise, 
+            start_step=start_step, 
+            last_step=last_step,
+            force_full_denoise=force_full_denoise, noise_mask=noise_mask, 
+            callback=callback, 
+            seed=seed)
+    
+        out = latent.copy()
+        out["samples"] = samples.to(torch.float16)
+
+        out = self.nodes.VAEDecode.decode(self.active_model.vae, out)[0]
+
+        out = 255. * out[0].cpu().numpy()
+        out = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+        return out
 
     def generate(self,
                  job_id="",
@@ -546,6 +568,9 @@ class StableDiffusion:
             else:
                 highres_fix = False 
 
+        if not highres_fix:
+            highres_steps = 0
+
         if len(mask_str) > 0 and len(init_image_str) > 0:
             mask_image = support.b64_to_image(mask_str).convert('L')
 
@@ -591,7 +616,7 @@ class StableDiffusion:
 
         self.active_model.to(self.device)
 
-        total_steps = steps * n_iter
+        total_steps = (steps+highres_steps) * n_iter
 
         self.active_model.model.job_id = job_id
         self.active_model.model.current_step = 0
@@ -629,17 +654,40 @@ class StableDiffusion:
         if isinstance(negative_prompts_data, list):
             negative_prompts_data = negative_prompts_data[0]
 
+        self.active_model.to(self.device)
 
         positive_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
+
         negative_prompt = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
 
         if controlnet is not None and controlnet != "none":
             control_image = control_image.permute(0, 2, 3, 1)
             positive_cond = self.nodes.ControlNetApply.apply_controlnet(
                 positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
-            print(f"Applying controlnet {controlnet}")
 
-        self.active_model.to(self.device)
+        preview_format = "JPEG"
+        if preview_format not in ["JPEG", "PNG"]:
+            preview_format = "JPEG"
+
+        previewer = latent_preview.get_previewer(self.device, self.active_model.model.model.latent_format)
+
+        def callback(step, x0, x, total_steps, current_num, total_num, step_check=5, start_step=0, job_total_steps=0, show_intermediates= False):
+            def send_intermediates(x0):
+                if previewer and show_intermediates:
+                    preview_bytes = previewer.decode_latent_to_preview_image("JPEG", x0)
+                    print('PREVIEW BYTES', preview_bytes)
+                    self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(Image.open(io.BytesIO(preview_bytes)))})
+
+                self.socketio.emit('get_progress', {
+                    'current_step': step+start_step,
+                    'total_steps': job_total_steps,
+                    'current_num': current_num-1,
+                    'total_num': total_num
+                })
+
+            if step % step_check == 0:
+                threading.Thread(target=send_intermediates, args=(x0,)).start()
+
 
         with torch.no_grad():
             for n in range(1, n_iter + 1):
@@ -652,8 +700,8 @@ class StableDiffusion:
                     if generation_mode != 'highresfix':
                         out_image = self.generate_image(
                             job_id=job_id,
-                            positive_cond=positive_cond,
-                            negative_prompt=negative_prompt,
+                            positive=positive_cond,
+                            negative=negative_prompt,
                             init_image=init_image,
                             mask_image=mask_image,
                             steps=steps,
@@ -664,10 +712,22 @@ class StableDiffusion:
                             sampler=sampler,
                             batch_size=batch_size,
                             clip_skip=clip_skip,
-                            callback_fn=self.callback_fn,
-                            strength=strength if starting_image is not None else 1.0
+                            callback=partial(
+                                callback, 
+                                current_num=n,
+                                total_num=n_iter,
+                                start_step=0, 
+                                job_total_steps=(steps+highres_steps),
+                                show_intermediates=show_intermediates
+                                ),
+                            denoise=strength if starting_image is not None else 1.0
                         )
-
+                        self.socketio.emit('get_progress', {
+                            'current_step': steps,
+                            'total_steps': steps+highres_steps,
+                            'current_num': n,
+                            'total_num': n_iter
+                        })
                     else:
                         out_image = starting_image
 
@@ -684,8 +744,8 @@ class StableDiffusion:
                         out_image = self.diffusion_upscale(
                             job_id=job_id,
                             n=n,
-                            positive_cond=positive_cond,
-                            negative_prompt=negative_prompt,
+                            positive=positive_cond,
+                            negative=negative_prompt,
                             image=out_image,
                             mask_image=mask_image,
                             highres_steps=highres_steps,
@@ -698,9 +758,22 @@ class StableDiffusion:
                             sampler=sampler,
                             clip_skip=clip_skip,
                             keep_size=False,
-                            models_dir=models_dir
+                            models_dir=models_dir,
+                            callback=partial(
+                            callback, 
+                            current_num=n, 
+                            total_num=n_iter,
+                            start_step=steps, 
+                            step_check=1, 
+                            job_total_steps=steps+highres_steps,
+                            show_intermediates=show_intermediates)
                         )
-
+                        self.socketio.emit('get_progress', {
+                            'current_step': steps+highres_steps,
+                            'total_steps': steps+highres_steps,
+                            'current_num': n,
+                            'total_num': n_iter
+                        })
                     exif_data = out_image.getexif()
                     # Does not include Mask, ImageB64, or if Inverted. Only settings for now
                     settings_data = {

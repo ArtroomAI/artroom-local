@@ -36,12 +36,17 @@ const getPercent = (a: number, b: number) => {
 export const GenerationProgressBars = () => {
     const socket = useContext(SocketContext);
 
+    // const [progress, setProgress] = useState({
+    //     current: -1,
+    //     batch: -1,
+    //     timeSpent: '',
+    //     currentEta: '',
+    //     batchEta: ''
+    // });
+
     const [progress, setProgress] = useState({
         current: -1,
         batch: -1,
-        timeSpent: '',
-        currentEta: '',
-        batchEta: ''
     });
 
     const handleGetProgress: SocketOnEvents['get_progress'] = useCallback((data) => {
@@ -52,13 +57,15 @@ export const GenerationProgressBars = () => {
         const current = getPercent(data.current_step, data.total_steps);
         const batch = getPercent(totalStepsDone, totalSteps)
         
-        const perSecond = parseIterations(data.iterations_per_sec);
-        const timeSpent = data.time_spent;
-        const currentEta = data.eta;
-        const batchEta = parseToTime((totalSteps - totalStepsDone) / perSecond);
+        // const perSecond = parseIterations(data.iterations_per_sec);
+        // const timeSpent = data.time_spent;
+        // const currentEta = data.eta;
+        // const batchEta = parseToTime((totalSteps - totalStepsDone) / perSecond);
 
-        console.log(data, { current, batch, timeSpent, currentEta, batchEta });
-        setProgress({ current, batch, timeSpent, currentEta, batchEta });
+        // console.log(data, { current, batch, timeSpent, currentEta, batchEta });
+        // setProgress({ current, batch, timeSpent, currentEta, batchEta });
+        setProgress({current, batch})
+        // setProgress({current, batch, timeSpent: '', currentEta: '', batchEta: ''})
     }, []);
 
     // on socket message
@@ -83,7 +90,7 @@ export const GenerationProgressBars = () => {
                     hasStripe
                     width="100%"
                     value={progress.current} />
-                <Box>eta: { progress.currentEta } | batch eta: { progress.batchEta }</Box>
+                {/* <Box>eta: { progress.currentEta } | batch eta: { progress.batchEta }</Box> */}
             </>
         );  
     }

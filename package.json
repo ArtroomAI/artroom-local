@@ -76,7 +76,9 @@
       "pytest.py",
       "safe.pyc",
       "stable_diffusion.pyc",
-      "upscale.pyc"
+      "upscale.pyc",
+      "xyplot.py",
+      "XY.Bat"
     ]
   },
   "dependencies": {
