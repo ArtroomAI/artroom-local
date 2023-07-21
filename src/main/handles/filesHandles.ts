@@ -57,7 +57,7 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
   const modelsWatcher = new FileWatcher();
 
   const getModels = async (folder: string) => ({
-    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Lora', 'ControlNet', 'Vae', 'upscalers']),
+    ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Lora', 'ControlNet', 'Vae', 'upscalers', 'Embeddings']),
     loras: await getFiles(path.join(folder, 'Lora'), MODELS_EXTENSIONS),
     vaes: await getFiles(path.join(folder, 'Vae'), MODELS_EXTENSIONS)
   })
@@ -114,7 +114,7 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
   });
 
   ipcMain.handle('showInExplorer', async (_, data) => {
-    shell.showItemInFolder(path.resolve(data));
+    shell.openPath(path.resolve(data));
   });
 
   ipcMain.handle('getImageFromPath', async (_, image_path: string) => {

@@ -1,0 +1,19 @@
+{
+    "file": [
+        {
+            "name": "sd_v_21.ckpt",
+            "source": "",
+            "destination": ""
+        },
+        {
+            "name": "sd_xl_base_0.9.safetensors",
+            "source": "",
+            "destination": ""
+        },
+        {
+            "name": "v1-5-pruned.ckpt",
+            "source": "",
+            "destination": ""
+        }
+    ]
+}

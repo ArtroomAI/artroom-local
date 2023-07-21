@@ -15,6 +15,9 @@ import {
     FiGitMerge,
     FiMenu,
 } from 'react-icons/fi';
+import {
+    AiOutlineExperiment
+} from 'react-icons/ai'
 import {IoSettingsSharp} from 'react-icons/io5'
 import {
     GiResize
@@ -97,7 +100,12 @@ export default function Sidebar ({ navSize, setNavSize } : SidebarProps) {
                         linkTo="#/imageviewer"
                         navSize={navSize}
                         title="Image Viewer" />
-
+                    <NavItem
+                        className="trainer"
+                        icon={AiOutlineExperiment}
+                        linkTo="#/trainer"
+                        navSize={navSize}
+                        title="Trainer" />
                 </Flex>
 
                 <Flex

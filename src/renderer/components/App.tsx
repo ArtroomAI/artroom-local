@@ -9,6 +9,7 @@ import Paint from './Paint';
 import Queue from './Queue';
 import SDSettings from './SDSettings/SDSettings';
 import ImageViewer from './ImageViewer';
+import Trainer from './Trainer';
 
 import { ModelMerger } from './ModelMerger';
 import { UpdateProgressBar } from './UpdateProgressBar';
@@ -114,6 +115,10 @@ export default function App () {
                             <Route
                                 element={<ImageViewer />}
                                 path="/imageviewer" />
+
+                            <Route
+                                element={<Trainer />}
+                                path="/trainer" />
 
                             <Route
                                 element={<PromptGuide />}

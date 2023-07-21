@@ -38,6 +38,29 @@ export interface SocketEmitEvents {
         upscale_dest: string;
         image_save_path: string;
     }) => void;
+    train: (data: {
+        images: string[];
+        name: string,
+        trigger_word: string;
+        image_save_path: string;
+        modelsDir : string,
+        resolution: string,
+        networkAlpha: string,
+        maxTrainSteps: string,
+        clipSkip: string,
+        textEncoderLr: string,
+        unetLr: string,
+        networkDim: string,
+        lrSchedulerNumCycles: string,
+        learningRate: string,
+        lrScheduler: string,
+        trainBatchSize: string,
+        saveEveryNEpochs: string,
+        optimizerType: string,
+        bucketResoSteps: string,
+        minBucketReso: string,
+        maxBucketReso: string
+    }) => void;
     remove_from_queue: (data: { id: string }) => void;
     merge_models: (data: {
         model_0: string;

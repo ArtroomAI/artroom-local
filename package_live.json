@@ -1,0 +1,159 @@
+{
+  "name": "artroom",
+  "version": "2.0.0",
+  "private": false,
+  "icon": "./artroom_icon.ico",
+  "main": "public/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "cross-env NODE_ENV=development node scripts/serve.js",
+    "build": "npm run obfuscate && yarn delete && yarn generate && cross-env NODE_ENV=production node scripts/build.js",
+    "obfuscate": "obfuscate.bat",
+    "delete": "del-cli --force dist",
+    "electron:serve": "npm run obfuscate && yarn generate && yarn start",
+    "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish never",
+    "electron:build_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish never",
+    "electron:deploy": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --win --publish always",
+    "electron:deploy_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish always",
+    "electron:start": "electron ./build/main.js",
+    "lint": "eslint . --resolve-plugins-relative-to . --ext .ts,.tsx",
+    "generate": "typia generate --input src/interfaces/templates --output src/interfaces/generated --project tsconfig.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArtroomAI/artroomai.git"
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.example.Artroom",
+    "productName": "Artroom",
+    "win": {
+      "publish": [
+        {
+          "provider": "github",
+          "owner": "ArtroomAI",
+          "repo": "artroomai"
+        }
+      ],
+      "target": "nsis",
+      "icon": "./artroom_icon.ico"
+    },
+    "mac": {
+      "category": "Art & Illustration",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "./artroom_icon.icns"
+    },
+    "nsis": {
+      "oneClick": false,
+      "runAfterFinish": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerHeaderIcon": "./artroom_icon.ico",
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "dist/**/*",
+      "build/**/*",
+      "public/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "extraFiles": [
+      "artroom_icon.ico",
+      "artroom_helpers/**/*",
+      "gfpgan/**/*",
+      "backend/**/*",
+      "!artroom_helpers/*.py",
+      "model_merger.pyc",
+      "server.pyc",
+      "pytest.py",
+      "safe.pyc",
+      "stable_diffusion.pyc",
+      "upscale.pyc",
+      "xyplot.py",
+      "XY.Bat"
+    ]
+  },
+  "dependencies": {
+    "@chakra-ui/react": "2.5.5",
+    "@dnd-kit/core": "6.0.7",
+    "@dnd-kit/sortable": "7.0.2",
+    "@emotion/styled": "11.10.5",
+    "@reduxjs/toolkit": "1.9.1",
+    "@toast-ui/react-image-editor": "3.15.2",
+    "axios": "^0.27.2",
+    "del-cli": "5.0.0",
+    "dotenv": "16.0.3",
+    "electron-is-dev": "1.2.0",
+    "electron-updater": "5.2.1",
+    "exif-parser": "0.1.12",
+    "file-loader": "^6.2.0",
+    "framer-motion": "8.4.0",
+    "gpu-info": "^0.0.1",
+    "konva": "8.4.0",
+    "qs": "6.11.0",
+    "react": "18.2.0",
+    "react-colorful": "5.6.1",
+    "react-dom": "18.2.0",
+    "react-dotenv": "0.1.3",
+    "react-dropzone": "14.2.3",
+    "react-hotkeys-hook": "4.3.2",
+    "react-icons": "4.4.0",
+    "react-joyride": "2.5.3",
+    "react-konva": "18.2.3",
+    "react-masonry-css": "1.0.16",
+    "react-router-dom": "6.3.0",
+    "react-select": "5.4.0",
+    "react-textarea-autosize": "8.3.4",
+    "recoil": "0.7.5",
+    "recoil-persist": "4.2.0",
+    "socket.io-client": "4.5.4",
+    "styled-components": "5.3.6",
+    "systeminformation": "^5.18.7",
+    "tree-kill": "1.2.2",
+    "use-image": "1.1.0",
+    "uuid": "^9.0.0",
+    "validator": "13.7.0",
+    "yauzl": "^2.10.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "7.21.0",
+    "@babel/core": "7.21.4",
+    "@babel/plugin-proposal-class-properties": "7.18.6",
+    "@babel/plugin-transform-typescript": "7.21.3",
+    "@babel/preset-env": "7.21.4",
+    "@babel/preset-react": "7.18.6",
+    "@babel/preset-typescript": "7.21.4",
+    "@types/react-dom": "18.0.11",
+    "@types/uuid": "9.0.0",
+    "@types/validator": "13.7.10",
+    "@typescript-eslint/eslint-plugin": "5.58.0",
+    "@typescript-eslint/parser": "5.58.0",
+    "babel-loader": "8.2.3",
+    "cross-env": "7.0.3",
+    "css-loader": "6.6.0",
+    "del": "7.0.0",
+    "dotenv-webpack": "8.0.1",
+    "electron": "22.0.0",
+    "electron-builder": "23.6.0",
+    "eslint": "8.32.0",
+    "eslint-plugin-react": "7.32.2",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "html-webpack-plugin": "5.5.0",
+    "sass": "1.57.1",
+    "sass-loader": "13.2.0",
+    "style-loader": "3.3.1",
+    "typescript": "5.0.4",
+    "typia": "3.8.2",
+    "webpack": "5.70.0",
+    "webpack-cli": "4.9.2",
+    "webpack-dev-server": "4.7.4"
+  }
+}

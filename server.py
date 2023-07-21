@@ -7,11 +7,12 @@ try:
     import numpy as np
     import json
     import ctypes
-    import logging
+    import shutil
     import os
     import re
     import sys
     sys.path.append(os.curdir)
+    sys.path.append(os.path.join(os.curdir,'lora_training'))
 
     from upscale import Upscaler
     from stable_diffusion import StableDiffusion
@@ -139,6 +140,79 @@ try:
     def merge_models(data):
         ModelMerger(data).run()
 
+    @socketio.on('train')
+    def train(data):
+        print("Starting Training...")
+        import subprocess
+        python_path = sys.executable
+        base_path = os.path.dirname(os.path.dirname(sys.executable)) #First one takes you to artroom_backend
+        accelerate_path = os.path.join(os.path.dirname(python_path), "Scripts" if os.name == "nt" else "bin", "accelerate.exe")
+        try:
+            import library
+        except:
+            print("Setting up training....")
+            setup_command = f"{python_path} -m pip install ./lora_training --user"
+            subprocess.run((setup_command), shell=True, check=True)
+        try:
+            import toml #Just a random one that fails early
+        except:
+            print("Installing lora libraries...")
+            setup_command = f"{python_path} -m pip install -r ./lora_training/requirements.txt --user --no-warn-script-location"
+            subprocess.run((setup_command), shell=True, check=True)
+        
+        training_images_path = os.path.join(base_path, "training_data", data["name"])
+        #Clean slate of images
+        if os.path.isdir(training_images_path):
+            shutil.rmtree(training_images_path)
+        os.makedirs(training_images_path, exist_ok=True)
+
+        for file in data["images"]:
+            trigger_path = os.path.join(training_images_path,f"10_{data['trigger_word']}")
+            os.makedirs(trigger_path, exist_ok=True)
+            shutil.copy(file, os.path.join(trigger_path, os.path.basename(file)))
+
+        command = (
+            f"{python_path} "
+            f"{accelerate_path} launch "
+            "--num_cpu_threads_per_process=16 "
+            "lora_training/train_network.py "
+            f"--train_data_dir={training_images_path} "
+            f"--output_name={data['name']} "
+            f"--pretrained_model_name_or_path={data['model']} "
+            f"--resolution={data['resolution']} "
+            f"--network_alpha={data['networkAlpha']} "
+            f"--max_train_steps={data['maxTrainSteps']} "
+            f"--clip_skip={data['clipSkip']} "
+            f"--text_encoder_lr={data['textEncoderLr']} "
+            f"--unet_lr={data['unetLr']} "
+            f"--network_dim={data['networkDim']} "
+            f"--lr_scheduler_num_cycles={data['lrSchedulerNumCycles']} "
+            f"--learning_rate={data['learningRate']} "
+            f"--lr_scheduler={data['lrScheduler']} "
+            f"--train_batch_size={data['trainBatchSize']} "
+            f"--save_every_n_epochs={data['saveEveryNEpochs']} "
+            f"--optimizer_type={data['optimizerType']} "
+            f"--bucket_reso_steps={data['bucketResoSteps']} "
+            f"--min_bucket_reso={data['minBucketReso']} "
+            f"--max_bucket_reso={data['maxBucketReso']} "
+            f"--output_dir={os.path.join(data['modelsDir'],'Lora')} "
+            "--save_model_as=safetensors "
+            "--caption_extension=.txt "
+            "--mixed_precision=fp16 "
+            "--save_precision=fp16 "
+            "--enable_bucket "
+            "--network_module=networks.lora "
+            "--cache_latents "
+            "--xformers "
+            "--bucket_no_upscale "
+        )
+
+        try:
+            # Execute the command
+            subprocess.run(command, shell=True, check=True)
+            print("Accelerate command executed successfully!")
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred: {e}")
 
     def save_to_settings_folder(data):
         print("Saving settings...")

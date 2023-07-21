@@ -70,6 +70,7 @@ function Upscale () {
             p="5"
             my="5"
             backgroundColor="#080B16"
+            width='100%'
             {...getRootProps()}
           >
             <input multiple {...getInputProps()} />
@@ -112,7 +113,7 @@ function Upscale () {
             ml="30px"
             p={4}
             rounded="md"
-            width="75%">
+            width="100%">
             <form>
                 <VStack
                     align="flex-start"

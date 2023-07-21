@@ -64,7 +64,7 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
     const toast = useToast({});
     const cloudMode = useRecoilValue(atom.cloudModeState);
 
-    const modelDirs = useRecoilValue(modelsDirState);
+    const modelsDirs = useRecoilValue(modelsDirState);
     const models = useRecoilValue(modelsState);
 
     const [batchName, setBatchName] = useRecoilState(batchNameState);
@@ -88,10 +88,10 @@ function SDSettings ({ tab } : { tab: SDSettingsTab }) {
     const setSettings = useSetRecoilState(exifDataSelector);
 
     const goToModelFolder = useCallback(() => {
-        if (modelDirs !== '') {
-            window.api.showInExplorer(modelDirs);
+        if (modelsDirs !== '') {
+            window.api.showInExplorer(modelsDirs);
         }
-    }, [modelDirs]);
+    }, [modelsDirs]);
 
     const setSettingsWithToast = (results: CheckSettingsType) => {
         if(results[1].status !== 'error') {

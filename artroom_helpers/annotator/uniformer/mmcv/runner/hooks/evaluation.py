@@ -191,7 +191,7 @@ class EvalHook(Hook):
                 elif any(key in key_indicator_lc for key in less_keys):
                     rule = 'less'
                 else:
-                    raise ValueError(f'Cannot infer the rule for key '
+                    raise ValueError(f' the rule for key '
                                      f'{key_indicator}, thus a specific rule '
                                      f'must be specified.')
         self.rule = rule
