@@ -358,7 +358,7 @@ function Trainer () {
                                 </GridItem>
                                 <GridItem>
                                 <FormControl>
-                                    <FormLabel>Save Every N Steps</FormLabel>
+                                    <FormLabel>{`Save Every N Iterations (Epochs)`}</FormLabel>
                                     <NumberInput min={1} value={saveEveryNEpochs} onChange={value => setSaveEveryNEpochs(parseInt(value))} >
                                     <NumberInputField />
                                     </NumberInput>

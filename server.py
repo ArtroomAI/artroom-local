@@ -16,7 +16,7 @@ try:
     sys.path.append("backend/ComfyUI/")
     from backend.ComfyUI import comfy
     from upscale import Upscaler
-    from stable_diffusion import StableDiffusion, Mute
+    from stable_diffusion import StableDiffusion, Mute, Model
     from artroom_helpers import support
     from artroom_helpers.generation.preprocess import mask_from_face
     from artroom_helpers.toast_status import toast_status
@@ -147,8 +147,7 @@ try:
         def check_SDXL(path):
             #Clear up SD so you don't run out of vram during this step
             SD.running = False
-            del SD.active_model
-            SD.active_model = None
+            SD.active_model = Model(ckpt='', models_dir='', socketio=socketio)
 
             with Mute():
                 _, clip, _, _ = comfy.sd.load_checkpoint_guess_config(
@@ -172,18 +171,7 @@ try:
         python_path = sys.executable
         base_path = os.path.dirname(os.path.dirname(sys.executable)) #First one takes you to artroom_backend
         accelerate_path = os.path.join(os.path.dirname(python_path), "Scripts" if os.name == "nt" else "bin", "accelerate.exe")
-        try:
-            from lora_training import library
-        except:
-            print("Setting up training...")
-            setup_command = f"{python_path} -m pip install ./lora_training --user"
-            subprocess.run((setup_command), shell=True, check=True)
-        try:
-            import toml #Just a random one that fails early
-        except:
-            print("Installing lora libraries...")
-            setup_command = f"{python_path} -m pip install -r ./lora_training/requirements.txt --user --no-warn-script-location"
-            subprocess.run((setup_command), shell=True, check=True)
+        print("Setting up training...")
         
         training_images_path = os.path.join(base_path, "training_data", data["name"])
         #Clean slate of images
@@ -231,13 +219,23 @@ try:
             "--xformers "
             "--bucket_no_upscale "
         )
-
         try:
-            # Execute the command
+            subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError:
+            setup_command_libraries = f"{python_path} -m pip install ./lora_training"
+            subprocess.run(setup_command_libraries, shell=True, check=True)
+        try:
+            import toml
+        except:
+            print('Installing lora dependencies...')
+            setup_command_dependencies = f"{python_path} -m pip install -r ./lora_training/requirements.txt --no-warn-script-location"
+            subprocess.run(setup_command_dependencies, shell=True, check=True)
+        try:
             subprocess.run(command, shell=True, check=True)
-            print("Accelerate command executed successfully!")
+            print("Lora Training has completed!")
         except subprocess.CalledProcessError as e:
-            print(f"Error occurred: {e}")
+            print(f"Error occurred: {e}")  
+
 
     def save_to_settings_folder(data):
         print("Saving settings...")

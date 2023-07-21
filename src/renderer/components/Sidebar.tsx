@@ -16,7 +16,7 @@ import {
     FiMenu,
 } from 'react-icons/fi';
 import {
-    AiOutlineExperiment
+    AiFillExperiment
 } from 'react-icons/ai'
 import {IoSettingsSharp} from 'react-icons/io5'
 import {
@@ -102,7 +102,7 @@ export default function Sidebar ({ navSize, setNavSize } : SidebarProps) {
                         title="Image Viewer" />
                     <NavItem
                         className="trainer"
-                        icon={AiOutlineExperiment}
+                        icon={AiFillExperiment}
                         linkTo="#/trainer"
                         navSize={navSize}
                         title="Trainer" />
