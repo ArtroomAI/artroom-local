@@ -173,6 +173,14 @@ try:
         accelerate_path = os.path.join(os.path.dirname(python_path), "Scripts" if os.name == "nt" else "bin", "accelerate.exe")
         print("Setting up training...")
         
+        try:
+            import toml
+            import albumentations
+        except:
+            print('Installing lora dependencies...')
+            setup_command_dependencies = f"{python_path} -m pip install -r ./lora_training/requirements.txt --user --no-warn-script-location"
+            subprocess.run(setup_command_dependencies, shell=True, check=True)
+
         training_images_path = os.path.join(base_path, "training_data", data["name"])
         #Clean slate of images
         if os.path.isdir(training_images_path):
@@ -224,12 +232,6 @@ try:
         except subprocess.CalledProcessError:
             setup_command_libraries = f"{python_path} -m pip install ./lora_training"
             subprocess.run(setup_command_libraries, shell=True, check=True)
-        try:
-            import toml
-        except:
-            print('Installing lora dependencies...')
-            setup_command_dependencies = f"{python_path} -m pip install -r ./lora_training/requirements.txt --no-warn-script-location"
-            subprocess.run(setup_command_dependencies, shell=True, check=True)
         try:
             subprocess.run(command, shell=True, check=True)
             print("Lora Training has completed!")
