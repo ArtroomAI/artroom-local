@@ -20,6 +20,7 @@ from transformers import logging as tflogging
 from upscale import Upscaler
 
 from backend.ComfyUI.nodes import *
+from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 
@@ -442,8 +443,8 @@ class StableDiffusion:
         return out
 
     def adetailer_fix(self, 
-                      positive, 
-                      negative,
+                      positive_cond, 
+                      negative_cond,
                       image: Image,
                       mask_confidence: int = 0.3,
                       model_idx=0):
@@ -469,13 +470,13 @@ class StableDiffusion:
         for mask in masks:
             image, H, W = self.load_image(image, w0=W, h0=H)
             image = self.generate_image(
-                positive=positive,
-                negative=negative,
+                positive=positive_cond,
+                negative=negative_cond,
                 init_image=image.to(self.device),
                 mask_image=ImageOps.invert(mask),
                 W=W,
                 H=H,
-                strength=0.8,
+                denoise=0.8,
                 steps=8  # They use 28 by default but I dunno, configurable
             )
         return image
@@ -720,13 +721,14 @@ class StableDiffusion:
 
         self.active_model.to()
 
-        positive = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
-        negative = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
+        positive_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
+
+        negative_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
 
         if controlnet is not None and controlnet != "none":
             control_image = control_image.permute(0, 2, 3, 1)
-            positive = self.nodes.ControlNetApply.apply_controlnet(
-                positive, self.active_model.controlnet, control_image, controlnet_strength)[0]
+            positive_cond = self.nodes.ControlNetApply.apply_controlnet(
+                positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
             print(f"Applying controlnet {controlnet}")
 
         self.active_model.to()
@@ -763,8 +765,8 @@ class StableDiffusion:
                     if generation_mode != 'highresfix':
                         out_image = self.generate_image(
                             job_id=job_id,
-                            positive=positive,
-                            negative=negative,
+                            positive=positive_cond,
+                            negative=negative_cond,
                             init_image=init_image,
                             mask_image=mask_image,
                             steps=steps,
@@ -804,13 +806,22 @@ class StableDiffusion:
                             mask_blur_radius=8
                         )
 
+                    #out_image.save("before.png")
+                    if True:  # if adetailer_enabled or smth
+                        out_image = self.adetailer_fix(
+                            positive_cond=positive_cond,
+                            negative_cond=negative_cond,
+                            image=out_image
+                        )
+                    #out_image.save("after.png")
+
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
                     if highres_fix:
                         out_image = self.diffusion_upscale(
                             job_id=job_id,
                             n=n,
-                            positive=positive,
-                            negative=negative,
+                            positive=positive_cond,
+                            negative=negative_cond,
                             image=out_image,
                             mask_image=mask_image,
                             highres_steps=highres_steps,
@@ -881,110 +892,7 @@ class StableDiffusion:
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
                 self.clean_up()
-                return
-            self.active_model.current_num = n
-            try:
-                print(f'Generating on gpu {self.device} image {n}')
-                if generation_mode != 'highresfix':
-                    out_image = self.generate_image(
-                        job_id=job_id,
-                        positive=positive,
-                        negative=negative,
-                        init_image=init_image,
-                        mask_image=mask_image,
-                        steps=steps,
-                        H=H,
-                        W=W,
-                        cfg_scale=cfg_scale,
-                        seed=seed,
-                        sampler=sampler,
-                        batch_size=batch_size,
-                        clip_skip=clip_skip,
-                        callback_fn=self.callback_fn,
-                        strength=strength if starting_image is not None else 1.0
-                    )
-                else:
-                    out_image = starting_image
-
-                if mask_image is not None:
-                    out_image = support.repaste_and_color_correct(
-                        result=out_image,
-                        init_image=starting_image,
-                        init_mask=original_mask,
-                        mask_blur_radius=8
-                    )
-                #out_image.save("before.png")
-                if True:  # if adetailer_enabled or smth
-                    out_image = self.adetailer_fix(
-                        positive=positive,
-                        negative=negative,
-                        image=out_image
-                    )
-                #out_image.save("after.png")
-
-                if highres_fix:
-                    out_image = self.diffusion_upscale(
-                        job_id=job_id,
-                        n=n,
-                        positive=positive,
-                        negative=negative,
-                        image=out_image,
-                        mask_image=mask_image,
-                        highres_steps=highres_steps,
-                        highres_strength=highres_strength,
-                        highres_multiplier=min(old_H / H, old_W / W),
-                        cfg_scale=cfg_scale,
-                        H=old_H,
-                        W=old_W,
-                        seed=seed,
-                        sampler=sampler,
-                        clip_skip=clip_skip,
-                        keep_size=False,
-                        models_dir=models_dir
-                    )
-
-                exif_data = out_image.getexif()
-                # Does not include Mask, ImageB64, or if Inverted. Only settings for now
-                settings_data = {
-                    "text_prompts": text_prompts,
-                    "negative_prompts": negative_prompts,
-                    "steps": steps,
-                    "height": H,
-                    "width": W,
-                    "strength": strength,
-                    "cfg_scale": cfg_scale,
-                    "seed": seed,
-                    "sampler": sampler,
-                    "ckpt": os.path.basename(ckpt),
-                    "vae": os.path.basename(vae),
-                    "controlnet": controlnet,
-                    "loras": [{'name': os.path.basename(lora['path']), 'weight': lora['weight']} for lora in loras],
-                    "clip_skip": clip_skip
-                }
-                # 0x9286 Exif Code for UserComment
-                exif_data[0x010E] = "\nArtroom Settings:\n" + json.dumps(settings_data, indent=4) + "\nEND"
-
-                if long_save_path:
-                    save_name = f"{base_count:05}_seed_{str(seed)}.png"
-                else:
-                    prompt_name = re.sub(
-                        r'\W+', '', '_'.join(text_prompts.split()))[:100]
-                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
-
-                out_image.save(
-                    os.path.join(sample_path, save_name), "PNG", exif=exif_data)
-
-                self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
-                                                  'path': os.path.join(sample_path, save_name),
-                                                  'batch_id': job_id})
-            except Exception as e:
-                tb = traceback.extract_tb(e.__traceback__)
-                file_name, line_number, _, _ = tb[-1]
-                print(f"Failure in file {file_name} at line {line_number}: {e}")
-                self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
-            seed += 1
-            self.clean_up()
-
+                
         self.clean_up()
         self.running = False
         self.active_model.deinject_controlnet()
