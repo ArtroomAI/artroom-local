@@ -7,24 +7,24 @@ import warnings
 import gc
 import sys
 import traceback
-
 import torch
+
 from einops import rearrange
-
 from glob import glob
-
 from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
+sys.path.append("artroom_helpers/adetailer/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
 
 from backend.ComfyUI.nodes import *
-from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 
+from artroom_helpers.adetailer.adetailer import ADetailerArgs
+from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
 from artroom_helpers import support, inpainting
@@ -199,7 +199,7 @@ class StableDiffusion:
         self.device = get_device()
         self.gpu_architecture = get_gpu_architecture()  #
         self.dtype = torch.float32 if get_gpu_architecture == '16XX' else torch.float16
-
+        self.adetailer_module = AfterDetailerScript(device=torch.device(0))
         self.active_model = Model(ckpt='', models_dir='', socketio=self.socketio)
 
     def get_image(self, init_image_str, mask_image, job_id):
@@ -350,7 +350,7 @@ class StableDiffusion:
             os.remove(temp_save_path)
             pass
         except Exception as e:
-            print('Failed to delete diffusion touchup {e}')
+            print(f'Failed to delete diffusion touchup {e}')
 
         if mask_image is not None:
             image = support.repaste_and_color_correct(result=image,
@@ -365,6 +365,8 @@ class StableDiffusion:
     @torch.no_grad()
     def generate_image(
             self,
+            positive,
+            negative=None,
             job_id="",
             positive=None,
             negative=None,
@@ -670,14 +672,13 @@ class StableDiffusion:
 
         self.active_model.to()
 
-        positive_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
-
-        negative_prompt = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
+        positive = self.nodes.CLIPTextEncode.encode(self.active_model.clip, prompts_data)[0]
+        negative = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
 
         if controlnet is not None and controlnet != "none":
             control_image = control_image.permute(0, 2, 3, 1)
-            positive_cond = self.nodes.ControlNetApply.apply_controlnet(
-                positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
+            positive = self.nodes.ControlNetApply.apply_controlnet(
+                positive, self.active_model.controlnet, control_image, controlnet_strength)[0]
             print(f"Applying controlnet {controlnet}")
 
         self.active_model.to()
@@ -703,7 +704,6 @@ class StableDiffusion:
             if step % step_check == 0:
                 threading.Thread(target=send_intermediates, args=(x0,)).start()
 
-
         with torch.no_grad():
             for n in range(1, n_iter + 1):
                 if not self.running:
@@ -715,8 +715,8 @@ class StableDiffusion:
                     if generation_mode != 'highresfix':
                         out_image = self.generate_image(
                             job_id=job_id,
-                            positive=positive_cond,
-                            negative=negative_prompt,
+                            positive=positive,
+                            negative=negative,
                             init_image=init_image,
                             mask_image=mask_image,
                             steps=steps,
@@ -761,8 +761,8 @@ class StableDiffusion:
                         out_image = self.diffusion_upscale(
                             job_id=job_id,
                             n=n,
-                            positive=positive_cond,
-                            negative=negative_prompt,
+                            positive=positive,
+                            negative=negative,
                             image=out_image,
                             mask_image=mask_image,
                             highres_steps=highres_steps,
@@ -833,7 +833,110 @@ class StableDiffusion:
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
                 self.clean_up()
-                
+                return
+            self.active_model.current_num = n
+            try:
+                print(f'Generating on gpu {self.device} image {n}')
+                if generation_mode != 'highresfix':
+                    out_image = self.generate_image(
+                        job_id=job_id,
+                        positive=positive,
+                        negative=negative,
+                        init_image=init_image,
+                        mask_image=mask_image,
+                        steps=steps,
+                        H=H,
+                        W=W,
+                        cfg_scale=cfg_scale,
+                        seed=seed,
+                        sampler=sampler,
+                        batch_size=batch_size,
+                        clip_skip=clip_skip,
+                        callback_fn=self.callback_fn,
+                        strength=strength if starting_image is not None else 1.0
+                    )
+                else:
+                    out_image = starting_image
+
+                if mask_image is not None:
+                    out_image = support.repaste_and_color_correct(
+                        result=out_image,
+                        init_image=starting_image,
+                        init_mask=original_mask,
+                        mask_blur_radius=8
+                    )
+                out_image.save("before.png")
+                if True:  # if adetailer_enabled or smth
+                    out_image = self.adetailer_fix(
+                        positive=positive,
+                        negative=negative,
+                        image=out_image
+                    )
+                out_image.save("after.png")
+
+                if highres_fix:
+                    out_image = self.diffusion_upscale(
+                        job_id=job_id,
+                        n=n,
+                        positive=positive,
+                        negative=negative,
+                        image=out_image,
+                        mask_image=mask_image,
+                        highres_steps=highres_steps,
+                        highres_strength=highres_strength,
+                        highres_multiplier=min(old_H / H, old_W / W),
+                        cfg_scale=cfg_scale,
+                        H=old_H,
+                        W=old_W,
+                        seed=seed,
+                        sampler=sampler,
+                        clip_skip=clip_skip,
+                        keep_size=False,
+                        models_dir=models_dir
+                    )
+
+                exif_data = out_image.getexif()
+                # Does not include Mask, ImageB64, or if Inverted. Only settings for now
+                settings_data = {
+                    "text_prompts": text_prompts,
+                    "negative_prompts": negative_prompts,
+                    "steps": steps,
+                    "height": H,
+                    "width": W,
+                    "strength": strength,
+                    "cfg_scale": cfg_scale,
+                    "seed": seed,
+                    "sampler": sampler,
+                    "ckpt": os.path.basename(ckpt),
+                    "vae": os.path.basename(vae),
+                    "controlnet": controlnet,
+                    "loras": [{'name': os.path.basename(lora['path']), 'weight': lora['weight']} for lora in loras],
+                    "clip_skip": clip_skip
+                }
+                # 0x9286 Exif Code for UserComment
+                exif_data[0x010E] = "\nArtroom Settings:\n" + json.dumps(settings_data, indent=4) + "\nEND"
+
+                if long_save_path:
+                    save_name = f"{base_count:05}_seed_{str(seed)}.png"
+                else:
+                    prompt_name = re.sub(
+                        r'\W+', '', '_'.join(text_prompts.split()))[:100]
+                    save_name = f"{base_count:05}_{prompt_name}_seed_{str(seed)}.png"
+
+                out_image.save(
+                    os.path.join(sample_path, save_name), "PNG", exif=exif_data)
+
+                self.socketio.emit('get_images', {'b64': support.image_to_b64(out_image),
+                                                  'path': os.path.join(sample_path, save_name),
+                                                  'batch_id': job_id})
+            except Exception as e:
+                tb = traceback.extract_tb(e.__traceback__)
+                file_name, line_number, _, _ = tb[-1]
+                print(f"Failure in file {file_name} at line {line_number}: {e}")
+                self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
+            seed += 1
+            self.clean_up()
+
         self.clean_up()
         self.running = False
         self.active_model.deinject_controlnet()
@@ -846,13 +949,13 @@ class StableDiffusion:
 
     def interrupt(self):
         self.running = False
-    
+
     # Make sure all folders are setup and ready
     def setup(self, models_dir):
-        os.makedirs(os.path.join(models_dir,'ControlNet'), exist_ok=True)
-        os.makedirs(os.path.join(models_dir,'ControlNet','annotators_(not_your_models)ckpts'), exist_ok=True)
-        os.makedirs(os.path.join(models_dir,'Lora'), exist_ok=True)
-        os.makedirs(os.path.join(models_dir,'Vae'), exist_ok=True)
-        os.makedirs(os.path.join(models_dir,'Embeddings'), exist_ok=True)
-        os.makedirs(os.path.join(models_dir,'upscalers'), exist_ok=True)
-        os.makedirs(os.path.join(models_dir,'upscale_highres'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'ControlNet'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'ControlNet', 'annotators_(not_your_models)ckpts'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'Lora'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'Vae'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'Embeddings'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'upscalers'), exist_ok=True)
+        os.makedirs(os.path.join(models_dir, 'upscale_highres'), exist_ok=True)
