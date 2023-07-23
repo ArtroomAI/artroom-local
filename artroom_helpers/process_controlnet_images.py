@@ -248,6 +248,8 @@ def apply_inpaint(img, mask, preview=False):
     detected_map = img.copy()
     detected_map[mask_pixel > 0.5] = - 255.0
     control = torch.from_numpy(detected_map.copy()).float() / 255.0
+    control = torch.stack([control for _ in range(1)], dim=0)
+    control = rearrange(control, 'b h w c -> b c h w').clone()
     return control
 
 
