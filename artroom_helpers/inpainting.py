@@ -118,6 +118,15 @@ class Outpaint(object):
         return new_img
 
 
+def replace_alpha_with_noise(im: Image.Image) -> Image:
+    if im.mode == 'RGBA':
+        noise = Image.fromarray(np.uint8(np.random.rand(im.width, im.height, 3) * 255)).convert('RGBA')
+        return Image.alpha_composite(noise, im)
+    else:
+        print("Non-RGBA image passed, ignoring noise fill")
+        return im
+
+
 def infill_patchmatch(im: Image.Image) -> Image:
     if im.mode != 'RGBA':
         print("Patchmatch failed, not RGBA")
@@ -128,6 +137,7 @@ def infill_patchmatch(im: Image.Image) -> Image:
     im_patched = Image.fromarray(im_patched_np, mode='RGB')
 
     return im_patched
+
 
 def infill_noise(im: Image.Image) -> Image:
     if im.mode != 'RGBA':
