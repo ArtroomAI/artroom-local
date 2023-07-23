@@ -365,11 +365,9 @@ class StableDiffusion:
     @torch.no_grad()
     def generate_image(
             self,
-            positive,
-            negative=None,
-            job_id="",
             positive=None,
             negative=None,
+            job_id="",
             init_image=None,
             mask_image=None,
             steps=50,
@@ -865,14 +863,14 @@ class StableDiffusion:
                         init_mask=original_mask,
                         mask_blur_radius=8
                     )
-                out_image.save("before.png")
+                #out_image.save("before.png")
                 if True:  # if adetailer_enabled or smth
                     out_image = self.adetailer_fix(
                         positive=positive,
                         negative=negative,
                         image=out_image
                     )
-                out_image.save("after.png")
+                #out_image.save("after.png")
 
                 if highres_fix:
                     out_image = self.diffusion_upscale(
