@@ -441,6 +441,56 @@ class StableDiffusion:
         out = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
         return out
 
+    def adetailer_fix(self, 
+                      positive, 
+                      negative,
+                      image: Image,
+                      mask_confidence: int = 0.3,
+                      model_idx=0):
+        if model_idx > 4 or model_idx < 0:
+            model_idx = 0
+            print(f"Invalid adetailer model index: {model_idx}, available: {self.adetailer_module.models_choices}")
+        predictor = self.adetailer_module.predictor
+        adetailer_default_args = ADetailerArgs()  # for now just hardcoding defaults
+
+        with self.adetailer_module.device:
+            ad_model = self.adetailer_module.get_ad_model(self.adetailer_module.models_choices[0])  # see more
+            pred = predictor(ad_model, image, mask_confidence)  # longest
+            masks = self.adetailer_module.pred_preprocessing(pred, adetailer_default_args)
+            if not masks:
+                print(
+                    f"[-] ADetailer: nothing detected on image."
+                )
+                return image
+            else:
+                print(f"Running adetailer on {len(masks)} faces")
+
+            W, H = image.width, image.height
+        for mask in masks:
+            image, H, W = self.load_image(image, w0=W, h0=H)
+            image = self.generate_image(
+                positive=positive,
+                negative=negative,
+                init_image=image.to(self.device),
+                mask_image=ImageOps.invert(mask),
+                W=W,
+                H=H,
+                strength=0.8,
+                steps=8  # They use 28 by default but I dunno, configurable
+            )
+        return image
+
+    def generate_profile(self, *args, debug_enabled=False, **kwargs):
+        with torch.no_grad():
+            if debug_enabled:
+                f = f"trace{time.ctime()}.json".replace(" ", "").replace(":", "")
+                print(f"Profiling {f}")
+                with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+                    self.generate(*args, **kwargs)
+                prof.export_chrome_trace(f)
+            else:
+                self.generate(*args, **kwargs)
+
     def generate(self,
                  job_id="",
                  image_save_path="",
