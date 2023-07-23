@@ -447,6 +447,7 @@ class StableDiffusion:
                 mask_image=ImageOps.invert(mask),
                 W=W,
                 H=H,
+                strength=0.8,
                 steps=8  # They use 28 by default but I dunno, configurable
             )
         return image

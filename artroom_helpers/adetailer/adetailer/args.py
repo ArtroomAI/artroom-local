@@ -62,11 +62,6 @@ class ADetailerArgs(BaseModel, extra=Extra.forbid):
     ad_use_noise_multiplier: bool = False
     ad_noise_multiplier: confloat(ge=0.5, le=1.5) = 1.0
     ad_restore_face: bool = False
-    ad_controlnet_model: constr(regex=cn_model_regex) = "None"
-    ad_controlnet_module: Optional[constr(regex=r".*inpaint.*|^None$")] = None
-    ad_controlnet_weight: confloat(ge=0.0, le=1.0) = 1.0
-    ad_controlnet_guidance_start: confloat(ge=0.0, le=1.0) = 0.0
-    ad_controlnet_guidance_end: confloat(ge=0.0, le=1.0) = 1.0
     is_api: bool = True
 
     @root_validator(skip_on_failure=True)

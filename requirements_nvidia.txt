@@ -27,3 +27,5 @@ face_alignment
 pypatchmatch
 compel
 picklescan
+pydantic
+ultralytics

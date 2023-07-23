@@ -7,7 +7,6 @@ from typing import Optional, Union
 
 from huggingface_hub import hf_hub_download
 from PIL import Image, ImageDraw
-from rich import print
 
 repo_id = "Bingsu/adetailer"
 
