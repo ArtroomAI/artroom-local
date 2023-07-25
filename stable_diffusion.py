@@ -14,7 +14,7 @@ from glob import glob
 from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
-sys.path.append("artroom_helpers/adetailer/")
+# sys.path.append("artroom_helpers/adetailer/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
@@ -24,8 +24,8 @@ from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 
-from artroom_helpers.adetailer.adetailer import ADetailerArgs
-from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
+# from artroom_helpers.adetailer.adetailer import ADetailerArgs
+# from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
 from artroom_helpers.generation.preprocess import mask_from_face, mask_background
 from artroom_helpers.process_controlnet_images import apply_controlnet, HWC3, apply_inpaint
 from artroom_helpers import support, inpainting
@@ -199,7 +199,7 @@ class StableDiffusion:
         self.device = get_device()
         self.gpu_architecture = get_gpu_architecture()  #
         self.dtype = torch.float32 if get_gpu_architecture == '16XX' else torch.float16
-        self.adetailer_module = AfterDetailerScript(device=torch.device(0))
+        # self.adetailer_module = AfterDetailerScript(device=torch.device(0))
         self.active_model = Model(ckpt='', models_dir='', socketio=self.socketio)
 
     def get_image(self, init_image_str, mask_image, job_id):
