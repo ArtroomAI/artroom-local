@@ -168,25 +168,24 @@ class Model:
         self.vae.device = self.device
         self.vae.first_stage_model.to(self.device).to(torch.float32)
 
-        if not self.gpu_architecture == "DIRECTML":
-            self.model.model.to(self.device).to(self.dtype)
+        # if not self.gpu_architecture == "DIRECTML":
+        #     self.model.model.to(self.device).to(self.dtype)
 
-            self.model.model_patches_to(self.device)
-            self.model.model_patches_to(self.dtype)
+        #     self.model.model_patches_to(self.device)
+        #     self.model.model_patches_to(self.dtype)
 
-            self.clip.device = self.device
-            self.clip.cond_stage_model.device = self.device
-            self.clip.patcher.model.to(self.device).to(self.dtype)
-            self.clip.cond_stage_model.to(self.device).to(self.dtype)
+        #     self.clip.device = self.device
+        #     self.clip.cond_stage_model.device = self.device
+        #     self.clip.patcher.model.to(self.device).to(self.dtype)
+        #     self.clip.cond_stage_model.to(self.device).to(self.dtype)
 
-            if hasattr(self.clip.cond_stage_model, "clip_l"):
-                self.clip.cond_stage_model.clip_l.device = self.device
-                self.clip.cond_stage_model.clip_g.device = self.device
+        #     if hasattr(self.clip.cond_stage_model, "clip_l"):
+        #         self.clip.cond_stage_model.clip_l.device = self.device
+        #         self.clip.cond_stage_model.clip_g.device = self.device
 
-            if self.controlnet is not None:
-                self.controlnet.control_model.to(self.device)
-                self.controlnet.device = self.device
-
+        #     if self.controlnet is not None:
+        #         self.controlnet.control_model.to(self.device)
+        #         self.controlnet.device = self.device
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
@@ -525,7 +524,8 @@ class StableDiffusion:
                  clip_skip=1,
                  generation_mode='',
                  highres_steps=10,
-                 highres_strength=0.1
+                 highres_strength=0.1,
+                 use_adetailer=False
                  ):
 
         self.setup(models_dir)
@@ -807,12 +807,14 @@ class StableDiffusion:
                         )
 
                     #out_image.save("before.png")
-                    if True:  # if adetailer_enabled or smth
-                        out_image = self.adetailer_fix(
-                            positive_cond=positive_cond,
-                            negative_cond=negative_cond,
-                            image=out_image
-                        )
+                    if use_adetailer:  # if adetailer_enabled or smth
+                        print('Fixing hands and faces...')
+                        with Mute:
+                            out_image = self.adetailer_fix(
+                                positive_cond=positive_cond,
+                                negative_cond=negative_cond,
+                                image=out_image
+                            )
                     #out_image.save("after.png")
 
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
