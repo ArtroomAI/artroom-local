@@ -1,3 +1,6 @@
 [submodule "ComfyUI"]
 	path = backend/ComfyUI
 	url = https://github.com/comfyanonymous/ComfyUI
+[submodule "backend/custom_nodes/comfy_controlnet_preprocessors"]
+	path = backend/custom_nodes/comfy_controlnet_preprocessors
+	url = https://github.com/Fannovel16/comfy_controlnet_preprocessors

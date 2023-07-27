@@ -29,3 +29,4 @@ compel
 picklescan
 pydantic
 ultralytics
+fvcore

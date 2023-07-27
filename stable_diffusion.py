@@ -14,15 +14,17 @@ from glob import glob
 from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
+sys.path.append("backend/")
 # sys.path.append("artroom_helpers/adetailer/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
 
 from backend.ComfyUI.nodes import *
-from backend.ComfyUI.comfy.cli_args import args
+# from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
+from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.others import Inpaint_Preprocessor
 
 # from artroom_helpers.adetailer.adetailer import ADetailerArgs
 # from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
@@ -54,6 +56,7 @@ class NodeModules:
         self.VAEEncodeForInpaint = VAEEncodeForInpaint()
         self.VAEEncode = VAEEncode()
         self.EmptyLatentImage = EmptyLatentImage()
+        self.Inpaint_Preprocessor = Inpaint_Preprocessor()
 
 
 class Mute:
@@ -78,7 +81,7 @@ class Model:
 
         self.nodes = NodeModules()
         self.device = get_device()
-        self.gpu_architecture = get_gpu_architecture() 
+        self.gpu_architecture = get_gpu_architecture()
         self.dtype = torch.float32 if get_gpu_architecture == '16XX' else torch.float16
 
         self.ckpt = ckpt
@@ -135,7 +138,8 @@ class Model:
     def get_steps(self):
         if self.model is None:
             return 0, 0, 0, 0
-        return self.current_num, self.total_num, self.model.current_step + self.steps * (self.current_num - 1), self.total_steps
+        return self.current_num, self.total_num, self.model.current_step + self.steps * (
+                self.current_num - 1), self.total_steps
 
     def inject_lora(self, path: str, weight_tenc=1.1, weight_unet=4):
         lora = comfy.utils.load_torch_file(path, safe_load=True)
@@ -155,7 +159,7 @@ class Model:
 
     def deinject_controlnet(self):
         del self.controlnet
-        self.controlnet = None 
+        self.controlnet = None
 
     def load_vae(self, vae_path: str):
         try:
@@ -186,6 +190,7 @@ class Model:
         #     if self.controlnet is not None:
         #         self.controlnet.control_model.to(self.device)
         #         self.controlnet.device = self.device
+
 
 class StableDiffusion:
     def __init__(self, socketio=None, Upscaler=None):
@@ -382,8 +387,8 @@ class StableDiffusion:
             callback=None,
             denoise=1.0,
             disable_noise=False,
-            start_step=None, 
-            last_step=None, 
+            start_step=None,
+            last_step=None,
             force_full_denoise=False
     ):
 
@@ -415,23 +420,23 @@ class StableDiffusion:
             noise_mask = latent["noise_mask"]
 
         samples = comfy.sample.sample(
-            self.active_model.model, 
-            noise, 
-            steps, 
-            cfg_scale, 
-            sampler, 
-            scheduler, 
-            positive, 
-            negative, 
+            self.active_model.model,
+            noise,
+            steps,
+            cfg_scale,
+            sampler,
+            scheduler,
+            positive,
+            negative,
             latent_image,
-            denoise=denoise, 
-            disable_noise=disable_noise, 
-            start_step=start_step, 
+            denoise=denoise,
+            disable_noise=disable_noise,
+            start_step=start_step,
             last_step=last_step,
-            force_full_denoise=force_full_denoise, noise_mask=noise_mask, 
-            callback=callback, 
+            force_full_denoise=force_full_denoise, noise_mask=noise_mask,
+            callback=callback,
             seed=seed)
-    
+
         out = latent.copy()
         out["samples"] = samples.to(self.dtype)
 
@@ -441,8 +446,8 @@ class StableDiffusion:
         out = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
         return out
 
-    def adetailer_fix(self, 
-                      positive_cond, 
+    def adetailer_fix(self,
+                      positive_cond,
                       negative_cond,
                       image: Image,
                       mask_confidence: int = 0.3,
@@ -631,7 +636,7 @@ class StableDiffusion:
             if W > base or H > base:
                 W, H = resize_dims_balanced(W, H, base)
             else:
-                highres_fix = False 
+                highres_fix = False
 
         if not highres_fix:
             highres_steps = 0
@@ -681,7 +686,7 @@ class StableDiffusion:
 
         self.active_model.to()
 
-        total_steps = (steps+highres_steps) * n_iter
+        total_steps = (steps + highres_steps) * n_iter
 
         self.active_model.model.job_id = job_id
         self.active_model.model.current_step = 0
@@ -738,16 +743,17 @@ class StableDiffusion:
 
         previewer = Latent2RGBPreviewer(self.active_model.model.model.latent_format.latent_rgb_factors)
 
-        def callback(step, x0, x, total_steps, current_num, total_num, step_check=5, start_step=0, job_total_steps=0, show_intermediates= False, previewer=None):
+        def callback(step, x0, x, total_steps, current_num, total_num, step_check=5, start_step=0, job_total_steps=0,
+                     show_intermediates=False, previewer=None):
             def send_intermediates(x0):
                 if show_intermediates:
-                    preview = previewer.decode_latent_to_preview(x0).resize((W,H))
+                    preview = previewer.decode_latent_to_preview(x0).resize((W, H))
                     self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(preview)})
 
                 self.socketio.emit('get_progress', {
-                    'current_step': step+start_step,
+                    'current_step': step + start_step,
                     'total_steps': job_total_steps,
-                    'current_num': current_num-1,
+                    'current_num': current_num - 1,
                     'total_num': total_num
                 })
 
@@ -779,19 +785,19 @@ class StableDiffusion:
                             clip_skip=clip_skip,
                             device=self.device,
                             callback=partial(
-                                callback, 
+                                callback,
                                 current_num=n,
                                 total_num=n_iter,
-                                start_step=0, 
-                                job_total_steps=(steps+highres_steps),
+                                start_step=0,
+                                job_total_steps=(steps + highres_steps),
                                 show_intermediates=show_intermediates,
                                 previewer=previewer
-                                ),
+                            ),
                             denoise=strength if starting_image is not None else 1.0
                         )
                         self.socketio.emit('get_progress', {
                             'current_step': steps,
-                            'total_steps': steps+highres_steps,
+                            'total_steps': steps + highres_steps,
                             'current_num': n,
                             'total_num': n_iter
                         })
@@ -806,7 +812,7 @@ class StableDiffusion:
                             mask_blur_radius=8
                         )
 
-                    #out_image.save("before.png")
+                    # out_image.save("before.png")
                     if use_adetailer:  # if adetailer_enabled or smth
                         print('Fixing hands and faces...')
                         with Mute:
@@ -815,7 +821,7 @@ class StableDiffusion:
                                 negative_cond=negative_cond,
                                 image=out_image
                             )
-                    #out_image.save("after.png")
+                    # out_image.save("after.png")
 
                     # if controlnet == 'none' and mask_image is None:  # Do not apply touchup for inpainting, messes with the rest of the image, unless we decide to pass the mask too. TODO
                     if highres_fix:
@@ -838,18 +844,18 @@ class StableDiffusion:
                             keep_size=False,
                             models_dir=models_dir,
                             callback=partial(
-                            callback, 
-                            current_num=n, 
-                            total_num=n_iter,
-                            start_step=steps, 
-                            step_check=1, 
-                            job_total_steps=steps+highres_steps,
-                            show_intermediates=show_intermediates,
-                            previewer=previewer)
+                                callback,
+                                current_num=n,
+                                total_num=n_iter,
+                                start_step=steps,
+                                step_check=1,
+                                job_total_steps=steps + highres_steps,
+                                show_intermediates=show_intermediates,
+                                previewer=previewer)
                         )
                         self.socketio.emit('get_progress', {
-                            'current_step': steps+highres_steps,
-                            'total_steps': steps+highres_steps,
+                            'current_step': steps + highres_steps,
+                            'total_steps': steps + highres_steps,
                             'current_num': n,
                             'total_num': n_iter
                         })
@@ -894,7 +900,7 @@ class StableDiffusion:
                     self.socketio.emit('status', toast_status(title=f"Failed to generate image {e}", status="error"))
                 seed += 1
                 self.clean_up()
-                
+
         self.clean_up()
         self.running = False
         self.active_model.deinject_controlnet()
