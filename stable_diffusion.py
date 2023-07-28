@@ -25,6 +25,7 @@ from backend.ComfyUI.nodes import *
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.others import Inpaint_Preprocessor
+from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.edge_line import *
 
 # from artroom_helpers.adetailer.adetailer import ADetailerArgs
 # from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
@@ -56,7 +57,10 @@ class NodeModules:
         self.VAEEncodeForInpaint = VAEEncodeForInpaint()
         self.VAEEncode = VAEEncode()
         self.EmptyLatentImage = EmptyLatentImage()
+
         self.Inpaint_Preprocessor = Inpaint_Preprocessor()
+        # self.CannyProcessor = Canny_Edge_Preprocessor()
+        # self.HED_Preprocessor = HED_Preprocessor()
 
 
 class Mute:
@@ -155,7 +159,11 @@ class Model:
         self.clip.unpatch_model()
 
     def inject_controlnet(self, controlnet_path):
-        self.controlnet = comfy.sd.load_controlnet(controlnet_path)
+        try:
+            self.controlnet = comfy.sd.load_controlnet(controlnet_path)
+        except Exception as e:
+            print(f"Loading controlnet failed {e}")
+            self.controlnet = None
 
     def deinject_controlnet(self):
         del self.controlnet
@@ -253,22 +261,46 @@ class StableDiffusion:
 
         w, h = map(lambda x: x - x % 64, (w, h))
         # print(f"New image size ({w}, {h})")
-        image = image.resize((w, h), resample=Image.LANCZOS)
+        image = image.resize((w, h), resample=Image.LANCZOS).convert("RGB")
+        image = np.array(image).astype(np.float32) / 255.0
+        image = torch.tensor(image)[None,]
 
-        if controlnet_mode in ['scribble']:
-            image = support.invert_rgb_mask(image)
-        image = HWC3(np.array(image))
-        if not use_preprocessed_controlnet:
-            if controlnet_mode == 'inpaint' and mask_image:
-                control = apply_inpaint(image, mask_image)
-            else:
-                control = apply_controlnet(image, controlnet_mode, models_dir)
-        else:
-            control = 1 - torch.from_numpy(image.copy()).float() / 255.0
-            control = torch.stack([control for _ in range(1)], dim=0)
-            control = rearrange(control, 'b h w c -> b c h w').clone()
-        if self.gpu_architecture == 'NVIDIA':
-            control = control.cuda()
+        mask_image = mask_image.resize((w, h), resample=Image.LANCZOS).convert('L')
+        mask_image = np.array(mask_image).astype(np.float32) / 255.0
+        mask_image = torch.tensor(mask_image)
+        match controlnet_mode:
+            case "inpaint":
+                control = self.nodes.Inpaint_Preprocessor.preprocess(image, mask_image)[0]
+            # case "canny":
+            #     control = self.nodes.CannyProcessor.detect_edge(image)
+            # case "depth":
+            #     control = apply_depth(image)
+            # case "pose":
+            #     control = apply_pose(image)
+            # case "normal":  # deprecitated for normalbae
+            #     control = apply_normalbae(image)
+            # case "scribble":
+            #     control = apply_scribble(image)
+            # case "hed":
+            #     control = self.nodes.HED_Preprocessor(image)
+            # case "ip2p":
+            #     control = apply_base(image)
+            # case "softedge":
+            #     control = apply_softedge(image)
+            # case "mlsd":
+            #     control = apply_mlsd(image)
+            # case "lineart":
+            #     control = apply_lineart(image)
+            # case "lineart_anime":
+            #     control = apply_lineart_anime(image)
+            # case "shuffle":
+            #     control = apply_shuffle(image)
+            # case "qrcode":
+            #     control = apply_base(image)
+            case _:
+                print("Unknown control mode:", controlnet_mode)
+                return None
+
         return control.to(self.device)
 
     def diffusion_upscale(
@@ -593,7 +625,7 @@ class StableDiffusion:
             self.active_model.setup_lora(loras)
 
         self.active_model.load_vae(vae)
-        self.active_model.setup_controlnet(controlnet_path)
+        self.active_model.setup_controlnet(controlnet_path=controlnet_path)
         self.active_model.to()
 
         self.socketio.emit('status', toast_status(
