@@ -25,7 +25,14 @@ import {
     AccordionPanel,
     GridItem,
     Grid,
-    Divider
+    Divider,
+    Tabs,
+    Tab,
+    TabList,
+    TabPanels,
+    TabPanel,
+    RadioGroup,
+    Radio
 } from '@chakra-ui/react';
 import {
     FaFolder,
@@ -54,10 +61,9 @@ function Trainer () {
     const [resolutionHeight, setResolutionHeight] = useState(512);
     const [numRepeats, setNumRepeats] = useState(10);
     const [maxTrainSteps, setMaxTrainSteps] = useState(1000);
-    const [saveEveryNEpochs, setSaveEveryNEpochs] = useState(1);
+    const [saveEveryNEpochs, setSaveEveryNEpochs] = useState(100);
     const [trainBatchSize, setTrainBatchSize] = useState(1);
     const [networkAlpha, setNetworkAlpha] = useState(128);
-    const [clipSkip, setClipSkip] = useState(1);
     const [textEncoderLr, setTextEncoderLr] = useState(0.00005);
     const [unetLr, setUnetLr] = useState(0.0001);
     const [networkDim, setNetworkDim] = useState(64);
@@ -68,7 +74,57 @@ function Trainer () {
     const [bucketResoSteps, setBucketResoSteps] = useState(64);
     const [minBucketReso, setMinBucketReso] = useState(384);
     const [maxBucketReso, setMaxBucketReso] = useState(1024);
+    const [activePreset, setActivePreset] = useState("None")
 
+    const handleRadioChange = (preset: string) => {
+        setActivePreset(preset);
+        if (preset == "SDXL"){
+            handleSDXLPresets()
+        }
+        if (preset == "SDv1.5"){
+            handleSDv1Presets()
+        }
+    }
+
+    const handleSDv1Presets = () => {
+        setResolutionWidth(512)
+        setResolutionHeight(512)
+        setNumRepeats(10)
+        setMaxTrainSteps(1000)
+        setSaveEveryNEpochs(200)
+        setTrainBatchSize(1)
+        setNetworkAlpha(128)
+        setTextEncoderLr(0.00005)
+        setUnetLr(0.0001)
+        setNetworkDim(64)
+        setLrSchedulerNumCycles(1)
+        setLearningRate(0.0001)
+        setLrScheduler("constant")
+        setOptimizerType("AdamW")
+        setBucketResoSteps(64)
+        setMinBucketReso(384)
+        setMaxBucketReso(1024)
+    }
+
+    const handleSDXLPresets = () => {
+        setResolutionWidth(1024)
+        setResolutionHeight(1024)
+        setNumRepeats(10)
+        setMaxTrainSteps(500)
+        setSaveEveryNEpochs(100)
+        setTrainBatchSize(1)
+        setNetworkAlpha(128)
+        setNetworkDim(128)
+        setTextEncoderLr(1)
+        setUnetLr(1)
+        setLrSchedulerNumCycles(1)
+        setLearningRate(1)
+        setLrScheduler("cosine")
+        setOptimizerType("Prodigy")
+        setBucketResoSteps(64)
+        setMinBucketReso(512)
+        setMaxBucketReso(2048)
+    }
 
     const chooseUploadPath = () => {
         window.api.chooseImages().then(setImages);
@@ -158,7 +214,6 @@ function Trainer () {
             numRepeats: `${numRepeats}`,
             networkAlpha: `${networkAlpha}`,
             maxTrainSteps: `${maxTrainSteps}`,
-            clipSkip: `${clipSkip}`,
             textEncoderLr: `${textEncoderLr}`,
             unetLr: `${unetLr}`,
             networkDim: `${networkDim}`,
@@ -321,7 +376,19 @@ function Trainer () {
                             </option>))}
                         </Select>
                     </FormControl>
-
+                    <RadioGroup onChange={handleRadioChange} value={activePreset}>
+                        <Stack direction="row" spacing={4}>
+                            <Radio value={"None"} colorScheme={activePreset === "None" ? "blue" : "gray"}>
+                                Custom
+                            </Radio>
+                            <Radio value={"SDv1.5"} colorScheme={activePreset === "SDv1.5" ? "blue" : "gray"}>
+                            SDv1.5 Preset
+                            </Radio>
+                            <Radio value={"SDXL"} colorScheme={activePreset === "SDXL" ? "blue" : "gray"}>
+                            SDXL Preset
+                            </Radio>
+                        </Stack>
+                        </RadioGroup>
                     <Accordion width='100%' allowToggle borderWidth={0} borderRadius={0}>
                         <AccordionItem borderWidth={0} borderRadius={0}>
                             <AccordionButton borderWidth={0} borderRadius={0} >
@@ -331,6 +398,7 @@ function Trainer () {
                                 <AccordionIcon />
                             </AccordionButton>
                             <AccordionPanel pb={4}>
+                            
                             <Grid templateColumns="repeat(2, 1fr)" gap={6}>
                                 <GridItem>
                                 <FormControl>
@@ -393,14 +461,6 @@ function Trainer () {
                                 </GridItem>
                                 <GridItem>
                                 <FormControl>
-                                    <FormLabel>Clip Skip</FormLabel>
-                                    <NumberInput min={1} max={5} value={clipSkip} onChange={value => setClipSkip(parseInt(value))}  >
-                                    <NumberInputField />
-                                    </NumberInput>
-                                </FormControl>
-                                </GridItem>
-                                <GridItem>
-                                <FormControl>
                                     <FormLabel>Text Encoder Learning Rate</FormLabel>
                                     <NumberInput min={0} max={1} value={textEncoderLr} onChange={value => setTextEncoderLr(parseFloat(value))}  >
                                     <NumberInputField />
@@ -450,6 +510,7 @@ function Trainer () {
                                 <FormControl>
                                     <FormLabel>Optimizer Type</FormLabel>
                                     <Select value={optimizerType} onChange={(e) => setOptimizerType(e.target.value)}>
+                                    <option value="Prodigy">Prodigy</option>
                                     <option value="AdamW">AdamW</option>
                                     <option value="AdamW8bit">AdamW8bit</option>
                                     <option value="Lion">Lion</option>

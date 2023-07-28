@@ -1,6 +1,6 @@
 {
   "name": "artroom-beta",
-  "version": "2.0.1-beta.5",
+  "version": "2.0.1-beta.8",
   "private": false,
   "icon": "./artroom_icon.ico",
   "main": "public/main.js",

@@ -10,6 +10,7 @@ library/hypernetwork.py
 library/lpw_stable_diffusion.py
 library/model_util.py
 library/original_unet.py
+library/sdxl_lpw_stable_diffusion.py
 library/sdxl_model_util.py
 library/sdxl_original_unet.py
 library/sdxl_train_util.py

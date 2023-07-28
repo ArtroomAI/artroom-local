@@ -234,7 +234,7 @@ def train(args):
 
     # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
     if use_template:
-        print("use template for training captions. is object: {args.use_object_template}")
+        print(f"use template for training captions. is object: {args.use_object_template}")
         templates = imagenet_templates_small if args.use_object_template else imagenet_style_templates_small
         replace_to = " ".join(token_strings)
         captions = []
@@ -384,9 +384,14 @@ def train(args):
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
     prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
+    # if args.zero_terminal_snr:
+    #     custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name)
+        init_kwargs = {}
+        # if args.log_tracker_config is not None:
+        #     init_kwargs = toml.load(args.log_tracker_config)
+        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
     # function for saving/removing
     def save_model(ckpt_name, embs, steps, epoch_no, force_sync_upload=False):
@@ -435,20 +440,9 @@ def train(args):
                     ]
                 )
 
-                # Sample noise that we'll add to the latents
-                noise = torch.randn_like(latents, device=latents.device)
-                if args.noise_offset:
-                    noise = apply_noise_offset(latents, noise, args.noise_offset, args.adaptive_noise_scale)
-                elif args.multires_noise_iterations:
-                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
-
-                # Sample a random timestep for each image
-                timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
-                timesteps = timesteps.long()
-
-                # Add noise to the latents according to the noise magnitude at each timestep
-                # (this is the forward diffusion process)
-                noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+                # Sample noise, sample a random timestep for each image, and add noise to the latents,
+                # with noise offset and/or multires noise if specified
+                noise, noisy_latents, timesteps = train_util.get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents)
 
                 # Predict the noise residual
                 with accelerator.autocast():

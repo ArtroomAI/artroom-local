@@ -12,7 +12,7 @@ try:
     import re
     import sys
     sys.path.append(os.curdir)
-    sys.path.append(os.path.join(os.curdir,'lora_training'))
+    sys.path.append("lora_training/")
     sys.path.append("backend/ComfyUI/")
     from backend.ComfyUI import comfy
     from upscale import Upscaler
@@ -192,6 +192,9 @@ try:
             os.makedirs(trigger_path, exist_ok=True)
             shutil.copy(file, os.path.join(trigger_path, os.path.basename(file)))
 
+        setup_command_libraries = f"{python_path} -m pip install ./lora_training"
+        subprocess.run(setup_command_libraries, shell=True, check=True)
+
         command = (
             f'"{python_path}" '
             f'"{accelerate_path}" launch '
@@ -203,7 +206,7 @@ try:
             f'--resolution={data["resolution"]} '
             f'--network_alpha={data["networkAlpha"]} '
             f'--max_train_steps={data["maxTrainSteps"]} '
-            f'--clip_skip={data["clipSkip"]} '
+            f'--clip_skip=1 '
             f'--text_encoder_lr={data["textEncoderLr"]} '
             f'--unet_lr={data["unetLr"]} '
             f'--network_dim={data["networkDim"]} '
@@ -226,7 +229,12 @@ try:
             '--cache_latents '
             '--xformers '
             '--bucket_no_upscale '
+            '--full_fp16 '
         )
+        if SDXL:
+            command += '--no_half_vae '
+        if "Prodigy" in data["optimizerType"]:
+            command+= '--optimizer_args="decouple=True weight_decay=0.5 betas=0.9,0.99 use_bias_correction=False"'
         try:
             subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:

@@ -542,7 +542,6 @@ class StableDiffusion:
         if "sd_xl" in ckpt:
             controlnet = "none"
             vae = "none"
-            loras = []
 
         if len(init_image_str) == 0:
             controlnet = 'none'
