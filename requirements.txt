@@ -1,0 +1,34 @@
+mediapipe
+omegaconf
+ftfy
+torchdiffeq
+torchsde
+einops
+transformers>=4.25.1
+safetensors>=0.3.0
+aiohttp
+accelerate
+pyyaml
+Pillow
+scipy
+tqdm
+setuptools
+flask
+flask_socketio
+flask_cors
+gdown
+eventlet
+python-dotenv==0.21.0
+basicsr
+realesrgan
+timm
+pymatting #for rembg
+onnxruntime #for rembg
+pooch==1.6.0 #for rembg
+face_alignment
+pypatchmatch
+compel
+picklescan
+pydantic
+ultralytics
+fvcore

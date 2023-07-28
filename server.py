@@ -1,9 +1,12 @@
 try:
-    import warnings 
+    import warnings
+
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     warnings.filterwarnings("ignore", category=UserWarning)
     import logging
-    logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
+
+    logging.getLogger("xformers").addFilter(
+        lambda record: 'A matching Triton is not available' not in record.getMessage())
     import numpy as np
     import json
     import ctypes
@@ -11,8 +14,9 @@ try:
     import os
     import re
     import sys
+
     sys.path.append(os.curdir)
-    sys.path.append(os.path.join(os.curdir,'lora_training'))
+    sys.path.append(os.path.join(os.curdir, 'lora_training'))
     sys.path.append("backend/ComfyUI/")
     from backend.ComfyUI import comfy
     from upscale import Upscaler
@@ -27,8 +31,9 @@ try:
     from PIL import Image, ImageOps
     from glob import glob
 
-    kernel32 = ctypes.windll.kernel32
-    kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
+    if sys.platform.startswith('win32'):
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 128)
 
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
@@ -63,14 +68,17 @@ try:
         def flush(self):
             self.original_stdout.flush()
 
+
     progress_pattern = re.compile(r'\[(.*?)\]')
     current_num_pattern = re.compile(r'\d+(?=/)')
 
+
     def your_callback_function(text: str):
         socketio.emit('messagesss', text)
-        
+
         if 'OutOfMemoryError' in text:
-            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller images", status="error"))
+            socketio.emit('status', toast_status(title="Cuda Out of Memory Error - try generating smaller images",
+                                                 status="error"))
 
         try:
             active_model = SD.active_model
@@ -88,7 +96,7 @@ try:
                     socketio.emit('get_progress', {
                         'current_step': current_step,
                         'total_steps': active_model.steps,
-                        'current_num': active_model.current_num-1,
+                        'current_num': active_model.current_num - 1,
                         'total_num': active_model.total_num,
                         'time_spent': time_spent,
                         'eta': eta,
@@ -96,7 +104,7 @@ try:
                     })
         except Exception as e:
             pass
-        
+
         return text
 
 
@@ -126,9 +134,9 @@ try:
             data['upscale_dest'] = os.path.dirname(data['upscale_images'][0]) + '/upscale_outputs'
 
         UP.upscale(
-            data['models_dir'], 
-            data['upscale_images'], 
-            data['upscaler'], 
+            data['models_dir'],
+            data['upscale_images'],
+            data['upscaler'],
             data['upscale_factor'],
             data['upscale_dest'])
         socketio.emit('status', toast_status(
@@ -141,11 +149,13 @@ try:
     def merge_models(data):
         ModelMerger(data).run()
 
+
     @socketio.on('train')
     def train(data):
         print("Starting Training...")
+
         def check_SDXL(path):
-            #Clear up SD so you don't run out of vram during this step
+            # Clear up SD so you don't run out of vram during this step
             SD.running = False
             SD.active_model = Model(ckpt='', models_dir='', socketio=socketio)
 
@@ -158,6 +168,7 @@ try:
                 if hasattr(clip.cond_stage_model, "clip_l"):
                     return True
                 return False
+
         print("Checking for SDXL...")
         SDXL = check_SDXL(data['model'])
         if SDXL:
@@ -169,10 +180,11 @@ try:
 
         import subprocess
         python_path = sys.executable
-        base_path = os.path.dirname(os.path.dirname(sys.executable)) #First one takes you to artroom_backend
-        accelerate_path = os.path.join(os.path.dirname(python_path), "Scripts" if os.name == "nt" else "bin", "accelerate.exe")
+        base_path = os.path.dirname(os.path.dirname(sys.executable))  # First one takes you to artroom_backend
+        accelerate_path = os.path.join(os.path.dirname(python_path), "Scripts" if os.name == "nt" else "bin",
+                                       "accelerate.exe")
         print("Setting up training...")
-        
+
         try:
             import toml
             import albumentations
@@ -182,13 +194,13 @@ try:
             subprocess.run(setup_command_dependencies, shell=True, check=True)
 
         training_images_path = os.path.join(base_path, "training_data", data["name"])
-        #Clean slate of images
+        # Clean slate of images
         if os.path.isdir(training_images_path):
             shutil.rmtree(training_images_path)
         os.makedirs(training_images_path, exist_ok=True)
 
         for file in data["images"]:
-            trigger_path = os.path.join(training_images_path,f"{data['numRepeats']}_{data['trigger_word']}")
+            trigger_path = os.path.join(training_images_path, f"{data['numRepeats']}_{data['trigger_word']}")
             os.makedirs(trigger_path, exist_ok=True)
             shutil.copy(file, os.path.join(trigger_path, os.path.basename(file)))
 
@@ -228,7 +240,8 @@ try:
             '--bucket_no_upscale '
         )
         try:
-            subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
             setup_command_libraries = f"{python_path} -m pip install ./lora_training"
             subprocess.run(setup_command_libraries, shell=True, check=True)
@@ -236,7 +249,7 @@ try:
             subprocess.run(command, shell=True, check=True)
             print("Lora Training has completed!")
         except subprocess.CalledProcessError as e:
-            print(f"Error occurred: {e}")  
+            print(f"Error occurred: {e}")
 
 
     def save_to_settings_folder(data):
@@ -340,7 +353,7 @@ try:
             try:
                 print("Starting gen...")
                 print(data)
-                SD.generate(                 
+                SD.generate(
                     image_save_path=data['image_save_path'],
                     long_save_path=data['long_save_path'],
                     highres_fix=data['highres_fix'],
@@ -372,7 +385,7 @@ try:
                     generation_mode=data.get('generation_mode'),
                     highres_steps=data.get('highres_steps'),
                     highres_strength=data.get('highres_strength')
-                    )
+                )
             except Exception as e:
                 print(f"Generation failed! {e}")
                 SD.running = False
@@ -382,7 +395,9 @@ try:
     @socketio.on('stop_queue')
     def stop_queue():
         SD.interrupt()
-        socketio.emit("status", toast_status(title="Queue interrupted. Generations will stop after this one.", status="info", duration=2000))
+        socketio.emit("status",
+                      toast_status(title="Queue interrupted. Generations will stop after this one.", status="info",
+                                   duration=2000))
 
 
     @app.route('/xyplot', methods=['POST'])
@@ -445,7 +460,7 @@ try:
             try:
                 print("Starting gen...")
                 print(data)
-                SD.generate(                 
+                SD.generate(
                     image_save_path=data['image_save_path'],
                     long_save_path=data['long_save_path'],
                     highres_fix=data['highres_fix'],
@@ -477,12 +492,11 @@ try:
                     generation_mode=data.get('generation_mode'),
                     highres_steps=data.get('highres_steps'),
                     highres_strength=data.get('highres_strength')
-                    )
+                )
             except Exception as e:
                 print(f"Generation failed! {e}")
                 SD.running = False
             socketio.emit('job_done')
-
 
         # Load the images into a list
         image_files = sorted(os.listdir(image_save_path))
@@ -512,6 +526,7 @@ try:
         # Save the figure
         fig.tight_layout()
         plt.savefig(os.path.join(image_save_path, f"{xy_path}.png"))
+
 
     @app.route('/shutdown', methods=['GET'])
     def shutdown():
