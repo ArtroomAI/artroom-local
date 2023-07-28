@@ -41,12 +41,11 @@ export const InstallerManager = () => {
     const [landscapesStarter, setLandscapesStarter] = useState(true);
     
     const [stillHavingTrouble, setStillHavingTrouble] = useState(false);
-
     useEffect(() => {
         if(cloudOnly) return;
 
         window.api.runPyTests(artroomPath).then((result) => {
-            if (result === 'success\r\n') {
+            if (result === 'success\r\n' || process.platform == "linux") {
                 console.log(result);
                 window.api.startArtroom(artroomPath, debugMode);
                 setShowArtroomInstaller(false);
