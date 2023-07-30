@@ -210,9 +210,6 @@ try:
             os.makedirs(trigger_path, exist_ok=True)
             shutil.copy(file, os.path.join(trigger_path, os.path.basename(file)))
 
-        setup_command_libraries = f"{python_path} -m pip install ./lora_training"
-        subprocess.run(setup_command_libraries, shell=True, check=True)
-
         command = (
             f'"{python_path}" '
             f'"{accelerate_path}" launch '

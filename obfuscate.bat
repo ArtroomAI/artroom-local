@@ -1,8 +1,8 @@
 @echo off
 setlocal
 
-set "pythonPath=C:\Users\Artur\artroom\artroom_backend\python.exe"
-set "startDir=C:\Users\Artur\Documents\GitHub\artroom-frontend"
+set "pythonPath=C:\Users\artad\artroom\artroom_backend\python.exe"
+set "startDir=C:\Users\artad\Documents\GitHub\ArtroomAI\artroom-frontend"
 
 for %%F in ("%startDir%\*.py") do (
     echo Processing: %%F
@@ -12,8 +12,8 @@ for %%F in ("%startDir%\*.py") do (
     )
 )
 
-set "pythonPath=C:\Users\Artur\artroom\artroom_backend\python.exe"
-set "startDir=C:\Users\Artur\Documents\GitHub\artroom-frontend\artroom_helpers"
+set "pythonPath=C:\Users\artad\artroom\artroom_backend\python.exe"
+set "startDir=C:\Users\artad\Documents\GitHub\ArtroomAI\artroom-frontend\artroom_helpers"
 
 for %%F in ("%startDir%\*.py") do (
     echo Processing: %%F
