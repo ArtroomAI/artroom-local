@@ -124,6 +124,11 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
     shell.openPath(path.resolve(data));
   });
 
+  
+  ipcMain.handle('showItemInFolder', async (_, data) => {
+    shell.showItemInFolder(path.resolve(data));
+  });
+
   ipcMain.handle('getImageFromPath', async (_, image_path: string) => {
     if (image_path) {
       return getImage(image_path);

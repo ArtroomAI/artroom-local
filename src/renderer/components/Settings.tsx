@@ -309,7 +309,18 @@ function Settings () {
                         alignContent="center"
                         className="reinstall-python-dependencies"
                         onClick={()=>{
-                                window.api.pythonInstallDependencies(artroomPath) 
+                                toast({
+                                    id: 'updating-packages',
+                                    title: 'Updating Packages',
+                                    description: `Updating and savings logs to ${artroomPath}\\artroom\\logs`,
+                                    status: 'info',
+                                    position: 'top',
+                                    duration: 5000,
+                                    isClosable: true
+                                });
+                                window.api.pythonInstallDependencies(artroomPath).then(()=>{
+                                    window.api.restartServer(artroomPath, debugModeTemp)
+                                })
                            }}>
                         Update Packages
                     </Button>

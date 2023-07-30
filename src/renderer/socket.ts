@@ -13,6 +13,7 @@ export interface SocketOnEvents {
     get_controlnet_preview: (res: {controlnetPreview: string}) => void;
     get_remove_background_preview: (res: {removeBackgroundPreview: string}) => void;
     intermediate_image: (res: ImageState) => void;
+    upscale_completed: (res : {upscale_dest : string}) => void;
     get_progress: (res: {
         current_step: number;
         total_steps: number;

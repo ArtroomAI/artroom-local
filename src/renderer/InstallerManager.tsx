@@ -43,19 +43,20 @@ export const InstallerManager = () => {
     const [stillHavingTrouble, setStillHavingTrouble] = useState(false);
     useEffect(() => {
         if(cloudOnly) return;
-
         window.api.runPyTests(artroomPath).then((result) => {
             if (result === 'success\r\n' || process.platform == "linux") {
                 console.log(result);
-                window.api.startArtroom(artroomPath, debugMode);
-                setShowArtroomInstaller(false);
-                toast({
-                    title: 'All Artroom paths & dependencies successfully found!',
-                    status: 'success',
-                    position: 'top',
-                    duration: 2000,
-                    isClosable: true
-                });
+                window.api.pythonInstallDependencies(artroomPath).then(()=>{
+                    window.api.startArtroom(artroomPath, debugMode);
+                    setShowArtroomInstaller(false);
+                    toast({
+                        title: 'All Artroom paths & dependencies successfully found!',
+                        status: 'success',
+                        position: 'top',
+                        duration: 2000,
+                        isClosable: true
+                    });
+                })
             } else if (result.length > 0) {
                 setShowArtroomInstaller(true)
             }

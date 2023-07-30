@@ -9,3 +9,4 @@ toml
 voluptuous
 open-clip-torch
 prodigyopt
+google-auth-oauthlib

@@ -104,7 +104,7 @@ function ImageModal ({ imagePath }: { imagePath: string }) {
                                 Set Starting Image
                             </Button>
                             <Button borderRadius="10" variant="ghost" colorScheme="blue" mr={2} fontSize="14" fontWeight="normal"
-                                onClick={() => window.api.showInExplorer(imagePath)}>
+                                onClick={() => window.api.showItemInFolder(imagePath)}>
                                 <Icon mr={2} as={AiFillFolderOpen} />
                                 View in Files
                             </Button>

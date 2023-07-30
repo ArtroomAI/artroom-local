@@ -1,6 +1,6 @@
 {
   "name": "artroom-beta",
-  "version": "2.0.1-beta.9",
+  "version": "2.0.1-beta.11",
   "private": false,
   "icon": "./artroom_icon.ico",
   "main": "public/main.js",
@@ -79,7 +79,12 @@
       "pytest.py",
       "safe.pyc",
       "stable_diffusion.pyc",
-      "upscale.pyc"
+      "upscale.pyc",
+      "requirements.txt",
+      "requirements_amd.txt",
+      "requirements_nvidia.txt",
+      "requirements_lora.txt",
+      "XY.bat"
     ]
   },
   "dependencies": {

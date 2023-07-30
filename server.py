@@ -133,12 +133,15 @@ try:
         if 'upscale_dest' not in data or data['upscale_dest'] == '':
             data['upscale_dest'] = os.path.dirname(data['upscale_images'][0]) + '/upscale_outputs'
 
-        UP.upscale(
+        response = UP.upscale(
             data['models_dir'],
             data['upscale_images'],
             data['upscaler'],
             data['upscale_factor'],
             data['upscale_dest'])
+        
+        socketio.emit('upscale_completed', {'upscale_dest': data['upscale_dest']})
+
         socketio.emit('status', toast_status(
             title='Upscale Completed', description='Your upscale has completed',
             status='success', duration=2000, isClosable=False))
@@ -192,7 +195,7 @@ try:
             print("Installation of lora setup failed, please rerun Artroom as admin and try again. We will fix this requirement soon!")
             return 
         
-        print('Installing lora dependencies...')
+        print('Checking lora dependencies...')
         try:
             setup_command_dependencies = f"{python_path} -m pip install -r requirements_lora.txt --user --no-warn-script-location"
             _ = subprocess.run(setup_command_dependencies, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -568,4 +571,7 @@ except Exception as e:
 
     print("Runtime failed")
     print(e)
+    if "No module" in str(e):
+        print("Please go to Settings and Update Packages")
+
     time.sleep(120)

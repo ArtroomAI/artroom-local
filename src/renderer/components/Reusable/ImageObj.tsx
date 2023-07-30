@@ -32,9 +32,9 @@ export default function ImageObj ({ b64 = '', path = '', active } : Partial<Imag
         window.api.copyToClipboard(b64);
     };
 
-    const showInExplorer = () => {
+    const showItemInFolder = () => {
         if (path !== '') {
-            window.api.showInExplorer(path);
+            window.api.showItemInFolder(path);
         }
     };
 
@@ -84,7 +84,7 @@ export default function ImageObj ({ b64 = '', path = '', active } : Partial<Imag
                     Copy To Clipboard
                 </ContextMenuItem>
 
-                <ContextMenuItem onClick={showInExplorer}>
+                <ContextMenuItem onClick={showItemInFolder}>
                     Show In Explorer
                 </ContextMenuItem>
             </ContextMenuList>

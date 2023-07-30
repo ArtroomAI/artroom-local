@@ -22,6 +22,7 @@ const api = {
     chooseUploadPath: (): Promise<string> => IPC.invoke('chooseUploadPath'),
     restartServer: (artroomPath: string, isDebug: boolean) => IPC.invoke('restartServer', artroomPath, isDebug),
     showInExplorer: (path: string) => IPC.invoke('showInExplorer', path),
+    showItemInFolder: (path: string) => IPC.invoke('showItemInFolder', path),
     minimizeWindow: () => IPC.invoke('minimizeWindow'),
     unmaximizeWindow: () => IPC.invoke('unmaximizeWindow'),
     maxUnmaxWindow: () => IPC.invoke('maxUnmaxWindow'),

@@ -42,7 +42,7 @@ export default function Sidebar({ navSize, setNavSize }: SidebarProps) {
     const renderNavItems = (navSize : string) => (
         <>
             <NavItem className="artroom-website-link" title="Go to Website" icon={ArtroomLogo} navSize={navSize} onClick={window.api.openWebsite} />
-            <NavItem className="artroom-website-link" title="Support Artroom" icon={FaHeart} navSize={navSize} onClick={window.api.openWebsite} />
+            <NavItem className="artroom-website-link" title="Support Artroom" icon={FaHeart} navSize={navSize} onClick={window.api.openPatreon} />
             <NavItem className="discord-link" title="Join Discord" icon={FaDiscord} navSize={navSize} onClick={window.api.openDiscord} />
             <NavItem className="equilibrium-link" title="Learn More" icon={GiGraduateCap} navSize={navSize} onClick={window.api.openTutorial} />
             <NavItem className="civitai-link" title="Get Models" icon={CivitaiLogo} navSize={navSize} onClick={window.api.openCivitai} />

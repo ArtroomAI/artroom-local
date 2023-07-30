@@ -1,6 +1,3 @@
-mediapipe
-omegaconf
-ftfy
 torchdiffeq
 torchsde
 einops
@@ -30,5 +27,11 @@ pypatchmatch
 compel
 picklescan
 pydantic
+protobuf>=3.20
 ultralytics
 fvcore
+google-auth-oauthlib>=0.5
+tensorboard
+mediapipe
+omegaconf
+ftfy
