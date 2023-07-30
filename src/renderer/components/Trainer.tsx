@@ -26,11 +26,6 @@ import {
     GridItem,
     Grid,
     Divider,
-    Tabs,
-    Tab,
-    TabList,
-    TabPanels,
-    TabPanel,
     RadioGroup,
     Radio
 } from '@chakra-ui/react';
@@ -44,6 +39,7 @@ import { useDropzone } from 'react-dropzone';
 import { useRecoilValue } from 'recoil';
 import { imageSavePathState, modelsDirState, modelsState } from '../SettingsManager';
 import path from 'path';
+import Authentication from './Authentication/Authentication';
 
 function Trainer () {
     const toast = useToast({});
@@ -305,7 +301,7 @@ function Trainer () {
                         className="name"
                         width="full">
                         <FormLabel htmlFor="name">
-                            {`Name`}
+                            {`File Name`}
                         </FormLabel>
                         <HStack>
                             <Input
@@ -577,4 +573,10 @@ function Trainer () {
     );
 }
 
-export default Trainer;
+const AuthenticatedTrainer = () => {
+    return (
+        <Authentication Component={Trainer} correctPassword="TEST" />
+    );
+  };
+  
+  export default AuthenticatedTrainer;

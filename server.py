@@ -14,7 +14,7 @@ try:
     import os
     import re
     import sys
-
+    import platform
     sys.path.append(os.curdir)
     sys.path.append("lora_training/")
     sys.path.append("backend/ComfyUI/")
@@ -186,12 +186,18 @@ try:
         print("Setting up training...")
 
         try:
-            import toml
-            import albumentations
+            setup_command_libraries = f"{python_path} -m pip install ./lora_training"
+            _ = subprocess.run(setup_command_libraries, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except:
-            print('Installing lora dependencies...')
-            setup_command_dependencies = f"{python_path} -m pip install -r ./lora_training/requirements.txt --user --no-warn-script-location"
-            subprocess.run(setup_command_dependencies, shell=True, check=True)
+            print("Installation of lora setup failed, please rerun Artroom as admin and try again. We will fix this requirement soon!")
+            return 
+        
+        print('Installing lora dependencies...')
+        try:
+            setup_command_dependencies = f"{python_path} -m pip install -r requirements_lora.txt --user --no-warn-script-location"
+            _ = subprocess.run(setup_command_dependencies, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            print(f"Installing lora dependencies failed. Please reach out on discord or support@artroom.ai for help. Error code: {e}")
 
         training_images_path = os.path.join(base_path, "training_data", data["name"])
         # Clean slate of images
@@ -246,13 +252,7 @@ try:
         if SDXL:
             command += '--no_half_vae '
         if "Prodigy" in data["optimizerType"]:
-            command+= '--optimizer_args="decouple=True weight_decay=0.5 betas=0.9,0.99 use_bias_correction=False"'
-        try:
-            subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE, check=True)
-        except subprocess.CalledProcessError:
-            setup_command_libraries = f"{python_path} -m pip install ./lora_training"
-            subprocess.run(setup_command_libraries, shell=True, check=True)
+            command+= '--optimizer_args decouple=True weight_decay=0.5 betas=0.9,0.99 use_bias_correction=False '
         try:
             subprocess.run(command, shell=True, check=True)
             print("Lora Training has completed!")

@@ -11,6 +11,7 @@ const api = {
     chooseImages: (): Promise<string[]> => IPC.invoke('chooseImages'),
     openWebsite: () => IPC.invoke('openWebsite'),
     openDiscord: () => IPC.invoke('openDiscord'),
+    openPatreon: () => IPC.invoke('openPatreon'),
     openCivitai: () => IPC.invoke('openCivitai'),
     openTutorial: () => IPC.invoke('openTutorial'),
     openInstallTutorial: () => IPC.invoke('openInstallTutorial'),

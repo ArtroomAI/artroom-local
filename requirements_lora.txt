@@ -1,0 +1,11 @@
+#For Lora Training
+diffusers[torch]
+albumentations
+opencv-python
+pytorch-lightning
+bitsandbytes
+tensorboard
+toml
+voluptuous
+open-clip-torch
+prodigyopt
