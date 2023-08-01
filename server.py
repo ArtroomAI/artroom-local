@@ -216,7 +216,7 @@ try:
         command = (
             f'"{python_path}" '
             f'"{accelerate_path}" launch '
-            '--num_cpu_threads_per_process=16 '
+            '--num_cpu_threads_per_process=1 '
             f'lora_training/{train_file} '
             f'--train_data_dir="{training_images_path}" '
             f'--output_name="{data["name"]}" '
@@ -247,12 +247,12 @@ try:
             '--cache_latents '
             '--xformers '
             '--bucket_no_upscale '
-            '--full_fp16 '
         )
         if SDXL:
             command += '--no_half_vae '
         if "Prodigy" in data["optimizerType"]:
             command+= '--optimizer_args decouple=True weight_decay=0.5 betas=0.9,0.99 use_bias_correction=False '
+        print('COMMAND', command)
         try:
             subprocess.run(command, shell=True, check=True)
             print("Lora Training has completed!")

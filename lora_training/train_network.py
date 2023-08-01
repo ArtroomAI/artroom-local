@@ -498,6 +498,7 @@ class NetworkTrainer:
             "ss_multires_noise_iterations": args.multires_noise_iterations,
             "ss_multires_noise_discount": args.multires_noise_discount,
             "ss_adaptive_noise_scale": args.adaptive_noise_scale,
+            "ss_zero_terminal_snr": args.zero_terminal_snr,
             "ss_training_comment": args.training_comment,  # will not be updated after training
             "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
             "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else ""),
@@ -681,13 +682,13 @@ class NetworkTrainer:
             beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
         )
         prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
-        # if args.zero_terminal_snr:
-        #     custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
+        if args.zero_terminal_snr:
+            custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
 
         if accelerator.is_main_process:
             init_kwargs = {}
-            # if args.log_tracker_config is not None:
-            #     init_kwargs = toml.load(args.log_tracker_config)
+            if args.log_tracker_config is not None:
+                init_kwargs = toml.load(args.log_tracker_config)
             accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
         loss_list = []

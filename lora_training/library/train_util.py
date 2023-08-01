@@ -2483,7 +2483,7 @@ def add_optimizer_arguments(parser: argparse.ArgumentParser):
         "--optimizer_type",
         type=str,
         default="",
-        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, Lion8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, AdaFactor",
+        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, AdaFactor",
     )
 
     # backward compatibility
@@ -2715,12 +2715,12 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         default=None,
         help="name of tracker to use for logging, default is script-specific default name / ログ出力に使用するtrackerの名前、省略時はスクリプトごとのデフォルト名",
     )
-    # parser.add_argument(
-    #     "--log_tracker_config",
-    #     type=str,
-    #     default=None,
-    #     help="path to tracker config file to use for logging / ログ出力に使用するtrackerの設定ファイルのパス",
-    # )
+    parser.add_argument(
+        "--log_tracker_config",
+        type=str,
+        default=None,
+        help="path to tracker config file to use for logging / ログ出力に使用するtrackerの設定ファイルのパス",
+    )
     parser.add_argument(
         "--wandb_api_key",
         type=str,
@@ -2868,11 +2868,11 @@ def verify_training_args(args: argparse.Namespace):
             "scale_v_pred_loss_like_noise_pred can be enabled only with v_parameterization / scale_v_pred_loss_like_noise_predはv_parameterizationが有効なときのみ有効にできます"
         )
 
-    # if args.zero_terminal_snr and not args.v_parameterization:
-    #     print(
-    #         f"zero_terminal_snr is enabled, but v_parameterization is not enabled. training will be unexpected"
-    #         + " / zero_terminal_snrが有効ですが、v_parameterizationが有効ではありません。学習結果は想定外になる可能性があります"
-    #     )
+    if args.zero_terminal_snr and not args.v_parameterization:
+        print(
+            f"zero_terminal_snr is enabled, but v_parameterization is not enabled. training will be unexpected"
+            + " / zero_terminal_snrが有効ですが、v_parameterizationが有効ではありません。学習結果は想定外になる可能性があります"
+        )
 
 
 def add_dataset_arguments(
@@ -3137,7 +3137,7 @@ def resume_from_local_or_hf_if_specified(accelerator, args):
 
 
 def get_optimizer(args, trainable_params):
-    # "Optimizer to use: AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, Lion8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, Adafactor"
+    # "Optimizer to use: AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, Adafactor"
 
     optimizer_type = args.optimizer_type
     if args.use_8bit_adam:
@@ -3214,20 +3214,37 @@ def get_optimizer(args, trainable_params):
         print(f"use Lion optimizer | {optimizer_kwargs}")
         optimizer_class = lion_pytorch.Lion
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
-
-    elif optimizer_type == "Lion8bit".lower():
+        
+    elif optimizer_type.endswith("8bit".lower()):
         try:
             import bitsandbytes as bnb
         except ImportError:
             raise ImportError("No bitsandbytes / bitsandbytesがインストールされていないようです")
 
-        print(f"use 8-bit Lion optimizer | {optimizer_kwargs}")
-        try:
-            optimizer_class = bnb.optim.Lion8bit
-        except AttributeError:
-            raise AttributeError(
-                "No Lion8bit. The version of bitsandbytes installed seems to be old. Please install 0.38.0 or later. / Lion8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.38.0以上をインストールしてください"
-            )
+        if optimizer_type == "Lion8bit".lower():
+                print(f"use 8-bit Lion optimizer | {optimizer_kwargs}")
+                try:
+                    optimizer_class = bnb.optim.Lion8bit
+                except AttributeError:
+                    raise AttributeError(
+                        "No Lion8bit. The version of bitsandbytes installed seems to be old. Please install 0.38.0 or later. / Lion8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.38.0以上をインストールしてください"
+                    )
+        elif optimizer_type == "PagedAdamW8bit".lower():
+                print(f"use 8-bit PagedAdamW optimizer | {optimizer_kwargs}")
+                try:
+                    optimizer_class = bnb.optim.PagedAdamW8bit
+                except AttributeError:
+                    raise AttributeError(
+                        "No PagedAdamW8bit. The version of bitsandbytes installed seems to be old. Please install 0.39.0 or later. / PagedAdamW8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.39.0以上をインストールしてください"
+                    )
+        elif optimizer_type == "PagedLion8bit".lower():
+                print(f"use 8-bit Paged Lion optimizer | {optimizer_kwargs}")
+                try:
+                    optimizer_class = bnb.optim.PagedLion8bit
+                except AttributeError:
+                    raise AttributeError(
+                        "No PagedLion8bit. The version of bitsandbytes installed seems to be old. Please install 0.39.0 or later. / PagedLion8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.39.0以上をインストールしてください"
+                    )
 
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 

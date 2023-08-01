@@ -229,6 +229,12 @@ export const debugModeState = atom<boolean>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const gpuTypeState = atom<string>({
+    key: 'gpuType',
+    default: 'NVIDIA',
+    effects_UNSTABLE: [persistAtom]
+});
+
 export const cloudOnlyState = atom<boolean>({
     key: 'cloudOnly',
     default: false,

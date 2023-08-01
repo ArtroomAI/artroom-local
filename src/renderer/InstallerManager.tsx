@@ -10,21 +10,23 @@ import {
     Flex,
     Button,
     Input,
-    Radio,
-    RadioGroup,
     Text,
     useToast,
     Checkbox,
     Link,
-    VStack
+    VStack,
+    RadioGroup,
+    Radio,
+    HStack
 } from '@chakra-ui/react';
-import { artroomPathState, debugModeState, modelsDirState, cloudOnlyState } from './SettingsManager';
+import { artroomPathState, debugModeState, modelsDirState, cloudOnlyState, gpuTypeState } from './SettingsManager';
 import path from 'path';
-import { spawn } from 'child_process';
+import gpuInfo from 'gpu-info'
 
 export const InstallerManager = () => {
     const toast = useToast({});
-
+    const [gpuSelection, setGpuSelection] = useState<string>("NVIDIA");
+    const [gpuType, setGpuType] = useRecoilState(gpuTypeState);
     const debugMode = useRecoilValue(debugModeState);
 
     const [cloudOnly, setCloudOnly] = useRecoilState(cloudOnlyState);
@@ -41,12 +43,34 @@ export const InstallerManager = () => {
     const [landscapesStarter, setLandscapesStarter] = useState(true);
     
     const [stillHavingTrouble, setStillHavingTrouble] = useState(false);
+
+    const detectGPU = async () => {
+        try {
+          const info = await gpuInfo();
+          const gpuVendor = info[0].VideoProcessor.toLowerCase();
+          if (gpuVendor.includes('nvidia')) {
+            console.log('DETECTED NVIDIA')
+            setGpuSelection('NVIDIA');
+          } else if (gpuVendor.includes('amd')) {
+            console.log('DETECTED AMD')
+            setGpuSelection('AMD');
+          }
+        } catch (err) {
+          console.error('Failed to detect GPU:', err);
+        }
+      };
+
+    useEffect(() => {
+        detectGPU();
+    }, []);
+
     useEffect(() => {
         if(cloudOnly) return;
         window.api.runPyTests(artroomPath).then((result) => {
             if (result === 'success\r\n' || process.platform == "linux") {
                 console.log(result);
-                window.api.pythonInstallDependencies(artroomPath).then(()=>{
+                window.api.pythonInstallDependencies(artroomPath, gpuSelection).then(()=>{
+                    setGpuType(gpuSelection)
                     window.api.startArtroom(artroomPath, debugMode);
                     setShowArtroomInstaller(false);
                     toast({
@@ -75,10 +99,10 @@ export const InstallerManager = () => {
 
     const handleRunClick = async () => {
         toast({
-            title: 'Installing Artroom Backend',
+            title: `Installing Artroom Backend for ${gpuSelection} `,
             status: 'success',
             position: 'top',
-            duration: 2000,
+            duration: 5000,
             isClosable: true,
             containerStyle: {
                 pointerEvents: 'none'
@@ -91,7 +115,7 @@ export const InstallerManager = () => {
                 dir = path.join(artroomPath, 'artroom', 'model_weights')
                 setModelsDir(dir)
             }
-            await window.api.pythonInstall(artroomPath);
+            await window.api.pythonInstall(artroomPath, gpuSelection);
             await window.api.downloadStarterModels(dir, realisticStarter, animeStarter, landscapesStarter);
             setDownloading(false);
             setShowArtroomInstaller(false);
@@ -149,7 +173,16 @@ export const InstallerManager = () => {
                             mr='4' />
                         {customPath && <Button onClick={handleSelectModelClick}>Select</Button>}
                     </Flex>
-                    <Checkbox isChecked={customPath} onChange={() => { setCustomPath(!customPath) }}>Use Custom Path</Checkbox>  
+                    <Checkbox mb='4' isChecked={customPath} onChange={() => { setCustomPath(!customPath) }}>Use Custom Path</Checkbox>  
+                    <VStack alignItems='start' mb='4'>
+                        <Text>{`Select GPU (If unsure, use preselected):`}</Text>
+                        <RadioGroup value={gpuSelection} onChange={setGpuSelection}>
+                        <HStack spacing="24px">
+                            <Radio value="NVIDIA">NVIDIA</Radio>
+                            <Radio value="AMD">AMD</Radio>
+                        </HStack>
+                        </RadioGroup>
+                    </VStack>
                     <Text>
                         {`Do you want a starter model (optional)?`}
                     </Text>

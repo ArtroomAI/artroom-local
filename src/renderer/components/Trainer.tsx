@@ -509,10 +509,12 @@ function Trainer () {
                                     <option value="Prodigy">Prodigy</option>
                                     <option value="AdamW">AdamW</option>
                                     <option value="AdamW8bit">AdamW8bit</option>
+                                    <option value="PagedAdamW8bit">PagedAdamW8bit</option>
                                     <option value="Lion">Lion</option>
                                     <option value="SGDNesterov">SGDNesterov</option>
                                     <option value="SGDNesterov8bit">SGDNesterov8bit</option>
                                     <option value="Lion8bit">Lion8bit</option>
+                                    <option value="PagedLion8bit">PagedLion8bit</option>
                                     <option value="DAdaptation(DAdaptAdamPreprint)">DAdaptation(DAdaptAdamPreprint)</option>
                                     <option value="DAdaptAdaGrad">DAdaptAdaGrad</option>
                                     <option value="DAdaptAdam">DAdaptAdam</option>
@@ -575,7 +577,7 @@ function Trainer () {
 
 const AuthenticatedTrainer = () => {
     return (
-        <Authentication Component={Trainer} correctPassword="TEST" />
+        <Authentication Component={Trainer} correctPassword="TEST" authenticatedKey={'LoraTraining'}/>
     );
   };
   

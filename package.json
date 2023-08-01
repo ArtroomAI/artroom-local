@@ -1,6 +1,6 @@
 {
   "name": "artroom-beta",
-  "version": "2.0.1-beta.11",
+  "version": "2.0.1-beta.12",
   "private": false,
   "icon": "./artroom_icon.ico",
   "main": "public/main.js",
@@ -84,7 +84,8 @@
       "requirements_amd.txt",
       "requirements_nvidia.txt",
       "requirements_lora.txt",
-      "XY.bat"
+      "XY.bat",
+      "installer.bat"
     ]
   },
   "dependencies": {
@@ -122,7 +123,6 @@
     "recoil-persist": "4.2.0",
     "socket.io-client": "4.5.4",
     "styled-components": "5.3.6",
-    "systeminformation": "^5.18.7",
     "tree-kill": "1.2.2",
     "use-image": "1.1.0",
     "uuid": "^9.0.0",
