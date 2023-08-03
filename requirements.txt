@@ -35,3 +35,4 @@ tensorboard
 mediapipe
 omegaconf
 ftfy
+insightface
