@@ -32,3 +32,4 @@ picklescan
 pydantic
 ultralytics
 fvcore
+prettytable==3.6.0
