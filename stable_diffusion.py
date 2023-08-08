@@ -14,7 +14,6 @@ from glob import glob
 from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
-sys.path.append("backend/custom_nodes/")
 sys.path.append("backend/")
 # sys.path.append("artroom_helpers/adetailer/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
@@ -27,7 +26,6 @@ from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip,
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.others import Inpaint_Preprocessor
 from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.edge_line import *
-from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.normal_depth_map import Zoe_Depth_Map_Preprocessor
 
 # from artroom_helpers.adetailer.adetailer import ADetailerArgs
 # from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
@@ -61,9 +59,9 @@ class NodeModules:
         self.EmptyLatentImage = EmptyLatentImage()
 
         self.Inpaint_Preprocessor = Inpaint_Preprocessor()
-        self.CannyProcessor = Canny_Edge_Preprocessor()
-        self.HED_Preprocessor = HED_Preprocessor()
-        self.Zoe_Depth_Map_Preprocessor = Zoe_Depth_Map_Preprocessor()
+        # self.CannyProcessor = Canny_Edge_Preprocessor()
+        # self.HED_Preprocessor = HED_Preprocessor()
+
 
 class Mute:
     def __enter__(self):
@@ -255,7 +253,8 @@ class StableDiffusion:
 
         return init_image.to(self.device), H, W
 
-    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none", use_preprocessed_controlnet=False, models_dir=""):
+    def load_control_image(self, image, h0, w0, mask_image=None, inpainting=False, controlnet_mode="none",
+                           use_preprocessed_controlnet=False, models_dir=""):
         w, h = image.size
         if not inpainting and h0 != 0 and w0 != 0:
             h, w = h0, w0
@@ -265,21 +264,48 @@ class StableDiffusion:
         image = image.resize((w, h), resample=Image.LANCZOS).convert("RGB")
         image = np.array(image).astype(np.float32) / 255.0
         image = torch.tensor(image)[None,]
-        
+
         if mask_image is not None:
             mask_image = mask_image.resize((w, h), resample=Image.LANCZOS).convert('L')
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
             mask_image = torch.tensor(mask_image)
+
         match controlnet_mode:
             case "inpaint":
+                if mask_image is None:
+                    print("You chose inpaint controlnet and no mask was provided, ignoring..")
                 control = self.nodes.Inpaint_Preprocessor.preprocess(image, mask_image)[0]
-            case "canny":
-                control = self.nodes.CannyProcessor.detect_edge(image, 100, 200, "disabled")[0]
-            case "hed":
-                control = self.nodes.HED_Preprocessor.detect_boundary(image, version="v1.1", safe="enable")[0]
-            case "depth":
-                control = self.nodes.Zoe_Depth_Map_Preprocessor.estimate_depth(image)
-        print("Finished doing control")
+            # case "canny":
+            #     control = self.nodes.CannyProcessor.detect_edge(image)
+            # case "depth":
+            #     control = apply_depth(image)
+            # case "pose":
+            #     control = apply_pose(image)
+            # case "normal":  # deprecitated for normalbae
+            #     control = apply_normalbae(image)
+            # case "scribble":
+            #     control = apply_scribble(image)
+            # case "hed":
+            #     control = self.nodes.HED_Preprocessor(image)
+            # case "ip2p":
+            #     control = apply_base(image)
+            # case "softedge":
+            #     control = apply_softedge(image)
+            # case "mlsd":
+            #     control = apply_mlsd(image)
+            # case "lineart":
+            #     control = apply_lineart(image)
+            # case "lineart_anime":
+            #     control = apply_lineart_anime(image)
+            # case "shuffle":
+            #     control = apply_shuffle(image)
+            # case "qrcode":
+            #     control = apply_base(image)
+            case _:
+                control = image
+            #     print("Unknown control mode:", controlnet_mode)
+            #     return None
+
         return control.to(self.device)
 
     def diffusion_upscale(
@@ -406,7 +432,8 @@ class StableDiffusion:
         self.active_model.to()
         if mask_image is not None:
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.device)
+            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32) \
+                .to(init_image.device if init_image is not None else device)
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
             latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
         elif init_image is not None:
@@ -687,6 +714,9 @@ class StableDiffusion:
                     use_preprocessed_controlnet=use_preprocessed_controlnet,
                     models_dir=models_dir
                 )
+                if controlnet != "inpaint":
+                    print("None-ing init image because we use it for control")
+                    init_image = None
 
         if self.gpu_architecture == 'NVIDIA':
             torch.cuda.empty_cache()
@@ -742,7 +772,7 @@ class StableDiffusion:
         negative_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
 
         if controlnet is not None and controlnet != "none":
-            #control_image = control_image.permute(0, 2, 3, 1)
+            # control_image = control_image.permute(0, 2, 3, 1)
             positive_cond = self.nodes.ControlNetApply.apply_controlnet(
                 positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
             print(f"Applying controlnet {controlnet}")
@@ -758,7 +788,7 @@ class StableDiffusion:
                      show_intermediates=False, previewer=None):
             def send_intermediates(x0):
                 if show_intermediates:
-                    preview = previewer.decode_latent_to_preview(x0).resize((W//2, H//2))
+                    preview = previewer.decode_latent_to_preview(x0).resize((W, H))
                     self.socketio.emit('intermediate_image', {'b64': support.image_to_b64(preview)})
 
                 self.socketio.emit('get_progress', {
