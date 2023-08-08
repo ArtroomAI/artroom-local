@@ -14,6 +14,7 @@ from glob import glob
 from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
+sys.path.append("backend/ComfyUI/custom_nodes/")
 sys.path.append("backend/")
 # sys.path.append("artroom_helpers/adetailer/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
@@ -21,11 +22,13 @@ from transformers import logging as tflogging
 from upscale import Upscaler
 
 from backend.ComfyUI.nodes import *
+from backend.ComfyUI.comfy_extras.nodes_mask import *
 # from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.others import Inpaint_Preprocessor
 from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.edge_line import *
+from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.normal_depth_map import Zoe_Depth_Map_Preprocessor
 
 # from artroom_helpers.adetailer.adetailer import ADetailerArgs
 # from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
@@ -45,23 +48,28 @@ class NodeModules:
         self.CLIPTextEncode = CLIPTextEncode()
         self.LoadImage = LoadImage()
         self.LoadImageMask = LoadImageMask()
+        self.EmptyLatentImage = EmptyLatentImage()
         self.KSampler = KSampler()
         self.KSamplerAdvanced = KSamplerAdvanced()
         self.SetLatentNoiseMask = SetLatentNoiseMask()
         self.VAEDecode = VAEDecode()
         self.VAEDecodeTiled = VAEDecodeTiled()
         self.LoraLoader = LoraLoader()
+        self.VAELoader = VAELoader()
+        self.VAEEncode = VAEEncode()
+
+        #Inpainting Stuff
+        self.Inpaint_Preprocessor = Inpaint_Preprocessor()
+        self.SetLatentNoiseMask = SetLatentNoiseMask()
+        self.LatentCompositeMasked = LatentCompositeMasked()
+        #self.VAEEncodeForInpaint = VAEEncodeForInpaint() #Doesn't get used in the comfyui workflow for some reason
+
+        #Controlnet Stuff
         self.ControlNetLoader = ControlNetLoader()
         self.ControlNetApply = ControlNetApply()
-        self.VAELoader = VAELoader()
-        self.VAEEncodeForInpaint = VAEEncodeForInpaint()
-        self.VAEEncode = VAEEncode()
-        self.EmptyLatentImage = EmptyLatentImage()
-
-        self.Inpaint_Preprocessor = Inpaint_Preprocessor()
-        # self.CannyProcessor = Canny_Edge_Preprocessor()
-        # self.HED_Preprocessor = HED_Preprocessor()
-
+        self.CannyProcessor = Canny_Edge_Preprocessor()
+        self.HED_Preprocessor = HED_Preprocessor()
+        self.Zoe_Depth_Map_Preprocessor = Zoe_Depth_Map_Preprocessor()
 
 class Mute:
     def __enter__(self):
@@ -227,11 +235,11 @@ class StableDiffusion:
             # mask_image = init_image.split()[-1]
             mask_image = None
 
-        if mask_image is not None:
-            try:
-                init_image = inpainting.infill_patchmatch(init_image)
-            except Exception as e:
-                print(f"Failed to outpaint the alpha layer {e}")
+        # if mask_image is not None:
+        #     try:
+        #         init_image = inpainting.infill_patchmatch(init_image)
+        #     except Exception as e:
+        #         print(f"Failed to outpaint the alpha layer {e}")
 
         # return init_image.convert("RGB"), mask_image
         return init_image.convert("RGB"), mask_image
@@ -268,39 +276,24 @@ class StableDiffusion:
         if mask_image is not None:
             mask_image = mask_image.resize((w, h), resample=Image.LANCZOS).convert('L')
             mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = torch.tensor(mask_image)
+            mask_image = 1 - torch.tensor(mask_image)
 
         match controlnet_mode:
             case "inpaint":
                 if mask_image is None:
-                    print("You chose inpaint controlnet and no mask was provided, ignoring..")
-                control = self.nodes.Inpaint_Preprocessor.preprocess(image, mask_image)[0]
-            # case "canny":
-            #     control = self.nodes.CannyProcessor.detect_edge(image)
-            # case "depth":
-            #     control = apply_depth(image)
-            # case "pose":
-            #     control = apply_pose(image)
-            # case "normal":  # deprecitated for normalbae
-            #     control = apply_normalbae(image)
-            # case "scribble":
-            #     control = apply_scribble(image)
-            # case "hed":
-            #     control = self.nodes.HED_Preprocessor(image)
-            # case "ip2p":
-            #     control = apply_base(image)
-            # case "softedge":
-            #     control = apply_softedge(image)
-            # case "mlsd":
-            #     control = apply_mlsd(image)
-            # case "lineart":
-            #     control = apply_lineart(image)
-            # case "lineart_anime":
-            #     control = apply_lineart_anime(image)
-            # case "shuffle":
-            #     control = apply_shuffle(image)
-            # case "qrcode":
-            #     control = apply_base(image)
+                    print(
+                        "You chose inpaint controlnet and no mask was provided, ignoring..")
+                control = self.nodes.Inpaint_Preprocessor.preprocess(
+                    image, mask_image)[0]
+            case "canny":
+                control = self.nodes.CannyProcessor.detect_edge(
+                    image, 100, 200, "disabled")[0]
+            case "hed": 
+                control = self.nodes.HED_Preprocessor.detect_boundary(
+                    image, version="v1.1", safe="enable")[0]
+            case "depth":
+                control = self.nodes.Zoe_Depth_Map_Preprocessor.estimate_depth(
+                    image)
             case _:
                 control = image
             #     print("Unknown control mode:", controlnet_mode)
@@ -394,10 +387,10 @@ class StableDiffusion:
         except Exception as e:
             print(f'Failed to delete diffusion touchup {e}')
 
-        if mask_image is not None:
-            image = support.repaste_and_color_correct(result=image,
-                                                      init_image=original_image,
-                                                      init_mask=mask_image, mask_blur_radius=8)
+        # if mask_image is not None:
+        #     image = support.repaste_and_color_correct(result=image,
+        #                                               init_image=original_image,
+        #                                               init_mask=mask_image, mask_blur_radius=8)
 
         # Used for adding details without changing resolution
         if keep_size:
@@ -428,14 +421,16 @@ class StableDiffusion:
             last_step=None,
             force_full_denoise=False
     ):
-
+        
+        #original_mask = mask_image.copy()
         self.active_model.to()
         if mask_image is not None:
-            mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32) \
-                .to(init_image.device if init_image is not None else device)
-            latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
-            latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
+            mask_image_latent = np.array(mask_image).astype(np.float32) / 255.0
+            mask_image_latent = 1. - torch.from_numpy(mask_image_latent).to(torch.float32)
+            source = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
+            empty_latent = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
+            destination = self.nodes.SetLatentNoiseMask.set_mask(empty_latent, mask_image_latent)[0]
+            latent = self.nodes.LatentCompositeMasked.composite(destination, source, x=0, y=0, mask = 1. - mask_image_latent)[0]
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
@@ -845,13 +840,13 @@ class StableDiffusion:
                     else:
                         out_image = starting_image
 
-                    if mask_image is not None:
-                        out_image = support.repaste_and_color_correct(
-                            result=out_image,
-                            init_image=starting_image,
-                            init_mask=original_mask,
-                            mask_blur_radius=8
-                        )
+                    # if mask_image is not None:
+                    #     out_image = support.repaste_and_color_correct(
+                    #         result=out_image,
+                    #         init_image=starting_image,
+                    #         init_mask=original_mask,
+                    #         mask_blur_radius=8
+                    #     )
 
                     # out_image.save("before.png")
                     if use_adetailer:  # if adetailer_enabled or smth
