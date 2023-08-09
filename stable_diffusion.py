@@ -284,7 +284,7 @@ class StableDiffusion:
                     print(
                         "You chose inpaint controlnet and no mask was provided, ignoring..")
                 control = self.nodes.Inpaint_Preprocessor.preprocess(
-                    image, mask_image)[0]
+                    image, ImageOps.invert(mask_image))[0]
             case "canny":
                 control = self.nodes.CannyProcessor.detect_edge(
                     image, 100, 200, "disabled")[0]
