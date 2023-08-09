@@ -20,7 +20,7 @@ sys.path.append("backend/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
-
+from PIL import ImageFilter
 from backend.ComfyUI.nodes import *
 from backend.ComfyUI.comfy_extras.nodes_mask import *
 # from backend.ComfyUI.comfy.cli_args import args
@@ -387,10 +387,10 @@ class StableDiffusion:
         except Exception as e:
             print(f'Failed to delete diffusion touchup {e}')
 
-        # if mask_image is not None:
-        #     image = support.repaste_and_color_correct(result=image,
-        #                                               init_image=original_image,
-        #                                               init_mask=mask_image, mask_blur_radius=8)
+        if mask_image is not None:
+            image = support.repaste_and_color_correct(result=image,
+                                                      init_image=original_image,
+                                                      init_mask=mask_image, mask_blur_radius=16)
 
         # Used for adding details without changing resolution
         if keep_size:
@@ -425,12 +425,13 @@ class StableDiffusion:
         #original_mask = mask_image.copy()
         self.active_model.to()
         if mask_image is not None:
+            mask_image = mask_image.filter(ImageFilter.GaussianBlur(8))
             mask_image_latent = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image_latent = 1. - torch.from_numpy(mask_image_latent).to(torch.float32)
+            mask_image_latent = 1 - torch.from_numpy(mask_image_latent).to(torch.float32)
             source = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
             empty_latent = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
             destination = self.nodes.SetLatentNoiseMask.set_mask(empty_latent, mask_image_latent)[0]
-            latent = self.nodes.LatentCompositeMasked.composite(destination, source, x=0, y=0, mask = 1. - mask_image_latent)[0]
+            latent = self.nodes.LatentCompositeMasked.composite(destination, source, x=0, y=0, mask = 1 - mask_image_latent)[0]
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
@@ -709,9 +710,9 @@ class StableDiffusion:
                     use_preprocessed_controlnet=use_preprocessed_controlnet,
                     models_dir=models_dir
                 )
-                if controlnet != "inpaint":
-                    print("None-ing init image because we use it for control")
-                    init_image = None
+                # if controlnet != "inpaint":
+                #     print("None-ing init image because we use it for control")
+                #     init_image = None
 
         if self.gpu_architecture == 'NVIDIA':
             torch.cuda.empty_cache()
@@ -840,13 +841,13 @@ class StableDiffusion:
                     else:
                         out_image = starting_image
 
-                    # if mask_image is not None:
-                    #     out_image = support.repaste_and_color_correct(
-                    #         result=out_image,
-                    #         init_image=starting_image,
-                    #         init_mask=original_mask,
-                    #         mask_blur_radius=8
-                    #     )
+                    if mask_image is not None:
+                        out_image = support.repaste_and_color_correct(
+                            result=out_image,
+                            init_image=starting_image,
+                            init_mask=original_mask,
+                            mask_blur_radius=16
+                        )
 
                     # out_image.save("before.png")
                     if use_adetailer:  # if adetailer_enabled or smth
