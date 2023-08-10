@@ -22,7 +22,7 @@ const Authentication = ({ Component, correctPassword, authenticatedKey }: { Comp
 
   return (
     <>
-      {!authenticated ? (  
+      {!authenticated[authenticatedKey] ? (  
         <Box width='100%' minHeight='80vh' display='flex' justifyContent='center' alignItems='center'>
           <VStack display='flex' justifyContent='center' alignItems='center' maxW={'500px'}>
             <Text fontSize='xl' mx='auto' textAlign='center' justifyContent='center'>{`Discover our latest feature in early access! Join us on Patreon as an early subscriber to try it out :)`}</Text>

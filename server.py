@@ -250,8 +250,10 @@ try:
         )
         if SDXL:
             command += '--no_half_vae '
-        if "Prodigy" in data["optimizerType"]:
+        if "prodigy" in data["optimizerType"].lower():
             command+= '--optimizer_args decouple=True weight_decay=0.5 betas=0.9,0.99 use_bias_correction=False '
+        if "adafactor" in data["optimizerType"].lower():
+            command+= '--optimizer_args scale_parameter=False relative_step=False warmup_init=False '
         print('COMMAND', command)
         try:
             subprocess.run(command, shell=True, check=True)
