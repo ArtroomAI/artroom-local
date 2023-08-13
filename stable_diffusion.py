@@ -219,12 +219,6 @@ class StableDiffusion:
             # mask_image = init_image.split()[-1]
             mask_image = None
 
-        if mask_image is not None:
-            try:
-                init_image = inpainting.infill_patchmatch(init_image)
-            except Exception as e:
-                print(f"Failed to outpaint the alpha layer {e}")
-
         # return init_image.convert("RGB"), mask_image
         return init_image.convert("RGB"), mask_image
 
@@ -398,6 +392,10 @@ class StableDiffusion:
             mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.device)
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
             latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
+
+            #Use this for inpainting model, probably preferred. Can we auto detect?
+            #latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae,      init_image.cpu(), mask_image.cpu())[0]
+
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
