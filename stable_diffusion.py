@@ -62,7 +62,7 @@ class NodeModules:
         self.Inpaint_Preprocessor = Inpaint_Preprocessor()
         self.SetLatentNoiseMask = SetLatentNoiseMask()
         self.LatentCompositeMasked = LatentCompositeMasked()
-        #self.VAEEncodeForInpaint = VAEEncodeForInpaint() #Doesn't get used in the comfyui workflow for some reason
+        self.VAEEncodeForInpaint = VAEEncodeForInpaint()
 
         #Controlnet Stuff
         self.ControlNetLoader = ControlNetLoader()
@@ -425,13 +425,10 @@ class StableDiffusion:
         #original_mask = mask_image.copy()
         self.active_model.to()
         if mask_image is not None:
-            mask_image = mask_image.filter(ImageFilter.GaussianBlur(8))
             mask_image_latent = np.array(mask_image).astype(np.float32) / 255.0
             mask_image_latent = 1 - torch.from_numpy(mask_image_latent).to(torch.float32)
-            source = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
-            empty_latent = self.nodes.EmptyLatentImage.generate(width=W, height=H, batch_size=batch_size)[0]
-            destination = self.nodes.SetLatentNoiseMask.set_mask(empty_latent, mask_image_latent)[0]
-            latent = self.nodes.LatentCompositeMasked.composite(destination, source, x=0, y=0, mask = 1 - mask_image_latent)[0]
+            latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae, init_image.cpu(), mask_image_latent.cpu())[0]
+
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
