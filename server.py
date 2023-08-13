@@ -14,9 +14,9 @@ try:
     import os
     import re
     import sys
-
+    import platform
     sys.path.append(os.curdir)
-    sys.path.append(os.path.join(os.curdir, 'lora_training'))
+    sys.path.append("lora_training/")
     sys.path.append("backend/ComfyUI/")
     from backend.ComfyUI import comfy
     from upscale import Upscaler
@@ -133,12 +133,15 @@ try:
         if 'upscale_dest' not in data or data['upscale_dest'] == '':
             data['upscale_dest'] = os.path.dirname(data['upscale_images'][0]) + '/upscale_outputs'
 
-        UP.upscale(
+        response = UP.upscale(
             data['models_dir'],
             data['upscale_images'],
             data['upscaler'],
             data['upscale_factor'],
             data['upscale_dest'])
+        
+        socketio.emit('upscale_completed', {'upscale_dest': data['upscale_dest']})
+
         socketio.emit('status', toast_status(
             title='Upscale Completed', description='Your upscale has completed',
             status='success', duration=2000, isClosable=False))
@@ -186,12 +189,18 @@ try:
         print("Setting up training...")
 
         try:
-            import toml
-            import albumentations
+            setup_command_libraries = f"{python_path} -m pip install ./lora_training"
+            _ = subprocess.run(setup_command_libraries, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except:
-            print('Installing lora dependencies...')
-            setup_command_dependencies = f"{python_path} -m pip install -r ./lora_training/requirements.txt --user --no-warn-script-location"
-            subprocess.run(setup_command_dependencies, shell=True, check=True)
+            print("Installation of lora setup failed, please rerun Artroom as admin and try again. We will fix this requirement soon!")
+            return 
+        
+        print('Checking lora dependencies...')
+        try:
+            setup_command_dependencies = f"{python_path} -m pip install -r requirements_lora.txt --user --no-warn-script-location"
+            _ = subprocess.run(setup_command_dependencies, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            print(f"Installing lora dependencies failed. Please reach out on discord or support@artroom.ai for help. Error code: {e}")
 
         training_images_path = os.path.join(base_path, "training_data", data["name"])
         # Clean slate of images
@@ -207,7 +216,7 @@ try:
         command = (
             f'"{python_path}" '
             f'"{accelerate_path}" launch '
-            '--num_cpu_threads_per_process=16 '
+            '--num_cpu_threads_per_process=1 '
             f'lora_training/{train_file} '
             f'--train_data_dir="{training_images_path}" '
             f'--output_name="{data["name"]}" '
@@ -215,7 +224,7 @@ try:
             f'--resolution={data["resolution"]} '
             f'--network_alpha={data["networkAlpha"]} '
             f'--max_train_steps={data["maxTrainSteps"]} '
-            f'--clip_skip={data["clipSkip"]} '
+            f'--clip_skip=1 '
             f'--text_encoder_lr={data["textEncoderLr"]} '
             f'--unet_lr={data["unetLr"]} '
             f'--network_dim={data["networkDim"]} '
@@ -239,12 +248,13 @@ try:
             '--xformers '
             '--bucket_no_upscale '
         )
-        try:
-            subprocess.run([python_path, "-m", "pip", "show", "library"], stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE, check=True)
-        except subprocess.CalledProcessError:
-            setup_command_libraries = f"{python_path} -m pip install ./lora_training"
-            subprocess.run(setup_command_libraries, shell=True, check=True)
+        if SDXL:
+            command += '--no_half_vae '
+        if "prodigy" in data["optimizerType"].lower():
+            command+= '--optimizer_args decouple=True weight_decay=0.5 betas=0.9,0.99 use_bias_correction=False '
+        if "adafactor" in data["optimizerType"].lower():
+            command+= '--optimizer_args scale_parameter=False relative_step=False warmup_init=False '
+        print('COMMAND', command)
         try:
             subprocess.run(command, shell=True, check=True)
             print("Lora Training has completed!")
@@ -563,4 +573,7 @@ except Exception as e:
 
     print("Runtime failed")
     print(e)
+    if "No module" in str(e):
+        print("Please go to Settings and Update Packages")
+
     time.sleep(120)

@@ -59,7 +59,7 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
   const getModels = async (folder: string) => ({
     ckpts: await getFiles(folder, MODELS_EXTENSIONS, ['Lora', 'ControlNet', 'Vae', 'upscalers', 'Embeddings']),
     loras: await getFiles(path.join(folder, 'Lora'), MODELS_EXTENSIONS),
-    vaes: await getFiles(path.join(folder, 'Vae'), MODELS_EXTENSIONS)
+    vaes: await getFiles(path.join(folder, 'Vae'), MODELS_EXTENSIONS),
   })
 
   const modelsWatcherCallback = (folder: string) => async () => {
@@ -72,6 +72,13 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
     }
     
     modelsWatcher.reassignWatcher(folder_path, modelsWatcherCallback(folder_path));
+
+    //Instantiate necessary folders:
+    getFiles(path.join(folder_path, 'Vae'), [])
+    getFiles(path.join(folder_path, 'Lora'), [])
+    getFiles(path.join(folder_path, 'Embeddings'), [])
+    getFiles(path.join(folder_path, 'ControlNet'), [])
+    getFiles(path.join(folder_path, 'upscalers'), [])
 
     return getModels(folder_path);
   });
@@ -115,6 +122,11 @@ export const filesHandles = (mainWindow: Electron.BrowserWindow) => {
 
   ipcMain.handle('showInExplorer', async (_, data) => {
     shell.openPath(path.resolve(data));
+  });
+
+  
+  ipcMain.handle('showItemInFolder', async (_, data) => {
+    shell.showItemInFolder(path.resolve(data));
   });
 
   ipcMain.handle('getImageFromPath', async (_, image_path: string) => {

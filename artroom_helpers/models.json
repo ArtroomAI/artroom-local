@@ -1,0 +1,12 @@
+{
+    "models": [
+        {
+            "name": "SDXL_base_v1.0",
+            "url": "https://civitai.com/api/download/models/128078"
+        },
+        {
+            "name": "SDXL_refiner_v1.0",
+            "url": "https://civitai.com/api/download/models/128080"
+        }
+    ]
+}

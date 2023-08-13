@@ -25,7 +25,9 @@ import {
     AccordionPanel,
     GridItem,
     Grid,
-    Divider
+    Divider,
+    RadioGroup,
+    Radio
 } from '@chakra-ui/react';
 import {
     FaFolder,
@@ -37,6 +39,7 @@ import { useDropzone } from 'react-dropzone';
 import { useRecoilValue } from 'recoil';
 import { imageSavePathState, modelsDirState, modelsState } from '../SettingsManager';
 import path from 'path';
+import Authentication from './Authentication/Authentication';
 
 function Trainer () {
     const toast = useToast({});
@@ -54,10 +57,9 @@ function Trainer () {
     const [resolutionHeight, setResolutionHeight] = useState(512);
     const [numRepeats, setNumRepeats] = useState(10);
     const [maxTrainSteps, setMaxTrainSteps] = useState(1000);
-    const [saveEveryNEpochs, setSaveEveryNEpochs] = useState(1);
+    const [saveEveryNEpochs, setSaveEveryNEpochs] = useState(100);
     const [trainBatchSize, setTrainBatchSize] = useState(1);
     const [networkAlpha, setNetworkAlpha] = useState(128);
-    const [clipSkip, setClipSkip] = useState(1);
     const [textEncoderLr, setTextEncoderLr] = useState(0.00005);
     const [unetLr, setUnetLr] = useState(0.0001);
     const [networkDim, setNetworkDim] = useState(64);
@@ -68,7 +70,57 @@ function Trainer () {
     const [bucketResoSteps, setBucketResoSteps] = useState(64);
     const [minBucketReso, setMinBucketReso] = useState(384);
     const [maxBucketReso, setMaxBucketReso] = useState(1024);
+    const [activePreset, setActivePreset] = useState("None")
 
+    const handleRadioChange = (preset: string) => {
+        setActivePreset(preset);
+        if (preset == "SDXL"){
+            handleSDXLPresets()
+        }
+        if (preset == "SDv1.5"){
+            handleSDv1Presets()
+        }
+    }
+
+    const handleSDv1Presets = () => {
+        setResolutionWidth(512)
+        setResolutionHeight(512)
+        setNumRepeats(10)
+        setMaxTrainSteps(1000)
+        setSaveEveryNEpochs(200)
+        setTrainBatchSize(1)
+        setNetworkAlpha(1)
+        setTextEncoderLr(0.0004)
+        setUnetLr(0.0004)
+        setNetworkDim(32)
+        setLrSchedulerNumCycles(1)
+        setLearningRate(0.0004)
+        setLrScheduler("constant")
+        setOptimizerType("Adafactor")
+        setBucketResoSteps(64)
+        setMinBucketReso(256)
+        setMaxBucketReso(1024)
+    }
+    0.0004
+    const handleSDXLPresets = () => {
+        setResolutionWidth(1024)
+        setResolutionHeight(1024)
+        setNumRepeats(10)
+        setMaxTrainSteps(500)
+        setSaveEveryNEpochs(100)
+        setTrainBatchSize(1)
+        setNetworkAlpha(1)
+        setNetworkDim(32)
+        setTextEncoderLr(0.0004)
+        setUnetLr(0.0004)
+        setLrSchedulerNumCycles(1)
+        setLearningRate(0.0004)
+        setLrScheduler("constant")
+        setOptimizerType("Adafactor")
+        setBucketResoSteps(64)
+        setMinBucketReso(512)
+        setMaxBucketReso(2048)
+    }
 
     const chooseUploadPath = () => {
         window.api.chooseImages().then(setImages);
@@ -158,7 +210,6 @@ function Trainer () {
             numRepeats: `${numRepeats}`,
             networkAlpha: `${networkAlpha}`,
             maxTrainSteps: `${maxTrainSteps}`,
-            clipSkip: `${clipSkip}`,
             textEncoderLr: `${textEncoderLr}`,
             unetLr: `${unetLr}`,
             networkDim: `${networkDim}`,
@@ -250,7 +301,7 @@ function Trainer () {
                         className="name"
                         width="full">
                         <FormLabel htmlFor="name">
-                            {`Name`}
+                            {`File Name`}
                         </FormLabel>
                         <HStack>
                             <Input
@@ -321,7 +372,19 @@ function Trainer () {
                             </option>))}
                         </Select>
                     </FormControl>
-
+                    <RadioGroup onChange={handleRadioChange} value={activePreset}>
+                        <Stack direction="row" spacing={4}>
+                            <Radio value={"None"} colorScheme={activePreset === "None" ? "blue" : "gray"}>
+                                Custom
+                            </Radio>
+                            <Radio value={"SDv1.5"} colorScheme={activePreset === "SDv1.5" ? "blue" : "gray"}>
+                            SDv1.5 Preset
+                            </Radio>
+                            <Radio value={"SDXL"} colorScheme={activePreset === "SDXL" ? "blue" : "gray"}>
+                            SDXL Preset
+                            </Radio>
+                        </Stack>
+                        </RadioGroup>
                     <Accordion width='100%' allowToggle borderWidth={0} borderRadius={0}>
                         <AccordionItem borderWidth={0} borderRadius={0}>
                             <AccordionButton borderWidth={0} borderRadius={0} >
@@ -331,6 +394,7 @@ function Trainer () {
                                 <AccordionIcon />
                             </AccordionButton>
                             <AccordionPanel pb={4}>
+                            
                             <Grid templateColumns="repeat(2, 1fr)" gap={6}>
                                 <GridItem>
                                 <FormControl>
@@ -393,14 +457,6 @@ function Trainer () {
                                 </GridItem>
                                 <GridItem>
                                 <FormControl>
-                                    <FormLabel>Clip Skip</FormLabel>
-                                    <NumberInput min={1} max={5} value={clipSkip} onChange={value => setClipSkip(parseInt(value))}  >
-                                    <NumberInputField />
-                                    </NumberInput>
-                                </FormControl>
-                                </GridItem>
-                                <GridItem>
-                                <FormControl>
                                     <FormLabel>Text Encoder Learning Rate</FormLabel>
                                     <NumberInput min={0} max={1} value={textEncoderLr} onChange={value => setTextEncoderLr(parseFloat(value))}  >
                                     <NumberInputField />
@@ -450,12 +506,15 @@ function Trainer () {
                                 <FormControl>
                                     <FormLabel>Optimizer Type</FormLabel>
                                     <Select value={optimizerType} onChange={(e) => setOptimizerType(e.target.value)}>
+                                    <option value="Prodigy">Prodigy</option>
                                     <option value="AdamW">AdamW</option>
                                     <option value="AdamW8bit">AdamW8bit</option>
+                                    <option value="PagedAdamW8bit">PagedAdamW8bit</option>
                                     <option value="Lion">Lion</option>
                                     <option value="SGDNesterov">SGDNesterov</option>
                                     <option value="SGDNesterov8bit">SGDNesterov8bit</option>
                                     <option value="Lion8bit">Lion8bit</option>
+                                    <option value="PagedLion8bit">PagedLion8bit</option>
                                     <option value="DAdaptation(DAdaptAdamPreprint)">DAdaptation(DAdaptAdamPreprint)</option>
                                     <option value="DAdaptAdaGrad">DAdaptAdaGrad</option>
                                     <option value="DAdaptAdam">DAdaptAdam</option>
@@ -516,4 +575,10 @@ function Trainer () {
     );
 }
 
-export default Trainer;
+const AuthenticatedTrainer = () => {
+    return (
+        <Authentication Component={Trainer} correctPassword="TEST" authenticatedKey={'LoraTraining'}/>
+    );
+  };
+  
+  export default AuthenticatedTrainer;

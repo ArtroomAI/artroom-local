@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import {
     Box,
     Button,
@@ -20,7 +20,7 @@ import {
 import {
     FaQuestionCircle
 } from 'react-icons/fa';
-import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, showIntermediatesState, artroomPathState, debugModeState } from '../SettingsManager';
+import { highresFixState, imageSavePathState, longSavePathState, modelsDirState, saveGridState, showIntermediatesState, artroomPathState, debugModeState, gpuTypeState } from '../SettingsManager';
   
 function Settings () {
     const toast = useToast({});
@@ -41,7 +41,8 @@ function Settings () {
     const [saveGridTemp, setSaveGridTemp] = useState(saveGrid);
     const [modelsDirTemp, setModelsDirTemp] = useState(modelsDir);
     
-    const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
+    const artroomPath = useRecoilValue(artroomPathState);
+    const gpuType = useRecoilValue(gpuTypeState);
     const [downloadMessage, setDownloadMessage] = useState('');
 
     // load defaults
@@ -309,7 +310,18 @@ function Settings () {
                         alignContent="center"
                         className="reinstall-python-dependencies"
                         onClick={()=>{
-                                window.api.pythonInstallDependencies(artroomPath) 
+                                toast({
+                                    id: 'updating-packages',
+                                    title: 'Updating Packages',
+                                    description: `Updating and savings logs to ${artroomPath}\\artroom\\logs`,
+                                    status: 'info',
+                                    position: 'top',
+                                    duration: 5000,
+                                    isClosable: true
+                                });
+                                window.api.pythonInstallDependencies(artroomPath, gpuType).then(()=>{
+                                    window.api.restartServer(artroomPath, debugModeTemp)
+                                })
                            }}>
                         Update Packages
                     </Button>

@@ -4,6 +4,10 @@ export const openLinksHandles = () => {
   ipcMain.handle("openDiscord", () => {
     shell.openExternal(`https://discord.gg/XNEmesgTFy`);
   });
+
+  ipcMain.handle("openPatreon", () => {
+    shell.openExternal(`https://www.patreon.com/ArtroomAI`);
+  });
   
   ipcMain.handle("openWebsite", () => {
     shell.openExternal(`https://artroom.ai`);

@@ -106,7 +106,9 @@ class Upscaler():
                 output_images = self.GFPGAN(images, upscaler, upscale_factor, upscale_dest)
             elif "RealESRGAN" in upscaler or 'UltraSharp' in upscaler:
                 output_images = self.RealESRGAN(images, upscaler, upscale_factor, upscale_dest)
-            
+            else:
+                print(f"Failed to recognize upscaler {upscaler}")
+                output_images = []
             self.running = False
             return {"status": "Success", "status_message": "", "content": {"output_images": output_images}}
 

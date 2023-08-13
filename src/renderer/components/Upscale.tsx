@@ -32,13 +32,18 @@ function Upscale () {
     const toast = useToast({});
     const [upscale_images, setUpscaleImages] = useState<string[]>([]);
     const [upscale_dest, setUpscaleDest] = useState('');
-    const [upscaler, setUpscaler] = useState('ESRGAN');
+    const [upscaler, setUpscaler] = useState('');
     const [upscale_factor, setUpscaleFactor] = useState(2);
     const [upscale_strength, setUpscaleStrength] = useState(0.5);
     const imageSavePath = useRecoilValue(imageSavePathState);
     const modelsDir = useRecoilValue(modelsDirState);
 
     const socket = useContext(SocketContext);
+    // Listen for a response from the server for the 'upscale' event
+    socket.on('upscale_completed', function(response) {
+        // Handle the response from the server here
+        window.api.showItemInFolder(response.upscale_dest)
+    });
 
     const chooseUploadPath = () => {
         window.api.chooseImages().then(setUpscaleImages);
@@ -83,6 +88,19 @@ function Upscale () {
       };
 
     const upscale = useCallback(() => {
+        if (!upscaler.length){
+            toast({
+                title: 'Please select an upscaler',
+                status: 'error',
+                position: 'top',
+                duration: 3000,
+                isClosable: true,
+                containerStyle: {
+                    pointerEvents: 'none'
+                }
+            });   
+            return;
+        }
         toast({
             title: 'Received!',
             description: 'You\'ll get a notification 🔔 when your upscale is ready! (First time upscales make take longer while it downloads the models)',
@@ -235,7 +253,7 @@ function Upscale () {
                                 variant="outline"
                                 w="300px"
                             >
-                                <option value="Choose Upscaler">
+                                <option value="">
                                     Choose Upscaler
                                 </option>
 

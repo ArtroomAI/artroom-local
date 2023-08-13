@@ -16,6 +16,15 @@ export const artroomPathState = atom<string>({
     effects_UNSTABLE: [persistAtom]
 });
 
+export const authenticatedState = atom({
+    key: "authenticatedState",
+    default: {
+        LoraTraining: false
+    },
+    effects_UNSTABLE: [persistAtom]
+});
+
+
 export const modelsDirState = atom<string>({
     key: "models_dir",
     default: path.join(os.homedir() || "", 'artroom', 'model_weights'),
@@ -217,6 +226,12 @@ export const runTypeState = atom<string>({
 export const debugModeState = atom<boolean>({
     key: 'debug_mode',
     default: false,
+    effects_UNSTABLE: [persistAtom]
+});
+
+export const gpuTypeState = atom<string>({
+    key: 'gpuType',
+    default: 'NVIDIA',
     effects_UNSTABLE: [persistAtom]
 });
 

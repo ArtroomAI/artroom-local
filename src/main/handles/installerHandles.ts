@@ -6,49 +6,12 @@ import yauzl from "yauzl";
 import axios from 'axios';
 import { pipeline as _pipeline } from 'stream';
 import { promisify } from 'util';
-import gpuInfo from 'gpu-info';
+
 const pipeline = promisify(_pipeline);
 
 let installationProcess: ChildProcessWithoutNullStreams;
 
-const detectGPU = async () => {
-  try {
-    // Check if it's a Mac
-    if (process.platform === 'darwin') {
-      return 'Mac';
-    }
 
-    // Check if it's a NVIDIA GPU on Windows
-    if (process.platform === 'win32') {
-      const gpus = await gpuInfo();
-      const nvidiaGPU = gpus.find(
-        (gpu : any) => gpu.vendor.toLowerCase() === 'nvidia'
-      );
-      if (nvidiaGPU) {
-        return 'NVIDIA';
-      }
-    }
-
-    // Check if it's an AMD GPU on Windows
-    if (process.platform === 'win32') {
-      const gpus = await gpuInfo();
-      const amdGPU = gpus.find(
-        (gpu : any) => gpu.vendor.toLowerCase() === 'amd'
-      );
-      if (amdGPU) {
-        return 'AMD';
-      }
-    }
-
-    // Add detection logic for other GPU vendors if needed
-
-    // No GPU detected
-    return 'NVIDIA';
-  } catch (error) {
-    console.error('GPU detection failed:', error);
-    return 'NVIDIA';
-  }
-};
 
 const toMB = (n: number) => (n / 1048576).toFixed(2); //1048576 - bytes in 1 MB
 
@@ -125,8 +88,7 @@ function unzipFile(PATH_zip: string, artroomPath: string, mainWindow: Electron.B
   })
 }
 
-const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artroomPath: string) => {
-    const gpuType = await detectGPU();
+const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artroomPath: string, gpuType: string) => {
     console.log("REINSTALL BACKEND")
     console.log(`VANILLA PATH: ${artroomPath}`)
     const URL = gpuType === 'AMD' ? 
@@ -158,7 +120,7 @@ const backupPythonInstallation = async (mainWindow: Electron.BrowserWindow, artr
     if(!success) return;
 
     await unzipFile(PATH_zip, artroomPath, mainWindow);
-    await reinstallPythonDependencies(artroomPath, mainWindow);
+    await reinstallPythonDependencies(artroomPath, gpuType, mainWindow);
     mainWindow.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
     console.log('DONE')
     return
@@ -227,26 +189,83 @@ async function download_via_https(name: string, URL: string, file_path: string, 
 
 const MAX_INSTALL_RETRIES = 3;
 
-const reinstallPythonDependencies = async (artroomPath: string, mainWindow?: Electron.BrowserWindow) => {
-  const gpuType = await detectGPU();
-  console.log("REINSTALLING DEPENDENCIES");
-  const PATH = path.join(artroomPath, "artroom", "artroom_backend");
-  const PATH_requirements = gpuType === 'AMD' ? 
-  path.resolve('requirements_amd.txt') 
-  : 
-  path.resolve('requirements_nvidia.txt');
+const logToConsoleAndFile = async (logMessage : string, logFilePath : string) => {
+  console.log(logMessage);
+  const log = `${logMessage}\n`;
+  await promisify(fs.appendFile)(logFilePath, log, 'utf8');
+};
 
-  const installationCommand = `"${PATH}/python" -m pip install --upgrade pip && "${PATH}/python" -m pip install -r "${PATH_requirements}"`;
+// Function to delete a file if it exists
+async function deleteIfExists(filePath : string) {
+  return new Promise<void>((resolve, reject) => {
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+      if (!err) {
+        fs.unlink(filePath, (deleteErr) => {
+          if (deleteErr) {
+            reject(deleteErr);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        resolve();
+      }
+    });
+  });
+}
 
-  try {
-    await executeInstallationCommand(installationCommand);
-    mainWindow?.webContents.send('fixButtonProgress', `Finished downloading and installing required files!`);
-    return;
-  } catch (error) {
-    console.error(`Error reinstalling Python dependencies: ${error}`);
-    mainWindow?.webContents.send('fixButtonProgress', `Error: ${error.message}`);
+const reinstallPythonDependencies = async (artroomPath: string, gpuType: string, mainWindow?: Electron.BrowserWindow) => {
+  const logsDirectory = path.join(artroomPath, 'artroom', 'logs');
+  console.log('artroomLogs',logsDirectory)
+
+  if (!fs.existsSync(logsDirectory)) {
+    await promisify(fs.mkdir)(logsDirectory, { recursive: true });
   }
-  mainWindow?.webContents.send('fixButtonProgress', `Failed to reinstall Python dependencies after ${MAX_INSTALL_RETRIES} retries.`);
+
+  const logFilePath = path.join(logsDirectory, 'reinstall_logs.txt');
+  await deleteIfExists(logFilePath)
+  try {
+    await logToConsoleAndFile('Update Package Logs', logFilePath);
+
+    const PATH = path.join(artroomPath, 'artroom', 'artroom_backend');
+    const PATH_requirements = gpuType === 'AMD' ? 
+      path.resolve('requirements_amd.txt') 
+      : 
+      path.resolve('requirements_nvidia.txt');
+
+    const installationCommand = `"${PATH}/python" -m pip install --upgrade pip && "${PATH}/python" -m pip install -r "${PATH_requirements}"`;
+
+    const childProcess = exec(installationCommand);
+
+    // Redirect the output of the command to the log file
+    childProcess.stdout.on('data', (data) => {
+      logToConsoleAndFile(data.toString(), logFilePath);
+    });
+
+    childProcess.stderr.on('data', (data) => {
+      logToConsoleAndFile(data.toString(), logFilePath);
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      childProcess.on('exit', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Installation command failed with code ${code}`));
+        }
+      });
+    });
+
+    const successMessage = 'Finished downloading and installing required files!';
+    await logToConsoleAndFile(successMessage, logFilePath);
+    mainWindow?.webContents.send('fixButtonProgress', successMessage);
+  } catch (error) {
+    const errorMessage = `Error reinstalling Python dependencies: ${error}`;
+    await logToConsoleAndFile(errorMessage, logFilePath);
+    console.error(errorMessage);
+    mainWindow?.webContents.send('fixButtonProgress', `Error: ${error.message}`);
+    mainWindow?.webContents.send('fixButtonProgress', `Failed to reinstall Python dependencies after ${MAX_INSTALL_RETRIES} retries.`);
+  }
 };
 
 async function executeInstallationCommand(command: string): Promise<void> {
@@ -320,11 +339,12 @@ const downloadStarterModels = async (mainWindow: Electron.BrowserWindow, dir: st
 }
 
 export const installerHandles = (mainWindow: Electron.BrowserWindow) => {
-  ipcMain.handle('pythonInstall', (_, artroomPath) => {
-    return backupPythonInstallation(mainWindow, artroomPath);
+  ipcMain.handle('pythonInstall', (_, artroomPath, gpuType) => {
+    return backupPythonInstallation(mainWindow, artroomPath, gpuType);
   });    
-  ipcMain.handle('pythonInstallDependencies', (_, artroomPath) => {
-    return reinstallPythonDependencies(artroomPath, mainWindow);
+  
+  ipcMain.handle('pythonInstallDependencies', (_, artroomPath, gpuType) => {
+    return reinstallPythonDependencies(artroomPath, gpuType, mainWindow);
   });    
   ipcMain.handle('backupDownload', (_, artroomPath) => {
     return backupDownload(artroomPath, mainWindow);

@@ -234,13 +234,7 @@ class StableDiffusion:
             # If it's completely empty, comes from paint tab with nothing there. Send back empty array
             # mask_image = init_image.split()[-1]
             mask_image = None
-
-        # if mask_image is not None:
-        #     try:
-        #         init_image = inpainting.infill_patchmatch(init_image)
-        #     except Exception as e:
-        #         print(f"Failed to outpaint the alpha layer {e}")
-
+            
         # return init_image.convert("RGB"), mask_image
         return init_image.convert("RGB"), mask_image
 
@@ -429,6 +423,10 @@ class StableDiffusion:
             mask_image_latent = 1 - torch.from_numpy(mask_image_latent).to(torch.float32)
             latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae, init_image.cpu(), mask_image_latent.cpu())[0]
 
+            #This is good when there is image variation strength (not used for outpainting though)
+            latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
+            latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
+
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
         else:
@@ -578,7 +576,6 @@ class StableDiffusion:
         if "sd_xl" in ckpt:
             controlnet = "none"
             vae = "none"
-            loras = []
 
         if len(init_image_str) == 0:
             controlnet = 'none'
