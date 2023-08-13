@@ -14,17 +14,21 @@ from glob import glob
 from torch.profiler import profile, record_function, ProfilerActivity
 
 sys.path.append("backend/ComfyUI/")
+sys.path.append("backend/ComfyUI/custom_nodes/")
 sys.path.append("backend/")
 # sys.path.append("artroom_helpers/adetailer/")
 from artroom_helpers.gpu_detect import get_device, get_gpu_architecture
 from transformers import logging as tflogging
 from upscale import Upscaler
-
+from PIL import ImageFilter
 from backend.ComfyUI.nodes import *
+from backend.ComfyUI.comfy_extras.nodes_mask import *
 # from backend.ComfyUI.comfy.cli_args import args
 from backend.ComfyUI.comfy.sd import model_lora_keys_unet, model_lora_keys_clip, load_lora
 from backend.ComfyUI.latent_preview import Latent2RGBPreviewer
 from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.others import Inpaint_Preprocessor
+from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.edge_line import *
+from backend.custom_nodes.comfy_controlnet_preprocessors.nodes.normal_depth_map import Zoe_Depth_Map_Preprocessor
 
 # from artroom_helpers.adetailer.adetailer import ADetailerArgs
 # from artroom_helpers.adetailer.adetailer_module import AfterDetailerScript
@@ -44,20 +48,28 @@ class NodeModules:
         self.CLIPTextEncode = CLIPTextEncode()
         self.LoadImage = LoadImage()
         self.LoadImageMask = LoadImageMask()
+        self.EmptyLatentImage = EmptyLatentImage()
         self.KSampler = KSampler()
         self.KSamplerAdvanced = KSamplerAdvanced()
         self.SetLatentNoiseMask = SetLatentNoiseMask()
         self.VAEDecode = VAEDecode()
         self.VAEDecodeTiled = VAEDecodeTiled()
         self.LoraLoader = LoraLoader()
+        self.VAELoader = VAELoader()
+        self.VAEEncode = VAEEncode()
+
+        #Inpainting Stuff
+        self.Inpaint_Preprocessor = Inpaint_Preprocessor()
+        self.SetLatentNoiseMask = SetLatentNoiseMask()
+        self.LatentCompositeMasked = LatentCompositeMasked()
+        self.VAEEncodeForInpaint = VAEEncodeForInpaint()
+
+        #Controlnet Stuff
         self.ControlNetLoader = ControlNetLoader()
         self.ControlNetApply = ControlNetApply()
-        self.VAELoader = VAELoader()
-        self.VAEEncodeForInpaint = VAEEncodeForInpaint()
-        self.VAEEncode = VAEEncode()
-        self.EmptyLatentImage = EmptyLatentImage()
-        self.Inpaint_Preprocessor = Inpaint_Preprocessor()
-
+        self.CannyProcessor = Canny_Edge_Preprocessor()
+        self.HED_Preprocessor = HED_Preprocessor()
+        self.Zoe_Depth_Map_Preprocessor = Zoe_Depth_Map_Preprocessor()
 
 class Mute:
     def __enter__(self):
@@ -155,7 +167,11 @@ class Model:
         self.clip.unpatch_model()
 
     def inject_controlnet(self, controlnet_path):
-        self.controlnet = comfy.sd.load_controlnet(controlnet_path)
+        try:
+            self.controlnet = comfy.sd.load_controlnet(controlnet_path)
+        except Exception as e:
+            print(f"Loading controlnet failed {e}")
+            self.controlnet = None
 
     def deinject_controlnet(self):
         del self.controlnet
@@ -218,7 +234,7 @@ class StableDiffusion:
             # If it's completely empty, comes from paint tab with nothing there. Send back empty array
             # mask_image = init_image.split()[-1]
             mask_image = None
-
+            
         # return init_image.convert("RGB"), mask_image
         return init_image.convert("RGB"), mask_image
 
@@ -247,22 +263,36 @@ class StableDiffusion:
 
         w, h = map(lambda x: x - x % 64, (w, h))
         # print(f"New image size ({w}, {h})")
-        image = image.resize((w, h), resample=Image.LANCZOS)
+        image = image.resize((w, h), resample=Image.LANCZOS).convert("RGB")
+        image = np.array(image).astype(np.float32) / 255.0
+        image = torch.tensor(image)[None,]
 
-        if controlnet_mode in ['scribble']:
-            image = support.invert_rgb_mask(image)
-        image = HWC3(np.array(image))
-        if not use_preprocessed_controlnet:
-            if controlnet_mode == 'inpaint' and mask_image:
-                control = apply_inpaint(image, mask_image)
-            else:
-                control = apply_controlnet(image, controlnet_mode, models_dir)
-        else:
-            control = 1 - torch.from_numpy(image.copy()).float() / 255.0
-            control = torch.stack([control for _ in range(1)], dim=0)
-            control = rearrange(control, 'b h w c -> b c h w').clone()
-        if self.gpu_architecture == 'NVIDIA':
-            control = control.cuda()
+        if mask_image is not None:
+            mask_image = mask_image.resize((w, h), resample=Image.LANCZOS).convert('L')
+            mask_image = np.array(mask_image).astype(np.float32) / 255.0
+            mask_image = 1 - torch.tensor(mask_image)
+
+        match controlnet_mode:
+            case "inpaint":
+                if mask_image is None:
+                    print(
+                        "You chose inpaint controlnet and no mask was provided, ignoring..")
+                control = self.nodes.Inpaint_Preprocessor.preprocess(
+                    image, mask_image)[0]
+            case "canny":
+                control = self.nodes.CannyProcessor.detect_edge(
+                    image, 100, 200, "disabled")[0]
+            case "hed": 
+                control = self.nodes.HED_Preprocessor.detect_boundary(
+                    image, version="v1.1", safe="enable")[0]
+            case "depth":
+                control = self.nodes.Zoe_Depth_Map_Preprocessor.estimate_depth(
+                    image)
+            case _:
+                control = image
+            #     print("Unknown control mode:", controlnet_mode)
+            #     return None
+
         return control.to(self.device)
 
     def diffusion_upscale(
@@ -354,7 +384,7 @@ class StableDiffusion:
         if mask_image is not None:
             image = support.repaste_and_color_correct(result=image,
                                                       init_image=original_image,
-                                                      init_mask=mask_image, mask_blur_radius=8)
+                                                      init_mask=mask_image, mask_blur_radius=16)
 
         # Used for adding details without changing resolution
         if keep_size:
@@ -385,16 +415,17 @@ class StableDiffusion:
             last_step=None,
             force_full_denoise=False
     ):
-
+        
+        #original_mask = mask_image.copy()
         self.active_model.to()
         if mask_image is not None:
-            mask_image = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image = 1. - torch.from_numpy(mask_image).to(torch.float32).to(init_image.device)
+            mask_image_latent = np.array(mask_image).astype(np.float32) / 255.0
+            mask_image_latent = 1 - torch.from_numpy(mask_image_latent).to(torch.float32)
+            latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae, init_image.cpu(), mask_image_latent.cpu())[0]
+
+            #This is good when there is image variation strength (not used for outpainting though)
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
             latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
-
-            #Use this for inpainting model, probably preferred. Can we auto detect?
-            #latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae,      init_image.cpu(), mask_image.cpu())[0]
 
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
@@ -590,7 +621,7 @@ class StableDiffusion:
             self.active_model.setup_lora(loras)
 
         self.active_model.load_vae(vae)
-        self.active_model.setup_controlnet(controlnet_path)
+        self.active_model.setup_controlnet(controlnet_path=controlnet_path)
         self.active_model.to()
 
         self.socketio.emit('status', toast_status(
@@ -673,6 +704,9 @@ class StableDiffusion:
                     use_preprocessed_controlnet=use_preprocessed_controlnet,
                     models_dir=models_dir
                 )
+                # if controlnet != "inpaint":
+                #     print("None-ing init image because we use it for control")
+                #     init_image = None
 
         if self.gpu_architecture == 'NVIDIA':
             torch.cuda.empty_cache()
@@ -728,7 +762,7 @@ class StableDiffusion:
         negative_cond = self.nodes.CLIPTextEncode.encode(self.active_model.clip, negative_prompts_data)[0]
 
         if controlnet is not None and controlnet != "none":
-            control_image = control_image.permute(0, 2, 3, 1)
+            # control_image = control_image.permute(0, 2, 3, 1)
             positive_cond = self.nodes.ControlNetApply.apply_controlnet(
                 positive_cond, self.active_model.controlnet, control_image, controlnet_strength)[0]
             print(f"Applying controlnet {controlnet}")
@@ -806,7 +840,7 @@ class StableDiffusion:
                             result=out_image,
                             init_image=starting_image,
                             init_mask=original_mask,
-                            mask_blur_radius=8
+                            mask_blur_radius=16
                         )
 
                     # out_image.save("before.png")

@@ -30,9 +30,5 @@ pydantic
 protobuf>=3.20
 ultralytics
 fvcore
-google-auth-oauthlib>=0.5
-tensorboard
-mediapipe
-omegaconf
-ftfy
-insightface
+prettytable==3.6.0
+
