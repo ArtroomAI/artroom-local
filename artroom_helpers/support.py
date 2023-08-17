@@ -6,6 +6,7 @@ from PIL.Image import Image as ImageType
 import numpy as np
 from io import BytesIO
 import re
+import torch
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
@@ -148,3 +149,40 @@ def repaste_and_color_correct(result: Image.Image, init_image: Image.Image, init
 
     matched_result.paste(rgb_image, (0, 0), mask=blurred_init_mask)
     return matched_result
+
+def feather_mask(mask: torch.Tensor, feathering: int) -> torch.Tensor:
+    """
+    Applies feathering to the edges of a mask.
+    
+    Parameters:
+        mask (torch.Tensor): A 2D binary mask tensor where 1 represents the image and 0 represents the border.
+        feathering (int): Amount of feathering to apply.
+
+    Returns:
+        torch.Tensor: A feathered mask.
+    """
+    # Get dimensions of the mask
+    d1, d2 = mask.shape
+    
+    # Create a tensor to store the feathered values
+    feathered_mask = torch.zeros((d1, d2), dtype=torch.float32)
+    
+    for i in range(d1):
+        for j in range(d2):
+            if mask[i, j] == 1: # Only process the parts of the mask that are set to 1
+                # Calculate the distance to each of the four borders
+                dt = i
+                db = d1 - i - 1
+                dl = j
+                dr = d2 - j - 1
+                
+                # Get the minimum distance to any border
+                d = min(dt, db, dl, dr)
+                
+                if d >= feathering:
+                    feathered_mask[i, j] = 1
+                else:
+                    v = (feathering - d) / feathering
+                    feathered_mask[i, j] = 1 - (v * v)
+    
+    return feathered_mask

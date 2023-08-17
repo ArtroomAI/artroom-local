@@ -384,7 +384,7 @@ class StableDiffusion:
         if mask_image is not None:
             image = support.repaste_and_color_correct(result=image,
                                                       init_image=original_image,
-                                                      init_mask=mask_image, mask_blur_radius=16)
+                                                      init_mask=mask_image, mask_blur_radius=40)
 
         # Used for adding details without changing resolution
         if keep_size:
@@ -419,13 +419,20 @@ class StableDiffusion:
         #original_mask = mask_image.copy()
         self.active_model.to()
         if mask_image is not None:
+            start_time = time.time()
             mask_image_latent = np.array(mask_image).astype(np.float32) / 255.0
-            mask_image_latent = 1 - torch.from_numpy(mask_image_latent).to(torch.float32)
-            latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae, init_image.cpu(), mask_image_latent.cpu())[0]
+            mask_image_latent = torch.from_numpy(mask_image_latent).to(torch.float32)
+            mask_image_latent = 1 - support.feather_mask(mask_image_latent, feathering=40)
 
-            #This is good when there is image variation strength (not used for outpainting though)
-            latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
-            latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image)[0]
+            print("Feathering time", time.time()-start_time)
+            if denoise == 1.0:
+                print("Using VAE Encode for Inpainting")
+                latent = self.nodes.VAEEncodeForInpaint.encode(self.active_model.vae, init_image.cpu(), mask_image_latent.cpu())[0]
+            else:
+                #This is good when there is image variation strength (not used for outpainting though)
+                print("Using VAE Encode with Latent Mask")
+                latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
+                latent = self.nodes.SetLatentNoiseMask.set_mask(latent, mask_image_latent)[0]
 
         elif init_image is not None:
             latent = self.nodes.VAEEncode.encode(self.active_model.vae, init_image)[0]
@@ -840,7 +847,7 @@ class StableDiffusion:
                             result=out_image,
                             init_image=starting_image,
                             init_mask=original_mask,
-                            mask_blur_radius=16
+                            mask_blur_radius=40
                         )
 
                     # out_image.save("before.png")
