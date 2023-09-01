@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useRecoilState, useRecoilValue } from "recoil";
+import React, { useEffect, useState } from 'react'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   Modal,
   ModalOverlay,
@@ -19,140 +19,128 @@ import {
   Radio,
   HStack,
   Box,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react'
 import {
   artroomPathState,
   debugModeState,
   modelsDirState,
   cloudOnlyState,
   gpuTypeState,
-} from "./SettingsManager";
-import path from "path";
-import gpuInfo from "gpu-info";
+} from './SettingsManager'
+import path from 'path'
+import gpuInfo from 'gpu-info'
 
 export const InstallerManager = () => {
-  const toast = useToast({});
-  const [gpuSelection, setGpuSelection] = useState<string>("NVIDIA");
-  const [gpuType, setGpuType] = useRecoilState(gpuTypeState);
-  const debugMode = useRecoilValue(debugModeState);
+  const toast = useToast({})
+  const [gpuSelection, setGpuSelection] = useState<string>('NVIDIA')
+  const [gpuType, setGpuType] = useRecoilState(gpuTypeState)
+  const debugMode = useRecoilValue(debugModeState)
 
-  const [cloudOnly, setCloudOnly] = useRecoilState(cloudOnlyState);
+  const [cloudOnly, setCloudOnly] = useRecoilState(cloudOnlyState)
 
-  const [showArtroomInstaller, setShowArtroomInstaller] = useState(false);
-  const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState);
+  const [showArtroomInstaller, setShowArtroomInstaller] = useState(false)
+  const [artroomPath, setArtroomPath] = useRecoilState(artroomPathState)
   const [modelsDir, setModelsDir] = useRecoilState(
-    modelsDirState || path.join(artroomPath, "artroom", "model_weights")
-  );
-  const [customPath, setCustomPath] = useState(false);
-  const [downloadMessage, setDownloadMessage] = useState("");
-  const [downloading, setDownloading] = useState(false);
+    modelsDirState || path.join(artroomPath, 'artroom', 'model_weights')
+  )
+  const [customPath, setCustomPath] = useState(false)
+  const [downloadMessage, setDownloadMessage] = useState('')
+  const [downloading, setDownloading] = useState(false)
 
-  const [realisticStarter, setRealisticStarter] = useState(false);
-  const [animeStarter, setAnimeStarter] = useState(false);
-  const [landscapesStarter, setLandscapesStarter] = useState(true);
-
-  const [stillHavingTrouble, setStillHavingTrouble] = useState(false);
+  const [starterModels, setStarterModels] = useState({
+    SDXL: true,
+    ChilloutMix: false,
+    Counterfeit: false,
+    DreamShaper: false,
+  })
 
   const detectGPU = async () => {
     try {
-      const info = await gpuInfo();
-      const gpuVendor = info[0].VideoProcessor.toLowerCase();
-      if (gpuVendor.includes("nvidia")) {
-        console.log("DETECTED NVIDIA");
-        setGpuSelection("NVIDIA");
-      } else if (gpuVendor.includes("amd")) {
-        console.log("DETECTED AMD");
-        setGpuSelection("AMD");
+      const info = await gpuInfo()
+      const gpuVendor = info[0].VideoProcessor.toLowerCase()
+      if (gpuVendor.includes('nvidia')) {
+        console.log('DETECTED NVIDIA')
+        setGpuSelection('NVIDIA')
+      } else if (gpuVendor.includes('amd')) {
+        console.log('DETECTED AMD')
+        setGpuSelection('AMD')
       }
     } catch (err) {
-      console.error("Failed to detect GPU:", err);
+      console.error('Failed to detect GPU:', err)
     }
-  };
+  }
 
   useEffect(() => {
-    detectGPU();
-  }, []);
+    detectGPU()
+  }, [])
 
   useEffect(() => {
-    if (cloudOnly) return;
+    if (cloudOnly) return
     window.api.runPyTests(artroomPath).then((result) => {
-      if (result === "success\r\n" || process.platform == "linux") {
-        console.log(result);
-        window.api
-          .pythonInstallDependencies(artroomPath, gpuSelection)
-          .then(() => {
-            setGpuType(gpuSelection);
-            window.api.startArtroom(artroomPath, debugMode);
-            setShowArtroomInstaller(false);
-            toast({
-              title: "All Artroom paths & dependencies successfully found!",
-              status: "success",
-              position: "top",
-              duration: 2000,
-              isClosable: true,
-            });
-          });
+      if (result === 'success\r\n' || process.platform == 'linux') {
+        console.log(result)
+        window.api.pythonInstallDependencies(artroomPath, gpuSelection).then(() => {
+          setGpuType(gpuSelection)
+          window.api.startArtroom(artroomPath, debugMode)
+          setShowArtroomInstaller(false)
+          toast({
+            title: 'All Artroom paths & dependencies successfully found!',
+            status: 'success',
+            position: 'top',
+            duration: 2000,
+            isClosable: true,
+          })
+        })
       } else if (result.length > 0) {
-        setShowArtroomInstaller(true);
+        setShowArtroomInstaller(true)
       }
-    });
-  }, [artroomPath]);
+    })
+  }, [artroomPath])
 
   useEffect(() => {
-    const handlerDiscard = window.api.fixButtonProgress(
-      (_: any, str: string) => {
-        setDownloadMessage(str);
-      }
-    );
+    const handlerDiscard = window.api.fixButtonProgress((_: any, str: string) => {
+      setDownloadMessage(str)
+    })
 
     return () => {
-      handlerDiscard();
-    };
-  }, []);
+      handlerDiscard()
+    }
+  }, [])
 
   const handleRunClick = async () => {
     toast({
       title: `Installing Artroom Backend for ${gpuSelection} `,
-      status: "success",
-      position: "top",
+      status: 'success',
+      position: 'top',
       duration: 5000,
       isClosable: true,
       containerStyle: {
-        pointerEvents: "none",
+        pointerEvents: 'none',
       },
-    });
-    setDownloading(true);
+    })
+    setDownloading(true)
     try {
-      let dir = modelsDir;
+      let dir = modelsDir
       if (!customPath) {
-        dir = path.join(artroomPath, "artroom", "model_weights");
-        setModelsDir(dir);
+        dir = path.join(artroomPath, 'artroom', 'model_weights')
+        setModelsDir(dir)
       }
-      await window.api.pythonInstall(artroomPath, gpuSelection);
-      await window.api.downloadStarterModels(
-        dir,
-        realisticStarter,
-        animeStarter,
-        landscapesStarter
-      );
-      setDownloading(false);
-      setShowArtroomInstaller(false);
-      window.api.startArtroom(artroomPath, debugMode);
+      await window.api.backupDownload(artroomPath, gpuSelection)
+      await window.api.downloadStarterModels(dir, starterModels)
+      setDownloading(false)
+      setShowArtroomInstaller(false)
+      window.api.startArtroom(artroomPath, debugMode)
     } catch (error) {
-      console.error(error);
-      setDownloading(false);
+      console.error(error)
+      setDownloading(false)
     }
-  };
-
-  const handleBackupDownloader = () => {
-    window.api.backupDownload(artroomPath);
-  };
+  }
 
   function handleSelectArtroomClick() {
-    window.api.chooseUploadPath().then(setArtroomPath);
+    window.api.chooseUploadPath().then(setArtroomPath)
   }
   function handleSelectModelClick() {
-    window.api.chooseUploadPath().then(setModelsDir);
+    window.api.chooseUploadPath().then(setModelsDir)
   }
 
   return (
@@ -171,25 +159,18 @@ export const InstallerManager = () => {
           {customPath && (
             <Text mb="4">{`(Note: Do NOT select the Artroom folder that was installed on startup)`}</Text>
           )}
-          <Flex
-            flexDirection="row"
-            justifyItems="center"
-            alignItems="center"
-            mb="4"
-          >
+          <Flex flexDirection="row" justifyItems="center" alignItems="center" mb="4">
             <Input
               width="80%"
               placeholder="Artroom will be saved in YourPath/artroom"
               value={artroomPath}
               onChange={(event) => {
-                setArtroomPath(event.target.value);
+                setArtroomPath(event.target.value)
               }}
               isDisabled={!customPath}
               mr="4"
             />
-            {customPath && (
-              <Button onClick={handleSelectArtroomClick}>Select</Button>
-            )}
+            {customPath && <Button onClick={handleSelectArtroomClick}>Select</Button>}
           </Flex>
           <Text mb="1">{`Model Path (This can be changed later in Settings)`}</Text>
           <Flex flexDirection="row" alignItems="center" mb="4">
@@ -198,20 +179,18 @@ export const InstallerManager = () => {
               placeholder="Model will be saved in YourPath/artroom/model_weights"
               value={modelsDir}
               onChange={(event) => {
-                setModelsDir(event.target.value);
+                setModelsDir(event.target.value)
               }}
               isDisabled={!customPath}
               mr="4"
             />
-            {customPath && (
-              <Button onClick={handleSelectModelClick}>Select</Button>
-            )}
+            {customPath && <Button onClick={handleSelectModelClick}>Select</Button>}
           </Flex>
           <Checkbox
             mb="4"
             isChecked={customPath}
             onChange={() => {
-              setCustomPath(!customPath);
+              setCustomPath(!customPath)
             }}
           >
             Use Custom Path
@@ -234,56 +213,61 @@ export const InstallerManager = () => {
           </Text>
           <VStack alignItems="flex-start">
             <Checkbox
-              isChecked={landscapesStarter}
+              isChecked={starterModels.SDXL}
               onChange={() => {
-                setLandscapesStarter(!landscapesStarter);
-              }}
-            >{`(Popular) DreamShaper `}</Checkbox>
-            <Checkbox
-              isChecked={realisticStarter}
-              onChange={() => {
-                setRealisticStarter(!realisticStarter);
-              }}
-            >{`(Realistic) ChilloutMix `}</Checkbox>
-            <Checkbox
-              isChecked={animeStarter}
-              onChange={() => {
-                setAnimeStarter(!animeStarter);
-              }}
-            >{`(Anime) Counterfeit `}</Checkbox>
-            <Text
-              _hover={{
-                cursor: "pointer",
-                textDecoration: "underline",
+                setStarterModels((prevState) => ({
+                  ...prevState,
+                  SDXL: !prevState.SDXL,
+                }))
               }}
             >
-              {`Trouble Downloading? `}
-              <Box
-                as="span"
-                fontWeight="bold"
-                color="blue.500"
-                onClick={() => {
-                  handleBackupDownloader();
-                  setStillHavingTrouble(true);
-                }}
-              >
-                Click Here
-              </Box>
-              {` to launch the backup installer`}
+              {`SDXL`}
+            </Checkbox>
+            ;
+            <Checkbox
+              isChecked={starterModels.DreamShaper}
+              onChange={() => {
+                setStarterModels((prevState) => ({
+                  ...prevState,
+                  DreamShaper: !prevState.DreamShaper,
+                }))
+              }}
+            >
+              {`(General) DreamShaper SDXL`}
+            </Checkbox>
+            <Checkbox
+              isChecked={starterModels.ChilloutMix}
+              onChange={() => {
+                setStarterModels((prevState) => ({
+                  ...prevState,
+                  ChilloutMix: !prevState.ChilloutMix,
+                }))
+              }}
+            >
+              {`(Realistic) ChilloutMix`}
+            </Checkbox>
+            <Checkbox
+              isChecked={starterModels.Counterfeit}
+              onChange={() => {
+                setStarterModels((prevState) => ({
+                  ...prevState,
+                  Counterfeit: !prevState.Counterfeit,
+                }))
+              }}
+            >
+              {`(Anime) Counterfeit`}
+            </Checkbox>
+            <Text
+              _hover={{
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+              onClick={() => {
+                window.api.openInstallTutorial()
+              }}
+            >
+              {`Having Trouble Downloading? Click Here to get manual install instructions (Don't worry, it's easy)`}
             </Text>
-            {stillHavingTrouble && (
-              <Text
-                _hover={{
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-                onClick={() => {
-                  window.api.openInstallTutorial();
-                }}
-              >
-                {`Still Having Trouble Downloading? Click Here to get manual install instructions (Don't worry, it's easy)`}
-              </Text>
-            )}
           </VStack>
           {downloadMessage && (
             <Flex width="100%" justifyContent="space-between">
@@ -292,18 +276,18 @@ export const InstallerManager = () => {
             </Flex>
           )}
         </ModalBody>
-
         <ModalFooter justifyContent="center">
           <Button
             isLoading={downloading}
             isDisabled={downloading}
-            onClick={handleRunClick}
+            onClick={() => {
+              handleRunClick()
+            }}
           >
             Install Artroom
           </Button>
-          {/* <Button onClick={() => setCloudOnly(true)}>I want cloud only</Button> */}
         </ModalFooter>
       </ModalContent>
     </Modal>
-  );
-};
+  )
+}

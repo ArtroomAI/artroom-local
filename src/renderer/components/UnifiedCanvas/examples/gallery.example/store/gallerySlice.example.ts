@@ -1,10 +1,10 @@
-import { Image } from 'painter';
-import { IRect } from 'konva/lib/types';
+import { Image } from 'painter'
+import { IRect } from 'konva/lib/types'
 
 // import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 // import { clamp } from 'lodash';
 
-export type GalleryCategory = 'user' | 'result';
+export type GalleryCategory = 'user' | 'result'
 
 // export type AddImagesPayload = {
 // 	images: Array<Image>;
@@ -13,48 +13,48 @@ export type GalleryCategory = 'user' | 'result';
 // };
 
 type Gallery = {
-	images: Image[];
-	latest_mtime?: number;
-	earliest_mtime?: number;
-	areMoreImagesAvailable: boolean;
-};
+  images: Image[]
+  latest_mtime?: number
+  earliest_mtime?: number
+  areMoreImagesAvailable: boolean
+}
 
 interface GalleryState {
-	currentImage?: Image;
-	currentImageUuid: string;
-	intermediateImage?: Image & {
-		boundingBox?: IRect;
-		generationMode?: 'unifiedCanvas';
-	};
-	shouldHoldGalleryOpen: boolean;
-	shouldAutoSwitchToNewImages: boolean;
-	categories: {
-		user: Gallery;
-		result: Gallery;
-	};
-	currentCategory: GalleryCategory;
+  currentImage?: Image
+  currentImageUuid: string
+  intermediateImage?: Image & {
+    boundingBox?: IRect
+    generationMode?: 'unifiedCanvas'
+  }
+  shouldHoldGalleryOpen: boolean
+  shouldAutoSwitchToNewImages: boolean
+  categories: {
+    user: Gallery
+    result: Gallery
+  }
+  currentCategory: GalleryCategory
 }
 
 const initialState: GalleryState = {
-	currentImageUuid: '',
-	shouldHoldGalleryOpen: false,
-	shouldAutoSwitchToNewImages: true,
-	currentCategory: 'result',
-	categories: {
-		user: {
-			images: [],
-			latest_mtime: undefined,
-			earliest_mtime: undefined,
-			areMoreImagesAvailable: true,
-		},
-		result: {
-			images: [],
-			latest_mtime: undefined,
-			earliest_mtime: undefined,
-			areMoreImagesAvailable: true,
-		},
-	},
-};
+  currentImageUuid: '',
+  shouldHoldGalleryOpen: false,
+  shouldAutoSwitchToNewImages: true,
+  currentCategory: 'result',
+  categories: {
+    user: {
+      images: [],
+      latest_mtime: undefined,
+      earliest_mtime: undefined,
+      areMoreImagesAvailable: true,
+    },
+    result: {
+      images: [],
+      latest_mtime: undefined,
+      earliest_mtime: undefined,
+      areMoreImagesAvailable: true,
+    },
+  },
+}
 
 // export const gallerySlice = createSlice({
 // 	name: 'gallery',

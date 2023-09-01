@@ -1,74 +1,74 @@
-import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react';
-import { SystemStatus, SystemConfig, ModelList } from 'painter';
+import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react'
+import { SystemStatus, SystemConfig, ModelList } from 'painter'
 // import { createSlice } from '@reduxjs/toolkit';
 // import type { PayloadAction } from '@reduxjs/toolkit';
 
-export type LogLevel = 'info' | 'warning' | 'error';
+export type LogLevel = 'info' | 'warning' | 'error'
 
 export interface LogEntry {
-	timestamp: string;
-	level: LogLevel;
-	message: string;
+  timestamp: string
+  level: LogLevel
+  message: string
 }
 
 export interface Log {
-	[index: number]: LogEntry;
+  [index: number]: LogEntry
 }
 
-export type InProgressImageType = 'none' | 'full-res' | 'latents';
+export type InProgressImageType = 'none' | 'full-res' | 'latents'
 
 export interface SystemState extends SystemStatus, SystemConfig {
-	shouldDisplayInProgressType: InProgressImageType;
-	log: Array<LogEntry>;
-	isGFPGANAvailable: boolean;
-	isESRGANAvailable: boolean;
-	isConnected: boolean;
-	socketId: string;
-	openAccordions: ExpandedIndex;
-	currentStep: number;
-	totalSteps: number;
-	currentIteration: number;
-	totalIterations: number;
-	currentStatus: string;
-	currentStatusHasSteps: boolean;
-	shouldDisplayGuides: boolean;
-	wasErrorSeen: boolean;
-	isCancelable: boolean;
-	saveIntermediatesInterval: number;
-	enableImageDebugging: boolean;
-	toastQueue: UseToastOptions[];
+  shouldDisplayInProgressType: InProgressImageType
+  log: Array<LogEntry>
+  isGFPGANAvailable: boolean
+  isESRGANAvailable: boolean
+  isConnected: boolean
+  socketId: string
+  openAccordions: ExpandedIndex
+  currentStep: number
+  totalSteps: number
+  currentIteration: number
+  totalIterations: number
+  currentStatus: string
+  currentStatusHasSteps: boolean
+  shouldDisplayGuides: boolean
+  wasErrorSeen: boolean
+  isCancelable: boolean
+  saveIntermediatesInterval: number
+  enableImageDebugging: boolean
+  toastQueue: UseToastOptions[]
 }
 
 const initialSystemState: SystemState = {
-	isConnected: false,
-	isProcessing: false,
-	log: [],
-	shouldDisplayInProgressType: 'latents',
-	shouldDisplayGuides: true,
-	isGFPGANAvailable: true,
-	isESRGANAvailable: true,
-	socketId: '',
-	openAccordions: [],
-	currentStep: 0,
-	totalSteps: 0,
-	currentIteration: 0,
-	totalIterations: 0,
-	currentStatus: 'Disconnected',
-	currentStatusHasSteps: false,
-	model: '',
-	model_id: '',
-	model_hash: '',
-	app_id: '',
-	app_version: '',
-	model_list: {},
-	infill_methods: [],
-	hasError: false,
-	wasErrorSeen: true,
-	isCancelable: true,
-	saveIntermediatesInterval: 5,
-	enableImageDebugging: false,
-	toastQueue: [],
-};
+  isConnected: false,
+  isProcessing: false,
+  log: [],
+  shouldDisplayInProgressType: 'latents',
+  shouldDisplayGuides: true,
+  isGFPGANAvailable: true,
+  isESRGANAvailable: true,
+  socketId: '',
+  openAccordions: [],
+  currentStep: 0,
+  totalSteps: 0,
+  currentIteration: 0,
+  totalIterations: 0,
+  currentStatus: 'Disconnected',
+  currentStatusHasSteps: false,
+  model: '',
+  model_id: '',
+  model_hash: '',
+  app_id: '',
+  app_version: '',
+  model_list: {},
+  infill_methods: [],
+  hasError: false,
+  wasErrorSeen: true,
+  isCancelable: true,
+  saveIntermediatesInterval: 5,
+  enableImageDebugging: false,
+  toastQueue: [],
+}
 
 // export const systemSlice = createSlice({
 // 	name: 'system',

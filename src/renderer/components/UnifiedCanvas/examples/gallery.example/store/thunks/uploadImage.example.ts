@@ -1,4 +1,4 @@
-export {};
+export {}
 // import { AnyAction, ThunkAction } from '@reduxjs/toolkit';
 // import {RootState} from 'app/store';
 // import {Image, ImageUploadResponse} from 'painter';

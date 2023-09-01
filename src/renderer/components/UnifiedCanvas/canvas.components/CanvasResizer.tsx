@@ -1,15 +1,15 @@
-import React from 'react';
-import { Spinner } from '@chakra-ui/react';
-import { useLayoutEffect, useRef, FC } from 'react';
-import { useSetRecoilState, useRecoilValue, useRecoilState } from 'recoil';
+import React from 'react'
+import { Spinner } from '@chakra-ui/react'
+import { useLayoutEffect, useRef, FC } from 'react'
+import { useSetRecoilState, useRecoilValue, useRecoilState } from 'recoil'
 import {
-	doesCanvasNeedScalingAtom,
-	resizeAndScaleCanvasAction,
-	resizeCanvasAction,
-	canvasContainerDimensionsAtom,
-	isCanvasInitializedAtom,
-	initialCanvasImageSelector,
-} from '../atoms/canvas.atoms';
+  doesCanvasNeedScalingAtom,
+  resizeAndScaleCanvasAction,
+  resizeCanvasAction,
+  canvasContainerDimensionsAtom,
+  isCanvasInitializedAtom,
+  initialCanvasImageSelector,
+} from '../atoms/canvas.atoms'
 
 // import { activeTabNameSelector } from 'options/store/optionsSelectors';
 // import {
@@ -39,50 +39,47 @@ import {
 // );
 
 export const CanvasResizer: FC = () => {
-	// const {
-	// 	doesCanvasNeedScaling,
-	// 	activeTabName,
-	// 	initialCanvasImage,
-	// 	isCanvasInitialized,
-	// } = useAppSelector(canvasResizerSelector);
+  // const {
+  // 	doesCanvasNeedScaling,
+  // 	activeTabName,
+  // 	initialCanvasImage,
+  // 	isCanvasInitialized,
+  // } = useAppSelector(canvasResizerSelector);
 
-	const [doesCanvasNeedScaling, setDoesCanvasNeedScaling] = useRecoilState(
-		doesCanvasNeedScalingAtom,
-	);
-	const resizeAndScaleCanvas = useSetRecoilState(resizeAndScaleCanvasAction);
-	const resizeCanvas = useSetRecoilState(resizeCanvasAction);
-	const setCanvasContainerDimensions = useSetRecoilState(
-		canvasContainerDimensionsAtom,
-	);
-	const isCanvasInitialized = useRecoilValue(isCanvasInitializedAtom);
-	const initialCanvasImage = useRecoilValue(initialCanvasImageSelector);
+  const [doesCanvasNeedScaling, setDoesCanvasNeedScaling] =
+    useRecoilState(doesCanvasNeedScalingAtom)
+  const resizeAndScaleCanvas = useSetRecoilState(resizeAndScaleCanvasAction)
+  const resizeCanvas = useSetRecoilState(resizeCanvasAction)
+  const setCanvasContainerDimensions = useSetRecoilState(canvasContainerDimensionsAtom)
+  const isCanvasInitialized = useRecoilValue(isCanvasInitializedAtom)
+  const initialCanvasImage = useRecoilValue(initialCanvasImageSelector)
 
-	const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null)
 
-	useLayoutEffect(() => {
-		window.setTimeout(() => {
-			if (!ref.current) return;
+  useLayoutEffect(() => {
+    window.setTimeout(() => {
+      if (!ref.current) return
 
-			const { clientWidth, clientHeight } = ref.current;
+      const { clientWidth, clientHeight } = ref.current
 
-			setCanvasContainerDimensions({
-				width: clientWidth,
-				height: clientHeight,
-			});
+      setCanvasContainerDimensions({
+        width: clientWidth,
+        height: clientHeight,
+      })
 
-			if (!isCanvasInitialized) {
-				resizeAndScaleCanvas();
-			} else {
-				resizeCanvas();
-			}
+      if (!isCanvasInitialized) {
+        resizeAndScaleCanvas()
+      } else {
+        resizeCanvas()
+      }
 
-			setDoesCanvasNeedScaling(false);
-		}, 0);
-	}, [initialCanvasImage, doesCanvasNeedScaling, isCanvasInitialized]);
+      setDoesCanvasNeedScaling(false)
+    }, 0)
+  }, [initialCanvasImage, doesCanvasNeedScaling, isCanvasInitialized])
 
-	return (
-		<div ref={ref} className="inpainting-canvas-area">
-			<Spinner thickness="2px" speed="1s" size="xl" />
-		</div>
-	);
-};
+  return (
+    <div ref={ref} className="inpainting-canvas-area">
+      <Spinner thickness="2px" speed="1s" size="xl" />
+    </div>
+  )
+}

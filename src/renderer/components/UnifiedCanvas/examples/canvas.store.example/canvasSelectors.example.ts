@@ -1,4 +1,4 @@
-export {};
+export {}
 // import { RootState } from 'app/store';
 // import { activeTabNameSelector } from 'options/store/optionsSelectors';
 // import { systemSelector } from 'system/store/systemSelectors';

@@ -3,31 +3,31 @@
  * calling toBlob() on the canvas.
  */
 export const copyImage = (url: string, width: number, height: number) => {
-	const imageElement = document.createElement('img');
+  const imageElement = document.createElement('img')
 
-	imageElement.addEventListener('load', () => {
-		const canvas = document.createElement('canvas');
-		canvas.width = width;
-		canvas.height = height;
-		const context = canvas.getContext('2d');
+  imageElement.addEventListener('load', () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
 
-		if (!context) return;
+    if (!context) return
 
-		// context.globalCompositeOperation = "destination-in";
-		context.drawImage(imageElement, 0, 0);
+    // context.globalCompositeOperation = "destination-in";
+    context.drawImage(imageElement, 0, 0)
 
-		canvas.toBlob(blob => {
-			blob &&
-				navigator.clipboard.write([
-					new ClipboardItem({
-						[blob.type]: blob,
-					}),
-				]);
-		});
+    canvas.toBlob((blob) => {
+      blob &&
+        navigator.clipboard.write([
+          new ClipboardItem({
+            [blob.type]: blob,
+          }),
+        ])
+    })
 
-		canvas.remove();
-		imageElement.remove();
-	});
+    canvas.remove()
+    imageElement.remove()
+  })
 
-	imageElement.src = url;
-};
+  imageElement.src = url
+}

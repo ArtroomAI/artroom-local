@@ -1,8 +1,8 @@
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useRef } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { CanvasTool } from '../atoms/canvasTypes';
-import { getCanvasStage } from '../util';
+import { useHotkeys } from 'react-hotkeys-hook'
+import { useRef } from 'react'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import { CanvasTool } from '../atoms/canvasTypes'
+import { getCanvasStage } from '../util'
 import {
   toolSelector,
   clearMaskAction,
@@ -12,7 +12,7 @@ import {
   shouldSnapToGridAtom,
   isMaskEnabledAtom,
   isStagingSelector,
-} from '../atoms/canvas.atoms';
+} from '../atoms/canvas.atoms'
 
 // import _ from 'lodash';
 // import { activeTabNameSelector } from 'options/store/optionsSelectors';
@@ -69,97 +69,89 @@ export const useInpaintingCanvasHotkeys = () => {
   // 	shouldSnapToGrid,
   // } = useAppSelector(selector);
 
-  const [tool, setTool] = useRecoilState(toolSelector);
-  const clearMask = useSetRecoilState(clearMaskAction);
-  const setIsMaskEnabled = useSetRecoilState(setIsMaskEnabledAction);
-  const resetCanvasInteractionState = useSetRecoilState(
-    resetCanvasInteractionStateAction
-  );
-  const [shouldSnapToGrid, setShouldSnapToGrid] =
-    useRecoilState(shouldSnapToGridAtom);
-  const [shouldShowBoundingBox, setShouldShowBoundingBox] = useRecoilState(
-    shouldShowBoundingBoxAtom
-  );
-  const isMaskEnabled = useRecoilValue(isMaskEnabledAtom);
-  const isStaging = useRecoilValue(isStagingSelector);
+  const [tool, setTool] = useRecoilState(toolSelector)
+  const clearMask = useSetRecoilState(clearMaskAction)
+  const setIsMaskEnabled = useSetRecoilState(setIsMaskEnabledAction)
+  const resetCanvasInteractionState = useSetRecoilState(resetCanvasInteractionStateAction)
+  const [shouldSnapToGrid, setShouldSnapToGrid] = useRecoilState(shouldSnapToGridAtom)
+  const [shouldShowBoundingBox, setShouldShowBoundingBox] =
+    useRecoilState(shouldShowBoundingBoxAtom)
+  const isMaskEnabled = useRecoilValue(isMaskEnabledAtom)
+  const isStaging = useRecoilValue(isStagingSelector)
 
-  const previousToolRef = useRef<CanvasTool | null>(null);
+  const previousToolRef = useRef<CanvasTool | null>(null)
 
-  const canvasStage = getCanvasStage();
+  const canvasStage = getCanvasStage()
 
   // Beta Keys
-  const handleClearMask = () => clearMask();
+  const handleClearMask = () => clearMask()
 
   useHotkeys(
     ['shift+c'],
     () => {
-      handleClearMask();
+      handleClearMask()
     },
     {
       enabled: () => !isStaging,
       preventDefault: true,
     },
     []
-  );
+  )
 
-  const handleToggleEnableMask = () => setIsMaskEnabled(!isMaskEnabled);
+  const handleToggleEnableMask = () => setIsMaskEnabled(!isMaskEnabled)
 
   useHotkeys(
     ['h'],
     () => {
-      handleToggleEnableMask();
+      handleToggleEnableMask()
     },
     {
       enabled: () => !isStaging,
       preventDefault: true,
     },
     [isMaskEnabled]
-  );
+  )
 
   useHotkeys(
     ['n'],
     () => {
-      setShouldSnapToGrid(!shouldSnapToGrid);
+      setShouldSnapToGrid(!shouldSnapToGrid)
     },
     {
       enabled: true,
       preventDefault: true,
     },
     [shouldSnapToGrid]
-  );
+  )
   //
 
   useHotkeys(
     'esc',
     () => {
-      resetCanvasInteractionState();
+      resetCanvasInteractionState()
     },
     {
       enabled: () => true,
       preventDefault: true,
     }
-  );
+  )
 
   useHotkeys(
     ['space'],
     (e: KeyboardEvent) => {
-      e.preventDefault();
-      if (e.repeat) return;
+      e.preventDefault()
+      if (e.repeat) return
 
-      canvasStage?.container().focus();
+      canvasStage?.container().focus()
 
       if (tool !== 'move') {
-        previousToolRef.current = tool;
-        setTool('move');
+        previousToolRef.current = tool
+        setTool('move')
       }
 
-      if (
-        tool === 'move' &&
-        previousToolRef.current &&
-        previousToolRef.current !== 'move'
-      ) {
-        setTool(previousToolRef.current);
-        previousToolRef.current = 'move';
+      if (tool === 'move' && previousToolRef.current && previousToolRef.current !== 'move') {
+        setTool(previousToolRef.current)
+        previousToolRef.current = 'move'
       }
     },
     {
@@ -168,5 +160,5 @@ export const useInpaintingCanvasHotkeys = () => {
       preventDefault: true,
     },
     [tool, previousToolRef]
-  );
-};
+  )
+}

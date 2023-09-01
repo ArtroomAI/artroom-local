@@ -1,41 +1,39 @@
-import React, { useState } from 'react';
-import { Flex, Spacer, Grid, GridItem } from '@chakra-ui/react';
-import { Routes, Route } from 'react-router-dom';
-import PromptGuide from './PromptGuide';
-import Body from './Body';
-import Sidebar from './Sidebar';
-import Settings from './Settings';
-import Paint from './Paint';
-import Queue from './Queue';
-import SDSettings from './SDSettings/SDSettings';
-import ImageViewer from './ImageViewer';
-import Trainer from './Trainer';
+import React, { useState } from 'react'
+import { Flex, Spacer, Grid, GridItem } from '@chakra-ui/react'
+import { Routes, Route } from 'react-router-dom'
+import PromptGuide from './PromptGuide'
+import Body from './Body'
+import Sidebar from './Sidebar'
+import Settings from './Settings'
+import Paint from './Paint'
+import Queue from './Queue'
+import SDSettings from './SDSettings/SDSettings'
+import ImageViewer from './ImageViewer'
+import Trainer from './Trainer'
 
-import { ModelMerger } from './ModelMerger';
-import { UpdateProgressBar } from './UpdateProgressBar';
-import ImageEditor from './ImageEditor';
-import { QueueManager } from '../QueueManager';
+import { ModelMerger } from './ModelMerger'
+import { UpdateProgressBar } from './UpdateProgressBar'
+import ImageEditor from './ImageEditor'
+import { QueueManager } from '../QueueManager'
 
-import { AppSocket } from './AppSocket';
+import { AppSocket } from './AppSocket'
 
-export default function App () {
-    const [navSize, setNavSize] = useState<'small' | 'large'>('small');
+export default function App() {
+  const [navSize, setNavSize] = useState<'small' | 'large'>('small')
 
-    return (
-        <>
-            <Grid
-                fontWeight="bold"
-                gap="1"
-                gridTemplateColumns={
-                    navSize === 'large' ? "300px 1fr 250px" : "125px 1fr 250px"
-                }
-                gridTemplateRows="43px 1fr 30px"
-                h="200px"
-                templateAreas={`"nav null header"
+  return (
+    <>
+      <Grid
+        fontWeight="bold"
+        gap="1"
+        gridTemplateColumns={navSize === 'large' ? '300px 1fr 250px' : '125px 1fr 250px'}
+        gridTemplateRows="43px 1fr 30px"
+        h="200px"
+        templateAreas={`"nav null header"
                             "nav main main"
                             "nav main main"`}
-            >
-                {/* {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
+      >
+        {/* {showLoginModal && <LoginPage setLoggedIn={setLoggedIn}></LoginPage>}
                 <GridItem
                     area="header"
                     justifySelf="center"
@@ -71,69 +69,57 @@ export default function App () {
                     }
                 </GridItem> */}
 
-                <GridItem
-                    area="nav"
-                    pl="2">
-                    <Sidebar navSize={navSize} setNavSize={setNavSize}  />
-                </GridItem>
+        <GridItem area="nav" pl="2">
+          <Sidebar navSize={navSize} setNavSize={setNavSize} />
+        </GridItem>
 
-                <GridItem
-                    area="main"
-                    pl="2">
-                    <Flex>
-                        <Routes>
-                            <Route
-                                element={<>
-                                    <Body />
-                                    <Spacer />
-                                    <SDSettings tab='default' />
-                                </>}
-                                path="/" />
+        <GridItem area="main" pl="2">
+          <Flex>
+            <Routes>
+              <Route
+                element={
+                  <>
+                    <Body />
+                    <Spacer />
+                    <SDSettings tab="default" />
+                  </>
+                }
+                path="/"
+              />
 
-                            <Route
-                                element={<>
-                                    <Paint />
+              <Route
+                element={
+                  <>
+                    <Paint />
 
-                                    <Spacer />
+                    <Spacer />
 
-                                    <SDSettings tab='paint' />
-                                </>}
-                                path="/paint" />
+                    <SDSettings tab="paint" />
+                  </>
+                }
+                path="/paint"
+              />
 
-                            <Route
-                                element={<Queue />}
-                                path="/queue" />
+              <Route element={<Queue />} path="/queue" />
 
-                            <Route
-                                element={<ImageEditor />}
-                                path="/image-editor" />
+              <Route element={<ImageEditor />} path="/image-editor" />
 
-                            <Route
-                                element={<ModelMerger />}
-                                path="/merge" />
+              <Route element={<ModelMerger />} path="/merge" />
 
-                            <Route
-                                element={<ImageViewer />}
-                                path="/imageviewer" />
+              <Route element={<ImageViewer />} path="/imageviewer" />
 
-                            <Route
-                                element={<Trainer />}
-                                path="/trainer" />
+              <Route element={<Trainer />} path="/trainer" />
 
-                            <Route
-                                element={<PromptGuide />}
-                                path="/prompt-guide" />
+              <Route element={<PromptGuide />} path="/prompt-guide" />
 
-                            <Route
-                                element={<Settings />}
-                                path="/settings" />
-                        </Routes>
-                    </Flex>
-                </GridItem>
-            </Grid>
-            <UpdateProgressBar />
-            <QueueManager />
-            <AppSocket />
-        </>
-    );
+              <Route element={<Settings />} path="/settings" />
+            </Routes>
+          </Flex>
+        </GridItem>
+      </Grid>
+      <UpdateProgressBar />
+      <QueueManager />
+      <AppSocket />
+    </>
+  )
 }

@@ -1,4 +1,4 @@
-export {};
+export {}
 // import { createAction } from '@reduxjs/toolkit';
 // import { GalleryCategory } from 'gallery/store/gallerySlice';
 // import { InvokeTabName } from 'tabs/tabMap';

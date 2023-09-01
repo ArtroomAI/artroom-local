@@ -1,4 +1,4 @@
-export {};
+export {}
 // import { AnyAction, Dispatch, MiddlewareAPI } from '@reduxjs/toolkit';
 // import { Socket } from 'socket.io-client';
 // import { Image } from 'painter';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'
 import {
   PinInput,
   PinInputField,
@@ -6,8 +6,8 @@ import {
   FormHelperText,
   Text,
   Link,
-  HStack
-} from "@chakra-ui/react";
+  HStack,
+} from '@chakra-ui/react'
 
 export default function PinInputCode({
   verificationCode,
@@ -15,43 +15,36 @@ export default function PinInputCode({
   numInputs,
   handleResendCode,
   ...props
-} : {
-  verificationCode: string,
-  setVerificationCode: React.Dispatch<React.SetStateAction<string>>,
-  numInputs: number,
-  handleResendCode: React.MouseEventHandler<HTMLAnchorElement>,
+}: {
+  verificationCode: string
+  setVerificationCode: React.Dispatch<React.SetStateAction<string>>
+  numInputs: number
+  handleResendCode: React.MouseEventHandler<HTMLAnchorElement>
 }) {
-  const fields = [<PinInputField key={0} borderColor="gray.800" color="gray.800" autoFocus />];
+  const fields = [<PinInputField key={0} borderColor="gray.800" color="gray.800" autoFocus />]
   for (let i = 1; i < numInputs; i++) {
-    fields.push(<PinInputField key={i} borderColor="gray.800" color="gray.800" />);
+    fields.push(<PinInputField key={i} borderColor="gray.800" color="gray.800" />)
   }
 
   const handleChange = (value: string) => {
-    setVerificationCode(value);
-  };
+    setVerificationCode(value)
+  }
 
   return (
     <FormControl>
-        <FormHelperText textAlign="left">
-            <Text color="gray.800">
-                Enter Your Code
-            </Text>
-        </FormHelperText>
-        <HStack spacing={6} justifyContent="center">
-          <PinInput
-            placeholder={"•"}
-            value={verificationCode}
-            onChange={handleChange}
-            {...props}
-          >
-          {fields} 
-          </PinInput>
-        </HStack>
-        <FormHelperText textAlign="right">
-            <Link onClick={handleResendCode} color="teal">
-                Resend code
-            </Link>
-        </FormHelperText>
+      <FormHelperText textAlign="left">
+        <Text color="gray.800">Enter Your Code</Text>
+      </FormHelperText>
+      <HStack spacing={6} justifyContent="center">
+        <PinInput placeholder={'•'} value={verificationCode} onChange={handleChange} {...props}>
+          {fields}
+        </PinInput>
+      </HStack>
+      <FormHelperText textAlign="right">
+        <Link onClick={handleResendCode} color="teal">
+          Resend code
+        </Link>
+      </FormHelperText>
     </FormControl>
-  );
+  )
 }

@@ -1,2 +1,2 @@
-export * from "./CanvasBoundingBox"
-export * from "./CanvasToolbar";
+export * from './CanvasBoundingBox'
+export * from './CanvasToolbar'

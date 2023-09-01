@@ -19,7 +19,8 @@
     "electron:deploy_mac": "yarn build && electron-builder -c.extraMetadata.main=build/main.js --mac --publish always",
     "electron:start": "electron ./build/main.js",
     "lint": "eslint . --resolve-plugins-relative-to . --ext .ts,.tsx",
-    "generate": "typia generate --input src/interfaces/templates --output src/interfaces/generated --project tsconfig.json"
+    "generate": "typia generate --input src/interfaces/templates --output src/interfaces/generated --project tsconfig.json",
+    "format": "prettier --write src/**/*.{ts,tsx}"
   },
   "repository": {
     "type": "git",

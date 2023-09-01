@@ -1,5 +1,5 @@
 interface InternalModelsType {
-    ckpts: string[];
-    loras: string[];
-    vaes: string[];
+  ckpts: string[]
+  loras: string[]
+  vaes: string[]
 }

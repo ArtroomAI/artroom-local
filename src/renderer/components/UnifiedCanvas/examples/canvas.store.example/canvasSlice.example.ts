@@ -26,7 +26,7 @@ import {
   // isCanvasAnyLine,
   // isCanvasBaseImage,
   // isCanvasMaskLine,
-} from '../../atoms/canvasTypes';
+} from '../../atoms/canvasTypes'
 
 export const initialLayerState: CanvasLayerState = {
   objects: [],
@@ -34,7 +34,7 @@ export const initialLayerState: CanvasLayerState = {
     images: [],
     selectedImageIndex: -1,
   },
-};
+}
 
 const initialCanvasState: CanvasState = {
   boundingBoxCoordinates: { x: 0, y: 0 },
@@ -86,7 +86,7 @@ const initialCanvasState: CanvasState = {
   stageDimensions: { width: 0, height: 0 },
   stageScale: 1,
   tool: 'brush',
-};
+}
 
 // export const canvasSlice = createSlice({
 // 	name: 'canvas',

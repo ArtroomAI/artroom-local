@@ -384,7 +384,7 @@ class StableDiffusion:
         if mask_image is not None:
             image = support.repaste_and_color_correct(result=image,
                                                       init_image=original_image,
-                                                      init_mask=mask_image, mask_blur_radius=40)
+                                                      init_mask=mask_image, mask_blur_radius=8)
 
         # Used for adding details without changing resolution
         if keep_size:
@@ -847,7 +847,7 @@ class StableDiffusion:
                             result=out_image,
                             init_image=starting_image,
                             init_mask=original_mask,
-                            mask_blur_radius=40
+                            mask_blur_radius=8
                         )
 
                     # out_image.save("before.png")

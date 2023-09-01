@@ -1,21 +1,21 @@
-import { atom } from 'recoil';
+import { atom } from 'recoil'
 
 export const cloudModeState = atom({
-    key: 'cloudMode',
-    default: false
-});
+  key: 'cloudMode',
+  default: false,
+})
 
 export const emailState = atom({
-    key: 'email',
-    default: ''
-});
+  key: 'email',
+  default: '',
+})
 
 export const usernameState = atom({
-    key: 'username',
-    default: 'My Profile'
-});
+  key: 'username',
+  default: 'My Profile',
+})
 
 export const shardState = atom({
-    key: 'shard',
-    default: 0.0
-});
+  key: 'shard',
+  default: 0.0,
+})

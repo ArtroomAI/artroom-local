@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react'
 import {
   VStack,
   HStack,
@@ -8,70 +8,66 @@ import {
   Text,
   Flex,
   FormControl,
-  FormLabel
-} from "@chakra-ui/react";
-import { FaTimes } from "react-icons/fa";
-import { IoMdCloud } from "react-icons/io";
-import { useRecoilState } from "recoil";
-import { loraState } from "../../../SettingsManager";
-import ReactDOM from "react-dom";
+  FormLabel,
+} from '@chakra-ui/react'
+import { FaTimes } from 'react-icons/fa'
+import { IoMdCloud } from 'react-icons/io'
+import { useRecoilState } from 'recoil'
+import { loraState } from '../../../SettingsManager'
+import ReactDOM from 'react-dom'
 
 function LoraSelector({ options, cloudMode }: { options: any[]; cloudMode: boolean }) {
-    const [lora, setLora] = useRecoilState(loraState);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [inputFocus, setInputFocus] = useState(false);
-    const filteredOptions = searchQuery.length
-      ? options.filter((item) => item.toLowerCase().includes(searchQuery.toLowerCase()))
-      : options;
-    const containerRef = useRef(null); // Ref for the container div
-    const [menuCoordinates, setMenuCoordinates] = useState({ top: 0, left: 0 });
-  
-    useEffect(() => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setMenuCoordinates({ top: rect.bottom, left: rect.left });
-      }
-    }, [containerRef]);
+  const [lora, setLora] = useRecoilState(loraState)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [inputFocus, setInputFocus] = useState(false)
+  const filteredOptions = searchQuery.length
+    ? options.filter((item) => item.toLowerCase().includes(searchQuery.toLowerCase()))
+    : options
+  const containerRef = useRef(null) // Ref for the container div
+  const [menuCoordinates, setMenuCoordinates] = useState({ top: 0, left: 0 })
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
-        setSelectedIndex((prevIndex) => Math.min(prevIndex + 1, filteredOptions.length - 1));
-    } else if (e.key === "ArrowUp") {
-        setSelectedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-    } else if (e.key === "Enter" && selectedIndex > -1) {
-        handleAddItem({ name: filteredOptions[selectedIndex], weight: 1 });
+  useEffect(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      setMenuCoordinates({ top: rect.bottom, left: rect.left })
     }
-    };
+  }, [containerRef])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      setSelectedIndex((prevIndex) => Math.min(prevIndex + 1, filteredOptions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      setSelectedIndex((prevIndex) => Math.max(prevIndex - 1, 0))
+    } else if (e.key === 'Enter' && selectedIndex > -1) {
+      handleAddItem({ name: filteredOptions[selectedIndex], weight: 1 })
+    }
+  }
 
   const handleSearch = (event) => {
-    const searchQuery = event.target.value;
-    setSearchQuery(searchQuery);
-  };
+    const searchQuery = event.target.value
+    setSearchQuery(searchQuery)
+  }
 
   const handleAddItem = (item: { name: string; weight: number }) => {
     if (!lora.some((i) => i.name === item.name)) {
-      setLora([...lora, { ...item, weight: 1 }]);
-      setSearchQuery("");
+      setLora([...lora, { ...item, weight: 1 }])
+      setSearchQuery('')
     }
-  };
+  }
 
   const handleRemoveItem = (itemToRemove: { name: string; weight: number }) => {
-    setLora(lora.filter((item) => item.name !== itemToRemove.name));
-  };
+    setLora(lora.filter((item) => item.name !== itemToRemove.name))
+  }
 
-  const handleweightChange = (
-    itemToUpdate: { name: string; weight: number },
-    weight: number
-  ) => {
+  const handleweightChange = (itemToUpdate: { name: string; weight: number }, weight: number) => {
     const newItems = lora.map((item) => {
       if (item.name === itemToUpdate.name) {
-        return { ...item, weight };
+        return { ...item, weight }
       }
-      return item;
-    });
-    setLora(newItems);
-  };
-
+      return item
+    })
+    setLora(newItems)
+  }
 
   return (
     <FormControl className="lora-input">
@@ -106,13 +102,15 @@ function LoraSelector({ options, cloudMode }: { options: any[]; cloudMode: boole
             >
               {filteredOptions.map((item) => (
                 <Flex
-                    maxWidth="100%"
-                    key={item}
-                    p="8px"
-                    cursor="pointer"
-                    onMouseDown={() => handleAddItem({ name: item, weight: 1 })}
-                    >
-                    <Text textAlign="left" maxWidth="100%">{item}</Text>
+                  maxWidth="100%"
+                  key={item}
+                  p="8px"
+                  cursor="pointer"
+                  onMouseDown={() => handleAddItem({ name: item, weight: 1 })}
+                >
+                  <Text textAlign="left" maxWidth="100%">
+                    {item}
+                  </Text>
                 </Flex>
               ))}
             </VStack>,
@@ -141,9 +139,7 @@ function LoraSelector({ options, cloudMode }: { options: any[]; cloudMode: boole
               type="number"
               min={0}
               value={item.weight}
-              onChange={(event) =>
-                handleweightChange(item, parseFloat(event.target.value))
-              }
+              onChange={(event) => handleweightChange(item, parseFloat(event.target.value))}
             />
             <IconButton
               aria-label="Remove"
@@ -156,7 +152,7 @@ function LoraSelector({ options, cloudMode }: { options: any[]; cloudMode: boole
         ))}
       </VStack>
     </FormControl>
-  );
+  )
 }
 
-export default LoraSelector;
+export default LoraSelector

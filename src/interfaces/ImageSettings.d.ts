@@ -1,57 +1,57 @@
-type GenerationMode = string;
+type GenerationMode = string
 
 interface QueueType {
-    text_prompts: string;
-    negative_prompts: string;
+  text_prompts: string
+  negative_prompts: string
 
-    // image to image options
-    strength: number;
-    init_image: string;
+  // image to image options
+  strength: number
+  init_image: string
 
-	width: number;
-	height: number;
-    
-    // models
-    models_dir: string;
-    ckpt: string; // absolute path
-    vae: string; // absolute path
-    loras: Lora[];
-    controlnet: string;
-    use_preprocessed_controlnet: boolean; 
-    remove_background: string;
-    use_removed_background: boolean; 
+  width: number
+  height: number
 
-    // sampler options
-    sampler: string;
-    steps: number;
-	cfg_scale: number;
-    clip_skip: number;
-    seed: number;
+  // models
+  models_dir: string
+  ckpt: string // absolute path
+  vae: string // absolute path
+  loras: Lora[]
+  controlnet: string
+  use_preprocessed_controlnet: boolean
+  remove_background: string
+  use_removed_background: boolean
 
-    // highres fix options
-    highres_steps: number;
-    highres_strength: number;
+  // sampler options
+  sampler: string
+  steps: number
+  cfg_scale: number
+  clip_skip: number
+  seed: number
 
-    // inpainting options
-    mask_image: string;
-    invert: boolean;
-    palette_fix: boolean;
+  // highres fix options
+  highres_steps: number
+  highres_strength: number
 
-    //
-    image_save_path: string; // absolute path
+  // inpainting options
+  mask_image: string
+  invert: boolean
+  palette_fix: boolean
 
-    // generation options
-    show_intermediates: boolean;
-    n_iter: number;
-    save_grid: boolean;
-    device?: string; // ? CPU / GPU
-    long_save_path: boolean;
-    highres_fix: boolean;
-    id: string;
-    generation_mode: GenerationMode;
+  //
+  image_save_path: string // absolute path
+
+  // generation options
+  show_intermediates: boolean
+  n_iter: number
+  save_grid: boolean
+  device?: string // ? CPU / GPU
+  long_save_path: boolean
+  highres_fix: boolean
+  id: string
+  generation_mode: GenerationMode
 }
 
 interface QueueTypeWithIndex extends QueueType {
-    index: number;
-    lastItem: boolean;
+  index: number
+  lastItem: boolean
 }

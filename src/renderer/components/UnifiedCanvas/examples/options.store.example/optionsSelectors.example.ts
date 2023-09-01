@@ -1,4 +1,4 @@
-export {};
+export {}
 // import _ from 'lodash';
 // import { RootState } from 'app/store';
 // import { tabMap } from 'tabs/tabMap';

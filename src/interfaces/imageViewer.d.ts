@@ -1,15 +1,15 @@
 interface ImageViewerElementType {
-    name: string;
-    fullPath: string;
-    isFolder: boolean;
+  name: string
+  fullPath: string
+  isFolder: boolean
 }
 
 interface ImageViewerErrorType {
-    error: string;
-    path: string;
+  error: string
+  path: string
 }
 
 interface ImageViewerResultType {
-    error: null | ImageViewerErrorType;
-    results: ImageViewerElementType[];
+  error: null | ImageViewerErrorType
+  results: ImageViewerElementType[]
 }

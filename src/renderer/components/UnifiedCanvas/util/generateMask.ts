@@ -1,6 +1,6 @@
-import Konva from 'konva';
-import { IRect } from 'konva/lib/types';
-import { CanvasMaskLine } from 'atoms/canvasTypes';
+import Konva from 'konva'
+import { IRect } from 'konva/lib/types'
+import { CanvasMaskLine } from 'atoms/canvasTypes'
 
 /**
  * Generating a mask image from InpaintingCanvas.tsx is not as simple
@@ -12,54 +12,50 @@ import { CanvasMaskLine } from 'atoms/canvasTypes';
  * drawing the mask and compositing everything correctly to output a valid
  * mask image.
  */
-export const generateMask = (
-	lines: CanvasMaskLine[],
-	boundingBox: IRect,
-): string => {
-	// create an offscreen canvas and add the mask to it
-	const { width, height } = boundingBox;
+export const generateMask = (lines: CanvasMaskLine[], boundingBox: IRect): string => {
+  // create an offscreen canvas and add the mask to it
+  const { width, height } = boundingBox
 
-	const offscreenContainer = document.createElement('div');
+  const offscreenContainer = document.createElement('div')
 
-	const stage = new Konva.Stage({
-		container: offscreenContainer,
-		width: width,
-		height: height,
-	});
+  const stage = new Konva.Stage({
+    container: offscreenContainer,
+    width: width,
+    height: height,
+  })
 
-	const baseLayer = new Konva.Layer();
-	const maskLayer = new Konva.Layer();
+  const baseLayer = new Konva.Layer()
+  const maskLayer = new Konva.Layer()
 
-	// composite the image onto the mask layer
-	baseLayer.add(
-		new Konva.Rect({
-			...boundingBox,
-			fill: 'white',
-		}),
-	);
+  // composite the image onto the mask layer
+  baseLayer.add(
+    new Konva.Rect({
+      ...boundingBox,
+      fill: 'white',
+    })
+  )
 
-	lines.forEach(line =>
-		maskLayer.add(
-			new Konva.Line({
-				points: line.points,
-				stroke: 'black',
-				strokeWidth: line.strokeWidth * 2,
-				tension: 0,
-				lineCap: 'round',
-				lineJoin: 'round',
-				shadowForStrokeEnabled: false,
-				globalCompositeOperation:
-					line.tool === 'brush' ? 'source-over' : 'destination-out',
-			}),
-		),
-	);
+  lines.forEach((line) =>
+    maskLayer.add(
+      new Konva.Line({
+        points: line.points,
+        stroke: 'black',
+        strokeWidth: line.strokeWidth * 2,
+        tension: 0,
+        lineCap: 'round',
+        lineJoin: 'round',
+        shadowForStrokeEnabled: false,
+        globalCompositeOperation: line.tool === 'brush' ? 'source-over' : 'destination-out',
+      })
+    )
+  )
 
-	stage.add(baseLayer);
-	stage.add(maskLayer);
+  stage.add(baseLayer)
+  stage.add(maskLayer)
 
-	const dataURL = stage.toDataURL({ ...boundingBox });
+  const dataURL = stage.toDataURL({ ...boundingBox })
 
-	offscreenContainer.remove();
+  offscreenContainer.remove()
 
-	return dataURL;
-};
+  return dataURL
+}

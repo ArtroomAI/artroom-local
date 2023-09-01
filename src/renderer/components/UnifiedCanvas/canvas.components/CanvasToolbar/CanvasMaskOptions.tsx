@@ -1,17 +1,11 @@
-import React from 'react';
-import { FC } from 'react';
-import { ButtonGroup, Flex } from '@chakra-ui/react';
-import { FaMask, FaTrash } from 'react-icons/fa';
+import React from 'react'
+import { FC } from 'react'
+import { ButtonGroup, Flex } from '@chakra-ui/react'
+import { FaMask, FaTrash } from 'react-icons/fa'
 import { GiDualityMask } from 'react-icons/gi'
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import {
-  Button,
-  Popover,
-  Checkbox,
-  ColorPicker,
-  IconButton,
-} from '../../components';
+import { useHotkeys } from 'react-hotkeys-hook'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import { Button, Popover, Checkbox, ColorPicker, IconButton } from '../../components'
 import {
   layerAtom,
   maskColorAtom,
@@ -19,63 +13,61 @@ import {
   clearMaskAction,
   setIsMaskEnabledAction,
   isStagingSelector,
-} from '../../atoms/canvas.atoms';
+} from '../../atoms/canvas.atoms'
 
 export const CanvasMaskOptions: FC = () => {
-
-  const [layer, setLayer] = useRecoilState(layerAtom);
-  const [maskColor, setMaskColor] = useRecoilState(maskColorAtom);
-  const [shouldPreserveMaskedArea, setShouldPreserveMaskedArea] =
-    useRecoilState(shouldPreserveMaskedAreaAtom);
-  const clearMask = useSetRecoilState(clearMaskAction);
-  const [isMaskEnabled, setIsMaskEnabled] = useRecoilState(
-    setIsMaskEnabledAction
-  );
-  const isStaging = useRecoilValue(isStagingSelector);
+  const [layer, setLayer] = useRecoilState(layerAtom)
+  const [maskColor, setMaskColor] = useRecoilState(maskColorAtom)
+  const [shouldPreserveMaskedArea, setShouldPreserveMaskedArea] = useRecoilState(
+    shouldPreserveMaskedAreaAtom
+  )
+  const clearMask = useSetRecoilState(clearMaskAction)
+  const [isMaskEnabled, setIsMaskEnabled] = useRecoilState(setIsMaskEnabledAction)
+  const isStaging = useRecoilValue(isStagingSelector)
 
   useHotkeys(
     ['q'],
     () => {
-      handleToggleMaskLayer();
+      handleToggleMaskLayer()
     },
     {
       enabled: () => !isStaging,
       preventDefault: true,
     },
     [layer]
-  );
+  )
 
   useHotkeys(
     ['shift+c'],
     () => {
-      handleClearMask();
+      handleClearMask()
     },
     {
       enabled: () => !isStaging,
       preventDefault: true,
     },
     []
-  );
+  )
 
   useHotkeys(
     ['h'],
     () => {
-      handleToggleEnableMask();
+      handleToggleEnableMask()
     },
     {
       enabled: () => !isStaging,
       preventDefault: true,
     },
     [isMaskEnabled]
-  );
+  )
 
   const handleToggleMaskLayer = () => {
-    setLayer(layer === 'mask' ? 'base' : 'mask');
-  };
+    setLayer(layer === 'mask' ? 'base' : 'mask')
+  }
 
-  const handleClearMask = () => clearMask();
+  const handleClearMask = () => clearMask()
 
-  const handleToggleEnableMask = () => setIsMaskEnabled(!isMaskEnabled);
+  const handleToggleEnableMask = () => setIsMaskEnabled(!isMaskEnabled)
 
   return (
     <Popover
@@ -113,5 +105,5 @@ export const CanvasMaskOptions: FC = () => {
         </Button>
       </Flex>
     </Popover>
-  );
-};
+  )
+}

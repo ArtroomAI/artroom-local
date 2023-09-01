@@ -1,17 +1,17 @@
-import Konva from 'konva';
-import { KonvaEventObject } from 'konva/lib/Node';
-import _ from 'lodash';
-import { MutableRefObject, useCallback } from 'react';
-import { getScaledCursorPosition } from '../util';
-import { useColorPicker } from './useColorUnderCursor';
+import Konva from 'konva'
+import { KonvaEventObject } from 'konva/lib/Node'
+import _ from 'lodash'
+import { MutableRefObject, useCallback } from 'react'
+import { getScaledCursorPosition } from '../util'
+import { useColorPicker } from './useColorUnderCursor'
 import {
-	addLineAction,
-	isDrawingAtom,
-	isMovingStageAtom,
-	toolAtom,
-	isStagingSelector
-} from '../atoms/canvas.atoms';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
+  addLineAction,
+  isDrawingAtom,
+  isMovingStageAtom,
+  toolAtom,
+  isStagingSelector,
+} from '../atoms/canvas.atoms'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 
 // import { activeTabNameSelector } from 'options/store/optionsSelectors';
 // import {
@@ -37,52 +37,48 @@ import { useRecoilValue, useSetRecoilState } from 'recoil';
 // 	{ memoizeOptions: { resultEqualityCheck: _.isEqual } },
 // );
 
-export const useCanvasMouseDown = (
-	stageRef: MutableRefObject<Konva.Stage | null>,
-) => {
-	// const { tool, isStaging } = useAppSelector(selector);
-	const { commitColorUnderCursor } = useColorPicker();
+export const useCanvasMouseDown = (stageRef: MutableRefObject<Konva.Stage | null>) => {
+  // const { tool, isStaging } = useAppSelector(selector);
+  const { commitColorUnderCursor } = useColorPicker()
 
-	const addLine = useSetRecoilState(addLineAction);
-	const setIsDrawing = useSetRecoilState(isDrawingAtom);
-	const setIsMovingStage = useSetRecoilState(isMovingStageAtom);
-	const tool = useRecoilValue(toolAtom);
-	const isStaging = useRecoilValue(isStagingSelector);
+  const addLine = useSetRecoilState(addLineAction)
+  const setIsDrawing = useSetRecoilState(isDrawingAtom)
+  const setIsMovingStage = useSetRecoilState(isMovingStageAtom)
+  const tool = useRecoilValue(toolAtom)
+  const isStaging = useRecoilValue(isStagingSelector)
 
-	return useCallback(
-		(e: KonvaEventObject<MouseEvent | TouchEvent>) => {
-			if (!stageRef.current) return;
+  return useCallback(
+    (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+      if (!stageRef.current) return
 
-			stageRef.current.container().focus();
+      stageRef.current.container().focus()
 
-			e.evt.preventDefault();
+      e.evt.preventDefault()
 
-			if(e.evt.button === 1) {
-				stageRef.current.startDrag();
-				return;
-			}
+      if (e.evt.button === 1) {
+        stageRef.current.startDrag()
+        return
+      }
 
-			if (tool === 'move' || isStaging) {
-				setIsMovingStage(true);
-				return;
-			}
+      if (tool === 'move' || isStaging) {
+        setIsMovingStage(true)
+        return
+      }
 
-			if (tool === 'colorPicker') {
-				commitColorUnderCursor();
-				return;
-			}
+      if (tool === 'colorPicker') {
+        commitColorUnderCursor()
+        return
+      }
 
-			const scaledCursorPosition = getScaledCursorPosition(
-				stageRef.current,
-			);
+      const scaledCursorPosition = getScaledCursorPosition(stageRef.current)
 
-			if (!scaledCursorPosition) return;
+      if (!scaledCursorPosition) return
 
-			setIsDrawing(true);
+      setIsDrawing(true)
 
-			// Add a new line starting from the current cursor position.
-			addLine([scaledCursorPosition.x, scaledCursorPosition.y]);
-		},
-		[stageRef, tool, isStaging, commitColorUnderCursor],
-	);
-};
+      // Add a new line starting from the current cursor position.
+      addLine([scaledCursorPosition.x, scaledCursorPosition.y])
+    },
+    [stageRef, tool, isStaging, commitColorUnderCursor]
+  )
+}

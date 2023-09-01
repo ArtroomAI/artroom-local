@@ -1,7 +1,7 @@
-import React from 'react';
-import { FC } from 'react';
-import { useRecoilValue } from 'recoil';
-import { cursorCoordinatesStringSelector } from '../../atoms/canvas.atoms';
+import React from 'react'
+import { FC } from 'react'
+import { useRecoilValue } from 'recoil'
+import { cursorCoordinatesStringSelector } from '../../atoms/canvas.atoms'
 
 // import { canvasSelector } from 'canvas/store/canvasSelectors';
 // import { roundToHundred } from 'canvas/util';
@@ -29,11 +29,9 @@ import { cursorCoordinatesStringSelector } from '../../atoms/canvas.atoms';
 // );
 
 export const CanvasStatusTextCursorPos: FC = () => {
-	// const { cursorCoordinatesString } = useAppSelector(cursorPositionSelector);
+  // const { cursorCoordinatesString } = useAppSelector(cursorPositionSelector);
 
-	const cursorCoordinatesString = useRecoilValue(
-		cursorCoordinatesStringSelector,
-	);
+  const cursorCoordinatesString = useRecoilValue(cursorCoordinatesStringSelector)
 
-	return <div>{`Cursor Position: ${cursorCoordinatesString}`}</div>;
-};
+  return <div>{`Cursor Position: ${cursorCoordinatesString}`}</div>
+}

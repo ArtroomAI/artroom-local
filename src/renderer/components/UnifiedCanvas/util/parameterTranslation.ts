@@ -1,84 +1,75 @@
-import { Vector2d } from 'konva/lib/types';
-import { NUMPY_RAND_MAX, NUMPY_RAND_MIN } from '../constants';
-import {
-  CanvasState,
-  isCanvasMaskLine,
-  Dimensions,
-} from '../atoms/canvasTypes';
-import {
-  SystemState,
-  OptionsState,
-  UpscalingLevel,
-  FacetoolType,
-} from '../painter';
-import { stringToSeedWeightsArray } from './seedWeightPairs';
-import { randomInt } from './randomInt';
-import { generateMask } from './generateMask';
-import { getCanvasBaseLayer } from './konvaInstanceProvider';
-import { openBase64ImageInTab } from './openBase64ImageInTab';
+import { Vector2d } from 'konva/lib/types'
+import { NUMPY_RAND_MAX, NUMPY_RAND_MIN } from '../constants'
+import { CanvasState, isCanvasMaskLine, Dimensions } from '../atoms/canvasTypes'
+import { SystemState, OptionsState, UpscalingLevel, FacetoolType } from '../painter'
+import { stringToSeedWeightsArray } from './seedWeightPairs'
+import { randomInt } from './randomInt'
+import { generateMask } from './generateMask'
+import { getCanvasBaseLayer } from './konvaInstanceProvider'
+import { openBase64ImageInTab } from './openBase64ImageInTab'
 
 export type FrontendToBackendParametersConfig = {
-  generationMode: 'unifiedCanvas';
-  optionsState: OptionsState;
-  canvasState: CanvasState;
-  systemState: SystemState;
-  imageToProcessUrl?: string;
-};
+  generationMode: 'unifiedCanvas'
+  optionsState: OptionsState
+  canvasState: CanvasState
+  systemState: SystemState
+  imageToProcessUrl?: string
+}
 
 export type BackendGenerationParameters = {
-  prompt: string;
-  iterations: number;
-  steps: number;
-  cfg_scale: number;
-  threshold: number;
-  perlin: number;
-  height: number;
-  width: number;
-  sampler_name: string;
-  seed: number;
-  progress_images: boolean;
-  progress_latents: boolean;
-  save_intermediates: number;
-  generation_mode: 'unifiedCanvas';
-  init_mask: string;
-  init_img?: string;
-  fit?: boolean;
-  seam_size?: number;
-  seam_blur?: number;
-  seam_strength?: number;
-  seam_steps?: number;
-  tile_size?: number;
-  infill_method?: string;
-  force_outpaint?: boolean;
-  seamless?: boolean;
-  hires_fix?: boolean;
-  strength?: number;
-  invert_mask?: boolean;
-  inpaint_replace?: number;
-  bounding_box?: Vector2d & Dimensions;
-  inpaint_width?: number;
-  inpaint_height?: number;
-  with_variations?: Array<Array<number>>;
-  variation_amount?: number;
-  enable_image_debugging?: boolean;
-};
+  prompt: string
+  iterations: number
+  steps: number
+  cfg_scale: number
+  threshold: number
+  perlin: number
+  height: number
+  width: number
+  sampler_name: string
+  seed: number
+  progress_images: boolean
+  progress_latents: boolean
+  save_intermediates: number
+  generation_mode: 'unifiedCanvas'
+  init_mask: string
+  init_img?: string
+  fit?: boolean
+  seam_size?: number
+  seam_blur?: number
+  seam_strength?: number
+  seam_steps?: number
+  tile_size?: number
+  infill_method?: string
+  force_outpaint?: boolean
+  seamless?: boolean
+  hires_fix?: boolean
+  strength?: number
+  invert_mask?: boolean
+  inpaint_replace?: number
+  bounding_box?: Vector2d & Dimensions
+  inpaint_width?: number
+  inpaint_height?: number
+  with_variations?: Array<Array<number>>
+  variation_amount?: number
+  enable_image_debugging?: boolean
+}
 
 export type BackendEsrGanParameters = {
-  level: UpscalingLevel;
-  strength: number;
-};
+  level: UpscalingLevel
+  strength: number
+}
 
 export type BackendFacetoolParameters = {
-  type: FacetoolType;
-  strength: number;
-  codeformer_fidelity?: number;
-};
+  type: FacetoolType
+  strength: number
+  codeformer_fidelity?: number
+}
 
 export type BackendParameters = {
-  generationParameters: BackendGenerationParameters;
-  esrganParameters: false | BackendEsrGanParameters;
-  facetoolParameters: false | BackendFacetoolParameters;
-};
+  generationParameters: BackendGenerationParameters
+  esrganParameters: false | BackendEsrGanParameters
+  facetoolParameters: false | BackendFacetoolParameters
+}
 
 /**
  * Translates/formats frontend state into parameters suitable
@@ -87,9 +78,9 @@ export type BackendParameters = {
 export const frontendToBackendParameters = (
   config: FrontendToBackendParametersConfig
 ): BackendParameters => {
-  const canvasBaseLayer = getCanvasBaseLayer();
+  const canvasBaseLayer = getCanvasBaseLayer()
 
-  const { generationMode, optionsState, canvasState, systemState } = config;
+  const { generationMode, optionsState, canvasState, systemState } = config
 
   const {
     cfgScale,
@@ -122,13 +113,10 @@ export const frontendToBackendParameters = (
     upscalingStrength,
     variationAmount,
     width,
-  } = optionsState;
+  } = optionsState
 
-  const {
-    shouldDisplayInProgressType,
-    saveIntermediatesInterval,
-    enableImageDebugging,
-  } = systemState;
+  const { shouldDisplayInProgressType, saveIntermediatesInterval, enableImageDebugging } =
+    systemState
 
   const generationParameters: BackendGenerationParameters = {
     prompt,
@@ -146,34 +134,32 @@ export const frontendToBackendParameters = (
     save_intermediates: saveIntermediatesInterval,
     generation_mode: generationMode,
     init_mask: '',
-  };
+  }
 
-  let esrganParameters: false | BackendEsrGanParameters = false;
-  let facetoolParameters: false | BackendFacetoolParameters = false;
+  let esrganParameters: false | BackendEsrGanParameters = false
+  let facetoolParameters: false | BackendFacetoolParameters = false
 
-  generationParameters.seed = shouldRandomizeSeed
-    ? randomInt(NUMPY_RAND_MIN, NUMPY_RAND_MAX)
-    : seed;
+  generationParameters.seed = shouldRandomizeSeed ? randomInt(NUMPY_RAND_MIN, NUMPY_RAND_MAX) : seed
 
   // parameters common to txt2img and img2img
   if (['txt2img', 'img2img'].includes(generationMode)) {
-    generationParameters.seamless = seamless;
-    generationParameters.hires_fix = hiresFix;
+    generationParameters.seamless = seamless
+    generationParameters.hires_fix = hiresFix
 
     if (shouldRunESRGAN) {
       esrganParameters = {
         level: upscalingLevel,
         strength: upscalingStrength,
-      };
+      }
     }
 
     if (shouldRunFacetool) {
       facetoolParameters = {
         type: facetoolType,
         strength: facetoolStrength,
-      };
+      }
       if (facetoolType === 'codeformer') {
-        facetoolParameters.codeformer_fidelity = codeformerFidelity;
+        facetoolParameters.codeformer_fidelity = codeformerFidelity
       }
     }
   }
@@ -191,92 +177,91 @@ export const frontendToBackendParameters = (
       shouldPreserveMaskedArea,
       boundingBoxScaleMethod: boundingBoxScale,
       scaledBoundingBoxDimensions,
-    } = canvasState;
+    } = canvasState
 
     const boundingBox = {
       ...boundingBoxCoordinates,
       ...boundingBoxDimensions,
-    };
+    }
 
     const maskDataURL = generateMask(
       isMaskEnabled ? objects.filter(isCanvasMaskLine) : [],
       boundingBox
-    );
+    )
 
-    generationParameters.init_mask = maskDataURL;
+    generationParameters.init_mask = maskDataURL
 
-    generationParameters.fit = false;
+    generationParameters.fit = false
 
-    generationParameters.strength = img2imgStrength;
+    generationParameters.strength = img2imgStrength
 
-    generationParameters.invert_mask = shouldPreserveMaskedArea;
+    generationParameters.invert_mask = shouldPreserveMaskedArea
 
     if (shouldUseInpaintReplace) {
-      generationParameters.inpaint_replace = inpaintReplace;
+      generationParameters.inpaint_replace = inpaintReplace
     }
 
-    generationParameters.bounding_box = boundingBox;
+    generationParameters.bounding_box = boundingBox
 
-    const tempScale = canvasBaseLayer.scale();
+    const tempScale = canvasBaseLayer.scale()
 
     canvasBaseLayer.scale({
       x: 1 / stageScale,
       y: 1 / stageScale,
-    });
+    })
 
-    const absPos = canvasBaseLayer.getAbsolutePosition();
+    const absPos = canvasBaseLayer.getAbsolutePosition()
 
     const imageDataURL = canvasBaseLayer.toDataURL({
       x: boundingBox.x + absPos.x,
       y: boundingBox.y + absPos.y,
       width: boundingBox.width,
       height: boundingBox.height,
-    });
+    })
 
     if (enableImageDebugging) {
       openBase64ImageInTab([
         { base64: maskDataURL, caption: 'mask sent as init_mask' },
         { base64: imageDataURL, caption: 'image sent as init_img' },
-      ]);
+      ])
     }
 
-    canvasBaseLayer.scale(tempScale);
+    canvasBaseLayer.scale(tempScale)
 
-    generationParameters.init_img = imageDataURL;
+    generationParameters.init_img = imageDataURL
 
-    generationParameters.progress_images = false;
+    generationParameters.progress_images = false
 
     if (boundingBoxScale !== 'none') {
-      generationParameters.inpaint_width = scaledBoundingBoxDimensions.width;
-      generationParameters.inpaint_height = scaledBoundingBoxDimensions.height;
+      generationParameters.inpaint_width = scaledBoundingBoxDimensions.width
+      generationParameters.inpaint_height = scaledBoundingBoxDimensions.height
     }
 
-    generationParameters.seam_size = seamSize;
-    generationParameters.seam_blur = seamBlur;
-    generationParameters.seam_strength = seamStrength;
-    generationParameters.seam_steps = seamSteps;
-    generationParameters.tile_size = tileSize;
-    generationParameters.infill_method = infillMethod;
-    generationParameters.force_outpaint = false;
+    generationParameters.seam_size = seamSize
+    generationParameters.seam_blur = seamBlur
+    generationParameters.seam_strength = seamStrength
+    generationParameters.seam_steps = seamSteps
+    generationParameters.tile_size = tileSize
+    generationParameters.infill_method = infillMethod
+    generationParameters.force_outpaint = false
   }
 
   if (shouldGenerateVariations) {
-    generationParameters.variation_amount = variationAmount;
+    generationParameters.variation_amount = variationAmount
     if (seedWeights) {
-      generationParameters.with_variations =
-        stringToSeedWeightsArray(seedWeights);
+      generationParameters.with_variations = stringToSeedWeightsArray(seedWeights)
     }
   } else {
-    generationParameters.variation_amount = 0;
+    generationParameters.variation_amount = 0
   }
 
   if (enableImageDebugging) {
-    generationParameters.enable_image_debugging = enableImageDebugging;
+    generationParameters.enable_image_debugging = enableImageDebugging
   }
 
   return {
     generationParameters,
     esrganParameters,
     facetoolParameters,
-  };
-};
+  }
+}

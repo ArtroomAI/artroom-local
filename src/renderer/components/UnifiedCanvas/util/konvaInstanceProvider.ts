@@ -1,16 +1,16 @@
-import Konva from 'konva';
+import Konva from 'konva'
 
-let canvasBaseLayer: Konva.Layer | null = null;
-let canvasStage: Konva.Stage | null = null;
+let canvasBaseLayer: Konva.Layer | null = null
+let canvasStage: Konva.Stage | null = null
 
 export const setCanvasBaseLayer = (layer: Konva.Layer) => {
-	canvasBaseLayer = layer;
-};
+  canvasBaseLayer = layer
+}
 
-export const getCanvasBaseLayer = () => canvasBaseLayer;
+export const getCanvasBaseLayer = () => canvasBaseLayer
 
 export const setCanvasStage = (stage: Konva.Stage) => {
-	canvasStage = stage;
-};
+  canvasStage = stage
+}
 
-export const getCanvasStage = () => canvasStage;
+export const getCanvasStage = () => canvasStage

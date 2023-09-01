@@ -1,4 +1,4 @@
-import typia from "typia";
+import typia from 'typia'
 
-import '../ExifDataType';
-export const exifValidator = typia.createValidate<ExifDataType>();
+import '../ExifDataType'
+export const exifValidator = typia.createValidate<ExifDataType>()

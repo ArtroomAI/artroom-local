@@ -1,540 +1,487 @@
-import React, { useCallback } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import * as atom from '../../atoms/atoms';
+import React, { useCallback } from 'react'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import * as atom from '../../atoms/atoms'
 import {
-    Flex,
-    Box,
-    FormControl,
-    FormLabel,
-    Input,
-    VStack,
-    HStack,
-    NumberInput,
-    NumberInputField,
-    Slider,
-    SliderTrack,
-    SliderFilledTrack,
-    SliderThumb,
-    Tooltip,
-    Checkbox,
-    Select,
-    Spacer,
-    Text,
-    Icon,
-    Button,
-    IconButton,
-    useToast,
-    ButtonGroup
-} from '@chakra-ui/react';
-import { FaClipboardList, FaFolder, FaQuestionCircle } from 'react-icons/fa';
-import { IoMdCloud } from 'react-icons/io';
+  Flex,
+  Box,
+  FormControl,
+  FormLabel,
+  Input,
+  VStack,
+  HStack,
+  NumberInput,
+  NumberInputField,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
+  Tooltip,
+  Checkbox,
+  Select,
+  Spacer,
+  Text,
+  Icon,
+  Button,
+  IconButton,
+  useToast,
+  ButtonGroup,
+} from '@chakra-ui/react'
+import { FaClipboardList, FaFolder, FaQuestionCircle } from 'react-icons/fa'
+import { IoMdCloud } from 'react-icons/io'
 import {
-    batchNameState,
-    cfgState,
-    ckptState,
-    clipSkipState,
-    controlnetState,
-    iterationsState,
-    checkSettings,
-    loraState,
-    modelsDirState,
-    exifDataSelector,
-    randomSeedState,
-    removeBackgroundState,
-    samplerState,
-    seedState,
-    stepsState,
-    strengthState,
-    useRemovedBackgroundState,
-    vaeState,
-    modelsState,
-    CheckSettingsType
-} from '../../SettingsManager';
-import LoraSelector from './Lora/LoraSelector';
-import { AspectRatio } from './AspectRatio';
-import Controlnet from './Controlnet/Controlnet';
-import RemoveBackground from './RemoveBackground/RemoveBackground';
-import { SDSettingsAccordion } from './SDSettingsAccordion';
-import { getExifData } from '../../../main/utils/exifData';
-import HighresUpscale from './HighresUpscale/HighresUpscale';
+  batchNameState,
+  cfgState,
+  ckptState,
+  clipSkipState,
+  controlnetState,
+  iterationsState,
+  checkSettings,
+  loraState,
+  modelsDirState,
+  exifDataSelector,
+  randomSeedState,
+  removeBackgroundState,
+  samplerState,
+  seedState,
+  stepsState,
+  strengthState,
+  useRemovedBackgroundState,
+  vaeState,
+  modelsState,
+  CheckSettingsType,
+} from '../../SettingsManager'
+import LoraSelector from './Lora/LoraSelector'
+import { AspectRatio } from './AspectRatio'
+import Controlnet from './Controlnet/Controlnet'
+import RemoveBackground from './RemoveBackground/RemoveBackground'
+import { SDSettingsAccordion } from './SDSettingsAccordion'
+import { getExifData } from '../../../main/utils/exifData'
+import HighresUpscale from './HighresUpscale/HighresUpscale'
 
-type SDSettingsTab = 'default' | 'paint';
+type SDSettingsTab = 'default' | 'paint'
 
-function SDSettings ({ tab } : { tab: SDSettingsTab }) {
-    const toast = useToast({});
-    const cloudMode = useRecoilValue(atom.cloudModeState);
+function SDSettings({ tab }: { tab: SDSettingsTab }) {
+  const toast = useToast({})
+  const cloudMode = useRecoilValue(atom.cloudModeState)
 
-    const modelsDirs = useRecoilValue(modelsDirState);
-    const models = useRecoilValue(modelsState);
+  const modelsDirs = useRecoilValue(modelsDirState)
+  const models = useRecoilValue(modelsState)
 
-    const [batchName, setBatchName] = useRecoilState(batchNameState);
-    const [iterations, setIterations] = useRecoilState(iterationsState);
-    const [steps, setSteps] = useRecoilState(stepsState);
-    const [cfg, setCfg] = useRecoilState(cfgState);
-    const [clipSkip, setClipSkip] = useRecoilState(clipSkipState);
+  const [batchName, setBatchName] = useRecoilState(batchNameState)
+  const [iterations, setIterations] = useRecoilState(iterationsState)
+  const [steps, setSteps] = useRecoilState(stepsState)
+  const [cfg, setCfg] = useRecoilState(cfgState)
+  const [clipSkip, setClipSkip] = useRecoilState(clipSkipState)
 
-    const [sampler, setSampler] = useRecoilState(samplerState);
-    const controlnet = useRecoilValue(controlnetState);
-    const [strength, setStrength] = useRecoilState(strengthState);
-    const [seed, setSeed] = useRecoilState(seedState);
-    const [ckpt, setCkpt] = useRecoilState(ckptState);
-    const [vae, setVae] = useRecoilState(vaeState);
+  const [sampler, setSampler] = useRecoilState(samplerState)
+  const controlnet = useRecoilValue(controlnetState)
+  const [strength, setStrength] = useRecoilState(strengthState)
+  const [seed, setSeed] = useRecoilState(seedState)
+  const [ckpt, setCkpt] = useRecoilState(ckptState)
+  const [vae, setVae] = useRecoilState(vaeState)
 
-    const [randomSeed, setRandomSeed] = useRecoilState(randomSeedState);
+  const [randomSeed, setRandomSeed] = useRecoilState(randomSeedState)
 
-    const lora = useRecoilValue(loraState);
-    const removeBackground = useRecoilValue(removeBackgroundState);
-    const useRemovedBackground = useRecoilValue(useRemovedBackgroundState);
-    const setSettings = useSetRecoilState(exifDataSelector);
+  const lora = useRecoilValue(loraState)
+  const removeBackground = useRecoilValue(removeBackgroundState)
+  const useRemovedBackground = useRecoilValue(useRemovedBackgroundState)
+  const setSettings = useSetRecoilState(exifDataSelector)
 
-    const goToModelFolder = useCallback(() => {
-        if (modelsDirs !== '') {
-            window.api.showInExplorer(modelsDirs);
-        }
-    }, [modelsDirs]);
-
-    const setSettingsWithToast = (results: CheckSettingsType) => {
-        if(results[1].status !== 'error') {
-            setSettings(results[0]);
-        }
-        toast(results[1]);
+  const goToModelFolder = useCallback(() => {
+    if (modelsDirs !== '') {
+      window.api.showInExplorer(modelsDirs)
     }
+  }, [modelsDirs])
 
-    return (
-        <Flex pr="10" width="450px">
-            <Box m="-1" p={4} rounded="md">
-                <VStack className="sd-settings" spacing={3}>
-                    <HStack>
-                        <FormControl className="folder-name-input">
-                            <FormLabel htmlFor="batch_name">
-                                Output Folder
-                            </FormLabel>
+  const setSettingsWithToast = (results: CheckSettingsType) => {
+    if (results[1].status !== 'error') {
+      setSettings(results[0])
+    }
+    toast(results[1])
+  }
 
-                            <Input
-                                id="batch_name"
-                                name="batch_name"
-                                onChange={(event) => setBatchName(event.target.value)}
-                                value={batchName}
-                                variant="outline"
-                            />
-                        </FormControl>
+  return (
+    <Flex pr="10" width="450px">
+      <Box m="-1" p={4} rounded="md">
+        <VStack className="sd-settings" spacing={3}>
+          <HStack>
+            <FormControl className="folder-name-input">
+              <FormLabel htmlFor="batch_name">Output Folder</FormLabel>
 
-                        <FormControl width="200px" className="num-images-input">
-                            <FormLabel htmlFor="n_iter">
-                                № of Images
-                            </FormLabel>
+              <Input
+                id="batch_name"
+                name="batch_name"
+                onChange={(event) => setBatchName(event.target.value)}
+                value={batchName}
+                variant="outline"
+              />
+            </FormControl>
 
-                            <NumberInput
-                                id="n_iter"
-                                name="n_iter"
-                                min={1}
-                                onChange={setIterations}
-                                value={iterations}
-                                variant="outline"
-                            >
-                                <NumberInputField id="n_iter" />
-                            </NumberInput>
-                        </FormControl>
-                    </HStack>
+            <FormControl width="200px" className="num-images-input">
+              <FormLabel htmlFor="n_iter">№ of Images</FormLabel>
 
-                    <AspectRatio />
+              <NumberInput
+                id="n_iter"
+                name="n_iter"
+                min={1}
+                onChange={setIterations}
+                value={iterations}
+                variant="outline"
+              >
+                <NumberInputField id="n_iter" />
+              </NumberInput>
+            </FormControl>
+          </HStack>
 
-                    <FormControl className="model-ckpt-input">
-                        <FormLabel htmlFor="Ckpt">
-                            <HStack>
-                                <Text>
-                                    Model
-                                </Text>
-                                <Button
-                                    fontSize='xs'
-                                    leftIcon={<FaFolder/>}
-                                    _hover={{ cursor: 'pointer' }}
-                                    onClick={goToModelFolder}
-                                    variant="outline"
-                                    size="xs"
-                                    >
-                                    View
-                                </Button>
-                                {cloudMode
-                                    ? <Icon as={IoMdCloud} />
-                                    : null}
-                            </HStack>
-                        </FormLabel>
+          <AspectRatio />
 
-                        <Select
-                            id="ckpt"
-                            name="ckpt"
-                            onChange={(event) => setCkpt(event.target.value)}
-                            value={ckpt}
-                            variant="outline"
-                        >
-                            <option value="">
-                                Choose Your Model Weights
-                            </option>
+          <FormControl className="model-ckpt-input">
+            <FormLabel htmlFor="Ckpt">
+              <HStack>
+                <Text>Model</Text>
+                <Button
+                  fontSize="xs"
+                  leftIcon={<FaFolder />}
+                  _hover={{ cursor: 'pointer' }}
+                  onClick={goToModelFolder}
+                  variant="outline"
+                  size="xs"
+                >
+                  View
+                </Button>
+                {cloudMode ? <Icon as={IoMdCloud} /> : null}
+              </HStack>
+            </FormLabel>
 
-                            {models.ckpts.map((ckpt_option, i) => (<option
-                                key={i}
-                                value={ckpt_option}
-                            >
-                                {ckpt_option}
-                            </option>))}
-                        </Select>
-                    </FormControl>
+            <Select
+              id="ckpt"
+              name="ckpt"
+              onChange={(event) => setCkpt(event.target.value)}
+              value={ckpt}
+              variant="outline"
+            >
+              <option value="">Choose Your Model Weights</option>
 
-                    <SDSettingsAccordion header={`Advanced Settings`}>
-                        <FormControl className="strength-input">
-                            <HStack>
-                                <FormLabel htmlFor="Strength">
-                                    Image Variation Strength:
-                                </FormLabel>
-                                <Spacer />
-                                <Tooltip
-                                    fontSize="md"
-                                    label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
-                                    placement="left"
-                                    shouldWrapChildren
-                                >
-                                    <FaQuestionCircle color="#777" />
-                                </Tooltip>
-                            </HStack>
+              {models.ckpts.map((ckpt_option, i) => (
+                <option key={i} value={ckpt_option}>
+                  {ckpt_option}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
 
-                            <Slider
-                                defaultValue={0.75}
-                                id="strength"
-                                max={1}
-                                min={0.01}
-                                name="strength"
-                                onChange={setStrength}        
-                                step={0.01}
-                                value={strength}
-                                variant="outline"
-                            >
-                                <SliderTrack bg="#EEEEEE">
-                                    <SliderFilledTrack bg="#4f8ff8" />
-                                </SliderTrack>
+          <SDSettingsAccordion header={`Advanced Settings`}>
+            <FormControl className="strength-input">
+              <HStack>
+                <FormLabel htmlFor="Strength">Image Variation Strength:</FormLabel>
+                <Spacer />
+                <Tooltip
+                  fontSize="md"
+                  label="Strength determines how much your output will resemble your input image. Closer to 0 means it will look more like the original and closer to 1 means use more noise and make it look less like the input"
+                  placement="left"
+                  shouldWrapChildren
+                >
+                  <FaQuestionCircle color="#777" />
+                </Tooltip>
+              </HStack>
 
-                                <Tooltip
-                                    bg="#4f8ff8"
-                                    color="white"
-                                    isOpen={true}
-                                    label={`${strength}`}
-                                    placement="right"
-                                >
-                                    <SliderThumb />
-                                </Tooltip>
-                            </Slider>
-                        </FormControl>
-                        <HStack mt={4} alignItems="end">
-                            <FormControl width="60%" className="steps-input">
-                                <HStack>
-                                    <FormLabel htmlFor="steps">
-                                        № of Steps
-                                    </FormLabel>
+              <Slider
+                defaultValue={0.75}
+                id="strength"
+                max={1}
+                min={0.01}
+                name="strength"
+                onChange={setStrength}
+                step={0.01}
+                value={strength}
+                variant="outline"
+              >
+                <SliderTrack bg="#EEEEEE">
+                  <SliderFilledTrack bg="#4f8ff8" />
+                </SliderTrack>
 
-                                    <Tooltip
-                                        fontSize="md"
-                                        label="Steps determine how long you want the model to spend on generating your image. The more steps you have, the longer it will take but you'll get better results. The results are less impactful the more steps you have, so you may stop seeing improvement after 100 steps. 50 is typically a good number"
-                                        placement="left"
-                                        shouldWrapChildren
-                                    >
-                                        <FaQuestionCircle color="#777" />
-                                    </Tooltip>
-                                </HStack>
+                <Tooltip
+                  bg="#4f8ff8"
+                  color="white"
+                  isOpen={true}
+                  label={`${strength}`}
+                  placement="right"
+                >
+                  <SliderThumb />
+                </Tooltip>
+              </Slider>
+            </FormControl>
+            <HStack mt={4} alignItems="end">
+              <FormControl width="60%" className="steps-input">
+                <HStack>
+                  <FormLabel htmlFor="steps">№ of Steps</FormLabel>
 
-                                <NumberInput
-                                    id="steps"
-                                    min={1}
-                                    name="steps"
-                                    onChange={setSteps}
-                                    value={steps}
-                                    variant="outline"
-                                >
-                                    <NumberInputField id="steps" />
-                                </NumberInput>
-                            </FormControl>
-                            <FormControl className="cfg-scale-input">
-                                <HStack>
-                                    <FormLabel htmlFor="cfg_scale">
-                                        Prompt Strength (CFG):
-                                    </FormLabel>
+                  <Tooltip
+                    fontSize="md"
+                    label="Steps determine how long you want the model to spend on generating your image. The more steps you have, the longer it will take but you'll get better results. The results are less impactful the more steps you have, so you may stop seeing improvement after 100 steps. 50 is typically a good number"
+                    placement="left"
+                    shouldWrapChildren
+                  >
+                    <FaQuestionCircle color="#777" />
+                  </Tooltip>
+                </HStack>
 
-                                    <Spacer />
+                <NumberInput
+                  id="steps"
+                  min={1}
+                  name="steps"
+                  onChange={setSteps}
+                  value={steps}
+                  variant="outline"
+                >
+                  <NumberInputField id="steps" />
+                </NumberInput>
+              </FormControl>
+              <FormControl className="cfg-scale-input">
+                <HStack>
+                  <FormLabel htmlFor="cfg_scale">Prompt Strength (CFG):</FormLabel>
 
-                                    <Tooltip
-                                        fontSize="md"
-                                        label="Prompt Strength or CFG Scale determines how intense the generations are. A typical value is around 5-15 with higher numbers telling the AI to stay closer to the prompt you typed"
-                                        placement="left"
-                                        shouldWrapChildren
-                                    >
-                                        <FaQuestionCircle color="#777" />
-                                    </Tooltip>
-                                </HStack>
+                  <Spacer />
 
-                                <Slider
-                                    defaultValue={7.5}
-                                    max={40}
-                                    min={1}
-                                    id="cfg_scale"
-                                    name="cfg_scale"
-                                    onChange={setCfg}     
-                                    step={0.5}
-                                    value={cfg}
-                                    variant="outline"
-                                >
-                                    <SliderTrack bg="#EEEEEE">
-                                        <SliderFilledTrack bg="#4f8ff8" />
-                                    </SliderTrack>
+                  <Tooltip
+                    fontSize="md"
+                    label="Prompt Strength or CFG Scale determines how intense the generations are. A typical value is around 5-15 with higher numbers telling the AI to stay closer to the prompt you typed"
+                    placement="left"
+                    shouldWrapChildren
+                  >
+                    <FaQuestionCircle color="#777" />
+                  </Tooltip>
+                </HStack>
 
-                                    <Tooltip
-                                        bg="#4f8ff8"
-                                        color="white"
-                                        isOpen={true}
-                                        label={`${cfg}`}
-                                        placement="right"
-                                    >
-                                        <SliderThumb />
-                                    </Tooltip>
-                                </Slider>
-                            </FormControl>
-                        </HStack>
-                        <HStack alignItems="end">
-                            <FormControl className="samplers-input">
-                                <HStack>
-                                    <FormLabel htmlFor="Sampler">
-                                        Sampler
-                                    </FormLabel>
+                <Slider
+                  defaultValue={7.5}
+                  max={40}
+                  min={1}
+                  id="cfg_scale"
+                  name="cfg_scale"
+                  onChange={setCfg}
+                  step={0.5}
+                  value={cfg}
+                  variant="outline"
+                >
+                  <SliderTrack bg="#EEEEEE">
+                    <SliderFilledTrack bg="#4f8ff8" />
+                  </SliderTrack>
 
-                                    <Spacer />
+                  <Tooltip
+                    bg="#4f8ff8"
+                    color="white"
+                    isOpen={true}
+                    label={`${cfg}`}
+                    placement="right"
+                  >
+                    <SliderThumb />
+                  </Tooltip>
+                </Slider>
+              </FormControl>
+            </HStack>
+            <HStack alignItems="end">
+              <FormControl className="samplers-input">
+                <HStack>
+                  <FormLabel htmlFor="Sampler">Sampler</FormLabel>
 
-                                    <Tooltip
-                                        fontSize="md"
-                                        label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
-                                        placement="left"
-                                        shouldWrapChildren
-                                    >
-                                        <FaQuestionCircle color="#777" />
-                                    </Tooltip>
-                                </HStack>
+                  <Spacer />
 
-                                <Select
-                                    id="sampler"
-                                    name="sampler"
-                                    onChange={(event) => setSampler(event.target.value)}
-                                    value={sampler}
-                                    variant="outline"
-                                >
-                                    <option value="ddim">
-                                        DDIM
-                                    </option>
+                  <Tooltip
+                    fontSize="md"
+                    label="Samplers determine how the AI model goes about the generation. Each sampler has its own aesthetic (sometimes they may even end up with the same results). Play around with them and see which ones you prefer!"
+                    placement="left"
+                    shouldWrapChildren
+                  >
+                    <FaQuestionCircle color="#777" />
+                  </Tooltip>
+                </HStack>
 
-                                    <option value="dpmpp_2m">
-                                        DPM++ 2M Karras
-                                    </option>
+                <Select
+                  id="sampler"
+                  name="sampler"
+                  onChange={(event) => setSampler(event.target.value)}
+                  value={sampler}
+                  variant="outline"
+                >
+                  <option value="ddim">DDIM</option>
 
-                                    <option value="dpmpp_2s_ancestral">
-                                        DPM++ 2S Ancestral Karras
-                                    </option>
+                  <option value="dpmpp_2m">DPM++ 2M Karras</option>
 
-                                    <option value="euler">
-                                        Euler
-                                    </option>
+                  <option value="dpmpp_2s_ancestral">DPM++ 2S Ancestral Karras</option>
 
-                                    <option value="euler_a">
-                                        Euler Ancestral
-                                    </option>
+                  <option value="euler">Euler</option>
 
-                                    <option value="dpmpp_sde">
-                                        DPM++ SDE
-                                    </option>
+                  <option value="euler_a">Euler Ancestral</option>
 
-                                    <option value="dpm_2">
-                                        DPM 2
-                                    </option>
+                  <option value="dpmpp_sde">DPM++ SDE</option>
 
-                                    <option value="dpm_a">
-                                        DPM 2 Ancestral
-                                    </option>
+                  <option value="dpm_2">DPM 2</option>
 
-                                    <option value="lms">
-                                        LMS
-                                    </option>
+                  <option value="dpm_a">DPM 2 Ancestral</option>
 
-                                    <option value="heun">
-                                        Heun
-                                    </option>
+                  <option value="lms">LMS</option>
 
-                                    <option value="plms">
-                                        PLMS
-                                    </option>
-                                </Select>
-                            </FormControl>
-                            <FormControl width='55%' className="clip-skip-input">
-                                <HStack>
-                                    <FormLabel htmlFor="clip-skip">
-                                        Clip Skip:
-                                    </FormLabel>
+                  <option value="heun">Heun</option>
 
-                                    <Spacer />
+                  <option value="plms">PLMS</option>
+                </Select>
+              </FormControl>
+              <FormControl width="55%" className="clip-skip-input">
+                <HStack>
+                  <FormLabel htmlFor="clip-skip">Clip Skip:</FormLabel>
 
-                                    <Tooltip
-                                        fontSize="md"
-                                        label="Some anime models/loras prefer to have a clip skip of 2"
-                                        placement="left"
-                                        shouldWrapChildren
-                                    >
-                                        <FaQuestionCircle color="#777" />
-                                    </Tooltip>
-                                </HStack>
+                  <Spacer />
 
-                                <NumberInput
-                                    id="clip_skip"
-                                    min={0}
-                                    name="clip_skip"
-                                    onChange={setClipSkip}         
-                                    value={clipSkip}
-                                    variant="outline"
-                                >
-                                    <NumberInputField id="clip_skip" />
-                                </NumberInput>
-                            </FormControl>     
-                        </HStack>
+                  <Tooltip
+                    fontSize="md"
+                    label="Some anime models/loras prefer to have a clip skip of 2"
+                    placement="left"
+                    shouldWrapChildren
+                  >
+                    <FaQuestionCircle color="#777" />
+                  </Tooltip>
+                </HStack>
 
-                        <HStack className="seed-input">
-                            <FormControl>
-                                <HStack>
-                                    <FormLabel htmlFor="seed">
-                                        Seed:
-                                    </FormLabel>
+                <NumberInput
+                  id="clip_skip"
+                  min={0}
+                  name="clip_skip"
+                  onChange={setClipSkip}
+                  value={clipSkip}
+                  variant="outline"
+                >
+                  <NumberInputField id="clip_skip" />
+                </NumberInput>
+              </FormControl>
+            </HStack>
 
-                                    <Spacer />
+            <HStack className="seed-input">
+              <FormControl>
+                <HStack>
+                  <FormLabel htmlFor="seed">Seed:</FormLabel>
 
-                                    <Tooltip
-                                        fontSize="md"
-                                        label="Seed controls randomness. If you set the same seed each time and use the same settings, then you will get the same results"
-                                        placement="left"
-                                        shouldWrapChildren
-                                    >
-                                        <FaQuestionCircle color="#777" />
-                                    </Tooltip>
-                                </HStack>
+                  <Spacer />
 
-                                <NumberInput
-                                    id="seed"
-                                    isDisabled={randomSeed}
-                                    min={0}
-                                    name="seed"
-                                    onChange={(v, n) => {
-                                        setSeed(isNaN(n) ? 0 : n);
-                                    }}        
-                                    value={seed}
-                                    variant="outline"
-                                >
-                                    <NumberInputField id="seed" />
-                                </NumberInput>
-                            </FormControl>
+                  <Tooltip
+                    fontSize="md"
+                    label="Seed controls randomness. If you set the same seed each time and use the same settings, then you will get the same results"
+                    placement="left"
+                    shouldWrapChildren
+                  >
+                    <FaQuestionCircle color="#777" />
+                  </Tooltip>
+                </HStack>
 
-                            <VStack
-                                align="center"
-                                justify="center"
-                            >
-                                <FormLabel
-                                    htmlFor="use_random_seed"
-                                >
-                                    Random
-                                </FormLabel>
+                <NumberInput
+                  id="seed"
+                  isDisabled={randomSeed}
+                  min={0}
+                  name="seed"
+                  onChange={(v, n) => {
+                    setSeed(isNaN(n) ? 0 : n)
+                  }}
+                  value={seed}
+                  variant="outline"
+                >
+                  <NumberInputField id="seed" />
+                </NumberInput>
+              </FormControl>
 
-                                <Checkbox
-                                    id="use_random_seed"
-                                    isChecked={randomSeed}
-                                    name="use_random_seed"
-                                    onChange={() => {
-                                        setRandomSeed((useRandomSeed) => !useRandomSeed);
-                                    }}
-                                    pb="12px"
-                                />
-                            </VStack>
-                        </HStack>
-                            
-                        <FormControl className="vae-ckpt-input">
-                            <FormLabel htmlFor="Vae">
-                                <HStack>
-                                    <Text>
-                                        VAE
-                                    </Text>
+              <VStack align="center" justify="center">
+                <FormLabel htmlFor="use_random_seed">Random</FormLabel>
 
-                                    {cloudMode
-                                        ? <Icon as={IoMdCloud} />
-                                        : null}
-                                </HStack>
-                            </FormLabel>
+                <Checkbox
+                  id="use_random_seed"
+                  isChecked={randomSeed}
+                  name="use_random_seed"
+                  onChange={() => {
+                    setRandomSeed((useRandomSeed) => !useRandomSeed)
+                  }}
+                  pb="12px"
+                />
+              </VStack>
+            </HStack>
 
-                            <Select
-                                id="vae"
-                                name="vae"
-                                onChange={(event) => setVae(event.target.value)}
-                                value={vae}
-                                variant="outline"
-                            >
-                                <option value="">
-                                    No vae
-                                </option>
-                                {models.vaes.map((ckpt_option, i) => (<option
-                                    key={i}
-                                    value={ckpt_option}
-                                >
-                                    {ckpt_option}
-                                </option>))}
-                            </Select>
-                        </FormControl>
-                    </SDSettingsAccordion> 
+            <FormControl className="vae-ckpt-input">
+              <FormLabel htmlFor="Vae">
+                <HStack>
+                  <Text>VAE</Text>
 
-                    <SDSettingsAccordion header={`Loras ${lora.length ? `(${lora.length})` : ``}`}>
-                        <LoraSelector cloudMode={cloudMode} options={models.loras} />
-                    </SDSettingsAccordion> 
+                  {cloudMode ? <Icon as={IoMdCloud} /> : null}
+                </HStack>
+              </FormLabel>
 
-                    <SDSettingsAccordion header={`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}>
-                        <Controlnet />
-                    </SDSettingsAccordion>   
+              <Select
+                id="vae"
+                name="vae"
+                onChange={(event) => setVae(event.target.value)}
+                value={vae}
+                variant="outline"
+              >
+                <option value="">No vae</option>
+                {models.vaes.map((ckpt_option, i) => (
+                  <option key={i} value={ckpt_option}>
+                    {ckpt_option}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+          </SDSettingsAccordion>
 
-                    <SDSettingsAccordion header={`Background Removal ${useRemovedBackground ? `(${removeBackground})` : ``}`}>
-                        <RemoveBackground />
-                    </SDSettingsAccordion>
+          <SDSettingsAccordion header={`Loras ${lora.length ? `(${lora.length})` : ``}`}>
+            <LoraSelector cloudMode={cloudMode} options={models.loras} />
+          </SDSettingsAccordion>
 
-                    <SDSettingsAccordion header='Highres settings'>
-                        <HighresUpscale />
-                    </SDSettingsAccordion>
+          <SDSettingsAccordion
+            header={`ControlNet ${controlnet !== 'none' ? `(${controlnet})` : ``}`}
+          >
+            <Controlnet />
+          </SDSettingsAccordion>
 
-                    <ButtonGroup isAttached variant="outline">
-                        <Tooltip label="Upload">
-                            <Button
-                                onClick={() => {
-                                    window.api.uploadSettings()
-                                        .then(settings => checkSettings(settings, models))
-                                        .then(setSettingsWithToast);
-                                }}
-                                aria-label="upload"
-                                variant="outline"
-                            >
-                                Load SDSettings from file
-                            </Button>
-                        </Tooltip>
-                        <Tooltip label="Paste from Clipboard">
-                            <IconButton
-                                aria-label="Paste from Clipboard"
-                                variant="outline"
-                                icon={<FaClipboardList />}
-                                onClick={() => {
-                                    navigator.clipboard.readText()
-                                        .then(getExifData)
-                                        .then(settings => checkSettings(settings, models))
-                                        .then(setSettingsWithToast);
-                                }}
-                            />
-                        </Tooltip>
-                    </ButtonGroup>
-                </VStack>
-            </Box>
-        </Flex>
-    );
+          <SDSettingsAccordion
+            header={`Background Removal ${useRemovedBackground ? `(${removeBackground})` : ``}`}
+          >
+            <RemoveBackground />
+          </SDSettingsAccordion>
+
+          <SDSettingsAccordion header="Highres settings">
+            <HighresUpscale />
+          </SDSettingsAccordion>
+
+          <ButtonGroup isAttached variant="outline">
+            <Tooltip label="Upload">
+              <Button
+                onClick={() => {
+                  window.api
+                    .uploadSettings()
+                    .then((settings) => checkSettings(settings, models))
+                    .then(setSettingsWithToast)
+                }}
+                aria-label="upload"
+                variant="outline"
+              >
+                Load SDSettings from file
+              </Button>
+            </Tooltip>
+            <Tooltip label="Paste from Clipboard">
+              <IconButton
+                aria-label="Paste from Clipboard"
+                variant="outline"
+                icon={<FaClipboardList />}
+                onClick={() => {
+                  navigator.clipboard
+                    .readText()
+                    .then(getExifData)
+                    .then((settings) => checkSettings(settings, models))
+                    .then(setSettingsWithToast)
+                }}
+              />
+            </Tooltip>
+          </ButtonGroup>
+        </VStack>
+      </Box>
+    </Flex>
+  )
 }
-export default SDSettings;
+export default SDSettings

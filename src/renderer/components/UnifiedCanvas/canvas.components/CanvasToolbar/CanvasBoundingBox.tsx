@@ -1,12 +1,12 @@
-import React from 'react';
-import { FC, useCallback, useEffect, useRef, useState } from 'react';
-import Konva from 'konva';
-import { KonvaEventObject } from 'konva/lib/Node';
-import { Vector2d } from 'konva/lib/types';
-import { Group, Rect, Transformer } from 'react-konva';
-import { GroupConfig } from 'konva/lib/Group';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { roundDownToMultiple, roundToMultiple } from '../../util';
+import React from 'react'
+import { FC, useCallback, useEffect, useRef, useState } from 'react'
+import Konva from 'konva'
+import { KonvaEventObject } from 'konva/lib/Node'
+import { Vector2d } from 'konva/lib/types'
+import { Group, Rect, Transformer } from 'react-konva'
+import { GroupConfig } from 'konva/lib/Group'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import { roundDownToMultiple, roundToMultiple } from '../../util'
 import {
   setBoundingBoxDimensionsAction,
   setBoundingBoxCoordinatesAction,
@@ -17,7 +17,7 @@ import {
   isDrawingAtom,
   toolAtom,
   shouldSnapToGridAtom,
-} from '../../atoms/canvas.atoms';
+} from '../../atoms/canvas.atoms'
 
 // import _ from 'lodash';
 // import { canvasSelector } from 'canvas/store/canvasSelectors';
@@ -61,12 +61,10 @@ import {
 // 	},
 // );
 
-type ICanvasBoundingBoxPreviewProps = GroupConfig;
+type ICanvasBoundingBoxPreviewProps = GroupConfig
 
-export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
-  props
-) => {
-  const { ...rest } = props;
+export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (props) => {
+  const { ...rest } = props
 
   // const {
   // 	boundingBoxCoordinates,
@@ -82,36 +80,32 @@ export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
 
   const [boundingBoxDimensions, setBoundingBoxDimensions] = useRecoilState(
     setBoundingBoxDimensionsAction
-  );
+  )
   const [boundingBoxCoordinates, setBoundingBoxCoordinates] = useRecoilState(
     setBoundingBoxCoordinatesAction
-  );
-  const [isTransformingBoundingBox, setIsTransformingBoundingBox] =
-    useRecoilState(isTransformingBoundingBoxAtom);
-  const [isMovingBoundingBox, setIsMovingBoundingBox] = useRecoilState(
-    isMovingBoundingBoxAtom
-  );
-  const setIsMouseOverBoundingBox = useSetRecoilState(
-    isMouseOverBoundingBoxAtom
-  );
-  const stageScale = useRecoilValue(stageScaleAtom);
-  const isDrawing = useRecoilValue(isDrawingAtom);
-  const tool = useRecoilValue(toolAtom);
-  const shouldSnapToGrid = useRecoilValue(shouldSnapToGridAtom);
+  )
+  const [isTransformingBoundingBox, setIsTransformingBoundingBox] = useRecoilState(
+    isTransformingBoundingBoxAtom
+  )
+  const [isMovingBoundingBox, setIsMovingBoundingBox] = useRecoilState(isMovingBoundingBoxAtom)
+  const setIsMouseOverBoundingBox = useSetRecoilState(isMouseOverBoundingBoxAtom)
+  const stageScale = useRecoilValue(stageScaleAtom)
+  const isDrawing = useRecoilValue(isDrawingAtom)
+  const tool = useRecoilValue(toolAtom)
+  const shouldSnapToGrid = useRecoilValue(shouldSnapToGridAtom)
 
-  const transformerRef = useRef<Konva.Transformer>(null);
-  const shapeRef = useRef<Konva.Rect>(null);
+  const transformerRef = useRef<Konva.Transformer>(null)
+  const shapeRef = useRef<Konva.Rect>(null)
 
-  const [isMouseOverBoundingBoxOutline, setIsMouseOverBoundingBoxOutline] =
-    useState(false);
+  const [isMouseOverBoundingBoxOutline, setIsMouseOverBoundingBoxOutline] = useState(false)
 
   useEffect(() => {
-    if (!transformerRef.current || !shapeRef.current) return;
-    transformerRef.current.nodes([shapeRef.current]);
-    transformerRef.current.getLayer()?.batchDraw();
-  }, []);
+    if (!transformerRef.current || !shapeRef.current) return
+    transformerRef.current.nodes([shapeRef.current])
+    transformerRef.current.getLayer()?.batchDraw()
+  }, [])
 
-  const scaledStep = 64 * stageScale;
+  const scaledStep = 64 * stageScale
 
   const handleOnDragMove = useCallback(
     (e: KonvaEventObject<DragEvent>) => {
@@ -119,26 +113,26 @@ export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
         setBoundingBoxCoordinates({
           x: Math.floor(e.target.x()),
           y: Math.floor(e.target.y()),
-        });
-        return;
+        })
+        return
       }
 
-      const dragX = e.target.x();
-      const dragY = e.target.y();
+      const dragX = e.target.x()
+      const dragY = e.target.y()
 
-      const newX = roundToMultiple(dragX, 64);
-      const newY = roundToMultiple(dragY, 64);
+      const newX = roundToMultiple(dragX, 64)
+      const newY = roundToMultiple(dragY, 64)
 
-      e.target.x(newX);
-      e.target.y(newY);
+      e.target.x(newX)
+      e.target.y(newY)
 
       setBoundingBoxCoordinates({
         x: newX,
         y: newY,
-      });
+      })
     },
     [shouldSnapToGrid]
-  );
+  )
 
   const handleOnTransform = useCallback(() => {
     /**
@@ -146,34 +140,34 @@ export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
      * not its width and height. We need to un-scale the width and height before
      * setting the values.
      */
-    if (!shapeRef.current) return;
+    if (!shapeRef.current) return
 
-    const rect = shapeRef.current;
+    const rect = shapeRef.current
 
-    const scaleX = rect.scaleX();
-    const scaleY = rect.scaleY();
+    const scaleX = rect.scaleX()
+    const scaleY = rect.scaleY()
 
     // undo the scaling
-    const width = Math.round(rect.width() * scaleX);
-    const height = Math.round(rect.height() * scaleY);
+    const width = Math.round(rect.width() * scaleX)
+    const height = Math.round(rect.height() * scaleY)
 
-    const x = Math.round(rect.x());
-    const y = Math.round(rect.y());
+    const x = Math.round(rect.x())
+    const y = Math.round(rect.y())
 
     setBoundingBoxDimensions({
       width,
       height,
-    });
+    })
 
     setBoundingBoxCoordinates({
       x: shouldSnapToGrid ? roundDownToMultiple(x, 64) : x,
       y: shouldSnapToGrid ? roundDownToMultiple(y, 64) : y,
-    });
+    })
 
     // Reset the scale now that the coords/dimensions have been un-scaled
-    rect.scaleX(1);
-    rect.scaleY(1);
-  }, [shouldSnapToGrid]);
+    rect.scaleX(1)
+    rect.scaleY(1)
+  }, [shouldSnapToGrid])
 
   const anchorDragBoundFunc = useCallback(
     (
@@ -195,58 +189,56 @@ export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
        */
 
       // Calculate the offset of the grid.
-      const offsetX = oldPos.x % scaledStep;
-      const offsetY = oldPos.y % scaledStep;
+      const offsetX = oldPos.x % scaledStep
+      const offsetY = oldPos.y % scaledStep
 
       const newCoordinates = {
         x: roundDownToMultiple(newPos.x, scaledStep) + offsetX,
         y: roundDownToMultiple(newPos.y, scaledStep) + offsetY,
-      };
+      }
 
-      return newCoordinates;
+      return newCoordinates
     },
     [scaledStep]
-  );
+  )
 
   const handleStartedTransforming = () => {
-    setIsTransformingBoundingBox(true);
-  };
+    setIsTransformingBoundingBox(true)
+  }
 
   const handleEndedTransforming = () => {
-    setIsTransformingBoundingBox(false);
-    setIsMovingBoundingBox(false);
-    setIsMouseOverBoundingBox(false);
-    setIsMouseOverBoundingBoxOutline(false);
-  };
+    setIsTransformingBoundingBox(false)
+    setIsMovingBoundingBox(false)
+    setIsMouseOverBoundingBox(false)
+    setIsMouseOverBoundingBoxOutline(false)
+  }
 
   const handleStartedMoving = () => {
-    setIsMovingBoundingBox(true);
-  };
+    setIsMovingBoundingBox(true)
+  }
 
   const handleEndedModifying = () => {
-    setIsTransformingBoundingBox(false);
-    setIsMovingBoundingBox(false);
-    setIsMouseOverBoundingBox(false);
-    setIsMouseOverBoundingBoxOutline(false);
-  };
+    setIsTransformingBoundingBox(false)
+    setIsMovingBoundingBox(false)
+    setIsMouseOverBoundingBox(false)
+    setIsMouseOverBoundingBoxOutline(false)
+  }
 
   const handleMouseOver = () => {
-    setIsMouseOverBoundingBoxOutline(true);
-  };
+    setIsMouseOverBoundingBoxOutline(true)
+  }
 
   const handleMouseOut = () => {
-    !isTransformingBoundingBox &&
-      !isMovingBoundingBox &&
-      setIsMouseOverBoundingBoxOutline(false);
-  };
+    !isTransformingBoundingBox && !isMovingBoundingBox && setIsMouseOverBoundingBoxOutline(false)
+  }
 
   const handleMouseEnterBoundingBox = () => {
-    setIsMouseOverBoundingBox(true);
-  };
+    setIsMouseOverBoundingBox(true)
+  }
 
   const handleMouseLeaveBoundingBox = () => {
-    setIsMouseOverBoundingBox(false);
-  };
+    setIsMouseOverBoundingBox(false)
+  }
 
   return (
     <Group {...rest}>
@@ -277,9 +269,7 @@ export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
         onTransform={handleOnTransform}
         onTransformEnd={handleEndedTransforming}
         ref={shapeRef}
-        stroke={
-          isMouseOverBoundingBoxOutline ? 'rgba(255,255,255,0.7)' : 'white'
-        }
+        stroke={isMouseOverBoundingBoxOutline ? 'rgba(255,255,255,0.7)' : 'white'}
         strokeWidth={(isMouseOverBoundingBoxOutline ? 8 : 1) / stageScale}
         width={boundingBoxDimensions.width}
         x={boundingBoxCoordinates.x}
@@ -309,5 +299,5 @@ export const CanvasBoundingBox: FC<ICanvasBoundingBoxPreviewProps> = (
         rotateEnabled={false}
       />
     </Group>
-  );
-};
+  )
+}

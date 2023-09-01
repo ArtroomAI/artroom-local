@@ -1,12 +1,12 @@
-let openFunction: () => void;
+let openFunction: () => void
 
 export const useImageUploader = () => {
   return {
     setOpenUploader: (open?: () => void) => {
       if (open) {
-        openFunction = open;
+        openFunction = open
       }
     },
     openUploader: openFunction,
-  };
-};
+  }
+}

@@ -1,5 +1,5 @@
-import './style.css';
+import './style.css'
 
-if(!('global' in window)) window['global'] = window;
+if (!('global' in window)) window['global'] = window
 
-import './index';
+import './index'
