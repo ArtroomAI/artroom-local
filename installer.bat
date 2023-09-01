@@ -8,30 +8,30 @@ REM Default values
 set "URL="
 set "ZIP_FILE="
 set "DOWNLOAD_FOLDER=%UserProfile%\Downloads"
-set "DESTINATION_FOLDER=%UserProfile%\artroom"
-set "GPU_TYPE=Unknown"
 
-REM Detect GPU type
-wmic path win32_VideoController get name | findstr /i "AMD" >nul
-if %errorlevel% equ 0 (
-	set "GPU_TYPE=AMD"
-) 
+REM If DESTINATION_FOLDER is provided as an argument
+if not "%~1"=="" (
+    set "DESTINATION_FOLDER=%~1"
+) else (
+    set "DESTINATION_FOLDER=%UserProfile%\artroom"
+)
 
-wmic path win32_VideoController get name | findstr /i "NVIDIA" >nul
-if %errorlevel% equ 0 (
-	set "GPU_TYPE=NVIDIA"
-) 
+REM If GPU_TYPE is provided as the second argument
+if not "%~2"=="" (
+    set "GPU_TYPE=%~2"
+) else (
+    set "GPU_TYPE=Unknown"
+)
 
-
+REM Detect GPU type only if not provided
 if "%GPU_TYPE%"=="Unknown" (
-    echo Unable to automatically detect your GPU type.
-    echo Please select your GPU type manually: 
-    echo [1] NVIDIA
-    echo [2] AMD
-    choice /c 12 /n /m "Enter your choice:"
-    if errorlevel 2 (
+    wmic path win32_VideoController get name | findstr /i "AMD" >nul
+    if %errorlevel% equ 0 (
         set "GPU_TYPE=AMD"
-    ) else (
+    ) 
+
+    wmic path win32_VideoController get name | findstr /i "NVIDIA" >nul
+    if %errorlevel% equ 0 (
         set "GPU_TYPE=NVIDIA"
     )
 )

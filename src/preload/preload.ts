@@ -36,13 +36,10 @@ const api = {
     IPC.invoke('pythonInstall', artroomPath, gpuType),
   pythonInstallDependencies: (artroomPath: string, gpuType: string) =>
     IPC.invoke('pythonInstallDependencies', artroomPath, gpuType),
-  backupDownload: (artroomPath: string) => IPC.invoke('backupDownload', artroomPath),
-  downloadStarterModels: (
-    dir: string,
-    realisticStarter: boolean,
-    animeStarter: boolean,
-    landscapesStarter: boolean
-  ) => IPC.invoke('downloadStarterModels', dir, realisticStarter, animeStarter, landscapesStarter),
+  backupDownload: (artroomPath: string, gpuSelection: string) =>
+    IPC.invoke('backupDownload', artroomPath, gpuSelection),
+  downloadStarterModels: (dir: string, starterModels: any) =>
+    IPC.invoke('downloadStarterModels', dir, starterModels),
   saveQueue: (queue: string, artroom_path: string) => IPC.invoke('saveQueue', queue, artroom_path),
   readQueue: (artroom_path: string): Promise<string | undefined> =>
     IPC.invoke('readQueue', artroom_path),

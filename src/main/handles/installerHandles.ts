@@ -145,6 +145,10 @@ async function download_via_https(
 
   async function downloadWithRetry(retryCount: number): Promise<boolean> {
     if (retryCount === 0) {
+      mainWindow.webContents.send(
+        'fixButtonProgress',
+        `Failed to download ${name} after ${retries} retries.`
+      )
       throw new Error(`Failed to download ${name} after ${retries} retries`)
     }
 
@@ -165,35 +169,19 @@ async function download_via_https(
         cur += chunk.length
         ++chunk_counter
         if (chunk_counter >= 2000) {
-          console.log(
-            `Downloading ${name} ${((100 * cur) / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(
-              len
-            )}mb`
-          )
-          mainWindow.webContents.send(
-            'fixButtonProgress',
-            `Downloading ${name} ${((100 * cur) / len).toFixed(2)}% - ${toMB(cur)}mb / ${toMB(
-              len
-            )}mb`
-          )
+          const progressMessage = `Downloading ${name} ${((100 * cur) / len).toFixed(2)}% - ${toMB(
+            cur
+          )}mb / ${toMB(len)}mb`
+          console.log(progressMessage)
+          mainWindow.webContents.send('fixButtonProgress', progressMessage)
           chunk_counter = 0
         }
       })
 
-      await pipeline(
-        response.data,
-        (function () {
-          const file = fs.createWriteStream(file_path)
-          file.on('finish', () => {
-            mainWindow.webContents.send('fixButtonProgress', `Downloaded ${name} successfully.`)
-          })
-          file.on('error', (e) => {
-            throw e
-          })
-          return file
-        })()
-      )
+      const file = fs.createWriteStream(file_path)
+      await pipeline(response.data, file)
 
+      mainWindow.webContents.send('fixButtonProgress', `Downloaded ${name} successfully.`)
       return true
     } catch (error) {
       mainWindow.webContents.send('fixButtonProgress', `Error: ${error.message}`)
@@ -312,14 +300,14 @@ async function executeInstallationCommand(command: string): Promise<void> {
   })
 }
 
-const backupDownload = async (artroomPath?: string, mainWindow?: Electron.BrowserWindow) => {
+const backupDownload = async (artroomPath?: string, gpuType?: string, mainWindow?: Electron.BrowserWindow) => {
   const options = {
     detached: true,
     shell: true,
   }
 
-  exec('start cmd.exe /K "installer.bat"', (error, stdout, stderr) => {
-    if (error) {
+exec(`start cmd.exe /K "installer.bat "${artroomPath}" "${gpuType}"`, (error, stdout, stderr) => {    
+  if (error) {
       console.error(`exec error: ${error}`)
       return
     }
@@ -331,9 +319,12 @@ const backupDownload = async (artroomPath?: string, mainWindow?: Electron.Browse
 const downloadStarterModels = async (
   mainWindow: Electron.BrowserWindow,
   dir: string,
-  realisticStarter: boolean,
-  animeStarter: boolean,
-  landscapesStarter: boolean
+  starterModels: {
+    SDXL: boolean
+    RevAnimated: boolean
+    MeinaMix: boolean
+    DreamShaper: boolean
+  }
 ) => {
   fs.mkdirSync(dir, { recursive: true })
   fs.mkdirSync(path.join(dir, 'Vae'), { recursive: true })
@@ -342,37 +333,38 @@ const downloadStarterModels = async (
   fs.mkdirSync(path.join(dir, 'Embeddings'), { recursive: true })
 
   const models = {
-    SDXL: true,
-    ChilloutMix: false,
-    Counterfeit: false,
-    DreamShaper: false,
+    SDXL: {
+      name: 'SDXLv1.0.safetensors',
+      url: 'https://civitai.com/api/download/models/128078',
+      path: path.join(dir, 'SDXLv1.0.safetensors'),
+    },
+    RevAnimated: {
+      name: 'RevAnimated.safetensors',
+      url: 'https://civitai.com/api/download/models/46846',
+      path: path.join(dir, 'RevAnimated.safetensors'),
+    },
+    MeinaMix: {
+      name: 'MeinaMix.safetensors',
+      url: 'https://civitai.com/api/download/models/119057',
+      path: path.join(dir, 'MeinaMix.safetensors'),
+    },
+    DreamShaper: {
+      name: 'Dreamshaper.safetensors',
+      url: 'https://civitai.com/api/download/models/126688',
+      path: path.join(dir, 'Dreamshaper.safetensors'),
+    },
   }
 
-  const SDXLModel = ''
-  const realisticModel = 'ChilloutMix.safetensors'
-  const animeModel = 'Counterfeit.safetensors'
-  const landscapesModel = 'Dreamshaper.safetensors'
-
-  const realisticURL = 'https://civitai.com/api/download/models/11745'
-  const realisticURL = 'https://civitai.com/api/download/models/11745'
-  const animeURL = 'https://civitai.com/api/download/models/57618'
-  const landscapesURL = 'https://civitai.com/api/download/models/109123'
-
-  const realisticPath = path.join(dir, realisticModel)
-  const animePath = path.join(dir, animeModel)
-  const landscapesPath = path.join(dir, landscapesModel)
-
-  if (realisticStarter) {
-    console.log(`DOWNLOADING FROM ${realisticURL}`)
-    await download_via_https(realisticModel, realisticURL, realisticPath, mainWindow)
-  }
-  if (animeStarter) {
-    console.log(`DOWNLOADING FROM ${animeURL}`)
-    await download_via_https(animeModel, animeURL, animePath, mainWindow)
-  }
-  if (landscapesStarter) {
-    console.log(`DOWNLOADING FROM ${landscapesURL}`)
-    await download_via_https(landscapesModel, landscapesURL, landscapesPath, mainWindow)
+  for (const modelKey in models) {
+    if (starterModels[modelKey]) {
+      console.log(`DOWNLOADING FROM ${models[modelKey].url}`)
+      await download_via_https(
+        models[modelKey].name,
+        models[modelKey].url,
+        models[modelKey].path,
+        mainWindow
+      )
+    }
   }
   console.log('All downloads complete!')
 }
@@ -385,18 +377,16 @@ export const installerHandles = (mainWindow: Electron.BrowserWindow) => {
   ipcMain.handle('pythonInstallDependencies', (_, artroomPath, gpuType) => {
     return reinstallPythonDependencies(artroomPath, gpuType, mainWindow)
   })
-  ipcMain.handle('backupDownload', (_, artroomPath) => {
-    return backupDownload(artroomPath, mainWindow)
+  ipcMain.handle('backupDownload', (_, artroomPath,gpuType) => {
+    return backupDownload(artroomPath, gpuType, mainWindow)
   })
   ipcMain.handle(
     'downloadStarterModels',
-    (_, dir, realisticStarter, animeStarter, landscapesStarter) => {
+    (_, dir, starterModels) => {
       return downloadStarterModels(
         mainWindow,
         dir,
-        realisticStarter,
-        animeStarter,
-        landscapesStarter
+        starterModels
       )
     }
   )

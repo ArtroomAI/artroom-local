@@ -49,8 +49,8 @@ export const InstallerManager = () => {
 
   const [starterModels, setStarterModels] = useState({
     SDXL: true,
-    ChilloutMix: false,
-    Counterfeit: false,
+    RevAnimated: false,
+    MeinaMix: false,
     DreamShaper: false,
   })
 
@@ -236,26 +236,26 @@ export const InstallerManager = () => {
               {`(General) DreamShaper SDXL`}
             </Checkbox>
             <Checkbox
-              isChecked={starterModels.ChilloutMix}
+              isChecked={starterModels.RevAnimated}
               onChange={() => {
                 setStarterModels((prevState) => ({
                   ...prevState,
-                  ChilloutMix: !prevState.ChilloutMix,
+                  RevAnimated: !prevState.RevAnimated,
                 }))
               }}
             >
-              {`(Realistic) ChilloutMix`}
+              {`(Realistic) RevAnimated`}
             </Checkbox>
             <Checkbox
-              isChecked={starterModels.Counterfeit}
+              isChecked={starterModels.MeinaMix}
               onChange={() => {
                 setStarterModels((prevState) => ({
                   ...prevState,
-                  Counterfeit: !prevState.Counterfeit,
+                  MeinaMix: !prevState.MeinaMix,
                 }))
               }}
             >
-              {`(Anime) Counterfeit`}
+              {`(Anime) MeinaMix`}
             </Checkbox>
             <Text
               _hover={{
