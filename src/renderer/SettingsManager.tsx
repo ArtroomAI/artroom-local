@@ -46,7 +46,7 @@ export const textPromptsState = atom<string>({
 })
 
 export const DEFAULT_NEGATIVE_PROMPT =
-  'mutated, deformed, amateur drawing, lowres, worst quality, low quality, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship'
+  'mutated, deformed, lowres, jpeg artifacts, text, error, signature, watermark, username, blurry, censorship'
 export const negativePromptsState = atom<string>({
   key: 'negative_prompts',
   default: DEFAULT_NEGATIVE_PROMPT,
