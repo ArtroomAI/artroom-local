@@ -100,6 +100,21 @@ function SDSettings({ tab }: { tab: SDSettingsTab }) {
     toast(results[1])
   }
 
+  const resetToDefaults = () => {
+    setBatchName(''); // Replace with the default value for batchName
+    setIterations(1); // Replace with the default value for iterations
+    setCkpt(''); // Replace with the default value for ckpt
+    setStrength(0.75); // Replace with the default value for strength
+    setSteps(1); // Replace with the default value for steps
+    setCfg(7.5); // Replace with the default value for cfg
+    setSampler('ddim'); // Replace with the default value for sampler
+    setClipSkip(0); // Replace with the default value for clipSkip
+    setSeed(0); // Replace with the default value for seed
+    setRandomSeed(false); // Replace with the default value for randomSeed
+    setVae(''); // Replace with the default value for vae
+    // Add any other state reset logic here
+  };
+
   return (
     <Flex pr="10" width="450px">
       <Box m="-1" p={4} rounded="md">
@@ -327,9 +342,9 @@ function SDSettings({ tab }: { tab: SDSettingsTab }) {
                   <option value="plms">PLMS</option>
                 </Select>
               </FormControl>
-              <FormControl width="55%" className="clip-skip-input">
+              <FormControl width="100%" className="clip-skip-input">
                 <HStack>
-                  <FormLabel htmlFor="clip-skip">Clip Skip:</FormLabel>
+                  <Text>Clip Skip:</Text>
 
                   <Spacer />
 
@@ -479,6 +494,14 @@ function SDSettings({ tab }: { tab: SDSettingsTab }) {
               />
             </Tooltip>
           </ButtonGroup>
+          <Button 
+            onClick={resetToDefaults} 
+            bg="red.700" 
+            width="100%" 
+            _hover={{ bg: "red.400" }}
+          >
+            Reset to Defaults
+          </Button>
         </VStack>
       </Box>
     </Flex>

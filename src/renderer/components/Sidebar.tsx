@@ -14,6 +14,8 @@ import { GiGraduateCap, GiResize } from 'react-icons/gi'
 import { FiGitMerge, FiMenu } from 'react-icons/fi'
 import { AiFillExperiment } from 'react-icons/ai'
 import { IoSettingsSharp } from 'react-icons/io5'
+import {BiNotepad} from 'react-icons/bi'
+
 import NavItem from './NavItem'
 import CivitaiLogo from '../images/civitai.png'
 import ArtroomLogo from '../images/ArtroomLogo.png'
@@ -153,6 +155,13 @@ export default function Sidebar({ navSize, setNavSize }: SidebarProps) {
             linkTo="#/trainer"
             navSize={navSize}
             title="Trainer"
+          />
+          <NavItem
+            className="promptworkshop"
+            icon={BiNotepad}
+            linkTo="#/promptworkshop"
+            navSize={navSize}
+            title="PromptWorkshop"
           />
         </Flex>
 

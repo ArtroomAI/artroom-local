@@ -17,6 +17,7 @@ import ImageEditor from './ImageEditor'
 import { QueueManager } from '../QueueManager'
 
 import { AppSocket } from './AppSocket'
+import PromptWorkshop from './PromptWorkshop'
 
 export default function App() {
   const [navSize, setNavSize] = useState<'small' | 'large'>('small')
@@ -109,6 +110,8 @@ export default function App() {
               <Route element={<ImageViewer />} path="/imageviewer" />
 
               <Route element={<Trainer />} path="/trainer" />
+              
+              <Route element={<PromptWorkshop />} path="/promptworkshop" />
 
               <Route element={<PromptGuide />} path="/prompt-guide" />
 

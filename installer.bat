@@ -72,11 +72,10 @@ if exist "%DESTINATION_FOLDER%\artroom_backend" (
     rd /s /q "%DESTINATION_FOLDER%\artroom_backend"
 )
 
-REM Extracting zip using VBScript
-echo Set objShell = CreateObject("Shell.Application") > %temp%\temp.vbs
-echo Set FilesInZip=objShell.NameSpace("%ZIP_PATH%").Items >> %temp%\temp.vbs
-echo objShell.NameSpace("%DESTINATION_FOLDER%").CopyHere(FilesInZip) >> %temp%\temp.vbs
-cscript //nologo %temp%\temp.vbs
+@echo off
+
+REM Using 7za.exe for faster extraction
+.\7z.exe e "%ZIP_PATH%" -o"%DESTINATION_FOLDER%\artroom_backend" -y
 
 if %errorlevel% neq 0 (
     echo An error occurred while extracting the file. Please check your system and try again.
@@ -86,7 +85,7 @@ if %errorlevel% neq 0 (
 echo Artroom Successfully downloaded! Please close this window and restart Artroom.
 
 REM Clean up the zip file and the temp vbs script if needed
-REM del %ZIP_PATH%
+del %ZIP_PATH%
 REM del %temp%\temp.vbs
 
 pause
