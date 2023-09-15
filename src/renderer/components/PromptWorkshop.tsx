@@ -16,7 +16,7 @@ import {
   CheckboxGroup,
   Checkbox
 } from '@chakra-ui/react';
-import XYPlot from '..\images\XYPlot.png'
+import XYPlot from '../images/XYPlot.png'
 import {
   DEFAULT_NEGATIVE_PROMPT,
   batchNameState
@@ -190,12 +190,12 @@ function PromptWorkshop() {
         <Image
           src={XYPlot}
           alt="Your Image"
-          boxSize="200px"
+          boxSize="400px"
         />
       </HStack>
 
       {/* Selected Option 2 */}
-      <VStack alignItems="flex-start">
+      <VStack alignItems="flex-start" width="45%">
         {/* Dropdown menu 2 */}
           <Box mt={4}>
             <Text>X-axis:</Text>
