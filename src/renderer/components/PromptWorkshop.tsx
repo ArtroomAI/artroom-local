@@ -12,9 +12,11 @@ import {
   Input,
   Spacer,
   Tooltip,
-  Image
+  Image,
+  CheckboxGroup,
+  Checkbox
 } from '@chakra-ui/react';
-
+import XYPlot from '..\images\XYPlot.png'
 import {
   DEFAULT_NEGATIVE_PROMPT,
   batchNameState
@@ -30,6 +32,8 @@ function PromptWorkshop() {
   const [batchName, setBatchName] = useRecoilState(batchNameState);
   const [inputValue1, setInputValue1] = useState('');
   const [inputValue2, setInputValue2] = useState('');
+  // State to store the selected option from the dropdown
+  const [selectedOption, setSelectedOption] = useState('');
 
   const handleOptionChange1 = (event) => {
     setSelectedOption1(event.target.value);
@@ -50,13 +54,14 @@ function PromptWorkshop() {
       case 'Negative Prompt':
         return (
           <FormControl>
-            <FormLabel>{selectedOption1}:</FormLabel>
-            <Input
-              value={inputValue1}
-              onChange={(e) => setInputValue1(e.target.value)}
-            />
-          </FormControl>
-        );
+            <FormLabel>Enter your {selectedOption1}, separate with ",":</FormLabel>
+        <Input
+          value={inputValue1}
+          onChange={(e) => setInputValue1(e.target.value)}
+        />
+      </FormControl>
+    );
+
       case 'Seed':
       case 'Width':
       case 'Height':
@@ -66,9 +71,9 @@ function PromptWorkshop() {
       case 'Clip Skip':
         return (
           <FormControl>
-            <FormLabel>{selectedOption1}:</FormLabel>
+            <FormLabel>Enter your {selectedOption1}, separate with ",":</FormLabel>
             <Input
-              type="number"
+              type="text"
               value={inputValue1}
               onChange={(e) => setInputValue1(e.target.value)}
             />
@@ -82,14 +87,16 @@ function PromptWorkshop() {
       case 'Sampler':
         return (
           <FormControl>
-            <FormLabel>{selectedOption1}:</FormLabel>
-            {/* You can replace this with a dropdown component */}
-            <Select>
-              <option value="option1">Option 1</option>
-              <option value="option2">Option 2</option>
-              <option value="option3">Option 3</option>
-            </Select>
-          </FormControl>
+          <FormLabel>Please select from {selectedOption1}:</FormLabel>
+          {/* Use CheckboxGroup for multiple selections */}
+          <CheckboxGroup value={selectedOption1} onChange={setSelectedOption1}>
+            <VStack alignItems="flex-start">
+              <Checkbox value="option1">Option 1</Checkbox>
+              <Checkbox value="option2">Option 2</Checkbox>
+              <Checkbox value="option3">Option 3</Checkbox>
+            </VStack>
+          </CheckboxGroup>
+        </FormControl>
         );
       default:
         return null; // Return null for unsupported options
@@ -121,7 +128,7 @@ function PromptWorkshop() {
           <FormControl>
             <FormLabel>{selectedOption2}:</FormLabel>
             <Input
-              type="number"
+              type="text"
               value={inputValue2}
               onChange={(e) => setInputValue2(e.target.value)}
             />
@@ -156,9 +163,9 @@ function PromptWorkshop() {
         <Flex align="center" justify="center">
           {/* Dropdown menu 1 */}
           <Box mr={4}>
-            <Text>Select option 1:</Text>
+            <Text>Y-Axis:</Text>
             <Select value={selectedOption1} onChange={handleOptionChange1}>
-              <option value="Prompt">Prompt</option>
+              <option value="Prompt">Prompt +++</option>
               <option value="Negative Prompt">Negative Prompt</option>
               <option value="Seed">Seed</option>
               <option value="Lora">Lora</option>
@@ -181,7 +188,7 @@ function PromptWorkshop() {
 
         {/* Image */}
         <Image
-          src="https://i.imgur.com/VEaD2Pr.png"
+          src={XYPlot}
           alt="Your Image"
           boxSize="200px"
         />
@@ -191,9 +198,9 @@ function PromptWorkshop() {
       <VStack alignItems="flex-start">
         {/* Dropdown menu 2 */}
           <Box mt={4}>
-            <Text>Select option 2:</Text>
+            <Text>X-axis:</Text>
             <Select value={selectedOption2} onChange={handleOptionChange2}>
-              <option value="Prompt">Prompt</option>
+              <option value="Prompt">Prompt ***</option>
               <option value="Negative Prompt">Negative Prompt</option>
               <option value="Seed">Seed</option>
               <option value="Lora">Lora</option>
