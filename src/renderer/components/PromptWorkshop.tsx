@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   Box,
   Text,
@@ -10,43 +10,29 @@ import {
   FormControl,
   FormLabel,
   Input,
-  Spacer,
-  Tooltip,
   Image,
   CheckboxGroup,
-  Checkbox
-} from '@chakra-ui/react';
+  Checkbox,
+} from '@chakra-ui/react'
 import XYPlot from '../images/XYPlot.png'
-import {
-  DEFAULT_NEGATIVE_PROMPT,
-  batchNameState
-} from '../SettingsManager';
-import { useRecoilState } from 'recoil';
-import { FaQuestionCircle } from 'react-icons/fa';
-import DragDropFile from './DragDropFile/DragDropFile';
-import { AutoResizeTextarea } from './Prompt';
 
 function PromptWorkshop() {
-  const [selectedOption1, setSelectedOption1] = useState('');
-  const [selectedOption2, setSelectedOption2] = useState('');
-  const [batchName, setBatchName] = useRecoilState(batchNameState);
-  const [inputValue1, setInputValue1] = useState('');
-  const [inputValue2, setInputValue2] = useState('');
-  // State to store the selected option from the dropdown
-  const [selectedOption, setSelectedOption] = useState('');
+  const [selectedOption1, setSelectedOption1] = useState('')
+  const [selectedOption2, setSelectedOption2] = useState('')
+  const [inputValue1, setInputValue1] = useState('')
+  const [inputValue2, setInputValue2] = useState('')
 
   const handleOptionChange1 = (event) => {
-    setSelectedOption1(event.target.value);
+    setSelectedOption1(event.target.value)
     // Clear the input value when changing the selected option
-    setInputValue1('');
-  };
+    setInputValue1('')
+  }
 
   const handleOptionChange2 = (event) => {
-    setSelectedOption2(event.target.value);
+    setSelectedOption2(event.target.value)
     // Clear the input value when changing the selected option
-    setInputValue2('');
-  };
-
+    setInputValue2('')
+  }
 
   const renderInput1 = () => {
     switch (selectedOption1) {
@@ -55,12 +41,9 @@ function PromptWorkshop() {
         return (
           <FormControl>
             <FormLabel>Enter your {selectedOption1}, separate with ",":</FormLabel>
-        <Input
-          value={inputValue1}
-          onChange={(e) => setInputValue1(e.target.value)}
-        />
-      </FormControl>
-    );
+            <Input value={inputValue1} onChange={(e) => setInputValue1(e.target.value)} />
+          </FormControl>
+        )
 
       case 'Seed':
       case 'Width':
@@ -78,7 +61,7 @@ function PromptWorkshop() {
               onChange={(e) => setInputValue1(e.target.value)}
             />
           </FormControl>
-        );
+        )
       case 'Lora':
       case 'Model':
       case 'VAE':
@@ -87,21 +70,21 @@ function PromptWorkshop() {
       case 'Sampler':
         return (
           <FormControl>
-          <FormLabel>Please select from {selectedOption1}:</FormLabel>
-          {/* Use CheckboxGroup for multiple selections */}
-          <CheckboxGroup value={selectedOption1} onChange={setSelectedOption1}>
-            <VStack alignItems="flex-start">
-              <Checkbox value="option1">Option 1</Checkbox>
-              <Checkbox value="option2">Option 2</Checkbox>
-              <Checkbox value="option3">Option 3</Checkbox>
-            </VStack>
-          </CheckboxGroup>
-        </FormControl>
-        );
+            <FormLabel>Please select from {selectedOption1}:</FormLabel>
+            {/* Use CheckboxGroup for multiple selections */}
+            <CheckboxGroup value={selectedOption1} onChange={setSelectedOption1}>
+              <VStack alignItems="flex-start">
+                <Checkbox value="option1">Option 1</Checkbox>
+                <Checkbox value="option2">Option 2</Checkbox>
+                <Checkbox value="option3">Option 3</Checkbox>
+              </VStack>
+            </CheckboxGroup>
+          </FormControl>
+        )
       default:
-        return null; // Return null for unsupported options
+        return null // Return null for unsupported options
     }
-  };
+  }
 
   const renderInput2 = () => {
     // Similar logic as renderInput1 for selectedOption2
@@ -111,12 +94,9 @@ function PromptWorkshop() {
         return (
           <FormControl>
             <FormLabel>{selectedOption2}:</FormLabel>
-            <Input
-              value={inputValue2}
-              onChange={(e) => setInputValue2(e.target.value)}
-            />
+            <Input value={inputValue2} onChange={(e) => setInputValue2(e.target.value)} />
           </FormControl>
-        );
+        )
       case 'Seed':
       case 'Width':
       case 'Height':
@@ -133,7 +113,7 @@ function PromptWorkshop() {
               onChange={(e) => setInputValue2(e.target.value)}
             />
           </FormControl>
-        );
+        )
       case 'Lora':
       case 'Model':
       case 'VAE':
@@ -150,12 +130,11 @@ function PromptWorkshop() {
               <option value="option3">Option 3</option>
             </Select>
           </FormControl>
-        );
+        )
       default:
-        return null; // Return null for unsupported options
+        return null // Return null for unsupported options
     }
-  };
-
+  }
 
   return (
     <VStack width="100%">
@@ -187,36 +166,32 @@ function PromptWorkshop() {
         </Flex>
 
         {/* Image */}
-        <Image
-          src={XYPlot}
-          alt="Your Image"
-          boxSize="400px"
-        />
+        <Image src={XYPlot} alt="Your Image" boxSize="400px" />
       </HStack>
 
       {/* Selected Option 2 */}
       <VStack alignItems="flex-start" width="45%">
         {/* Dropdown menu 2 */}
-          <Box mt={4}>
-            <Text>X-axis:</Text>
-            <Select value={selectedOption2} onChange={handleOptionChange2}>
-              <option value="Prompt">Prompt ***</option>
-              <option value="Negative Prompt">Negative Prompt</option>
-              <option value="Seed">Seed</option>
-              <option value="Lora">Lora</option>
-              <option value="Model">Model</option>
-              <option value="VAE">VAE</option>
-              <option value="Controlnet">Controlnet</option>
-              <option value="Remove Background">Remove Background</option>
-              <option value="Width">Width</option>
-              <option value="Height">Height</option>
-              <option value="CFG Scale">CFG Scale</option>
-              <option value="Steps">Steps</option>
-              <option value="Sampler">Sampler</option>
-              <option value="Image Strength">Image Strength</option>
-              <option value="Clip Skip">Clip Skip</option>
-            </Select>
-          </Box>
+        <Box mt={4}>
+          <Text>X-axis:</Text>
+          <Select value={selectedOption2} onChange={handleOptionChange2}>
+            <option value="Prompt">Prompt ***</option>
+            <option value="Negative Prompt">Negative Prompt</option>
+            <option value="Seed">Seed</option>
+            <option value="Lora">Lora</option>
+            <option value="Model">Model</option>
+            <option value="VAE">VAE</option>
+            <option value="Controlnet">Controlnet</option>
+            <option value="Remove Background">Remove Background</option>
+            <option value="Width">Width</option>
+            <option value="Height">Height</option>
+            <option value="CFG Scale">CFG Scale</option>
+            <option value="Steps">Steps</option>
+            <option value="Sampler">Sampler</option>
+            <option value="Image Strength">Image Strength</option>
+            <option value="Clip Skip">Clip Skip</option>
+          </Select>
+        </Box>
 
         {renderInput2()}
       </VStack>
@@ -225,7 +200,7 @@ function PromptWorkshop() {
         <Text>Generate XY-Plot</Text>
       </Button>
     </VStack>
-  );
+  )
 }
 
-export default PromptWorkshop;
+export default PromptWorkshop
