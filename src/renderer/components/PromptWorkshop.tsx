@@ -17,8 +17,8 @@ import {
 import XYPlot from '../images/XYPlot.png'
 
 function PromptWorkshop() {
-  const [selectedOption1, setSelectedOption1] = useState('')
-  const [selectedOption2, setSelectedOption2] = useState('')
+  const [selectedOption1, setSelectedOption1] = useState('Prompt')
+  const [selectedOption2, setSelectedOption2] = useState('Prompt')
   const [inputValue1, setInputValue1] = useState('')
   const [inputValue2, setInputValue2] = useState('')
 
@@ -139,8 +139,7 @@ function PromptWorkshop() {
   return (
     <VStack width="100%">
       <HStack alignItems="flex-start" justifyContent="flex-start" width="100%">
-        <Flex align="center" justify="center">
-          {/* Dropdown menu 1 */}
+        <VStack align="start" justify="start" width="30%">
           <Box mr={4}>
             <Text>Y-Axis:</Text>
             <Select value={selectedOption1} onChange={handleOptionChange1}>
@@ -163,7 +162,7 @@ function PromptWorkshop() {
           </Box>
 
           {renderInput1()}
-        </Flex>
+        </VStack>
 
         {/* Image */}
         <Image src={XYPlot} alt="Your Image" boxSize="400px" />
@@ -171,7 +170,6 @@ function PromptWorkshop() {
 
       {/* Selected Option 2 */}
       <VStack alignItems="flex-start" width="45%">
-        {/* Dropdown menu 2 */}
         <Box mt={4}>
           <Text>X-axis:</Text>
           <Select value={selectedOption2} onChange={handleOptionChange2}>
